@@ -1,242 +1,179 @@
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>מסע חלל - לוח הכפל</title>
-
-<style>
-body { margin:0; overflow:hidden; background:black; font-family:Arial; touch-action:none; }
-
-#ui {
-  position:absolute; width:100%; height:100%;
-  display:flex; flex-direction:column;
-  justify-content:space-between; align-items:center;
-  pointer-events:none;
-}
-
-#top {
-  color:#00f2ff; font-size:18px; margin-top:10px;
-  text-shadow:0 0 10px #00f2ff;
-}
-
-#panel {
-  background:rgba(0,0,0,0.7);
-  border:2px solid #00f2ff;
-  border-radius:20px;
-  padding:12px;
-  margin-bottom:10px;
-  pointer-events:auto;
-  text-align:center;
-}
-
-#question { font-size:28px; color:white; }
-#answer { font-size:24px; color:#ff00de; min-height:28px; }
-#rank { color:#ffeb3b; }
-
-#pad {
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:6px;
-  margin-top:8px;
-}
-
-.btn {
-  background:#111; color:white;
-  padding:10px; font-size:16px;
-  border-radius:10px;
-}
-
-.go { grid-column:span 2; background:green; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>מסע הכפל: v4.2.0 Explorer</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; touch-action: none; }
+        #ui { position: absolute; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: space-between; align-items: center; pointer-events: none; z-index: 100; }
+        #top-bar { width: 95%; display: flex; justify-content: space-between; padding: 10px; color: #00f2ff; font-weight: bold; font-size: 1rem; text-shadow: 0 0 10px #00f2ff; }
+        #discovery-alert { margin-top: 40px; color: #ffeb3b; font-size: 1.8rem; font-weight: bold; text-shadow: 0 0 20px #ffeb3b; opacity: 0; transition: 0.8s; text-align: center; }
+        #main-panel { display: flex; flex-direction: column; align-items: center; transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1); pointer-events: none; margin-bottom: 15px; transform: scale(0.85); transform-origin: bottom; }
+        .hide-ui { transform: scale(0.85) translateY(140%) !important; }
+        #mission-control { background: rgba(0, 10, 30, 0.7); padding: 10px 30px; border-radius: 30px; border: 1px solid #00f2ff; backdrop-filter: blur(10px); pointer-events: auto; margin-bottom: 8px; }
+        #question { font-size: 2.5rem; color: #fff; margin: 0; text-align: center; }
+        #answer-display { font-size: 1.8rem; color: #ff00de; text-align: center; min-height: 2.2rem; }
+        #numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px; width: 220px; pointer-events: auto; background: rgba(0, 0, 0, 0.8); border: 2px solid #ff00de; border-radius: 25px; }
+        .btn { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(0, 242, 255, 0.4); color: white; font-size: 1.3rem; padding: 12px; border-radius: 12px; text-align: center; cursor: pointer; }
+        .btn:active { background: #ff00de; }
+        .btn-go { background: linear-gradient(45deg, #0f0, #008000); grid-column: span 2; font-weight: bold; }
+        #version-tag { position: absolute; bottom: 5px; left: 10px; color: rgba(0, 242, 255, 0.3); font-size: 0.65rem; }
+    </style>
 </head>
-
 <body>
 
 <div id="ui">
-  <div id="top">
-    🚀 מרחק: <span id="score">0</span> |
-    🌟 שלב: <span id="level">1</span> |
-    🏆 <span id="rank">צוער</span>
-  </div>
-
-  <div id="panel">
-    <div id="question"></div>
-    <div id="answer">?</div>
-
-    <div id="pad">
-      <div class="btn" onclick="press(1)">1</div>
-      <div class="btn" onclick="press(2)">2</div>
-      <div class="btn" onclick="press(3)">3</div>
-      <div class="btn" onclick="press(4)">4</div>
-      <div class="btn" onclick="press(5)">5</div>
-      <div class="btn" onclick="press(6)">6</div>
-      <div class="btn" onclick="press(7)">7</div>
-      <div class="btn" onclick="press(8)">8</div>
-      <div class="btn" onclick="press(9)">9</div>
-      <div class="btn" onclick="del()">מחק</div>
-      <div class="btn" onclick="press(0)">0</div>
-      <div class="btn go" onclick="check()">קפיצה! 🌌</div>
+    <div id="top-bar">
+        <div>🚀 <span id="dist">0</span> שנות אור</div>
+        <div>🏆 <span id="rank">מגלת עולמות</span></div>
     </div>
-  </div>
+    <div id="discovery-alert">מזהה מערכת חדשה...</div>
+    <div id="main-panel">
+        <div id="mission-control"><div id="question">טוען...</div><div id="answer-display">?</div></div>
+        <div id="numpad">
+            <div class="btn" onclick="press(1)">1</div><div class="btn" onclick="press(2)">2</div><div class="btn" onclick="press(3)">3</div>
+            <div class="btn" onclick="press(4)">4</div><div class="btn" onclick="press(5)">5</div><div class="btn" onclick="press(6)">6</div>
+            <div class="btn" onclick="press(7)">7</div><div class="btn" onclick="press(8)">8</div><div class="btn" onclick="press(9)">9</div>
+            <div class="btn" style="color:#ff4444" onclick="del()">X</div><div class="btn" onclick="press(0)">0</div><div class="btn btn-go" onclick="check()">קפיצה! 🌌</div>
+        </div>
+    </div>
+    <div id="version-tag">SYSTEM v4.2.0 - TOUCH & SOLAR SYSTEMS ACTIVE</div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-
 <script>
-// ====== THREE ======
-let scene = new THREE.Scene();
-let camera = new THREE.PerspectiveCamera(70, innerWidth/innerHeight, 0.1, 3000);
-camera.position.z = 10;
+    let scene, camera, renderer, stars, currentStructure, moon;
+    let speed = 0.1, targetSpeed = 0.1, score = 0, currentAns = 0, inputStr = "";
+    let mouseX = 0, mouseY = 0;
 
-let renderer = new THREE.WebGLRenderer({antialias:true});
-renderer.setSize(innerWidth, innerHeight);
-document.body.appendChild(renderer.domElement);
+    function init() {
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.1, 5000);
+        camera.position.z = 15;
 
-// ⭐ כוכבים
-const geo = new THREE.BufferGeometry();
-const pos = [];
-for(let i=0;i<12000;i++){
-  pos.push((Math.random()-0.5)*2000,
-           (Math.random()-0.5)*2000,
-           (Math.random()-0.5)*2000);
-}
-geo.setAttribute('position', new THREE.Float32BufferAttribute(pos,3));
-const stars = new THREE.Points(geo, new THREE.PointsMaterial({size:1}));
-scene.add(stars);
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
 
-// 🪐 כוכבי לכת דינמיים
-let planets = [];
-function createPlanet(){
-  const p = new THREE.Mesh(
-    new THREE.SphereGeometry(3,32,32),
-    new THREE.MeshStandardMaterial({color: new THREE.Color().setHSL(Math.random(),0.7,0.5)})
-  );
-  p.position.set((Math.random()-0.5)*100, (Math.random()-0.5)*60, -300);
-  scene.add(p);
-  planets.push(p);
-}
-for(let i=0;i<3;i++) createPlanet();
+        // יצירת אלפי כוכבים
+        const starGeo = new THREE.BufferGeometry();
+        const starPos = [];
+        for(let i=0; i<15000; i++) starPos.push((Math.random()-0.5)*4000, (Math.random()-0.5)*4000, (Math.random()-0.5)*4000);
+        starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPos, 3));
+        stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 1.1 }));
+        scene.add(stars);
 
-// ☀️ אור
-scene.add(new THREE.PointLight(0xffffff,2));
+        const light = new THREE.PointLight(0xffffff, 3, 1000);
+        camera.add(light); scene.add(camera);
+        scene.add(new THREE.AmbientLight(0x333333));
 
-// ====== שליטה עם אצבע ======
-let targetX=0, targetY=0;
+        // --- פונקציות מגע ותנועה ---
+        document.addEventListener('touchstart', (e) => {
+            mouseX = (e.touches[0].clientX - window.innerWidth / 2) / 100;
+            mouseY = (e.touches[0].clientY - window.innerHeight / 2) / 100;
+        }, {passive: false});
 
-document.addEventListener("touchmove",(e)=>{
-  targetX = (e.touches[0].clientX/window.innerWidth - 0.5)*2;
-  targetY = (e.touches[0].clientY/window.innerHeight - 0.5)*2;
-},{passive:true});
+        document.addEventListener('touchmove', (e) => {
+            mouseX = (e.touches[0].clientX - window.innerWidth / 2) / 100;
+            mouseY = (e.touches[0].clientY - window.innerHeight / 2) / 100;
+        }, {passive: false});
 
-// ====== משחק ======
-let answer=0,input="",score=0,level=1;
-
-function rank(){
-  if(level<5) return "צוער";
-  if(level<10) return "טייס";
-  if(level<20) return "מפקד חלל";
-  return "אלוף הגלקסיה";
-}
-
-function newQ(){
-  let a=Math.floor(Math.random()*level)+1;
-  let b=Math.floor(Math.random()*10)+1;
-  answer=a*b;
-  document.getElementById("question").innerText=`${a} × ${b}`;
-  input=""; update();
-}
-
-function update(){ document.getElementById("answer").innerText=input||"?"; }
-
-function press(n){ if(input.length<3){ input+=n; update(); } }
-function del(){ input=""; update(); }
-
-function speak(t){
-  let u=new SpeechSynthesisUtterance(t);
-  u.lang="he-IL"; speechSynthesis.speak(u);
-}
-
-function check(){
-  if(parseInt(input)===answer){
-    speak("כל הכבוד!");
-    score+=100; level++;
-    document.getElementById("score").innerText=score;
-    document.getElementById("level").innerText=level;
-    document.getElementById("rank").innerText=rank();
-    speed=40;
-    explode();
-    setTimeout(newQ,1200);
-  } else {
-    speak("נסה שוב");
-    input=""; update();
-  }
-}
-
-// 💥 פיצוץ
-let parts=[];
-function explode(){
-  for(let i=0;i<50;i++){
-    let p=new THREE.Mesh(
-      new THREE.SphereGeometry(0.2),
-      new THREE.MeshBasicMaterial({color:0xffaa00})
-    );
-    p.position.set(0,0,0);
-    p.v=new THREE.Vector3(
-      (Math.random()-0.5)*3,
-      (Math.random()-0.5)*3,
-      (Math.random()-0.5)*3
-    );
-    scene.add(p);
-    parts.push(p);
-  }
-}
-
-// ====== אנימציה ======
-let speed=0.5;
-
-function animate(){
-  requestAnimationFrame(animate);
-
-  // מצלמה חלקה
-  camera.position.x += (targetX*8 - camera.position.x)*0.05;
-  camera.position.y += (-targetY*6 - camera.position.y)*0.05;
-  camera.lookAt(scene.position);
-
-  // כוכבים
-  let p=stars.geometry.attributes.position.array;
-  for(let i=2;i<p.length;i+=3){
-    p[i]+=speed;
-    if(p[i]>50) p[i]=-1000;
-  }
-  stars.geometry.attributes.position.needsUpdate=true;
-
-  // כוכבי לכת
-  planets.forEach(pl=>{
-    pl.position.z += speed;
-    pl.rotation.y += 0.01;
-
-    if(pl.position.z>50){
-      pl.position.z=-300;
-      pl.position.x=(Math.random()-0.5)*100;
-      pl.position.y=(Math.random()-0.5)*60;
+        genStructure();
+        nextLevel();
+        animate();
     }
-  });
 
-  // חלקיקים
-  parts.forEach(p=>{
-    p.position.add(p.v);
-    p.v.multiplyScalar(0.95);
-  });
+    function genStructure() {
+        if(currentStructure) scene.remove(currentStructure);
+        currentStructure = new THREE.Group();
+        currentStructure.position.set(0, 0, -1500); // מתחיל רחוק
+        
+        const dice = Math.random();
+        const alert = document.getElementById('discovery-alert');
+        alert.style.opacity = "1";
 
-  speed*=0.97;
+        if(dice < 0.5) {
+            // מערכת שמש: כוכב לכת + ירח
+            alert.innerText = "מערכת שמש חדשה! 🪐";
+            const col = new THREE.Color().setHSL(Math.random(), 0.8, 0.5);
+            const planet = new THREE.Mesh(new THREE.SphereGeometry(5,64,64), new THREE.MeshStandardMaterial({color:col, emissive:col, emissiveIntensity:0.2}));
+            currentStructure.add(planet);
 
-  renderer.render(scene,camera);
-}
+            const mCol = new THREE.Color(0x888888);
+            moon = new THREE.Mesh(new THREE.SphereGeometry(1.2,32,32), new THREE.MeshStandardMaterial({color:mCol}));
+            moon.position.set(10, 0, 0);
+            currentStructure.add(moon);
+        } else if(dice < 0.8) {
+            // חור שחור עם טבעת מסתובבת
+            alert.innerText = "חור שחור ענקי! 🌑";
+            const bh = new THREE.Mesh(new THREE.SphereGeometry(6,32,32), new THREE.MeshBasicMaterial({color:0x000000}));
+            const r = new THREE.Mesh(new THREE.TorusGeometry(10, 0.8, 2, 100), new THREE.MeshBasicMaterial({color:0xff3300, transparent:true, opacity:0.8}));
+            r.rotation.x = 1.6;
+            currentStructure.add(bh); currentStructure.add(r);
+            currentStructure.userData = {r};
+        } else {
+            // חור תולעת מרהיב
+            alert.innerText = "חור תולעת זוהר! 🌀";
+            const wh = new THREE.Mesh(new THREE.TorusGeometry(8, 5, 16, 100), new THREE.MeshBasicMaterial({color:0x00f2ff, wireframe:true, transparent:true, opacity:0.5}));
+            currentStructure.add(wh);
+            currentStructure.userData = {wh};
+        }
+        
+        scene.add(currentStructure);
+        setTimeout(()=> alert.style.opacity="0", 3000);
+    }
 
-newQ();
-animate();
+    function check() {
+        if(parseInt(inputStr) === currentAns) {
+            score++; targetSpeed = 40;
+            document.getElementById('dist').innerText = score * 500;
+            document.getElementById('main-panel').classList.add('hide-ui');
+            setTimeout(genStructure, 1000);
+            setTimeout(()=> { document.getElementById('main-panel').classList.remove('hide-ui'); nextLevel(); }, 4000);
+        } else { del(); }
+    }
+
+    function nextLevel() {
+        let n1 = Math.floor(Math.random()*8)+2, n2 = Math.floor(Math.random()*9)+1;
+        currentAns = n1*n2;
+        document.getElementById('question').innerText = `${n1} × ${n2}`;
+        inputStr = ""; document.getElementById('answer-display').innerText = "?";
+    }
+
+    function press(n) { if(inputStr.length < 3) { inputStr += n; document.getElementById('answer-display').innerText = inputStr; } }
+    function del() { inputStr = ""; document.getElementById('answer-display').innerText = "?"; }
+
+    function animate() {
+        requestAnimationFrame(animate);
+        speed += (targetSpeed - speed) * 0.05;
+        if(targetSpeed > 0.2) targetSpeed -= 0.35;
+
+        // שליטה במצלמה עם האצבע
+        camera.position.x += (mouseX - camera.position.x) * 0.05;
+        camera.position.y += (-mouseY - camera.position.y) * 0.05;
+        camera.lookAt(scene.position);
+
+        currentStructure.position.z += speed;
+        
+        // אנימציה פנימית למבנים
+        if(moon) {
+            const time = Date.now() * 0.002;
+            moon.position.x = Math.cos(time) * 12;
+            moon.position.z = Math.sin(time) * 12;
+        }
+        if(currentStructure.userData.r) currentStructure.userData.r.rotation.z += 0.05;
+        if(currentStructure.userData.wh) currentStructure.userData.wh.rotation.z += 0.03;
+
+        if(currentStructure.position.z > 100) currentStructure.position.z = -1500;
+
+        const p = stars.geometry.attributes.position.array;
+        for(let i=0; i<p.length; i+=3) { p[i+2]+=speed; if(p[i+2]>20) p[i+2]=-2500; }
+        stars.geometry.attributes.position.needsUpdate = true;
+        
+        renderer.render(scene, camera);
+    }
+    init();
 </script>
-
 </body>
 </html>
