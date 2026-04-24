@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>מסע הכפל: v3.4.0 Full Light</title>
+    <title>מסע הכפל: Deep Space v3.5.0</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; touch-action: none; }
         #ui { position: absolute; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: space-between; align-items: center; pointer-events: none; z-index: 100; }
@@ -11,9 +11,9 @@
         .hide-ui { transform: translateY(120%); }
         #top-info { width: 95%; display: flex; justify-content: space-between; padding: 10px; color: #00f2ff; font-weight: bold; text-shadow: 0 0 10px #00f2ff; }
         #discovery-alert { margin-top: 60px; color: #ffeb3b; font-size: 2.2rem; font-weight: bold; text-shadow: 0 0 20px #ffeb3b; opacity: 0; transition: 0.5s; text-align: center; }
-        #mission-control { background: rgba(0, 10, 30, 0.8); padding: 10px 40px; border-radius: 40px; border: 1px solid #00f2ff; backdrop-filter: blur(15px); pointer-events: auto; margin-bottom: 10px; }
-        #question { font-size: 2.8rem; color: #fff; margin: 0; text-align: center; }
-        #answer-display { font-size: 2rem; color: #ff00de; text-align: center; min-height: 2.5rem; font-weight: bold; }
+        #mission-control { background: rgba(0, 10, 30, 0.8); padding: 15px 40px; border-radius: 40px; border: 1px solid #00f2ff; backdrop-filter: blur(15px); pointer-events: auto; margin-bottom: 10px; }
+        #question { font-size: 3rem; color: #fff; margin: 0; text-align: center; }
+        #answer-display { font-size: 2.2rem; color: #ff00de; text-align: center; min-height: 2.8rem; font-weight: bold; }
         #numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 15px; width: 85%; max-width: 240px; pointer-events: auto; background: rgba(0, 0, 10, 0.9); border: 2px solid #ff00de; border-radius: 30px; }
         .btn { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(0, 242, 255, 0.5); color: white; font-size: 1.5rem; padding: 15px; border-radius: 15px; text-align: center; cursor: pointer; }
         .btn:active { background: #ff00de; }
@@ -26,32 +26,26 @@
 <div id="ui">
     <div id="top-info">
         <div>🚀 <span id="dist">0</span> שנות אור</div>
-        <div>🏆 <span id="rank">מפקדת</span></div>
+        <div>🏆 <span id="rank">חוקרת גלקסיות</span></div>
     </div>
-    <div id="discovery-alert">מזהה כוכב לכת זוהר... 🌟</div>
+    <div id="discovery-alert">מזהה עולם חדש... 🔭</div>
     <div id="main-panel">
         <div id="mission-control"><div id="question"> טוען... </div><div id="answer-display">?</div></div>
         <div id="numpad">
             <div class="btn" onclick="press(1)">1</div><div class="btn" onclick="press(2)">2</div><div class="btn" onclick="press(3)">3</div>
             <div class="btn" onclick="press(4)">4</div><div class="btn" onclick="press(5)">5</div><div class="btn" onclick="press(6)">6</div>
             <div class="btn" onclick="press(7)">7</div><div class="btn" onclick="press(8)">8</div><div class="btn" onclick="press(9)">9</div>
-            <div class="btn" style="color:#ff4444" onclick="del()">X</div><div class="btn" onclick="press(0)">0</div><div class="btn btn-go" onclick="check()">קפיצה! 🌌</div>
+            <div class="btn" style="color:#ff4444" onclick="del()">X</div><div class="btn" onclick="press(0)">0</div><div class="btn btn-go" onclick="check()">טוס לעומק! 🌌</div>
         </div>
     </div>
-    <div id="version-tag">SYSTEM v3.4.0 - FULL ILLUMINATION ENGINE</div>
+    <div id="version-tag">SYSTEM v3.5.0 - INFINITE DEEP SPACE ENGINE</div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
-    let scene, camera, renderer, stars, currentPlanet;
+    let scene, camera, renderer, stars, currentPlanet, ring;
     let speed = 0.1, targetSpeed = 0.1, score = 0, currentAns = 0, inputStr = "";
     let targetRotationX = 0, targetRotationY = 0;
-
-    const planetData = [
-        { name: "מאדים האדום 🔴", color: 0xff4400, texture: 'https://threejs.org/examples/textures/planets/mars_1k_color.jpg' },
-        { name: "צדק הענקי 🪐", color: 0xffaa00, texture: 'https://threejs.org/examples/textures/planets/jupiter_1k_color.jpg' },
-        { name: "נפטון הכחול 🌊", color: 0x00aaff, texture: 'https://threejs.org/examples/textures/planets/neptune_1k_color.jpg' }
-    ];
 
     function init() {
         scene = new THREE.Scene();
@@ -62,61 +56,78 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        // כוכבים
+        // 15,000 כוכבים לעומק מקסימלי
         const starGeo = new THREE.BufferGeometry();
         const starPos = [];
-        for(let i=0; i<12000; i++) starPos.push((Math.random()-0.5)*4000, (Math.random()-0.5)*4000, (Math.random()-0.5)*4000);
+        for(let i=0; i<15000; i++) starPos.push((Math.random()-0.5)*4000, (Math.random()-0.5)*4000, (Math.random()-0.5)*4000);
         starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPos, 3));
-        stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 1.5 }));
+        stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 1.2 }));
         scene.add(stars);
 
-        // --- תיקון תאורה ---
-        // 1. אור חזק שצמוד למצלמה (כמו פנס של חללית)
-        const shipLight = new THREE.PointLight(0xffffff, 2.5, 1000);
-        camera.add(shipLight); 
+        // תאורת חללית חזקה
+        const light = new THREE.PointLight(0xffffff, 2.5, 1000);
+        camera.add(light);
         scene.add(camera);
+        scene.add(new THREE.AmbientLight(0x333333));
 
-        // 2. אור סביבתי שמוודא ששום דבר לא שחור לגמרי
-        scene.add(new THREE.AmbientLight(0x444444)); 
-
-        updatePlanet(0);
+        generateNewPlanet(); // יוצר את הכוכב הראשון
         nextLevel();
         animate();
 
-        window.addEventListener('touchmove', e => { targetRotationY = (e.touches[0].clientX - window.innerWidth/2) * 0.002; targetRotationX = (e.touches[0].clientY - window.innerHeight/2) * 0.002; });
+        window.addEventListener('touchmove', e => { 
+            targetRotationY = (e.touches[0].clientX - window.innerWidth/2) * 0.002;
+            targetRotationX = (e.touches[0].clientY - window.innerHeight/2) * 0.002;
+        });
     }
 
-    function updatePlanet(idx) {
+    // פונקציית הקסם: יוצרת כוכב לכת חדש ואקראי לגמרי בכל פעם
+    function generateNewPlanet() {
         if(currentPlanet) scene.remove(currentPlanet);
-        const data = planetData[idx % planetData.length];
-        const pGeo = new THREE.SphereGeometry(5, 64, 64);
+        if(ring) scene.remove(ring);
+
+        const size = 4 + Math.random() * 4;
+        const geometry = new THREE.SphereGeometry(size, 64, 64);
         
-        // שימוש ב-MeshStandardMaterial עם Emissive כדי שהכוכב "יזהר" בצבע שלו
-        const pMat = new THREE.MeshStandardMaterial({ 
-            map: new THREE.TextureLoader().load(data.texture),
-            emissive: data.color,
-            emissiveIntensity: 0.15 // נותן צבע גם בחושך
+        // צבע אקראי לחלוטין לכוכב הלכת
+        const randomColor = new THREE.Color().setHSL(Math.random(), 0.7, 0.5);
+        
+        const material = new THREE.MeshStandardMaterial({ 
+            color: randomColor,
+            emissive: randomColor,
+            emissiveIntensity: 0.2,
+            roughness: 0.7,
+            metalness: 0.3
         });
-        
-        currentPlanet = new THREE.Mesh(pGeo, pMat);
-        currentPlanet.position.set(0, 0, -1200);
+
+        currentPlanet = new THREE.Mesh(geometry, material);
+        currentPlanet.position.set((Math.random()-0.5)*20, (Math.random()-0.5)*10, -1500);
         scene.add(currentPlanet);
+
+        // סיכוי של 40% שתהיה טבעת מסביב לכוכב החדש
+        if(Math.random() > 0.6) {
+            const rGeo = new THREE.TorusGeometry(size * 1.8, 0.1, 2, 100);
+            const rMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.4 });
+            ring = new THREE.Mesh(rGeo, rMat);
+            ring.rotation.x = 1.5;
+            currentPlanet.add(ring);
+        }
     }
 
     function check() {
         if(parseInt(inputStr) === currentAns) {
             score++;
-            targetSpeed = 40.0;
-            document.getElementById('dist').innerText = score * 500;
+            targetSpeed = 50.0;
+            document.getElementById('dist').innerText = score * 700;
+            
             const panel = document.getElementById('main-panel');
             panel.classList.add('hide-ui');
-            
-            // החלפת כוכב לכת בכל תשובה נכונה כדי שיהיה מעניין!
+
+            // בזמן שהיא טסה במהירות, אנחנו מכינים את הכוכב הבא (שהוא יהיה שונה!)
             setTimeout(() => {
-                updatePlanet(score);
+                generateNewPlanet();
                 const alert = document.getElementById('discovery-alert');
                 alert.style.opacity = "1";
-                alert.innerText = "הגענו אל " + planetData[score % planetData.length].name;
+                alert.innerText = "גילינו עולם חדש! 👽";
                 setTimeout(() => alert.style.opacity = "0", 2000);
             }, 1000);
 
@@ -142,21 +153,28 @@
     function animate() {
         requestAnimationFrame(animate);
         speed += (targetSpeed - speed) * 0.05;
-        if(targetSpeed > 0.2) targetSpeed -= 0.3;
+        if(targetSpeed > 0.2) targetSpeed -= 0.4;
 
         camera.rotation.y += ( -targetRotationY - camera.rotation.y ) * 0.05;
         camera.rotation.x += ( -targetRotationX - camera.rotation.x ) * 0.05;
 
         currentPlanet.position.z += speed;
         currentPlanet.rotation.y += 0.01;
-        if(currentPlanet.position.z > 50) currentPlanet.position.z = -1200;
+        
+        // אם עברנו את הכוכב והיא לא ענתה, הוא יחזור מרחוק אבל בשינוי קל
+        if(currentPlanet.position.z > 50) {
+            currentPlanet.position.z = -1500;
+            currentPlanet.position.x = (Math.random()-0.5)*30;
+        }
 
         const p = stars.geometry.attributes.position.array;
         for(let i=0; i<p.length; i+=3) {
             p[i+2] += speed;
-            if(p[i+2] > 20) p[i+2] = -2000;
+            if(p[i+2] > 20) p[i+2] = -2500;
         }
         stars.geometry.attributes.position.needsUpdate = true;
+        stars.scale.z = 1 + (speed * 0.5);
+
         renderer.render(scene, camera);
     }
 
