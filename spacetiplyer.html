@@ -3,185 +3,165 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>מסע הכפל: Explorer v4.4.0</title>
+    <title>מסע הכפל: v5.0.0 Ultimate</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; touch-action: none; }
-        
         #ui { position: absolute; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: space-between; align-items: center; pointer-events: none; z-index: 100; }
-        
-        #top-info { 
-            width: 95%; display: flex; justify-content: space-between; padding: 10px; color: #00f2ff; 
-            font-weight: bold; font-size: 1.1rem; text-shadow: 0 0 10px #00f2ff;
-        }
-
-        #main-panel { 
-            display: flex; flex-direction: column; align-items: center; 
-            pointer-events: none; margin-bottom: 20px;
-            transform: scale(0.9); transform-origin: bottom;
-        }
-
-        #mission-control { 
-            background: rgba(0, 10, 30, 0.4); padding: 15px 40px; border-radius: 50px; 
-            border: 1px solid rgba(0, 242, 255, 0.3); backdrop-filter: blur(15px); pointer-events: auto; margin-bottom: 10px;
-        }
-        #question { font-size: 3rem; color: #fff; margin: 0; text-align: center; text-shadow: 0 0 15px #fff; }
-        #answer-display { font-size: 2rem; color: #ff00de; text-align: center; min-height: 2.5rem; text-shadow: 0 0 10px #ff00de; }
-
-        #numpad { 
-            display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; 
-            padding: 15px; width: 85%; max-width: 240px; pointer-events: auto;
-            background: rgba(0, 0, 0, 0.6); border: 2px solid rgba(255, 0, 222, 0.4); 
-            border-radius: 30px; margin-bottom: 20px; box-shadow: 0 0 30px rgba(255, 0, 222, 0.2);
-        }
-        
-        .btn { 
-            background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(0, 242, 255, 0.2); 
-            color: white; font-size: 1.5rem; padding: 15px; border-radius: 15px;
-            text-align: center; cursor: pointer; transition: 0.1s;
-        }
-        .btn:active { background: #ff00de; transform: scale(0.9); }
-        .btn-go { background: linear-gradient(45deg, #0f0, #008000); grid-column: span 2; font-weight: bold; text-shadow: 0 0 5px #fff; }
-
-        #version-tag { position: absolute; bottom: 5px; left: 10px; color: rgba(0, 242, 255, 0.5); font-size: 0.75rem; font-weight: bold; }
+        #top-bar { width: 95%; display: flex; justify-content: space-between; padding: 10px; color: #00f2ff; font-weight: bold; font-size: 1rem; text-shadow: 0 0 10px #00f2ff; }
+        #main-panel { display: flex; flex-direction: column; align-items: center; transition: transform 0.6s; pointer-events: none; margin-bottom: 20px; transform: scale(0.8); transform-origin: bottom; }
+        .hide-ui { transform: scale(0.8) translateY(160%) !important; }
+        #mission-control { background: rgba(0, 10, 30, 0.8); padding: 10px 30px; border-radius: 30px; border: 2px solid #00f2ff; backdrop-filter: blur(10px); pointer-events: auto; margin-bottom: 10px; box-shadow: 0 0 20px rgba(0,242,255,0.3); }
+        #question { font-size: 3rem; color: #fff; margin: 0; text-align: center; }
+        #answer-display { font-size: 2rem; color: #ff00de; text-align: center; min-height: 2.5rem; font-weight: bold; }
+        #numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 15px; width: 220px; pointer-events: auto; background: rgba(0, 0, 0, 0.85); border: 2.5px solid #ff00de; border-radius: 25px; }
+        .btn { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(0, 242, 255, 0.4); color: white; font-size: 1.5rem; padding: 12px; border-radius: 12px; text-align: center; cursor: pointer; }
+        .btn:active { background: #ff00de; }
+        .btn-go { background: linear-gradient(45deg, #0f0, #008000); grid-column: span 2; font-weight: bold; }
+        #version-tag { position: absolute; bottom: 5px; left: 10px; color: rgba(0, 242, 255, 0.3); font-size: 0.6rem; }
     </style>
 </head>
 <body>
 
 <div id="ui">
-    <div id="top-info">
-        <div>🏆 דרגה: <span id="rank">מגלת גלקסיות</span></div>
-        <div>🚀 מרחק: <span id="dist">0</span> שנות אור</div>
+    <div id="top-bar">
+        <div>🚀 <span id="dist">0</span> שנות אור</div>
+        <div>🏆 <span id="rank">מפקדת היקום</span></div>
     </div>
-
-    <div style="display: flex; flex-direction: column; align-items: center; pointer-events: none;">
-        <div id="mission-control">
-            <div id="question"> 6 × 7 </div>
-            <div id="answer-display">?</div>
-        </div>
-
+    <div id="main-panel">
+        <div id="mission-control"><div id="question">טוען...</div><div id="answer-display">?</div></div>
         <div id="numpad">
             <div class="btn" onclick="press(1)">1</div><div class="btn" onclick="press(2)">2</div><div class="btn" onclick="press(3)">3</div>
             <div class="btn" onclick="press(4)">4</div><div class="btn" onclick="press(5)">5</div><div class="btn" onclick="press(6)">6</div>
             <div class="btn" onclick="press(7)">7</div><div class="btn" onclick="press(8)">8</div><div class="btn" onclick="press(9)">9</div>
-            <div class="btn" style="color:#ff4444" onclick="del()">X</div><div class="btn" onclick="press(0)">0</div><div class="btn btn-go" onclick="check()">קפיצה! 🌌</div>
+            <div class="btn" style="color:#ff4444" onclick="del()">X</div><div class="btn" onclick="press(0)">0</div><div class="btn btn-go" onclick="check()">קפיצה קוסמית! 🌌</div>
         </div>
     </div>
-    
-    <div id="version-tag">SYSTEM v4.4.0 - COSMIC NEBULA GENERATOR</div>
+    <div id="version-tag">SYSTEM v5.0.0 - PROPROCEDURAL UNIVERSE</div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
-    let scene, camera, renderer, stars, currentStructure, currentNebula;
-    let speed = 0.2, targetSpeed = 0.2, score = 0, currentAns = 0, inputStr = "";
+    let scene, camera, renderer, stars, universeGroup;
+    let speed = 0, score = 0, currentAns = 0, inputStr = "";
+    let targetZ = 0, isJumping = false;
+    let rotX = 0, rotY = 0, targetRotX = 0, targetRotY = 0;
 
     function init() {
         scene = new THREE.Scene();
         camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.1, 5000);
-        camera.position.z = 5;
+        camera.position.z = 40;
 
         renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setPixelRatio(window.devicePixelRatio); 
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.toneMapping = THREE.ReinhardToneMapping;
+        renderer.setPixelRatio(window.devicePixelRatio);
         document.body.appendChild(renderer.domElement);
 
-        // כוכבים
+        // רקע כוכבים אינסופי
         const starGeo = new THREE.BufferGeometry();
         const starPos = [];
-        for(let i=0; i<12000; i++) starPos.push((Math.random()-0.5)*4000, (Math.random()-0.5)*4000, (Math.random()-0.5)*4000);
+        for(let i=0; i<15000; i++) starPos.push((Math.random()-0.5)*4000, (Math.random()-0.5)*4000, (Math.random()-0.5)*4000);
         starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPos, 3));
-        stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 1.0, transparent: true }));
+        stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 1.1 }));
         scene.add(stars);
 
-        const sunLight = new THREE.PointLight(0xffffff, 2.5, 1000);
-        sunLight.position.set(25, 25, 25);
-        scene.add(sunLight);
-        scene.add(new THREE.AmbientLight(0x111111));
+        scene.add(new THREE.AmbientLight(0x444444));
+        const light = new THREE.PointLight(0xffffff, 3, 1000);
+        light.position.set(50,50,50);
+        scene.add(light);
 
-        generateRandomCosmicPhenomenon(); // יוצר את המבנה הראשון
+        // שליטת אצבע חלקה
+        let startX, startY;
+        document.addEventListener('touchstart', e => { startX = e.touches[0].clientX; startY = e.touches[0].clientY; });
+        document.addEventListener('touchmove', e => {
+            const dx = e.touches[0].clientX - startX;
+            const dy = e.touches[0].clientY - startY;
+            targetRotY += dx * 0.005;
+            targetRotX += dy * 0.005;
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+        });
 
+        generateNewSystem();
         nextLevel();
         animate();
     }
 
-    // פונקציית הקסם: יוצרת מבנה חלל אקראי לחלוטין (ערפילית, סופרנובה, חור תולעת וכו')
-    function generateRandomCosmicPhenomenon() {
-        // ניקוי המבנים הקודמים
-        if(currentStructure) scene.remove(currentStructure);
-        if(currentNebula) scene.remove(currentNebula);
-
-        currentStructure = new THREE.Group();
-        currentStructure.position.set((Math.random()-0.5)*30, (Math.random()-0.5)*20, -1500); // מתחיל רחוק מאוד
-
-        const dice = Math.random();
+    function generateNewSystem() {
+        if(universeGroup) scene.remove(universeGroup);
+        universeGroup = new THREE.Group();
+        universeGroup.position.z = -1500; // מתחיל רחוק
         
-        // יצירת ערפילית (Nebula) ייחודית בכל מקרה
-        const nebGeo = new THREE.IcosahedronGeometry(Math.random()*40 + 60, 2);
-        const nebColor = new THREE.Color().setHSL(Math.random(), 0.8, 0.4);
-        const nebMat = new THREE.MeshBasicMaterial({ 
-            color: nebColor, transparent: true, opacity: 0.1, side: THREE.BackSide, blending: THREE.AdditiveBlending 
-        });
-        currentNebula = new THREE.Mesh(nebGeo, nebMat);
-        currentNebula.position.copy(currentStructure.position);
-        scene.add(currentNebula);
+        const type = Math.floor(Math.random() * 5);
+        const hue = Math.random();
+        const mainColor = new THREE.Color().setHSL(hue, 1, 0.5);
 
-        if (dice < 0.4) {
-            // 40% סיכוי לסופרנובה (Supernova)
-            const snGeo = new THREE.DodecahedronGeometry(20, 1);
-            const snMat = new THREE.MeshBasicMaterial({ 
-                color: nebColor, transparent: true, opacity: 0.6, wireframe: true, blending: THREE.AdditiveBlending 
-            });
-            const supernovaMesh = new THREE.Mesh(snGeo, snMat);
-            currentStructure.add(supernovaMesh);
-        } else if (dice < 0.7) {
-            // 30% סיכוי לגלקסיה (Galaxy)
-            const galGeo = new THREE.TorusGeometry(15, 3, 2, 100);
-            const galColor = new THREE.Color().setHSL(Math.random(), 1, 0.5);
-            const galMat = new THREE.MeshBasicMaterial({ 
-                color: galColor, transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending 
-            });
-            const galaxyMesh = new THREE.Mesh(galGeo, galMat);
-            galaxyMesh.rotation.x = Math.PI / (Math.random()*4 + 1.5);
-            currentStructure.add(galaxyMesh);
-        } else {
-            // 30% סיכוי לחור תולעת (Wormhole)
-            const wormGeo = new THREE.TorusGeometry(20, 12, 16, 128);
-            const wormColor = new THREE.Color().setHSL(Math.random(), 1, 0.7);
-            const wormMat = new THREE.MeshBasicMaterial({ 
-                color: wormColor, transparent: true, opacity: 0.3, wireframe: true 
-            });
-            const wormholeMesh = new THREE.Mesh(wormGeo, wormMat);
-            currentStructure.add(wormholeMesh);
-            currentStructure.rotation.y = Math.PI / 2;
+        if(type === 0) { // מערכת שמש
+            const sun = new THREE.Mesh(new THREE.SphereGeometry(8,32,32), new THREE.MeshBasicMaterial({color: 0xffdd00}));
+            universeGroup.add(sun);
+            for(let i=0; i<2; i++) {
+                const p = new THREE.Mesh(new THREE.SphereGeometry(2+i,32,32), new THREE.MeshStandardMaterial({color: new THREE.Color().setHSL(Math.random(),0.5,0.5)}));
+                p.position.x = 20 + i*15;
+                const pivot = new THREE.Group();
+                pivot.add(p);
+                pivot.rotation.y = Math.random() * Math.PI * 2;
+                universeGroup.add(pivot);
+            }
+        } else if(type === 1) { // חור שחור
+            const bh = new THREE.Mesh(new THREE.SphereGeometry(10,32,32), new THREE.MeshBasicMaterial({color: 0x000000}));
+            const disk = new THREE.Mesh(new THREE.TorusGeometry(18, 2, 2, 100), new THREE.MeshBasicMaterial({color: mainColor, transparent:true, opacity:0.8}));
+            disk.rotation.x = 1.5;
+            universeGroup.add(bh); universeGroup.add(disk);
+            universeGroup.userData.isBH = true;
+        } else if(type === 2) { // סופרנובה / ערפילית
+            const geo = new THREE.IcosahedronGeometry(15, 1);
+            const mat = new THREE.MeshBasicMaterial({color: mainColor, wireframe: true, transparent:true, opacity:0.6});
+            const sn = new THREE.Mesh(geo, mat);
+            universeGroup.add(sn);
+        } else if(type === 3) { // גלקסיה ספירלית
+            const points = [];
+            for(let i=0; i<2000; i++) {
+                const r = Math.random() * 30;
+                const a = r * 0.5;
+                points.push(Math.cos(a)*r, (Math.random()-0.5)*2, Math.sin(a)*r);
+            }
+            const gGeo = new THREE.BufferGeometry();
+            gGeo.setAttribute('position', new THREE.Float32BufferAttribute(points, 3));
+            const gal = new THREE.Points(gGeo, new THREE.PointsMaterial({color: mainColor, size: 0.5}));
+            universeGroup.add(gal);
+        } else { // חור תולעת
+            const wGeo = new THREE.TorusGeometry(15, 10, 16, 100);
+            const wMat = new THREE.MeshBasicMaterial({color: mainColor, wireframe:true, transparent:true, opacity:0.4});
+            const wh = new THREE.Mesh(wGeo, wMat);
+            universeGroup.add(wh);
+            universeGroup.rotation.y = 1.5;
         }
 
-        scene.add(currentStructure);
+        scene.add(universeGroup);
+        isJumping = true;
+        targetZ = 0;
     }
 
     function check() {
         if(parseInt(inputStr) === currentAns) {
             score++;
-            targetSpeed = 25.0; // מהירות וואו מטורפת!
             document.getElementById('dist').innerText = score * 500;
-            
-            // הכנת המבנה הבא (הוא יהיה שונה!)
-            setTimeout(() => { generateRandomCosmicPhenomenon(); }, 1200);
-
-            setTimeout(() => { nextLevel(); }, 800);
-        } else {
-            targetSpeed = 0.05;
-            del();
-        }
+            document.getElementById('main-panel').classList.add('hide-ui');
+            targetZ = 1000; // האובייקט עף מעבר למצלמה
+            isJumping = true;
+            setTimeout(() => {
+                generateNewSystem();
+                targetRotX = 0; targetRotY = 0;
+                document.getElementById('main-panel').classList.remove('hide-ui');
+                nextLevel();
+            }, 2000);
+        } else { del(); }
     }
 
     function nextLevel() {
-        let n1 = Math.floor(Math.random()*8)+2;
-        let n2 = Math.floor(Math.random()*9)+1;
+        let n1 = Math.floor(Math.random()*8)+2, n2 = Math.floor(Math.random()*9)+1;
         currentAns = n1*n2;
         document.getElementById('question').innerText = `${n1} × ${n2}`;
-        inputStr = "";
-        document.getElementById('answer-display').innerText = "?";
+        inputStr = ""; document.getElementById('answer-display').innerText = "?";
     }
 
     function press(n) { if(inputStr.length < 3) { inputStr += n; document.getElementById('answer-display').innerText = inputStr; } }
@@ -189,33 +169,35 @@
 
     function animate() {
         requestAnimationFrame(animate);
-        speed += (targetSpeed - speed) * 0.05;
-        if(targetSpeed > 0.25) targetSpeed -= 0.25;
 
-        // המבנה הנוכחי והערפילית מתקרבים אלינו
-        currentStructure.position.z += speed;
-        currentNebula.position.z += speed;
-        currentNebula.rotation.x += 0.001; // סיבוב איטי מאוד של הערפילית
-        currentNebula.rotation.y += 0.001;
-
-        if(currentStructure.position.z > 25) { // לופ אם חלפו
-            currentStructure.position.z = -1800;
-            currentNebula.position.z = -1800;
+        // תנועת מעבר
+        if(isJumping) {
+            universeGroup.position.z += (targetZ - universeGroup.position.z) * 0.05;
+            speed = 15;
+            if(Math.abs(universeGroup.position.z - targetZ) < 1) { isJumping = false; speed = 0.2; }
         }
 
-        const pCoords = stars.geometry.attributes.position.array;
-        for(let i=0; i<pCoords.length; i+=3) {
-            pCoords[i+2] += speed;
-            if(pCoords[i+2] > 10) pCoords[i+2] = -2500;
-        }
+        // סיבוב עם האצבע
+        rotX += (targetRotX - rotX) * 0.1;
+        rotY += (targetRotY - rotY) * 0.1;
+        universeGroup.rotation.x = rotX;
+        universeGroup.rotation.y = rotY;
+
+        // אנימציה עצמית של המערכות
+        universeGroup.children.forEach(c => {
+            if(c instanceof THREE.Group) c.rotation.y += 0.01; // סיבוב כוכבי לכת
+            if(universeGroup.userData.isBH && c instanceof THREE.Mesh && c.geometry.type === "TorusGeometry") c.rotation.z += 0.05;
+        });
+
+        // כוכבים ברקע
+        const p = stars.geometry.attributes.position.array;
+        for(let i=0; i<p.length; i+=3) { p[i+2]+=speed; if(p[i+2]>20) p[i+2]=-2500; }
         stars.geometry.attributes.position.needsUpdate = true;
-        // מתיחת כוכבים במהירות גבוהה
-        stars.scale.z = 1 + (speed * 0.4);
 
         renderer.render(scene, camera);
     }
-
     init();
 </script>
 </body>
 </html>
+
