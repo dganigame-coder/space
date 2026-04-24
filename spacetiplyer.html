@@ -3,49 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>מסע הכפל: Deep Space v3.5.0</title>
+    <title>מסע הכפל: v4.0.0 - האינסוף</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; touch-action: none; }
+        
         #ui { position: absolute; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: space-between; align-items: center; pointer-events: none; z-index: 100; }
-        #main-panel { display: flex; flex-direction: column; align-items: center; transition: transform 0.8s ease-in-out; pointer-events: none; margin-bottom: 20px; }
+        
+        #top-bar { width: 95%; display: flex; justify-content: space-between; padding: 10px; color: #00f2ff; font-weight: bold; font-size: 1.1rem; text-shadow: 0 0 10px #00f2ff; }
+        
+        #discovery-alert { 
+            margin-top: 60px; color: #ffeb3b; font-size: 2.8rem; font-weight: bold; 
+            text-shadow: 0 0 25px #ffeb3b; opacity: 0; transition: 0.8s; text-align: center;
+        }
+
+        #main-panel { 
+            display: flex; flex-direction: column; align-items: center; 
+            transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1); 
+            pointer-events: none; margin-bottom: 20px;
+        }
         .hide-ui { transform: translateY(120%); }
-        #top-info { width: 95%; display: flex; justify-content: space-between; padding: 10px; color: #00f2ff; font-weight: bold; text-shadow: 0 0 10px #00f2ff; }
-        #discovery-alert { margin-top: 60px; color: #ffeb3b; font-size: 2.2rem; font-weight: bold; text-shadow: 0 0 20px #ffeb3b; opacity: 0; transition: 0.5s; text-align: center; }
-        #mission-control { background: rgba(0, 10, 30, 0.8); padding: 15px 40px; border-radius: 40px; border: 1px solid #00f2ff; backdrop-filter: blur(15px); pointer-events: auto; margin-bottom: 10px; }
-        #question { font-size: 3rem; color: #fff; margin: 0; text-align: center; }
-        #answer-display { font-size: 2.2rem; color: #ff00de; text-align: center; min-height: 2.8rem; font-weight: bold; }
-        #numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 15px; width: 85%; max-width: 240px; pointer-events: auto; background: rgba(0, 0, 10, 0.9); border: 2px solid #ff00de; border-radius: 30px; }
-        .btn { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(0, 242, 255, 0.5); color: white; font-size: 1.5rem; padding: 15px; border-radius: 15px; text-align: center; cursor: pointer; }
-        .btn:active { background: #ff00de; }
-        .btn-go { background: linear-gradient(45deg, #00ff00, #008800); grid-column: span 2; font-weight: bold; }
-        #version-tag { position: absolute; bottom: 5px; left: 10px; color: rgba(0, 242, 255, 0.6); font-size: 0.75rem; }
+
+        #mission-control { 
+            background: rgba(0, 10, 30, 0.6); padding: 15px 40px; border-radius: 50px; 
+            border: 2px solid #00f2ff; backdrop-filter: blur(15px); pointer-events: auto; margin-bottom: 10px;
+            box-shadow: 0 0 30px rgba(0, 242, 255, 0.3);
+        }
+        #question { font-size: 3.5rem; color: #fff; margin: 0; text-align: center; text-shadow: 0 0 20px #fff; }
+        #answer-display { font-size: 2.5rem; color: #ff00de; text-align: center; min-height: 3rem; text-shadow: 0 0 15px #ff00de; }
+
+        #numpad { 
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; 
+            padding: 15px; width: 85%; max-width: 250px; pointer-events: auto;
+            background: rgba(0, 0, 0, 0.7); border: 2px solid #ff00de; border-radius: 30px; margin-bottom: 20px;
+            box-shadow: 0 0 40px rgba(255, 0, 222, 0.3);
+        }
+        
+        .btn { 
+            background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(0, 242, 255, 0.3); 
+            color: white; font-size: 1.5rem; padding: 15px; border-radius: 15px;
+            text-align: center; cursor: pointer; transition: 0.2s;
+        }
+        .btn:active { background: #ff00de; transform: scale(0.9); }
+        .btn-go { background: linear-gradient(45deg, #0f0, #008000); grid-column: span 2; font-weight: bold; text-shadow: 0 0 5px #fff; }
+
+        #version-tag { position: absolute; bottom: 5px; left: 10px; color: rgba(0, 242, 255, 0.4); font-size: 0.7rem; }
     </style>
 </head>
 <body>
 
 <div id="ui">
-    <div id="top-info">
+    <div id="top-bar">
         <div>🚀 <span id="dist">0</span> שנות אור</div>
-        <div>🏆 <span id="rank">חוקרת גלקסיות</span></div>
+        <div>🏆 <span id="rank">מפקדת אומץ</span></div>
     </div>
-    <div id="discovery-alert">מזהה עולם חדש... 🔭</div>
+
+    <div id="discovery-alert">מזהה מבנה קוסמי מוזר...</div>
+
     <div id="main-panel">
-        <div id="mission-control"><div id="question"> טוען... </div><div id="answer-display">?</div></div>
+        <div id="mission-control">
+            <div id="question"> טוען... </div>
+            <div id="answer-display">?</div>
+        </div>
         <div id="numpad">
             <div class="btn" onclick="press(1)">1</div><div class="btn" onclick="press(2)">2</div><div class="btn" onclick="press(3)">3</div>
             <div class="btn" onclick="press(4)">4</div><div class="btn" onclick="press(5)">5</div><div class="btn" onclick="press(6)">6</div>
             <div class="btn" onclick="press(7)">7</div><div class="btn" onclick="press(8)">8</div><div class="btn" onclick="press(9)">9</div>
-            <div class="btn" style="color:#ff4444" onclick="del()">X</div><div class="btn" onclick="press(0)">0</div><div class="btn btn-go" onclick="check()">טוס לעומק! 🌌</div>
+            <div class="btn" style="color:#ff4444" onclick="del()">X</div><div class="btn" onclick="press(0)">0</div><div class="btn btn-go" onclick="check()">קפוץ לחלל! 🌌</div>
         </div>
     </div>
-    <div id="version-tag">SYSTEM v3.5.0 - INFINITE DEEP SPACE ENGINE</div>
+    
+    <div id="version-tag">SYSTEM v4.0.0 - PROXIMITY GENERATOR ACTIVE</div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
-    let scene, camera, renderer, stars, currentPlanet, ring;
+    let scene, camera, renderer, stars, currentStructure, wormhole, ring;
     let speed = 0.1, targetSpeed = 0.1, score = 0, currentAns = 0, inputStr = "";
     let targetRotationX = 0, targetRotationY = 0;
+    let currentType = '';
 
     function init() {
         scene = new THREE.Scene();
@@ -53,10 +88,11 @@
         camera.position.z = 10;
 
         renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setPixelRatio(window.devicePixelRatio);
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        // 15,000 כוכבים לעומק מקסימלי
+        // כוכבים
         const starGeo = new THREE.BufferGeometry();
         const starPos = [];
         for(let i=0; i<15000; i++) starPos.push((Math.random()-0.5)*4000, (Math.random()-0.5)*4000, (Math.random()-0.5)*4000);
@@ -64,74 +100,106 @@
         stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 1.2 }));
         scene.add(stars);
 
-        // תאורת חללית חזקה
-        const light = new THREE.PointLight(0xffffff, 2.5, 1000);
-        camera.add(light);
+        // תאורה PBR פוטוריאליסטית הצמודה למצלמה (פנס החללית)
+        const shipLight = new THREE.PointLight(0xffffff, 3, 1000);
+        camera.add(shipLight); 
         scene.add(camera);
-        scene.add(new THREE.AmbientLight(0x333333));
+        scene.add(new THREE.AmbientLight(0x222222)); // אור סביבתי עדין
 
-        generateNewPlanet(); // יוצר את הכוכב הראשון
+        generateRandomSpaceStructure(); // יוצר את המבנה הראשון
+
+        window.addEventListener('mousemove', e => { targetRotationY = (e.clientX - window.innerWidth/2) * 0.001; targetRotationX = (e.clientY - window.innerHeight/2) * 0.001; });
+        window.addEventListener('touchmove', e => { targetRotationY = (e.touches[0].clientX - window.innerWidth/2) * 0.002; targetRotationX = (e.touches[0].clientY - window.innerHeight/2) * 0.002; });
+
         nextLevel();
         animate();
-
-        window.addEventListener('touchmove', e => { 
-            targetRotationY = (e.touches[0].clientX - window.innerWidth/2) * 0.002;
-            targetRotationX = (e.touches[0].clientY - window.innerHeight/2) * 0.002;
-        });
     }
 
-    // פונקציית הקסם: יוצרת כוכב לכת חדש ואקראי לגמרי בכל פעם
-    function generateNewPlanet() {
-        if(currentPlanet) scene.remove(currentPlanet);
-        if(ring) scene.remove(ring);
-
-        const size = 4 + Math.random() * 4;
-        const geometry = new THREE.SphereGeometry(size, 64, 64);
+    // פונקציית הקסם: יוצרת מבנה חלל אקראי לחלוטין (כוכב, חור שחור, או חור תולעת)
+    function generateRandomSpaceStructure() {
+        // ניקוי המבנה הקודם
+        if(currentStructure) scene.remove(currentStructure);
         
-        // צבע אקראי לחלוטין לכוכב הלכת
-        const randomColor = new THREE.Color().setHSL(Math.random(), 0.7, 0.5);
-        
-        const material = new THREE.MeshStandardMaterial({ 
-            color: randomColor,
-            emissive: randomColor,
-            emissiveIntensity: 0.2,
-            roughness: 0.7,
-            metalness: 0.3
-        });
+        // הגרלת סוג המבנה
+        const dice = Math.random();
+        const size = 5 + Math.random() * 5;
+        currentStructure = new THREE.Group(); // קבוצה שתכיל את כל חלקי המבנה
+        currentStructure.position.set((Math.random()-0.5)*40, (Math.random()-0.5)*20, -1800); // מתחיל רחוק מאוד
 
-        currentPlanet = new THREE.Mesh(geometry, material);
-        currentPlanet.position.set((Math.random()-0.5)*20, (Math.random()-0.5)*10, -1500);
-        scene.add(currentPlanet);
+        const alert = document.getElementById('discovery-alert');
+        alert.style.opacity = "1";
 
-        // סיכוי של 40% שתהיה טבעת מסביב לכוכב החדש
-        if(Math.random() > 0.6) {
-            const rGeo = new THREE.TorusGeometry(size * 1.8, 0.1, 2, 100);
-            const rMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.4 });
-            ring = new THREE.Mesh(rGeo, rMat);
-            ring.rotation.x = 1.5;
-            currentPlanet.add(ring);
+        if (dice < 0.4) {
+            // 40% סיכוי לכוכב לכת אקראי
+            currentType = 'planet';
+            alert.innerText = "זיהוי: כוכב לכת לא מוכר! 🪐";
+            
+            const randomColor = new THREE.Color().setHSL(Math.random(), 0.8, 0.6);
+            const pGeo = new THREE.SphereGeometry(size, 64, 64);
+            const pMat = new THREE.MeshStandardMaterial({ color: randomColor, emissive: randomColor, emissiveIntensity: 0.2 });
+            const planet = new THREE.Mesh(pGeo, pMat);
+            currentStructure.add(planet);
+
+            if(Math.random() > 0.5) { // 50% סיכוי לטבעת
+                const rGeo = new THREE.TorusGeometry(size * 1.8, 0.2, 2, 100);
+                const rMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.4 });
+                const ringMesh = new THREE.Mesh(rGeo, rMat);
+                ringMesh.rotation.x = Math.PI / (Math.random()*4 + 1.5);
+                currentStructure.add(ringMesh);
+            }
+        } else if (dice < 0.7) {
+            // 30% סיכוי לחור שחור
+            currentType = 'black_hole';
+            alert.innerText = "זהירות: חור שחור לפנינו! 🌑";
+            
+            // הגרלת צבע לטבעת האש (הטבעת יכולה להיות כתומה, סגולה, או אדומה)
+            const ringColor = new THREE.Color().setHSL(Math.random(), 1, 0.5);
+            
+            const bhGeo = new THREE.SphereGeometry(size, 32, 32);
+            const bhMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+            const blackHoleMesh = new THREE.Mesh(bhGeo, bhMat);
+            currentStructure.add(blackHoleMesh);
+
+            const ringGeo = new THREE.TorusGeometry(size * 1.6, 0.6, 2, 128);
+            const ringMat = new THREE.MeshBasicMaterial({ color: ringColor, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending });
+            const accretionDisk = new THREE.Mesh(ringGeo, ringMat);
+            accretionDisk.rotation.x = 1.5;
+            currentStructure.add(accretionDisk);
+            
+            // תנועה אקראית של טבעת האש
+            currentStructure.userData = { ring: accretionDisk, spin: Math.random() > 0.5 ? 0.05 : -0.05 };
+        } else {
+            // 30% סיכוי לחור תולעת
+            currentType = 'wormhole';
+            alert.innerText = "מתקרבים לחור תולעת! 🌀🌌";
+            
+            // הגרלת צבע למנהרת חור התולעת
+            const wormholeColor = new THREE.Color().setHSL(Math.random(), 1, 0.7);
+
+            const rGeo = new THREE.TorusGeometry(size * 1.5, size * 0.8, 16, 128);
+            const rMat = new THREE.MeshBasicMaterial({ color: wormholeColor, transparent: true, opacity: 0.3, wireframe: true });
+            wormhole = new THREE.Mesh(rGeo, rMat);
+            currentStructure.add(wormhole);
+            currentStructure.rotation.y = 1.5;
         }
+
+        scene.add(currentStructure);
+        setTimeout(() => alert.style.opacity = "0", 3000);
     }
 
     function check() {
         if(parseInt(inputStr) === currentAns) {
             score++;
-            targetSpeed = 50.0;
-            document.getElementById('dist').innerText = score * 700;
+            targetSpeed = 40.0; // מהירות Hyper-drive!
+            document.getElementById('dist').innerText = score * 500;
             
             const panel = document.getElementById('main-panel');
             panel.classList.add('hide-ui');
 
-            // בזמן שהיא טסה במהירות, אנחנו מכינים את הכוכב הבא (שהוא יהיה שונה!)
-            setTimeout(() => {
-                generateNewPlanet();
-                const alert = document.getElementById('discovery-alert');
-                alert.style.opacity = "1";
-                alert.innerText = "גילינו עולם חדש! 👽";
-                setTimeout(() => alert.style.opacity = "0", 2000);
-            }, 1000);
+            // הכנת המבנה הבא (הוא יהיה שונה!)
+            setTimeout(() => { generateRandomSpaceStructure(); }, 1200);
 
-            setTimeout(() => { panel.classList.remove('hide-ui'); nextLevel(); }, 3500);
+            setTimeout(() => { panel.classList.remove('hide-ui'); nextLevel(); }, 4000);
         } else {
             targetSpeed = 0.05;
             del();
@@ -152,25 +220,33 @@
 
     function animate() {
         requestAnimationFrame(animate);
-        speed += (targetSpeed - speed) * 0.05;
-        if(targetSpeed > 0.2) targetSpeed -= 0.4;
+        speed += (targetSpeed - speed) * 0.04;
+        if(targetSpeed > 0.2) targetSpeed -= 0.3;
 
         camera.rotation.y += ( -targetRotationY - camera.rotation.y ) * 0.05;
         camera.rotation.x += ( -targetRotationX - camera.rotation.x ) * 0.05;
 
-        currentPlanet.position.z += speed;
-        currentPlanet.rotation.y += 0.01;
+        currentStructure.position.z += speed;
         
-        // אם עברנו את הכוכב והיא לא ענתה, הוא יחזור מרחוק אבל בשינוי קל
-        if(currentPlanet.position.z > 50) {
-            currentPlanet.position.z = -1500;
-            currentPlanet.position.x = (Math.random()-0.5)*30;
+        // אנימציות אקראיות לכל סוג מבנה
+        if(currentType === 'planet') {
+            currentStructure.rotation.y += 0.005; // סיבוב איטי של כוכב הלכת
+        } else if(currentType === 'black_hole') {
+            currentStructure.userData.ring.rotation.z += currentStructure.userData.spin; // סיבוב מהיר של טבעת האש
+            if(currentStructure.position.z > -100 && speed > 5) camera.position.set((Math.random()-0.5)*0.5, (Math.random()-0.5)*0.5, 10 + (Math.random()-0.5)*0.5); // רעידת מצלמה כשמתקרבים לחור שחור במהירות
+            else camera.position.set(0,0,10);
+        } else if(currentType === 'wormhole') {
+            wormhole.rotation.z += 0.02; // סיבוב המנהרה
+            currentStructure.rotation.x += 0.001; // סיבוב המבנה כולו
         }
 
-        const p = stars.geometry.attributes.position.array;
-        for(let i=0; i<p.length; i+=3) {
-            p[i+2] += speed;
-            if(p[i+2] > 20) p[i+2] = -2500;
+        if(currentStructure.position.z > 50) currentStructure.position.z = -1800; // לופ אם חלפו
+
+        // כוכבים נמתחים במהירות
+        const pCoords = stars.geometry.attributes.position.array;
+        for(let i=0; i<pCoords.length; i+=3) {
+            pCoords[i+2] += speed;
+            if(pCoords[i+2] > 20) pCoords[i+2] = -2500;
         }
         stars.geometry.attributes.position.needsUpdate = true;
         stars.scale.z = 1 + (speed * 0.5);
