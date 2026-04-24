@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>מסע בחלל - לוח הכפל</title>
+<title>מסע חלל - לוח הכפל</title>
 
 <style>
 body { margin:0; overflow:hidden; background:black; font-family:Arial; }
@@ -36,16 +36,10 @@ body { margin:0; overflow:hidden; background:black; font-family:Arial; }
   pointer-events:auto;
 }
 
-#question {
-  font-size:32px;
-  color:white;
-}
+#question { font-size:32px; color:white; }
+#answer { font-size:26px; color:#ff00de; min-height:30px; }
 
-#answer {
-  font-size:26px;
-  color:#ff00de;
-  min-height:30px;
-}
+#rank { font-size:18px; color:#ffeb3b; }
 
 #pad {
   display:grid;
@@ -66,17 +60,18 @@ body { margin:0; overflow:hidden; background:black; font-family:Arial; }
 
 .btn:active { background:#ff00de; }
 
-.go {
-  grid-column:span 2;
-  background:green;
-}
+.go { grid-column:span 2; background:green; }
 </style>
 </head>
 
 <body>
 
 <div id="ui">
-  <div id="top">🚀 מרחק: <span id="score">0</span> | 🌟 שלב: <span id="level">1</span></div>
+  <div id="top">
+    🚀 מרחק: <span id="score">0</span> |
+    🌟 שלב: <span id="level">1</span> |
+    🏆 דרגה: <span id="rank">צוער</span>
+  </div>
 
   <div id="mission">
     <div id="question">טוען...</div>
@@ -113,7 +108,7 @@ document.body.appendChild(renderer.domElement);
 // ⭐ כוכבים
 const geo = new THREE.BufferGeometry();
 const pos = [];
-for(let i=0;i<10000;i++){
+for(let i=0;i<12000;i++){
   pos.push((Math.random()-0.5)*2000,
            (Math.random()-0.5)*2000,
            (Math.random()-0.5)*2000);
@@ -128,7 +123,7 @@ const light = new THREE.PointLight(0xffffff,2);
 light.position.set(50,0,0);
 scene.add(light);
 
-// 🪐 כוכב לכת
+// 🪐 כוכב
 const planet = new THREE.Mesh(
   new THREE.SphereGeometry(5,64,64),
   new THREE.MeshStandardMaterial({color:0x3399ff})
@@ -142,18 +137,41 @@ const moon = new THREE.Mesh(
 );
 scene.add(moon);
 
+// 💥 חלקיקים (סופרנובה)
+let particles = [];
+function explode(){
+  for(let i=0;i<100;i++){
+    const p = new THREE.Mesh(
+      new THREE.SphereGeometry(0.2),
+      new THREE.MeshBasicMaterial({color:0xffaa00})
+    );
+    p.position.set(0,0,0);
+    p.velocity = new THREE.Vector3(
+      (Math.random()-0.5)*2,
+      (Math.random()-0.5)*2,
+      (Math.random()-0.5)*2
+    );
+    scene.add(p);
+    particles.push(p);
+  }
+}
+
 // 🎮 משחק
-let answer = 0;
-let input = "";
-let score = 0;
-let level = 1;
+let answer = 0, input="", score=0, level=1;
+
+function rankName(){
+  if(level < 5) return "צוער";
+  if(level < 10) return "טייס";
+  if(level < 20) return "מפקד חלל";
+  return "אלוף הגלקסיה";
+}
 
 function newQuestion(){
   let a = Math.floor(Math.random()*level)+1;
   let b = Math.floor(Math.random()*10)+1;
   answer = a*b;
   document.getElementById("question").innerText = `${a} × ${b}`;
-  input = "";
+  input="";
   updateAnswer();
 }
 
@@ -161,62 +179,64 @@ function updateAnswer(){
   document.getElementById("answer").innerText = input || "?";
 }
 
-function press(n){
-  if(input.length < 3){
-    input += n;
-    updateAnswer();
-  }
-}
+function press(n){ if(input.length<3){ input+=n; updateAnswer(); } }
+function del(){ input=""; updateAnswer(); }
 
-function del(){
-  input="";
-  updateAnswer();
+function speak(text){
+  const msg = new SpeechSynthesisUtterance(text);
+  msg.lang = "he-IL";
+  speechSynthesis.speak(msg);
 }
 
 function check(){
   if(parseInt(input) === answer){
-    score += 100;
-    level++;
+    score+=100; level++;
+    document.getElementById("score").innerText=score;
+    document.getElementById("level").innerText=level;
+    document.getElementById("rank").innerText=rankName();
 
-    document.getElementById("score").innerText = score;
-    document.getElementById("level").innerText = level;
+    speak("כל הכבוד!");
+    explode();
 
-    // אפקט הצלחה 🚀
     speed = 40;
-    setTimeout(()=>{
-      newQuestion();
-    },1500);
+
+    setTimeout(newQuestion,1500);
 
   } else {
-    input="";
-    updateAnswer();
+    speak("נסה שוב");
+    input=""; updateAnswer();
   }
 }
 
-// 🌌 תנועה
-let speed = 0.5;
-let t = 0;
+// 🌌 אנימציה
+let speed=0.5, t=0;
 
 function animate(){
   requestAnimationFrame(animate);
 
-  t += 0.02;
+  t+=0.02;
 
-  planet.rotation.y += 0.003;
+  planet.rotation.y+=0.003;
+  moon.position.x=Math.cos(t)*10;
+  moon.position.z=Math.sin(t)*10;
 
-  moon.position.x = Math.cos(t)*10;
-  moon.position.z = Math.sin(t)*10;
-
-  const p = stars.geometry.attributes.position.array;
+  // כוכבים
+  const p=stars.geometry.attributes.position.array;
   for(let i=2;i<p.length;i+=3){
     p[i]+=speed;
     if(p[i]>50) p[i]=-1000;
   }
-  stars.geometry.attributes.position.needsUpdate = true;
+  stars.geometry.attributes.position.needsUpdate=true;
 
-  speed *= 0.98;
+  // חלקיקים
+  particles.forEach((p,i)=>{
+    p.position.add(p.velocity);
+    p.velocity.multiplyScalar(0.95);
+  });
 
-  renderer.render(scene, camera);
+  speed*=0.98;
+
+  renderer.render(scene,camera);
 }
 
 newQuestion();
