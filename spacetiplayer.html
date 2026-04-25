@@ -1,196 +1,157 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>מסע הכפל v9.7 - Stable Release</title>
+    <title>מסע הכפל v7.0 - Classic Stable</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: system-ui, sans-serif; touch-action: none; }
-        #ui { position: absolute; inset: 0; display: flex; flex-direction: column; pointer-events: none; z-index: 10; }
-        .hud { display: flex; justify-content: space-around; padding: 15px; }
-        .badge { background: rgba(0, 30, 60, 0.8); color: #00f2ff; padding: 8px 16px; border-radius: 20px; border: 1px solid #00f2ff; font-weight: bold; font-size: 0.9rem; }
-        #toast { position: absolute; top: 25%; width: 100%; text-align: center; color: #00ff66; font-size: 2.5rem; opacity: 0; transition: 0.3s; font-weight: bold; text-shadow: 0 0 15px #00ff66; }
-        #panel { margin-top: auto; background: linear-gradient(to top, rgba(0,0,0,1) 80%, transparent); padding: 20px; pointer-events: auto; display: flex; flex-direction: column; align-items: center; }
-        #info { text-align: center; margin-bottom: 15px; }
-        #zone-text { color: #ffcc00; font-size: 0.8rem; font-weight: bold; display: block; margin-bottom: 4px; }
-        #name-text { color: #fff; font-size: 1.4rem; font-weight: bold; display: block; }
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; touch-action: none; }
+        
+        #ui { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; pointer-events: none; z-index: 10; }
+        
+        .hud { display: flex; justify-content: space-around; padding: 20px; }
+        .stat { background: rgba(0, 242, 255, 0.2); color: #00f2ff; padding: 10px 20px; border-radius: 25px; border: 1px solid #00f2ff; font-weight: bold; backdrop-filter: blur(5px); }
+
+        #feedback { position: absolute; top: 30%; width: 100%; text-align: center; color: #00ff66; font-size: 3rem; font-weight: bold; opacity: 0; transition: 0.3s; pointer-events: none; text-shadow: 0 0 20px #00ff66; }
+
+        #panel { margin-top: auto; background: rgba(0, 0, 0, 0.85); padding: 30px 10px; pointer-events: auto; display: flex; flex-direction: column; align-items: center; border-top: 2px solid #00f2ff; }
+        
+        #label { color: #00f2ff; font-size: 1.2rem; margin-bottom: 10px; font-weight: bold; }
+        
         #math { display: flex; align-items: center; gap: 20px; margin-bottom: 20px; }
-        #q { color: white; font-size: 3.5rem; font-weight: 900; }
-        #a { color: #ff00de; font-size: 3.5rem; min-width: 75px; border-bottom: 4px solid #ff00de; text-align: center; font-weight: 900; }
+        #q { color: white; font-size: 4rem; font-weight: 900; }
+        #a { color: #ff00de; font-size: 4rem; min-width: 80px; text-align: center; font-weight: 900; border-bottom: 4px solid #ff00de; }
+
         .grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
-        .btn { width: 52px; height: 52px; background: #222; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; border: 1px solid #444; transition: 0.1s; }
-        .btn:active { background: #00f2ff; color: #000; transform: scale(0.9); }
-        .btn-go { background: #008844; width: 100px; border-radius: 12px; font-weight: bold; border: none; }
+        .key { width: 55px; height: 55px; background: #222; color: white; border: 1px solid #444; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; transition: 0.1s; }
+        .key:active { background: #00f2ff; color: black; transform: scale(0.9); }
+        .go { background: #00ff66; color: black; border: none; width: 110px; border-radius: 15px; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div id="ui">
     <div class="hud">
-        <div class="badge" id="rank">צוערת</div>
-        <div class="badge" id="dist">0 ק"מ</div>
+        <div class="stat"><span id="rank">טירונית</span></div>
+        <div class="stat">📍 <span id="dist">0</span> ק"מ</div>
     </div>
-    <div id="toast">שיגור מוצלח! 🚀</div>
+    <div id="feedback">פגיעה בול!</div>
     <div id="panel">
-        <div id="info">
-            <span id="zone-text">מערכת השמש</span>
-            <span id="name-text">כדור הארץ</span>
-        </div>
+        <div id="label">מזהה: כדור הארץ</div>
         <div id="math">
             <div id="q">? × ?</div>
             <div id="a">?</div>
         </div>
         <div class="grid">
-            <div class="btn" onclick="add(1)">1</div><div class="btn" onclick="add(2)">2</div><div class="btn" onclick="add(3)">3</div>
-            <div class="btn" onclick="add(4)">4</div><div class="btn" onclick="add(5)">5</div><div class="btn" onclick="clr()" style="color:#ff4444">X</div>
-            <div class="btn" onclick="add(6)">6</div><div class="btn" onclick="add(7)">7</div><div class="btn" onclick="add(8)">8</div>
-            <div class="btn" onclick="add(9)">9</div><div class="btn" onclick="add(0)">0</div><div class="btn btn-go" onclick="submit()">שיגור</div>
+            <div class="key" onclick="t(1)">1</div><div class="key" onclick="t(2)">2</div><div class="key" onclick="t(3)">3</div>
+            <div class="key" onclick="t(4)">4</div><div class="key" onclick="t(5)">5</div><div class="key" onclick="c()" style="color:#ff4444">X</div>
+            <div class="key" onclick="t(6)">6</div><div class="key" onclick="t(7)">7</div><div class="key" onclick="t(8)">8</div>
+            <div class="key" onclick="t(9)">9</div><div class="key" onclick="t(0)">0</div><div class="key go" onclick="ok()">GO</div>
         </div>
     </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
-    let sc, cam, rend, objGrp, stars, ans, curInput = "", score = 0, distance = 0, isJumping = false;
-    let rx = 0, ry = 0;
-
-    // הגדרה קשיחה של אובייקטים למניעת באגים
-    const OBJECTS = {
-        INNER: [
-            {n: "כדור הארץ", c: 0x2266ff, t: "sphere"},
-            {n: "מאדים", c: 0xff4400, t: "sphere"},
-            {n: "שבתאי", c: 0xdfbe9f, t: "ring"}
-        ],
-        GALAXY: [
-            {n: "ערפילית אוריון", c: 0xff00ff, t: "nebula"},
-            {n: "צביר כוכבים", c: 0x00f2ff, t: "cluster"},
-            {n: "ענק אדום", c: 0xff2200, t: "sphere"}
-        ],
-        DEEP: [
-            {n: "גלקסיה ספירלית", c: 0x00f2ff, t: "galaxy"},
-            {n: "חור שחור", c: 0x000000, t: "blackhole"},
-            {n: "חור תולעת", c: 0xaa00ff, t: "wormhole"}
-        ]
-    };
+    let scene, camera, renderer, objGroup, stars, ans, cur = "", sc = 0, dist = 0, jump = false, spd = 0.2;
+    const objs = ["כדור הארץ", "מאדים", "צדק", "שבתאי", "נפטון", "חור שחור", "גלקסיה"];
 
     function init() {
-        sc = new THREE.Scene();
-        cam = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 2000);
-        cam.position.z = 200;
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 150;
 
-        rend = new THREE.WebGLRenderer({ antialias: true });
-        rend.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(rend.domElement);
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
 
-        objGrp = new THREE.Group();
-        sc.add(objGrp);
+        objGroup = new THREE.Group();
+        scene.add(objGroup);
 
-        sc.add(new THREE.AmbientLight(0xffffff, 0.5));
-        const pl = new THREE.PointLight(0xffffff, 1);
-        pl.position.set(100, 100, 100);
-        sc.add(pl);
+        scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+        let light = new THREE.PointLight(0xffffff, 1);
+        light.position.set(50, 50, 100);
+        scene.add(light);
 
-        // כוכבים
-        const stG = new THREE.BufferGeometry();
-        const stP = [];
-        for(let i=0; i<3000; i++) stP.push((Math.random()-0.5)*2000, (Math.random()-0.5)*2000, (Math.random()-0.5)*2000);
-        stG.setAttribute('position', new THREE.Float32BufferAttribute(stP, 3));
-        stars = new THREE.Points(stG, new THREE.PointsMaterial({color: 0xffffff, size: 1}));
-        sc.add(stars);
+        // כוכבים ברקע
+        const starGeo = new THREE.BufferGeometry();
+        const starPos = [];
+        for(let i=0; i<2000; i++) starPos.push((Math.random()-0.5)*2000, (Math.random()-0.5)*2000, (Math.random()-0.5)*2000);
+        starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPos, 3));
+        stars = new THREE.Points(starGeo, new THREE.PointsMaterial({color: 0xffffff, size: 1}));
+        scene.add(stars);
 
-        // אינטראקציה
-        let down = false, ox, oy;
-        window.onpointerdown = e => { if(e.clientY < window.innerHeight * 0.7) { down = true; ox = e.clientX; oy = e.clientY; }};
-        window.onpointermove = e => { if(down) { ry += (e.clientX-ox)*0.01; rx += (e.clientY-oy)*0.01; ox=e.clientX; oy=e.clientY; }};
-        window.onpointerup = () => down = false;
-
-        build(OBJECTS.INNER[0]);
-        newQuest();
-        loop();
+        makeObj("כדור הארץ");
+        gen();
+        animate();
     }
 
-    function build(data) {
-        objGrp.clear();
-        objGrp.position.z = -400; // תמיד מתחיל רחוק ומתקרב
-        document.getElementById('name-text').innerText = data.n;
+    function makeObj(name) {
+        objGroup.clear();
+        document.getElementById('label').innerText = "מזהה: " + name;
+        let mat = new THREE.MeshStandardMaterial({color: Math.random() * 0xffffff});
+        let geo = new THREE.SphereGeometry(40, 32, 32);
 
-        if(data.t === "sphere") {
-            objGrp.add(new THREE.Mesh(new THREE.SphereGeometry(45,32,32), new THREE.MeshStandardMaterial({color: data.c})));
-        } else if(data.t === "ring") {
-            objGrp.add(new THREE.Mesh(new THREE.SphereGeometry(40,32,32), new THREE.MeshStandardMaterial({color: data.c})));
-            const r = new THREE.Mesh(new THREE.TorusGeometry(60,3,2,50), new THREE.MeshStandardMaterial({color:0x888888, transparent:true, opacity:0.5}));
-            r.rotation.x = 1.5; objGrp.add(r);
-        } else if(data.t === "blackhole") {
-            objGrp.add(new THREE.Mesh(new THREE.SphereGeometry(25,32,32), new THREE.MeshBasicMaterial({color:0})));
-            const r = new THREE.Mesh(new THREE.TorusGeometry(50,4,2,60), new THREE.MeshBasicMaterial({color:0xff6600}));
-            r.rotation.x = 1.3; objGrp.add(r);
-        } else if(data.t === "galaxy") {
-            const gG = new THREE.BufferGeometry(); const gP = [];
-            for(let i=0; i<3000; i++) { let r=Math.random()*120, a=r*0.15; gP.push(Math.cos(a)*r, (Math.random()-0.5)*15, Math.sin(a)*r); }
-            gG.setAttribute('position', new THREE.Float32BufferAttribute(gP, 3));
-            objGrp.add(new THREE.Points(gG, new THREE.PointsMaterial({color:data.c, size:1.2})));
-        } else if(data.t === "nebula" || data.t === "cluster") {
-            const cG = new THREE.BufferGeometry(); const cP = [];
-            for(let i=0; i<600; i++) cP.push((Math.random()-0.5)*120,(Math.random()-0.5)*120,(Math.random()-0.5)*120);
-            cG.setAttribute('position', new THREE.Float32BufferAttribute(cP, 3));
-            objGrp.add(new THREE.Points(cG, new THREE.PointsMaterial({color:data.c, size:2})));
-        } else if(data.t === "wormhole") {
-            for(let i=0; i<8; i++) {
-                const r = new THREE.Mesh(new THREE.TorusGeometry(20+i*15, 1, 16, 50), new THREE.MeshBasicMaterial({color:data.c, transparent:true, opacity:0.5}));
-                r.position.z = -i*30; objGrp.add(r);
-            }
+        if(name === "חור שחור") mat = new THREE.MeshBasicMaterial({color: 0x000000});
+        
+        let mesh = new THREE.Mesh(geo, mat);
+        objGroup.add(mesh);
+
+        if(name === "שבתאי") {
+            let ring = new THREE.Mesh(new THREE.TorusGeometry(55, 3, 2, 50), new THREE.MeshStandardMaterial({color: 0x888888}));
+            ring.rotation.x = 1.5;
+            objGroup.add(ring);
         }
     }
 
-    function newQuest() {
+    function gen() {
         let n1 = Math.floor(Math.random()*9)+2, n2 = Math.floor(Math.random()*9)+2;
         ans = n1 * n2;
         document.getElementById('q').innerText = `${n1} × ${n2}`;
-        curInput = ""; document.getElementById('a').innerText = "?";
+        cur = ""; document.getElementById('a').innerText = "?";
     }
 
-    function add(n) { if(curInput.length < 3) { curInput += n; document.getElementById('a').innerText = curInput; } }
-    function clr() { curInput = ""; document.getElementById('a').innerText = "?"; }
+    function t(n) { if(cur.length < 3) { cur += n; document.getElementById('a').innerText = cur; } }
+    function c() { cur = ""; document.getElementById('a').innerText = "?"; }
 
-    function submit() {
-        if(parseInt(curInput) === ans) {
-            score++; distance += 35000;
-            document.getElementById('dist').innerText = distance.toLocaleString() + " ק\"מ";
+    function ok() {
+        if(parseInt(cur) === ans) {
+            sc++; dist += 25000;
+            document.getElementById('dist').innerText = dist.toLocaleString();
+            const rks = ["טירונית", "טייסת", "מפקדת", "אדמירלית"];
+            document.getElementById('rank').innerText = rks[Math.min(Math.floor(sc/5), 3)];
             
-            // לוגיקת אזורים
-            let pool = OBJECTS.INNER;
-            let zone = "מערכת השמש";
-            if(distance >= 250000) { pool = OBJECTS.DEEP; zone = "עומק היקום"; }
-            else if(distance >= 100000) { pool = OBJECTS.GALAXY; zone = "שביל החלב"; }
-            document.getElementById('zone-text').innerText = zone;
-
-            const ranks = ["צוערת", "טייסת", "מפקדת", "אדמירלית", "חלוצת חלל"];
-            document.getElementById('rank').innerText = ranks[Math.min(Math.floor(score/4), 4)];
-            
-            document.getElementById('toast').style.opacity = 1;
-            isJumping = true;
+            document.getElementById('feedback').style.opacity = 1;
+            jump = true;
             setTimeout(() => {
-                document.getElementById('toast').style.opacity = 0;
-                build(pool[Math.floor(Math.random()*pool.length)]);
-                newQuest();
+                document.getElementById('feedback').style.opacity = 0;
+                makeObj(objs[Math.floor(Math.random()*objs.length)]);
+                gen();
             }, 800);
-        } else { clr(); }
+        } else { c(); }
     }
 
-    function loop() {
-        requestAnimationFrame(loop);
-        if(isJumping) {
-            objGrp.position.z += (1200 - objGrp.position.z) * 0.12;
-            if(objGrp.position.z > 1100) { isJumping = false; objGrp.position.z = -600; }
+    function animate() {
+        requestAnimationFrame(animate);
+        if(jump) {
+            objGroup.position.z += (800 - objGroup.position.z) * 0.1;
+            spd = 40;
+            if(objGroup.position.z > 700) { jump = false; objGroup.position.z = -500; spd = 0.2; }
         } else {
-            objGrp.position.z += (0 - objGrp.position.z) * 0.08;
+            objGroup.position.z += (0 - objGroup.position.z) * 0.05;
         }
-        objGrp.rotation.y += (ry - objGrp.rotation.y) * 0.1 + 0.005;
-        objGrp.rotation.x += (rx - objGrp.rotation.x) * 0.1;
-        renderer.render(sc, cam);
+        objGroup.rotation.y += 0.01;
+        
+        const positions = stars.geometry.attributes.position.array;
+        for(let i=0; i<positions.length; i+=3) {
+            positions[i+2] += spd;
+            if(positions[i+2] > 200) positions[i+2] = -1800;
+        }
+        stars.geometry.attributes.position.needsUpdate = true;
+        renderer.render(scene, camera);
     }
+
     init();
 </script>
 </body>
 </html>
-   
