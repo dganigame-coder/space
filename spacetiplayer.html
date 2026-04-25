@@ -3,19 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>מסע הכפל: v8.0.0 Galactic Odyssey</title>
+    <title>מסע הכפל: v8.0.1 Navigator</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; touch-action: none; }
-        #ui-layer { position: absolute; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: space-between; align-items: center; pointer-events: none; z-index: 1000; }
-        #top-hud { width: 95%; display: flex; justify-content: space-between; margin-top: 15px; color: #00f2ff; font-weight: bold; font-size: 0.9rem; }
-        .hud-box { background: rgba(0, 40, 80, 0.6); padding: 8px 15px; border-radius: 12px; border: 1px solid #00f2ff; backdrop-filter: blur(5px); }
-        #feedback { position: absolute; top: 30%; color: #00ff66; font-size: 3.5rem; font-weight: bold; text-shadow: 0 0 25px #00ff66; opacity: 0; transition: 0.4s; transform: scale(0.5); pointer-events: none; }
-        #scan-title { color: #fff; font-weight: bold; font-size: 1.8rem; margin: 10px 0 0; text-shadow: 0 0 15px #00f2ff; text-align: center; }
-        #question { font-size: 4.5rem; color: #fff; margin: 5px 0; text-shadow: 0 0 25px #fff; }
-        #answer-display { font-size: 3rem; color: #ff00de; font-weight: bold; min-height: 3.5rem; text-shadow: 0 0 10px #ff00de; }
-        #numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 20px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 30px; backdrop-filter: blur(15px); transform: scale(0.8); pointer-events: auto; margin-bottom: 10px; }
-        .btn { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); color: white; font-size: 1.8rem; width: 65px; height: 65px; border-radius: 50%; display: flex; align-items: center; justify-content: center; active { background: #00f2ff; } }
-        .btn-go { background: linear-gradient(45deg, #006622, #00ff66); border: none; grid-column: span 2; width: auto; border-radius: 20px; font-weight: bold; color: #fff; text-shadow: 0 1px 5px #000; }
+        #ui-layer { position: absolute; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: space-between; align-items: center; pointer-events: none; z-index: 10; }
+        #top-hud { width: 95%; display: flex; justify-content: space-between; margin-top: 15px; color: #00f2ff; pointer-events: none; }
+        .hud-box { background: rgba(0, 40, 80, 0.6); padding: 8px 15px; border-radius: 12px; border: 1px solid #00f2ff; backdrop-filter: blur(5px); font-size: 0.85rem; font-weight: bold; }
+        #feedback { position: absolute; top: 30%; color: #00ff66; font-size: 3rem; font-weight: bold; text-shadow: 0 0 20px #00ff66; opacity: 0; transition: 0.4s; pointer-events: none; z-index: 20; }
+        #scan-title { color: #fff; font-weight: bold; font-size: 1.5rem; margin: 10px 0; text-shadow: 0 0 15px #00f2ff; text-align: center; pointer-events: none; }
+        #question { font-size: 4rem; color: #fff; margin: 5px 0; text-shadow: 0 0 20px #fff; pointer-events: none; }
+        #answer-display { font-size: 2.5rem; color: #ff00de; font-weight: bold; min-height: 3rem; text-shadow: 0 0 10px #ff00de; pointer-events: none; }
+        #numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 15px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 25px; backdrop-filter: blur(10px); transform: scale(0.85); pointer-events: auto; margin-bottom: 5px; }
+        .btn { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); color: white; font-size: 1.6rem; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .btn-go { background: linear-gradient(45deg, #006622, #00ff66); border: none; grid-column: span 2; width: auto; border-radius: 15px; font-weight: bold; color: #fff; }
     </style>
 </head>
 <body>
@@ -23,11 +23,11 @@
 <div id="ui-layer">
     <div id="top-hud">
         <div class="hud-box">🎖️ <span id="rank-name">צוערת קרקע</span></div>
-        <div class="hud-box">📍 <span id="dist">0</span> ק"מ מכדור הארץ</div>
+        <div class="hud-box">📍 <span id="dist">0</span> ק"מ</div>
     </div>
     <div id="feedback">מעולה!</div>
-    <div id="data-scanner"><p id="scan-title">מכין מנועים...</p></div>
-    <div style="display: flex; flex-direction: column; align-items: center;">
+    <div id="data-scanner"><p id="scan-title">כדור הארץ - הכנה לשיגור</p></div>
+    <div style="display: flex; flex-direction: column; align-items: center; pointer-events: none;">
         <div id="mission-control" style="text-align: center;">
             <div id="question">? × ?</div>
             <div id="answer-display">?</div>
@@ -53,158 +53,119 @@
         { name: "טייסת אטמוספירה", min: 1000 },
         { name: "מפקדת ירח", min: 384000 },
         { name: "חוקרת מאדים", min: 54000000 },
-        { name: "קצינת צדק", min: 600000000 },
-        { name: "נווטת כוכבים", min: 4000000000 },
         { name: "קפטן גלקסיה", min: 100000000000 }
     ];
 
     function init() {
         scene = new THREE.Scene();
         camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.1, 10000);
-        camera.position.z = 100;
+        camera.position.z = 120;
 
         renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        // כוכבים ברקע
         const starGeo = new THREE.BufferGeometry();
         const starPos = [];
-        for(let i=0; i<15000; i++) starPos.push((Math.random()-0.5)*5000, (Math.random()-0.5)*5000, (Math.random()-0.5)*5000);
+        for(let i=0; i<12000; i++) starPos.push((Math.random()-0.5)*5000, (Math.random()-0.5)*5000, (Math.random()-0.5)*5000);
         starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPos, 3));
-        stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.8 }));
+        stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.7 }));
         scene.add(stars);
 
-        // יצירת כדור הארץ להתחלה
-        const earthGeo = new THREE.SphereGeometry(40, 32, 32);
-        const earthMat = new THREE.MeshStandardMaterial({ 
-            color: 0x2244ff, 
-            emissive: 0x112244,
-            wireframe: false 
-        });
-        earth = new THREE.Mesh(earthGeo, earthMat);
+        const earthGeo = new THREE.SphereGeometry(35, 32, 32);
+        earth = new THREE.Mesh(earthGeo, new THREE.MeshStandardMaterial({ color: 0x2244ff, emissive: 0x112244 }));
         scene.add(earth);
         
-        // אור
-        const light = new THREE.PointLight(0xffffff, 1.5, 1000);
+        const light = new THREE.PointLight(0xffffff, 1.2, 1000);
         light.position.set(50, 50, 50);
-        scene.add(light);
-        scene.add(new THREE.AmbientLight(0x404040));
+        scene.add(light, new THREE.AmbientLight(0x404040));
 
         universeGroup = new THREE.Group();
+        universeGroup.position.z = -400; // מרחק התחלתי בטוח
         scene.add(universeGroup);
 
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+        // חיישני מגע מתוקנים
+        let sX, sY;
+        document.addEventListener('touchstart', e => { 
+            if(!e.target.closest('#numpad')) {
+                sX = e.touches[0].clientX; 
+                sY = e.touches[0].clientY; 
+            }
+        });
+        document.addEventListener('touchmove', e => {
+            if(!e.target.closest('#numpad')) {
+                targetRotY += (e.touches[0].clientX - sX) * 0.007;
+                targetRotX += (e.touches[0].clientY - sY) * 0.007;
+                sX = e.touches[0].clientX; sY = e.touches[0].clientY;
+            }
         });
 
         nextLevel();
         animate();
-        document.getElementById('scan-title').innerText = "כדור הארץ - הכנה לשיגור";
     }
 
     function generateObject(type) {
         universeGroup.clear();
-        universeGroup.position.z = -1000;
+        universeGroup.position.z = -1200; // התחלה מרחוק מאוד בכל ג'אמפ
         universeGroup.rotation.set(0,0,0);
+        targetRotX = 0; targetRotY = 0;
         const color = new THREE.Color().setHSL(Math.random(), 1, 0.5);
         const title = document.getElementById('scan-title');
 
         switch(type) {
-            case 0: // מערכת שמש
+            case 0: // שמש
                 title.innerText = "מערכת שמש";
-                universeGroup.add(new THREE.Mesh(new THREE.SphereGeometry(20,32,32), new THREE.MeshBasicMaterial({color: 0xffaa00})));
+                universeGroup.add(new THREE.Mesh(new THREE.SphereGeometry(25,32,32), new THREE.MeshBasicMaterial({color: 0xffaa00})));
                 let pG = new THREE.Group();
-                let p = new THREE.Mesh(new THREE.SphereGeometry(7,24,24), new THREE.MeshStandardMaterial({color: 0x00f2ff}));
-                p.position.x = 55; pG.add(p); universeGroup.add(pG);
+                let p = new THREE.Mesh(new THREE.SphereGeometry(8,24,24), new THREE.MeshStandardMaterial({color: 0x00f2ff}));
+                p.position.x = 60; pG.add(p); universeGroup.add(pG);
                 universeGroup.userData.rotateY = pG;
                 break;
-            case 1: // פולסאר
-                title.innerText = "פולסאר מגנטי";
-                universeGroup.add(new THREE.Mesh(new THREE.SphereGeometry(10,32,32), new THREE.MeshBasicMaterial({color: 0xffffff})));
-                let bG = new THREE.CylinderGeometry(1, 20, 500, 16);
-                let bM = new THREE.MeshBasicMaterial({color: color, transparent: true, opacity: 0.3});
-                let b1 = new THREE.Mesh(bG, bM); let b2 = new THREE.Mesh(bG, bM); b2.rotation.x = Math.PI;
-                universeGroup.add(b1, b2); universeGroup.userData.rotateZ = universeGroup;
+            case 1: // גלקסיה
+                title.innerText = "גלקסיה ספירלית";
+                const galGeo = new THREE.BufferGeometry(); const galPos = [];
+                for(let i=0; i<6000; i++) {
+                    const b = i % 3; const r = Math.random() * 140;
+                    const a = (r * 0.12) + (b * (Math.PI * 2 / 3));
+                    const s = (150 - r) * 0.15;
+                    galPos.push(Math.cos(a)*r + (Math.random()-0.5)*s, (Math.random()-0.5)*12, Math.sin(a)*r + (Math.random()-0.5)*s);
+                }
+                galGeo.setAttribute('position', new THREE.Float32BufferAttribute(galPos, 3));
+                let galPts = new THREE.Points(galGeo, new THREE.PointsMaterial({color: color, size: 1.1, transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending}));
+                universeGroup.add(galPts); universeGroup.userData.rotateY = galPts;
                 break;
             case 2: // חור שחור
                 title.innerText = "אופק האירועים";
                 universeGroup.add(new THREE.Mesh(new THREE.SphereGeometry(22,32,32), new THREE.MeshBasicMaterial({color: 0x000000})));
                 const dGeo = new THREE.BufferGeometry(); const dPos = [];
-                for(let i=0; i<5000; i++) {
-                    let a = Math.random()*Math.PI*2; let r = 40 + Math.random()*60;
-                    dPos.push(Math.cos(a)*r, (Math.random()-0.5)*4, Math.sin(a)*r);
+                for(let i=0; i<4000; i++) {
+                    let a = Math.random()*Math.PI*2; let r = 45 + Math.random()*55;
+                    dPos.push(Math.cos(a)*r, (Math.random()-0.5)*3, Math.sin(a)*r);
                 }
                 dGeo.setAttribute('position', new THREE.Float32BufferAttribute(dPos, 3));
-                let dPts = new THREE.Points(dGeo, new THREE.PointsMaterial({color: color, size: 0.8, blending: THREE.AdditiveBlending, transparent: true, opacity: 0.7}));
-                universeGroup.add(dPts); universeGroup.userData.rotateY = dPts;
-                break;
-            case 3: // גלקסיה
-                title.innerText = "גלקסיה ספירלית";
-                const galGeo = new THREE.BufferGeometry(); const galPos = [];
-                for(let i=0; i<7000; i++) {
-                    const b = i % 3; const r = Math.random() * 130;
-                    const a = (r * 0.15) + (b * (Math.PI * 2 / 3));
-                    const s = (140 - r) * 0.15;
-                    galPos.push(Math.cos(a)*r + (Math.random()-0.5)*s, (Math.random()-0.5)*10, Math.sin(a)*r + (Math.random()-0.5)*s);
-                }
-                galGeo.setAttribute('position', new THREE.Float32BufferAttribute(galPos, 3));
-                let galPts = new THREE.Points(galGeo, new THREE.PointsMaterial({color: color, size: 1, transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending}));
-                universeGroup.add(galPts); universeGroup.userData.rotateY = galPts;
-                break;
-            case 4: // כוכב טבעות
-                title.innerText = "ענק גז";
-                universeGroup.add(new THREE.Mesh(new THREE.SphereGeometry(25,32,32), new THREE.MeshStandardMaterial({color: color})));
-                let ring = new THREE.Mesh(new THREE.TorusGeometry(45, 2, 2, 64), new THREE.MeshBasicMaterial({color: 0xffffff, transparent: true, opacity: 0.4}));
-                ring.rotation.x = 1.5; universeGroup.add(ring);
-                break;
-            case 5: // תחנת חלל
-                title.innerText = "תחנת מחקר";
-                let bdy = new THREE.Mesh(new THREE.BoxGeometry(10, 10, 50), new THREE.MeshStandardMaterial({color: 0x888888}));
-                let pnl = new THREE.Mesh(new THREE.BoxGeometry(90, 15, 1), new THREE.MeshBasicMaterial({color: 0x0044ff}));
-                universeGroup.add(bdy, pnl); universeGroup.userData.rotateY = universeGroup;
-                break;
-            case 6: // אסטרואידים
-                title.innerText = "חגורת אסטרואידים";
-                for(let i=0; i<80; i++) {
-                    let rk = new THREE.Mesh(new THREE.IcosahedronGeometry(Math.random()*4, 0), new THREE.MeshBasicMaterial({color: 0x777777}));
-                    let r = 50 + Math.random()*40; let a = Math.random()*Math.PI*2;
-                    rk.position.set(Math.cos(a)*r, (Math.random()-0.5)*20, Math.sin(a)*r);
-                    universeGroup.add(rk);
-                }
+                universeGroup.add(new THREE.Points(dGeo, new THREE.PointsMaterial({color: color, size: 0.9, blending: THREE.AdditiveBlending, transparent: true, opacity: 0.7})));
                 universeGroup.userData.rotateY = universeGroup;
                 break;
-            default: // שביט
-                title.innerText = "שביט קרח";
-                let head = new THREE.Mesh(new THREE.SphereGeometry(5,16,16), new THREE.MeshBasicMaterial({color: 0xffffff}));
-                let tGeo = new THREE.BufferGeometry(); let tPos = [];
-                for(let i=0; i<800; i++) tPos.push(Math.random()*80, (Math.random()-0.5)*8, (Math.random()-0.5)*8);
-                tGeo.setAttribute('position', new THREE.Float32BufferAttribute(tPos, 3));
-                let tail = new THREE.Points(tGeo, new THREE.PointsMaterial({color: 0x00ffff, size: 1.5, transparent: true, opacity: 0.5}));
-                universeGroup.add(head, tail); universeGroup.rotation.z = 0.5;
+            default: // כוכב טבעות
+                title.innerText = "ענק גז";
+                universeGroup.add(new THREE.Mesh(new THREE.SphereGeometry(25,32,32), new THREE.MeshStandardMaterial({color: color})));
+                let ring = new THREE.Mesh(new THREE.TorusGeometry(48, 2, 2, 64), new THREE.MeshBasicMaterial({color: 0xffffff, transparent: true, opacity: 0.4}));
+                ring.rotation.x = 1.5; universeGroup.add(ring);
+                universeGroup.userData.rotateY = universeGroup;
         }
     }
 
     function check() {
         if(parseInt(inputStr) === currentAns) {
-            score++;
-            // חישוב מרחק לוגריתמי כדי להגיע מהר לכוכבים
-            distance = Math.pow(score, 4) * 500; 
+            score++; distance = Math.pow(score, 4) * 600; 
             updateHUD();
-            
             const fb = document.getElementById('feedback');
-            fb.innerText = praises[Math.floor(Math.random()*praises.length)];
-            fb.style.opacity = "1"; fb.style.transform = "scale(1.2)";
-            
-            // אנימציית שיגור
-            isJumping = true; targetZ = 1500;
-            
+            fb.style.opacity = "1"; fb.style.transform = "scale(1.1)";
+            isJumping = true; targetZ = 1600;
             setTimeout(() => {
-                fb.style.opacity = "0"; fb.style.transform = "scale(0.5)";
-                if(earth) { scene.remove(earth); earth = null; } // נפרדים מכדור הארץ
-                generateObject(Math.floor(Math.random()*8));
+                fb.style.opacity = "0";
+                if(earth) { scene.remove(earth); earth = null; }
+                generateObject(Math.floor(Math.random()*4));
                 nextLevel();
             }, 1000);
         } else { del(); }
@@ -212,9 +173,9 @@
 
     function updateHUD() {
         document.getElementById('dist').innerText = distance.toLocaleString();
-        let currentRank = ranks[0].name;
-        for(let r of ranks) { if(distance >= r.min) currentRank = r.name; }
-        document.getElementById('rank-name').innerText = currentRank;
+        let rank = ranks[0].name;
+        for(let r of ranks) { if(distance >= r.min) rank = r.name; }
+        document.getElementById('rank-name').innerText = rank;
     }
 
     function nextLevel() {
@@ -232,30 +193,31 @@
         requestAnimationFrame(animate);
         
         if(isJumping) {
-            if(earth) earth.position.z += 20; 
+            if(earth) earth.position.z += 25; 
             universeGroup.position.z += (targetZ - universeGroup.position.z) * 0.1;
-            speed = 50;
-            if(universeGroup.position.z > 1400) { isJumping = false; universeGroup.position.z = -1000; speed = 0.2; }
+            speed = 55;
+            if(universeGroup.position.z > 1500) { 
+                isJumping = false; 
+                universeGroup.position.z = -500; // כאן המרחק הסופי של האובייקט מהעין
+                speed = 0.2; 
+            }
         } else {
-            universeGroup.position.z += (0 - universeGroup.position.z) * 0.05;
+            // שומר על מרחק תצוגה נוח (500 יחידות מהמצלמה)
+            universeGroup.position.z += (-450 - universeGroup.position.z) * 0.05;
         }
 
+        universeGroup.rotation.x += (targetRotX - universeGroup.rotation.x) * 0.05;
+        universeGroup.rotation.y += (targetRotY - universeGroup.rotation.y) * 0.05;
+
+        if(universeGroup.userData.rotateY) universeGroup.userData.rotateY.rotation.y += 0.01;
         if(earth) earth.rotation.y += 0.005;
-        if(universeGroup.userData.rotateY) universeGroup.userData.rotateY.rotation.y += 0.02;
-        if(universeGroup.userData.rotateZ) universeGroup.userData.rotateZ.rotation.z += 0.05;
 
-        // אנימציית כוכבים
         const p = stars.geometry.attributes.position.array;
-        for(let i=0; i<p.length; i+=3) { 
-            p[i+2] += speed; 
-            if(p[i+2] > 200) p[i+2] = -4000; 
-        }
+        for(let i=0; i<p.length; i+=3) { p[i+2] += speed; if(p[i+2] > 200) p[i+2] = -4000; }
         stars.geometry.attributes.position.needsUpdate = true;
         
         renderer.render(scene, camera);
     }
-
-    const praises = ["המראה!", "וורפ 9!", "מדהים!", "ליעד הבא!", "קדימה!", "גאונית!"];
     init();
 </script>
 </body>
