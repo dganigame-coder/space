@@ -1,40 +1,84 @@
-        
-     <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>מסע הכפל: v8.1.2</title>
+    <title>מסע הכפל: v8.1.3 Transparent</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; touch-action: none; }
-        #ui-layer { position: absolute; width: 100%; height: 100%; display: flex; flex-direction: column; pointer-events: none; z-index: 10; }
         
-        /* חלק עליון - סטטיסטיקה */
-        #top-hud { width: 100%; display: flex; justify-content: space-around; padding-top: 10px; }
-        .hud-box { background: rgba(0, 40, 80, 0.8); padding: 5px 12px; border-radius: 10px; border: 1px solid #00f2ff; color: #00f2ff; font-weight: bold; font-size: 0.8rem; }
-        
-        /* אזור האובייקט - שטח ריק בכוונה כדי שיראו את ה-3D */
-        #viewing-window { flex-grow: 1; pointer-events: none; }
-
-        /* אזור הבקרה התחתון - המקלדת והתרגיל */
-        #control-center { 
-            background: linear-gradient(to top, #000 85%, transparent);
-            padding-bottom: 15px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            pointer-events: auto; /* מאפשר ללחוץ על המקלדת */
+        /* שכבת הממשק - שקופה לגמרי */
+        #ui-layer { 
+            position: absolute; 
+            width: 100%; 
+            height: 100%; 
+            display: flex; 
+            flex-direction: column; 
+            pointer-events: none; 
+            z-index: 10; 
         }
         
-        #scan-title { color: #00f2ff; font-size: 1.2rem; margin: 0; font-weight: bold; }
-        #question { font-size: 3.5rem; color: #fff; margin: -5px 0; text-shadow: 0 0 15px rgba(255,255,255,0.5); }
-        #answer-display { font-size: 2.5rem; color: #ff00de; min-height: 2.8rem; margin-bottom: 5px; }
+        #top-hud { width: 100%; display: flex; justify-content: space-around; padding-top: 15px; }
+        .hud-box { 
+            background: rgba(0, 242, 255, 0.1); /* כמעט שקוף */
+            padding: 8px 15px; 
+            border-radius: 20px; 
+            border: 1px solid rgba(0, 242, 255, 0.4); 
+            color: #00f2ff; 
+            backdrop-filter: blur(5px); /* טשטוש עדין של הרקע */
+        }
         
-        #numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 10px; background: rgba(255, 255, 255, 0.05); border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); transform: scale(0.9); }
-        .btn { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); color: white; font-size: 1.5rem; width: 55px; height: 55px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-        .btn-go { background: linear-gradient(45deg, #006622, #00ff66); border: none; grid-column: span 2; width: auto; border-radius: 15px; font-weight: bold; font-size: 1.2rem; }
+        #game-area { flex-grow: 1; }
+
+        #control-panel { 
+            padding-bottom: 30px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            pointer-events: auto; 
+        }
         
-        #feedback { position: absolute; top: 15%; width: 100%; text-align: center; color: #00ff66; font-size: 3rem; font-weight: bold; opacity: 0; transition: 0.3s; pointer-events: none; }
+        #scan-title { color: #00f2ff; font-size: 1.3rem; text-shadow: 0 0 10px #000; margin: 0; }
+        #question { 
+            font-size: 5rem; 
+            color: #fff; 
+            margin: 5px 0; 
+            text-shadow: 0 0 20px #000, 0 0 10px #000; /* צל כפול לקריאות */
+        }
+        #answer-display { font-size: 3.5rem; color: #ff00de; min-height: 4rem; text-shadow: 0 0 15px #000; }
+        
+        #numpad { 
+            display: grid; 
+            grid-template-columns: repeat(3, 1fr); 
+            gap: 12px; 
+            background: rgba(255, 255, 255, 0.05); /* שקיפות גבוהה מאוד */
+            padding: 20px; 
+            border-radius: 30px; 
+            backdrop-filter: blur(8px); 
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .btn { 
+            background: rgba(255, 255, 255, 0.1); 
+            border: 1px solid rgba(255, 255, 255, 0.2); 
+            color: white; 
+            font-size: 1.8rem; 
+            width: 65px; 
+            height: 65px; 
+            border-radius: 50%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+        }
+        
+        .btn-go { 
+            background: linear-gradient(45deg, rgba(0, 102, 34, 0.8), rgba(0, 255, 102, 0.8)); 
+            border: none; 
+            grid-column: span 2; 
+            width: auto; 
+            border-radius: 20px; 
+            font-weight: bold; 
+        }
     </style>
 </head>
 <body>
@@ -45,63 +89,60 @@
         <div class="hud-box">🎖️ <span id="rank-name">צוערת חלל</span></div>
     </div>
     
-    <div id="feedback">פגיעה בול! 🚀</div>
-    
-    <div id="viewing-window"></div>
+    <div id="game-area"></div>
 
-    <div id="control-center">
-        <p id="scan-title">מזהה: כדור הארץ</p>
+    <div id="control-panel">
+        <p id="scan-title">מזהה אובייקט...</p>
         <div id="question">? × ?</div>
         <div id="answer-display">?</div>
         <div id="numpad">
             <div class="btn" onclick="press(1)">1</div><div class="btn" onclick="press(2)">2</div><div class="btn" onclick="press(3)">3</div>
             <div class="btn" onclick="press(4)">4</div><div class="btn" onclick="press(5)">5</div><div class="btn" onclick="press(6)">6</div>
             <div class="btn" onclick="press(7)">7</div><div class="btn" onclick="press(8)">8</div><div class="btn" onclick="press(9)">9</div>
-            <div class="btn" style="color:#ff4444" onclick="del()">X</div><div class="btn" onclick="press(0)">0</div><div class="btn btn-go" onclick="check()">שיגור</div>
+            <div class="btn" style="color:#ff4444" onclick="del()">X</div><div class="btn" onclick="press(0)">0</div><div class="btn btn-go" onclick="check()">שיגור 🚀</div>
         </div>
     </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
-    let scene, camera, renderer, stars, universeGroup, currentObj;
-    let score = 0, currentAns = 0, lastQ = "", inputStr = "", distance = 0;
+    let scene, camera, renderer, stars, universeGroup;
+    let score = 0, currentAns = 0, inputStr = "", distance = 0;
     let isJumping = false, speed = 0.1, targetRotX = 0, targetRotY = 0;
 
     function init() {
         scene = new THREE.Scene();
-        // מצלמה מכוונת גבוה יותר כדי לראות את האובייקט מעל המקלדת
-        camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.1, 5000);
-        camera.position.set(0, 15, 150); 
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 5000);
+        camera.position.set(0, 20, 160);
         
         renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(window.devicePixelRatio);
         document.body.appendChild(renderer.domElement);
 
-        // אורות
-        const light = new THREE.PointLight(0xffffff, 1.5, 1000);
-        light.position.set(50, 50, 100);
-        scene.add(light, new THREE.AmbientLight(0xffffff, 0.4));
+        scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+        const light = new THREE.DirectionalLight(0xffffff, 1);
+        light.position.set(10, 20, 50);
+        scene.add(light);
 
         // כוכבים
         const starGeo = new THREE.BufferGeometry();
         const starPos = [];
-        for(let i=0; i<6000; i++) starPos.push((Math.random()-0.5)*3000, (Math.random()-0.5)*3000, (Math.random()-0.5)*3000);
+        for(let i=0; i<7000; i++) starPos.push((Math.random()-0.5)*3000, (Math.random()-0.5)*3000, (Math.random()-0.5)*3000);
         starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPos, 3));
-        stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.7 }));
+        stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.8 }));
         scene.add(stars);
 
         universeGroup = new THREE.Group();
-        universeGroup.position.y = 45; // האובייקט תמיד יהיה בחלק העליון של המסך
+        universeGroup.position.y = 40; // ממקם את האובייקט בחלק העליון
         scene.add(universeGroup);
 
         createObject("earth");
 
-        // תיקון מגע - מאפשר סיבוב בחצי העליון של המסך
+        // סיבוב האובייקט
         let sX, sY;
         window.addEventListener('touchstart', e => {
-            if(e.touches[0].clientY < window.innerHeight * 0.6) {
+            if(e.touches[0].clientY < window.innerHeight * 0.7) {
                 sX = e.touches[0].clientX; sY = e.touches[0].clientY;
             }
         });
@@ -118,49 +159,39 @@
 
     function createObject(type) {
         universeGroup.clear();
-        universeGroup.position.z = -800; // מרחק התחלתי לכל אובייקט
+        universeGroup.position.z = -600;
         const color = new THREE.Color().setHSL(Math.random(), 0.8, 0.5);
         
         if(type === "earth") {
-            const geo = new THREE.SphereGeometry(40, 32, 32);
+            document.getElementById('scan-title').innerText = "כדור הארץ";
+            const geo = new THREE.SphereGeometry(45, 32, 32);
             const mat = new THREE.MeshStandardMaterial({ color: 0x2266ff, emissive: 0x112244 });
-            currentObj = new THREE.Mesh(geo, mat);
-            document.getElementById('scan-title').innerText = "מזהה: כדור הארץ";
+            universeGroup.add(new THREE.Mesh(geo, mat));
         } else {
-            const types = ["גלקסיה", "חור שחור", "שמש", "ערפילית", "סופרנובה"];
-            const selected = types[Math.floor(Math.random()*types.length)];
-            document.getElementById('scan-title').innerText = "מזהה: " + selected;
+            const obs = ["גלקסיה", "חור שחור", "שמש", "ערפילית"];
+            const choice = obs[Math.floor(Math.random()*obs.length)];
+            document.getElementById('scan-title').innerText = choice;
             
-            if(selected === "גלקסיה") {
+            if(choice === "גלקסיה") {
                 const gGeo = new THREE.BufferGeometry(); const gPos = [];
-                for(let i=0; i<4000; i++) {
-                    const r = Math.random()*120; const a = r*0.1 + (i%3)*(Math.PI*2/3);
+                for(let i=0; i<5000; i++) {
+                    const r = Math.random()*130; const a = r*0.1 + (i%3)*(Math.PI*2/3);
                     gPos.push(Math.cos(a)*r, (Math.random()-0.5)*10, Math.sin(a)*r);
                 }
                 gGeo.setAttribute('position', new THREE.Float32BufferAttribute(gPos, 3));
-                currentObj = new THREE.Points(gGeo, new THREE.PointsMaterial({color: color, size: 1.2}));
-            } else if(selected === "חור שחור") {
-                currentObj = new THREE.Group();
-                currentObj.add(new THREE.Mesh(new THREE.SphereGeometry(25,32,32), new THREE.MeshBasicMaterial({color:0})));
-                const ring = new THREE.Mesh(new THREE.TorusGeometry(45, 2, 2, 50), new THREE.MeshBasicMaterial({color: color}));
-                ring.rotation.x = Math.PI/2; currentObj.add(ring);
+                universeGroup.add(new THREE.Points(gGeo, new THREE.PointsMaterial({color: color, size: 1.5})));
             } else {
-                currentObj = new THREE.Mesh(new THREE.SphereGeometry(35,32,32), new THREE.MeshStandardMaterial({color: color, wireframe: selected==="סופרנובה"}));
+                universeGroup.add(new THREE.Mesh(new THREE.SphereGeometry(40,32,32), new THREE.MeshStandardMaterial({color: color})));
             }
         }
-        universeGroup.add(currentObj);
     }
 
     function check() {
         if(parseInt(inputStr) === currentAns) {
-            score++; distance += 15500;
+            score++; distance += 12000;
             document.getElementById('dist').innerText = distance.toLocaleString();
-            document.getElementById('feedback').style.opacity = "1";
             isJumping = true;
-            setTimeout(() => {
-                document.getElementById('feedback').style.opacity = "0";
-                createObject("random"); nextLevel();
-            }, 800);
+            setTimeout(() => { createObject("random"); nextLevel(); }, 800);
         } else { del(); }
     }
 
@@ -169,7 +200,7 @@
         currentAns = n1 * n2;
         document.getElementById('question').innerText = `${n1} × ${n2}`;
         inputStr = ""; document.getElementById('answer-display').innerText = "?";
-        const ranks = ["צוערת חלל", "טייסת", "מפקדת", "חוקרת", "קפטנית"];
+        const ranks = ["צוערת", "טייסת", "מפקדת", "חוקרת", "קפטנית"];
         document.getElementById('rank-name').innerText = ranks[Math.min(Math.floor(score/5), 4)];
     }
 
@@ -180,15 +211,14 @@
         requestAnimationFrame(animate);
         if(isJumping) {
             universeGroup.position.z += (1200 - universeGroup.position.z) * 0.1;
-            speed = 50;
+            speed = 60;
             if(universeGroup.position.z > 1100) { isJumping = false; universeGroup.position.z = -800; speed = 0.1; }
         } else {
             universeGroup.position.z += (0 - universeGroup.position.z) * 0.05;
         }
 
-        universeGroup.rotation.y += 0.005;
         universeGroup.rotation.x += (targetRotX - universeGroup.rotation.x) * 0.1;
-        universeGroup.rotation.y += (targetRotY - universeGroup.rotation.y) * 0.1;
+        universeGroup.rotation.y += (targetRotY - universeGroup.rotation.y) * 0.1 + 0.005;
 
         const p = stars.geometry.attributes.position.array;
         for(let i=0; i<p.length; i+=3) { p[i+2] += speed; if(p[i+2] > 200) p[i+2] = -2000; }
@@ -199,4 +229,4 @@
 </script>
 </body>
 </html>
-      
+
