@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>מסע הכפל v9.1 - Sync Fix</title>
+    <title>מסע הכפל v9.2 - Anti-Repeat</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: sans-serif; touch-action: none; }
         #ui { position: absolute; width: 100%; height: 100%; display: flex; flex-direction: column; pointer-events: none; z-index: 10; }
@@ -47,8 +47,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
     let sc, cam, rend, uni, stars, targetA, input = "", score = 0, dist = 0, rx = 0, ry = 0, isJp = false, moveS = 0.2;
+    let lastObjIndex = -1; // משתנה לזיכרון
 
-    // הגדרה סגורה של אובייקטים - כל שם והלוגיקה שלו
     const lib = [
         { n: "כדור הארץ", c: 0x2266ff, type: "sphere" },
         { n: "מאדים", c: 0xff4400, type: "sphere" },
@@ -57,39 +57,37 @@
         { n: "גלקסיה", type: "galaxy" },
         { n: "השמש", c: 0xffcc00, type: "sun" },
         { n: "צדק", c: 0xd2b48c, type: "sphere" },
-        { n: "נפטון", c: 0x3355ff, type: "sphere" }
+        { n: "נפטון", c: 0x3355ff, type: "sphere" },
+        { n: "אורנוס", c: 0xaaffff, type: "ring-v" },
+        { n: "ונוס", c: 0xffcc99, type: "sphere" },
+        { n: "תחנת חלל", type: "station" },
+        { n: "כוכב נייטרון", c: 0xffffff, type: "neutron" }
     ];
 
     function init() {
         sc = new THREE.Scene();
         cam = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 2000);
         cam.position.set(0, 15, 180);
-
         rend = new THREE.WebGLRenderer({ antialias: true });
         rend.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(rend.domElement);
-
         uni = new THREE.Group(); sc.add(uni);
         sc.add(new THREE.AmbientLight(0xffffff, 0.5));
         const l = new THREE.PointLight(0xffffff, 1); l.position.set(50,50,100); sc.add(l);
-
         const stG = new THREE.BufferGeometry(); const stP = [];
         for(let i=0; i<4000; i++) stP.push((Math.random()-0.5)*2000, (Math.random()-0.5)*2000, (Math.random()-0.5)*2000);
         stG.setAttribute('position', new THREE.Float32BufferAttribute(stP, 3));
         stars = new THREE.Points(stG, new THREE.PointsMaterial({color: 0xffffff, size: 0.8})); sc.add(stars);
-
         let dn = false, ox, oy;
         window.onpointerdown = e => { if(e.clientY < window.innerHeight*0.7) { dn=true; ox=e.clientX; oy=e.clientY; }};
         window.onpointermove = e => { if(dn) { ry += (e.clientX-ox)*0.01; rx += (e.clientY-oy)*0.01; ox=e.clientX; oy=e.clientY; }};
         window.onpointerup = () => dn=false;
-
         spawn(lib[0]); gen(); loop();
     }
 
     function spawn(obj) {
         uni.clear(); uni.position.z = -500;
         document.getElementById('name-label').innerText = "מזהה: " + obj.n;
-        
         if(obj.type === "blackhole") {
             uni.add(new THREE.Mesh(new THREE.SphereGeometry(25,32,32), new THREE.MeshBasicMaterial({color:0})));
             const r = new THREE.Mesh(new THREE.TorusGeometry(45,2,2,50), new THREE.MeshBasicMaterial({color:0xff6600}));
@@ -103,10 +101,20 @@
             uni.add(new THREE.Mesh(new THREE.SphereGeometry(35,32,32), new THREE.MeshStandardMaterial({color:obj.c})));
             const r = new THREE.Mesh(new THREE.TorusGeometry(55,3,2,50), new THREE.MeshStandardMaterial({color:0x888888, transparent:true, opacity:0.5}));
             r.rotation.x = 1.5; uni.add(r);
-        } else if(obj.type === "sun") {
-            uni.add(new THREE.Mesh(new THREE.SphereGeometry(40,32,32), new THREE.MeshBasicMaterial({color:obj.c})));
+        } else if(obj.type === "ring-v") {
+            uni.add(new THREE.Mesh(new THREE.SphereGeometry(35,32,32), new THREE.MeshStandardMaterial({color:obj.c})));
+            const r = new THREE.Mesh(new THREE.TorusGeometry(55,1.5,2,50), new THREE.MeshStandardMaterial({color:0xffffff, transparent:true, opacity:0.4}));
+            r.rotation.y = 1.5; uni.add(r);
+        } else if(obj.type === "station") {
+            const b = new THREE.Mesh(new THREE.BoxGeometry(10,10,40), new THREE.MeshStandardMaterial({color:0xaaaaaa}));
+            const p = new THREE.Mesh(new THREE.BoxGeometry(60,1,30), new THREE.MeshStandardMaterial({color:0x0044ff}));
+            uni.add(b, p);
+        } else if(obj.type === "neutron") {
+            uni.add(new THREE.Mesh(new THREE.SphereGeometry(20,32,32), new THREE.MeshBasicMaterial({color:0xffffff})));
+            const h = new THREE.Mesh(new THREE.SphereGeometry(45,32,32), new THREE.MeshBasicMaterial({color:0x00f2ff, transparent:true, opacity:0.2, wireframe:true}));
+            uni.add(h);
         } else {
-            uni.add(new THREE.Mesh(new THREE.SphereGeometry(40,32,32), new THREE.MeshStandardMaterial({color:obj.c})));
+            uni.add(new THREE.Mesh(new THREE.SphereGeometry(40,32,32), new THREE.MeshStandardMaterial({color:obj.c, emissive: obj.type==="sun"?obj.c:0})));
         }
     }
 
@@ -127,9 +135,16 @@
             document.getElementById('rank-ui').innerText = "דרגה: " + rks[Math.min(Math.floor(score/5), 4)];
             const t = document.getElementById('toast'); t.style.opacity = 1;
             isJp = true;
+            
+            // מנגנון בחירה ללא חזרות:
+            let nextIndex;
+            do { nextIndex = Math.floor(Math.random() * lib.length); } 
+            while (nextIndex === lastObjIndex); // אל תבחר את מה שהיה הרגע
+            lastObjIndex = nextIndex;
+
             setTimeout(() => { 
                 t.style.opacity = 0; 
-                spawn(lib[Math.floor(Math.random()*lib.length)]); 
+                spawn(lib[nextIndex]); 
                 gen(); 
             }, 800);
         } else { del(); }
