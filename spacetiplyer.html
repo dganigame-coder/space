@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>מסע הכפל: v6.0.0 Cosmic Float</title>
+    <title>מסע הכפל: v6.1.0 HUD</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; touch-action: none; }
         
@@ -14,89 +13,93 @@
             pointer-events: none; z-index: 1000; 
         }
 
-        /* סורק צף מינימליסטי */
+        /* מד מרחק ונתונים למעלה */
+        #top-hud {
+            width: 90%; display: flex; justify-content: space-between; margin-top: 15px;
+            color: #00f2ff; font-weight: bold; font-size: 0.9rem; text-shadow: 0 0 8px #00f2ff;
+        }
+
         #data-scanner { 
-            margin-top: 25px; color: #fff; text-align: center;
+            margin-top: 10px; color: #fff; text-align: center;
             text-shadow: 0 0 10px #00f2ff;
         }
-        #scan-title { color: #00f2ff; font-weight: bold; font-size: 1.3rem; margin: 0; letter-spacing: 1px; }
-        #scan-desc { font-size: 0.8rem; margin: 2px 0 0 0; color: rgba(255,255,255,0.7); font-style: italic; }
+        #scan-title { color: #00f2ff; font-weight: bold; font-size: 1.2rem; margin: 0; }
+        #scan-desc { font-size: 0.75rem; margin: 2px 0 0 0; color: rgba(255,255,255,0.6); }
 
-        /* השאלה זוהרת באוויר */
-        #mission-control { 
-            margin-bottom: 5px; text-align: center;
-        }
-        #question { font-size: 3.5rem; color: #fff; margin: 0; text-shadow: 0 0 20px #fff, 0 0 40px #00f2ff; font-weight: 200; }
-        #answer-display { font-size: 2.2rem; color: #ff00de; min-height: 2.5rem; font-weight: bold; text-shadow: 0 0 15px #ff00de; }
+        #mission-control { margin-bottom: 5px; text-align: center; }
+        #question { font-size: 3.2rem; color: #fff; margin: 0; text-shadow: 0 0 20px #fff; font-weight: 200; }
+        #answer-display { font-size: 2rem; color: #ff00de; min-height: 2.2rem; font-weight: bold; text-shadow: 0 0 10px #ff00de; }
 
-        /* מקלדת זכוכית צפה */
-        #bottom-area {
-            width: 100%; display: flex; justify-content: center; padding-bottom: 25px;
-            pointer-events: auto;
-        }
-        
         #numpad { 
             display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; 
             padding: 15px; background: rgba(255, 255, 255, 0.03); 
             border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 30px;
             backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
-            transform: scale(0.85);
+            transform: scale(0.85); pointer-events: auto;
         }
         
         .btn { 
             background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); 
-            color: white; font-size: 1.6rem; width: 55px; height: 55px; 
+            color: white; font-size: 1.5rem; width: 55px; height: 55px; 
             border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            cursor: pointer; transition: 0.2s;
+            cursor: pointer;
         }
-        .btn:active { background: rgba(255, 0, 222, 0.5); transform: scale(0.8); }
-        .btn-go { background: rgba(0, 255, 100, 0.2); border-color: #0f0; grid-column: span 2; width: auto; border-radius: 20px; font-weight: bold; font-size: 1.1rem; }
+        .btn:active { background: rgba(255, 0, 222, 0.4); transform: scale(0.9); }
+        .btn-go { background: rgba(0, 255, 100, 0.15); border-color: #0f0; grid-column: span 2; width: auto; border-radius: 20px; font-weight: bold; }
+
+        /* חותמת גרסה */
+        #version-tag {
+            position: absolute; bottom: 10px; left: 15px;
+            color: rgba(0, 242, 255, 0.4); font-size: 0.7rem; font-family: monospace;
+        }
     </style>
 </head>
 <body>
 
 <div id="ui-layer">
-    <div id="data-scanner">
-        <p id="scan-title">מזהה אות...</p>
-        <p id="scan-desc">ניתוח ספקטרוסקופי פעיל</p>
+    <div id="top-hud">
+        <div>📡 סטטוס: מחובר</div>
+        <div>🚀 מרחק: <span id="dist">0</span> שנות אור</div>
     </div>
 
-    <div style="display: flex; flex-direction: column; align-items: center;">
+    <div id="data-scanner">
+        <p id="scan-title">סורק...</p>
+        <p id="scan-desc">מנתח חתימה קוסמית</p>
+    </div>
+
+    <div style="display: flex; flex-direction: column; align-items: center; padding-bottom: 20px;">
         <div id="mission-control">
-            <div id="question">6 × 7</div>
+            <div id="question">טוען...</div>
             <div id="answer-display">?</div>
         </div>
-
-        <div id="bottom-area">
-            <div id="numpad">
-                <div class="btn" onclick="press(1)">1</div><div class="btn" onclick="press(2)">2</div><div class="btn" onclick="press(3)">3</div>
-                <div class="btn" onclick="press(4)">4</div><div class="btn" onclick="press(5)">5</div><div class="btn" onclick="press(6)">6</div>
-                <div class="btn" onclick="press(7)">7</div><div class="btn" onclick="press(8)">8</div><div class="btn" onclick="press(9)">9</div>
-                <div class="btn" style="color:#ff4444" onclick="del()">X</div><div class="btn" onclick="press(0)">0</div><div class="btn btn-go" onclick="check()">קפיצה 🚀</div>
-            </div>
+        <div id="numpad">
+            <div class="btn" onclick="press(1)">1</div><div class="btn" onclick="press(2)">2</div><div class="btn" onclick="press(3)">3</div>
+            <div class="btn" onclick="press(4)">4</div><div class="btn" onclick="press(5)">5</div><div class="btn" onclick="press(6)">6</div>
+            <div class="btn" onclick="press(7)">7</div><div class="btn" onclick="press(8)">8</div><div class="btn" onclick="press(9)">9</div>
+            <div class="btn" style="color:#ff4444" onclick="del()">X</div><div class="btn" onclick="press(0)">0</div><div class="btn btn-go" onclick="check()">קפיצה 🌌</div>
         </div>
     </div>
+    
+    <div id="version-tag">OS_v6.1.0 // DEEP_SPACE_EXPLORER</div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
     let scene, camera, renderer, stars, universeGroup;
-    let speed = 0, targetSpeed = 0.2, score = 0, currentAns = 0, inputStr = "";
+    let speed = 0, score = 0, currentAns = 0, inputStr = "";
     let targetZ = 0, isJumping = false;
     let rotX = 0, rotY = 0, targetRotX = 0, targetRotY = 0;
 
     function init() {
         scene = new THREE.Scene();
         camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.1, 5000);
-        camera.position.z = 70;
+        camera.position.z = 75;
 
         renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(window.devicePixelRatio);
         document.body.appendChild(renderer.domElement);
 
-        // כוכבים רנדומליים
         const starGeo = new THREE.BufferGeometry();
         const starPos = [];
         for(let i=0; i<15000; i++) starPos.push((Math.random()-0.5)*4000, (Math.random()-0.5)*4000, (Math.random()-0.5)*4000);
@@ -104,20 +107,21 @@
         stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.9 }));
         scene.add(stars);
 
-        scene.add(new THREE.AmbientLight(0x888888));
+        scene.add(new THREE.AmbientLight(0x999999));
         const light = new THREE.PointLight(0xffffff, 2, 1000);
         light.position.set(50,50,50);
         scene.add(light);
 
+        let sX, sY;
         document.addEventListener('touchstart', e => { 
-            if(e.target.closest('#bottom-area')) return;
-            this.startX = e.touches[0].clientX; this.startY = e.touches[0].clientY; 
+            if(e.target.closest('#numpad')) return;
+            sX = e.touches[0].clientX; sY = e.touches[0].clientY; 
         });
         document.addEventListener('touchmove', e => {
-            if(e.target.closest('#bottom-area')) return;
-            targetRotY += (e.touches[0].clientX - this.startX) * 0.008;
-            targetRotX += (e.touches[0].clientY - this.startY) * 0.008;
-            this.startX = e.touches[0].clientX; this.startY = e.touches[0].clientY;
+            if(e.target.closest('#numpad')) return;
+            targetRotY += (e.touches[0].clientX - sX) * 0.008;
+            targetRotX += (e.touches[0].clientY - sY) * 0.008;
+            sX = e.touches[0].clientX; sY = e.touches[0].clientY;
         });
 
         generateNewSystem();
@@ -140,30 +144,31 @@
 
         if(type === 0) {
             title.innerText = `מערכת שמש ${colorName}`;
-            desc.innerText = "שמש מרכזית יציבה עם כוכב לכת במסלול.";
+            desc.innerText = "שמש מרכזית יציבה התומכת בחיים.";
             universeGroup.add(new THREE.Mesh(new THREE.SphereGeometry(15,32,32), new THREE.MeshBasicMaterial({color: mainColor})));
-            const p = new THREE.Mesh(new THREE.SphereGeometry(4,32,32), new THREE.MeshStandardMaterial({color: 0x666666}));
+            const p = new THREE.Mesh(new THREE.SphereGeometry(4,32,32), new THREE.MeshStandardMaterial({color: 0x777777}));
             p.position.x = 40; const piv = new THREE.Group(); piv.add(p); universeGroup.add(piv);
+            universeGroup.userData.piv = piv;
         } else if(type === 1) {
             title.innerText = `חור שחור ${colorName}`;
-            desc.innerText = "זהירות: עיקום אור קיצוני מזוהה במרכז.";
+            desc.innerText = "עיקום אור משמעותי. חור שחור פעיל.";
             universeGroup.add(new THREE.Mesh(new THREE.SphereGeometry(15,32,32), new THREE.MeshBasicMaterial({color: 0x000000})));
-            const disk = new THREE.Mesh(new THREE.TorusGeometry(28,2,2,100), new THREE.MeshBasicMaterial({color: mainColor, transparent:true, opacity:0.8}));
+            const disk = new THREE.Mesh(new THREE.TorusGeometry(30,2,2,100), new THREE.MeshBasicMaterial({color: mainColor, transparent:true, opacity:0.8}));
             disk.rotation.x = 1.5; universeGroup.add(disk);
             universeGroup.userData.disk = disk;
         } else if(type === 2) {
             title.innerText = `ערפילית ${colorName}`;
-            desc.innerText = "ענן פלזמה בין-כוכבי המכיל יסודות נדירים.";
+            desc.innerText = "ריכוז גבוה של אבק כוכבים וגזים.";
             universeGroup.add(new THREE.Mesh(new THREE.IcosahedronGeometry(25,1), new THREE.MeshBasicMaterial({color: mainColor, wireframe:true, transparent:true, opacity:0.6})));
         } else if(type === 3) {
             title.innerText = `גלקסיית ${colorName}`;
-            desc.innerText = "מיליארדי כוכבים מסתחררים סביב ליבה בוערת.";
+            desc.innerText = "צביר כוכבים ספירלי רחב היקף.";
             const pts = []; for(let i=0;i<4000;i++){ let r=Math.random()*60; let a=r*0.5; pts.push(Math.cos(a)*r,(Math.random()-0.5)*5,Math.sin(a)*r); }
             const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pts,3));
             universeGroup.add(new THREE.Points(g, new THREE.PointsMaterial({color:mainColor, size:0.8})));
         } else {
             title.innerText = `חור תולעת ${colorName}`;
-            desc.innerText = "מעבר ממדי לא ידוע. יציבות: 88%.";
+            desc.innerText = "אנומליה מרחבית. יציבות שער גבוהה.";
             const wh = new THREE.Mesh(new THREE.TorusGeometry(25,12,16,100), new THREE.MeshBasicMaterial({color: mainColor, wireframe:true, transparent:true, opacity:0.5}));
             universeGroup.add(wh); universeGroup.rotation.y = 1.5;
         }
@@ -175,6 +180,7 @@
     function check() {
         if(parseInt(inputStr) === currentAns) {
             score++;
+            document.getElementById('dist').innerText = score * 500;
             targetZ = 1200; isJumping = true;
             setTimeout(() => {
                 generateNewSystem();
@@ -204,8 +210,11 @@
         rotX += (targetRotX - rotX) * 0.1; rotY += (targetRotY - rotY) * 0.1;
         universeGroup.rotation.x = rotX; universeGroup.rotation.y = rotY;
         
+        if(universeGroup.userData.piv) universeGroup.userData.piv.rotation.y += 0.02;
+        if(universeGroup.userData.disk) universeGroup.userData.disk.rotation.z += 0.05;
+
         const p = stars.geometry.attributes.position.array;
-        for(let i=0; i<p.length; i+=3) { p[i+2]+=speed; if(p[i+2]>70) p[i+2]=-2500; }
+        for(let i=0; i<p.length; i+=3) { p[i+2]+=speed; if(p[i+2]>75) p[i+2]=-2500; }
         stars.geometry.attributes.position.needsUpdate = true;
         renderer.render(scene, camera);
     }
