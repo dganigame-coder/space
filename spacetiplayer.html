@@ -1,50 +1,53 @@
-  <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>מסע הכפל: v8.1.6 Rotation Fix</title>
+    <title>מסע הכפל: v8.1.7</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; touch-action: none; }
+        #ui-layer { position: absolute; width: 100%; height: 100%; display: flex; flex-direction: column; pointer-events: none; z-index: 10; }
         
-        /* שכבת הממשק - חשוב: pointer-events: none כדי שהמגע יעבור ל-3D */
-        #ui-layer { 
-            position: absolute; width: 100%; height: 100%; 
-            display: flex; flex-direction: column; 
-            pointer-events: none; z-index: 10; 
-        }
-        
+        /* HUD עליון */
         #top-hud { width: 100%; display: flex; justify-content: space-around; padding-top: 10px; }
-        .hud-box { background: rgba(0, 242, 255, 0.1); padding: 5px 12px; border-radius: 15px; color: #00f2ff; font-size: 0.8rem; backdrop-filter: blur(4px); pointer-events: auto; }
+        .hud-box { background: rgba(0, 242, 255, 0.1); padding: 5px 15px; border-radius: 20px; border: 1px solid rgba(0, 242, 255, 0.4); color: #00f2ff; font-weight: bold; backdrop-filter: blur(5px); pointer-events: auto; }
         
+        /* פידבק הצלחה */
+        #success-msg { position: absolute; top: 20%; width: 100%; text-align: center; color: #00ff66; font-size: 2.5rem; font-weight: bold; text-shadow: 0 0 20px #00ff66; opacity: 0; transition: 0.3s; pointer-events: none; }
+
         #game-view { flex-grow: 1; }
 
-        /* הפנל התחתון - רק הוא חוסם מגע */
+        /* פנל שליטה */
         #control-panel { 
-            max-height: 25vh; padding-bottom: 15px;
+            max-height: 28vh; padding-bottom: 20px;
             display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
-            pointer-events: auto; 
-            background: linear-gradient(to top, rgba(0,0,0,0.6), transparent);
+            pointer-events: auto; background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
         }
         
-        #question-row { display: flex; align-items: center; gap: 20px; margin: 8px 0; }
-        #question { font-size: 2.5rem; color: #fff; text-shadow: 0 0 15px #000; }
-        #answer-display { font-size: 2.5rem; color: #ff00de; min-width: 60px; text-align: center; }
+        #object-name { color: #00f2ff; font-size: 1.4rem; margin: 0; text-shadow: 0 0 10px #000; font-weight: bold; }
+        #question-row { display: flex; align-items: center; gap: 20px; margin: 10px 0; }
+        #question { font-size: 3rem; color: #fff; text-shadow: 0 0 15px #000; margin: 0; }
+        #answer-display { font-size: 3rem; color: #ff00de; min-width: 60px; text-align: center; text-shadow: 0 0 10px #000; }
         
-        #numpad { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; padding: 10px; background: rgba(255, 255, 255, 0.05); border-radius: 15px; backdrop-filter: blur(10px); }
-        .btn { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); color: white; font-size: 1.2rem; width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
-        .btn-go { background: linear-gradient(45deg, #006622, #00ff66); border: none; width: 85px; font-weight: bold; }
+        #numpad { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; padding: 12px; background: rgba(255, 255, 255, 0.05); border-radius: 20px; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+        .btn { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); color: white; font-size: 1.4rem; width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: 0.1s; }
+        .btn:active { background: rgba(255, 255, 255, 0.3); transform: scale(0.9); }
+        .btn-go { background: linear-gradient(45deg, #006622, #00ff66); border: none; width: 95px; border-radius: 15px; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div id="ui-layer">
     <div id="top-hud">
+        <div class="hud-box">🚀 ניקוד: <span id="score">0</span></div>
         <div class="hud-box">📍 <span id="dist">0</span> ק"מ</div>
-        <div class="hud-box">🎖️ <span id="rank-name">צוערת</span></div>
     </div>
+    
+    <div id="success-msg">פגיעה בול! 🌟</div>
     <div id="game-view"></div>
+
     <div id="control-panel">
+        <div id="object-name">מזהה אובייקט...</div>
         <div id="question-row">
             <div id="question">? × ?</div>
             <div id="answer-display">?</div>
@@ -62,7 +65,7 @@
 <script>
     let scene, camera, renderer, stars, universeGroup;
     let score = 0, currentAns = 0, inputStr = "", distance = 0;
-    let isJumping = false, speed = 0.1;
+    let isJumping = false, speed = 0.2;
     let targetRotX = 0, targetRotY = 0;
 
     function init() {
@@ -74,76 +77,76 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        scene.add(new THREE.AmbientLight(0xffffff, 0.5));
-        const light = new THREE.PointLight(0xffffff, 1);
+        scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+        const light = new THREE.PointLight(0xffffff, 1.2);
         light.position.set(50, 50, 100);
         scene.add(light);
 
         universeGroup = new THREE.Group();
-        universeGroup.position.y = 25; 
+        universeGroup.position.y = 20; 
         scene.add(universeGroup);
 
-        // כוכבים
         const starGeo = new THREE.BufferGeometry();
         const starPos = [];
-        for(let i=0; i<5000; i++) starPos.push((Math.random()-0.5)*3000, (Math.random()-0.5)*3000, (Math.random()-0.5)*3000);
+        for(let i=0; i<6000; i++) starPos.push((Math.random()-0.5)*3000, (Math.random()-0.5)*3000, (Math.random()-0.5)*3000);
         starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPos, 3));
-        stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.8 }));
+        stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.7 }));
         scene.add(stars);
 
-        // --- מנגנון סיבוב משופר ---
-        let isDragging = false;
-        let previousMouseX = 0, previousMouseY = 0;
-
-        const onDown = (x, y) => {
-            if (y < window.innerHeight * 0.75) { // רק אם נוגעים מעל הפנל
-                isDragging = true;
-                previousMouseX = x; previousMouseY = y;
-            }
-        };
-
-        const onMove = (x, y) => {
-            if (isDragging) {
-                const deltaX = x - previousMouseX;
-                const deltaY = y - previousMouseY;
-                targetRotY += deltaX * 0.01;
-                targetRotX += deltaY * 0.01;
-                previousMouseX = x; previousMouseY = y;
-            }
-        };
-
-        window.addEventListener('mousedown', e => onDown(e.clientX, e.clientY));
-        window.addEventListener('mousemove', e => onMove(e.clientX, e.clientY));
+        // מנגנון מגע משופר
+        let isDragging = false, pX, pY;
+        const start = (x,y) => { if(y < window.innerHeight*0.7) { isDragging = true; pX = x; pY = y; } };
+        const move = (x,y) => { if(isDragging) { targetRotY += (x-pX)*0.01; targetRotX += (y-pY)*0.01; pX = x; pY = y; } };
+        
+        window.addEventListener('mousedown', e => start(e.clientX, e.clientY));
+        window.addEventListener('mousemove', e => move(e.clientX, e.clientY));
         window.addEventListener('mouseup', () => isDragging = false);
-        window.addEventListener('touchstart', e => onDown(e.touches[0].clientX, e.touches[0].clientY));
-        window.addEventListener('touchmove', e => onMove(e.touches[0].clientX, e.touches[0].clientY));
+        window.addEventListener('touchstart', e => start(e.touches[0].clientX, e.touches[0].clientY));
+        window.addEventListener('touchmove', e => move(e.touches[0].clientX, e.touches[0].clientY));
         window.addEventListener('touchend', () => isDragging = false);
 
-        createObject("earth");
-        nextLevel(); animate();
+        createObject("earth"); nextLevel(); animate();
     }
 
     function createObject(type) {
         universeGroup.clear();
         universeGroup.position.z = -500;
+        const nameEl = document.getElementById('object-name');
+        
         if(type === "earth") {
+            nameEl.innerText = "כדור הארץ";
             universeGroup.add(new THREE.Mesh(new THREE.SphereGeometry(45,32,32), new THREE.MeshStandardMaterial({color: 0x2266ff})));
         } else {
-            const color = new THREE.Color().setHSL(Math.random(), 0.8, 0.5);
+            const obs = ["חור שחור", "שמש זהובה", "ערפילית", "מאדים"];
+            const choice = obs[Math.floor(Math.random()*obs.length)];
+            nameEl.innerText = choice;
+            let color = choice === "מאדים" ? 0xff4400 : (choice === "שמש זהובה" ? 0xffcc00 : 0xaa00ff);
             universeGroup.add(new THREE.Mesh(new THREE.SphereGeometry(40,32,32), new THREE.MeshStandardMaterial({color: color})));
         }
     }
 
-    function press(n) { if(inputStr.length < 3) { inputStr += n; document.getElementById('answer-display').innerText = inputStr; } }
-    function del() { inputStr = ""; document.getElementById('answer-display').innerText = "?"; }
     function check() {
         if(parseInt(inputStr) === currentAns) {
             score++; distance += 15000;
+            document.getElementById('score').innerText = score;
             document.getElementById('dist').innerText = distance.toLocaleString();
+            
+            const feedback = document.getElementById('success-msg');
+            const msgs = ["מעולה!", "פגיעה בול!", "מדהים!", "אלופה!"];
+            feedback.innerText = msgs[Math.floor(Math.random()*msgs.length)];
+            feedback.style.opacity = "1";
+            
             isJumping = true;
-            setTimeout(() => { createObject("random"); nextLevel(); }, 700);
-        } else { del(); }
+            setTimeout(() => { 
+                feedback.style.opacity = "0";
+                createObject("random"); nextLevel(); 
+            }, 800);
+        } else { 
+            inputStr = ""; document.getElementById('answer-display').innerText = "X";
+            setTimeout(del, 500);
+        }
     }
+
     function nextLevel() {
         let n1 = Math.floor(Math.random()*8)+2, n2 = Math.floor(Math.random()*9)+2;
         currentAns = n1 * n2;
@@ -151,20 +154,20 @@
         inputStr = ""; document.getElementById('answer-display').innerText = "?";
     }
 
+    function press(n) { if(inputStr.length < 3) { inputStr += n; document.getElementById('answer-display').innerText = inputStr; } }
+    function del() { inputStr = ""; document.getElementById('answer-display').innerText = "?"; }
+
     function animate() {
         requestAnimationFrame(animate);
         if(isJumping) {
             universeGroup.position.z += (1200 - universeGroup.position.z) * 0.12;
-            speed = 50;
-            if(universeGroup.position.z > 1100) { isJumping = false; universeGroup.position.z = -600; speed = 0.1; }
+            speed = 40;
+            if(universeGroup.position.z > 1100) { isJumping = false; universeGroup.position.z = -600; speed = 0.2; }
         } else {
             universeGroup.position.z += (0 - universeGroup.position.z) * 0.05;
         }
-        
-        // החלת הסיבוב
         universeGroup.rotation.x += (targetRotX - universeGroup.rotation.x) * 0.1;
         universeGroup.rotation.y += (targetRotY - universeGroup.rotation.y) * 0.1;
-
         const p = stars.geometry.attributes.position.array;
         for(let i=0; i<p.length; i+=3) { p[i+2] += speed; if(p[i+2] > 200) p[i+2] = -2000; }
         stars.geometry.attributes.position.needsUpdate = true;
@@ -174,4 +177,3 @@
 </script>
 </body>
 </html>
-                
