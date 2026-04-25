@@ -3,28 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>מסע הכפל v6.0 - The Clean Version</title>
+    <title>מסע הכפל v6.8 - Modular</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: sans-serif; touch-action: none; }
         #ui { position: absolute; inset: 0; display: flex; flex-direction: column; pointer-events: none; z-index: 10; }
-        
         .header { display: flex; justify-content: space-between; padding: 15px; }
-        .box { background: rgba(0, 255, 255, 0.2); color: #00f2ff; padding: 8px 15px; border-radius: 15px; border: 1px solid #00f2ff; font-weight: bold; }
-
-        #msg { position: absolute; top: 30%; width: 100%; text-align: center; color: #00ff66; font-size: 3rem; opacity: 0; transition: 0.2s; font-weight: bold; text-shadow: 0 0 15px #00ff66; }
-
-        #input-panel { margin-top: auto; background: rgba(0, 0, 0, 0.9); padding: 20px 10px; pointer-events: auto; display: flex; flex-direction: column; align-items: center; border-top: 2px solid #333; }
-        #obj-info { color: #aaa; font-size: 1rem; margin-bottom: 5px; }
-        
+        .box { color: #00f2ff; font-weight: bold; text-shadow: 2px 2px 4px #000; font-size: 1.1rem; }
+        #msg { position: absolute; top: 25%; width: 100%; text-align: center; color: #00ff66; font-size: 3rem; opacity: 0; font-weight: bold; text-shadow: 0 0 20px #000; }
+        #panel { margin-top: auto; padding: 20px 10px; pointer-events: auto; display: flex; flex-direction: column; align-items: center; background: transparent; }
+        #obj-info { color: #fff; font-size: 1.2rem; margin-bottom: 5px; text-shadow: 2px 2px 5px #000; font-weight: bold; }
         #math-row { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; }
-        #question { color: #fff; font-size: 3.5rem; font-weight: bold; }
-        #answer { color: #ff00de; font-size: 3.5rem; min-width: 60px; border-bottom: 4px solid #ff00de; text-align: center; font-weight: bold; }
-
-        .keys { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; width: 100%; max-width: 400px; }
-        .k { height: 55px; background: #222; color: #fff; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; border: 1px solid #444; }
+        #q { color: #fff; font-size: 4rem; font-weight: 900; text-shadow: 0 0 15px #000; }
+        #a { color: #ff00de; font-size: 4rem; min-width: 70px; border-bottom: 5px solid #ff00de; text-align: center; font-weight: 900; text-shadow: 0 0 15px #000; }
+        .keys { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; width: 100%; max-width: 420px; }
+        .k { height: 60px; background: rgba(255, 255, 255, 0.15); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; border: 1px solid rgba(255,255,255,0.3); backdrop-filter: blur(2px); }
         .k:active { background: #00f2ff; color: #000; }
-        .k-go { background: #008844; grid-column: span 2; border: none; font-weight: bold; }
-        .k-del { color: #ff4444; }
+        .k-go { background: rgba(0, 255, 100, 0.4); grid-column: span 2; border-radius: 15px; font-weight: bold; border: 1px solid #00ff66; }
     </style>
 </head>
 <body>
@@ -35,118 +29,26 @@
         <div class="box" id="rank-txt">טירונית</div>
     </div>
     <div id="msg">מצוין!</div>
-    <div id="input-panel">
-        <div id="obj-info">מזהה אובייקט: כדור הארץ</div>
+    <div id="panel">
+        <div id="obj-info">טוען נתונים...</div>
         <div id="math-row">
-            <div id="question">? × ?</div>
-            <div id="answer">?</div>
+            <div id="q">? × ?</div>
+            <div id="a">?</div>
         </div>
         <div class="keys">
             <div class="k" onclick="press(1)">1</div><div class="k" onclick="press(2)">2</div><div class="k" onclick="press(3)">3</div>
-            <div class="k" onclick="press(4)">4</div><div class="k" onclick="press(5)">5</div><div class="k k-del" onclick="clr()">C</div>
+            <div class="k" onclick="press(4)">4</div><div class="k" onclick="press(5)">5</div><div class="k" onclick="clr()" style="color:#ff4444">X</div>
             <div class="k" onclick="press(6)">6</div><div class="k" onclick="press(7)">7</div><div class="k" onclick="press(8)">8</div>
-            <div class="k" onclick="press(9)">9</div><div class="k" onclick="press(0)">0</div><div class="k k-go" onclick="check()">שיגור</div>
+            <div class="k" onclick="press(9)">9</div><div class="k" onclick="press(0)">0</div><div class="k k-go" onclick="check()">GO</div>
         </div>
     </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script>
-    let scene, camera, renderer, globe, stars, target, current = "", score = 0, distance = 0, isWarp = false;
-    const items = [
-        {n: "כדור הארץ", c: 0x2266ff}, {n: "מאדים", c: 0xff4400}, {n: "צדק", c: 0xd2b48c},
-        {n: "שבתאי", c: 0xdfbe9f, ring: true}, {n: "נפטון", c: 0x3355ff}, {n: "השמש", c: 0xffcc00}
-    ];
 
-    function init() {
-        scene = new THREE.Scene();
-        camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-        camera.position.z = 120;
+<script src="spaceData.js"></script>
 
-        renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
+<script src="gameLogic.js"></script>
 
-        const light = new THREE.DirectionalLight(0xffffff, 1);
-        light.position.set(5, 3, 5);
-        scene.add(light, new THREE.AmbientLight(0x404040));
-
-        // כוכבים
-        const geo = new THREE.BufferGeometry();
-        const pos = [];
-        for(let i=0; i<1500; i++) pos.push((Math.random()-0.5)*1000, (Math.random()-0.5)*1000, (Math.random()-0.5)*1000);
-        geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-        stars = new THREE.Points(geo, new THREE.PointsMaterial({color: 0xffffff, size: 0.8}));
-        scene.add(stars);
-
-        createObj(items[0]);
-        ask();
-        animate();
-    }
-
-    function createObj(data) {
-        if(globe) scene.remove(globe);
-        globe = new THREE.Group();
-        
-        const main = new THREE.Mesh(new THREE.SphereGeometry(35, 32, 32), new THREE.MeshStandardMaterial({color: data.c}));
-        globe.add(main);
-
-        if(data.ring) {
-            const rGeo = new THREE.TorusGeometry(50, 2, 2, 40);
-            const rMat = new THREE.MeshStandardMaterial({color: 0x888888, transparent: true, opacity: 0.6});
-            const ring = new THREE.Mesh(rGeo, rMat);
-            ring.rotation.x = 1.5;
-            globe.add(ring);
-        }
-        
-        document.getElementById('obj-info').innerText = "מזהה אובייקט: " + data.n;
-        scene.add(globe);
-    }
-
-    function ask() {
-        let a = Math.floor(Math.random()*9)+2, b = Math.floor(Math.random()*9)+2;
-        target = a * b;
-        document.getElementById('question').innerText = `${a} × ${b}`;
-        current = ""; document.getElementById('answer').innerText = "?";
-    }
-
-    function press(n) { if(current.length < 3) { current += n; document.getElementById('answer').innerText = current; } }
-    function clr() { current = ""; document.getElementById('answer').innerText = "?"; }
-
-    function check() {
-        if(parseInt(current) === target) {
-            score++; distance += 25000;
-            document.getElementById('dist-txt').innerText = distance.toLocaleString() + " ק\"מ";
-            const ranks = ["טירונית", "טייסת", "מפקדת", "אדמירלית"];
-            document.getElementById('rank-txt').innerText = ranks[Math.min(Math.floor(score/5), 3)];
-            
-            document.getElementById('msg').style.opacity = 1;
-            isWarp = true;
-            setTimeout(() => {
-                document.getElementById('msg').style.opacity = 0;
-                isWarp = false;
-                createObj(items[Math.floor(Math.random()*items.length)]);
-                ask();
-            }, 800);
-        } else { clr(); }
-    }
-
-    function animate() {
-        requestAnimationFrame(animate);
-        if(isWarp) {
-            globe.position.z += 20;
-            const p = stars.geometry.attributes.position.array;
-            for(let i=0; i<p.length; i+=3) { p[i+2] += 15; if(p[i+2]>200) p[i+2]=-800; }
-            stars.geometry.attributes.position.needsUpdate = true;
-        } else {
-            if(globe.position.z > 0) globe.position.z -= 10;
-            globe.rotation.y += 0.01;
-        }
-        renderer.render(scene, camera);
-    }
-
-    init();
-    window.onresize = () => { renderer.setSize(window.innerWidth, window.innerHeight); camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix(); };
-</script>
 </body>
 </html>
