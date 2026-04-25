@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>מסע הכפל: v8.1.3 Transparent</title>
+    <title>מסע הכפל: v8.1.4 Compact</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; touch-action: none; }
         
-        /* שכבת הממשק - שקופה לגמרי */
         #ui-layer { 
             position: absolute; 
             width: 100%; 
@@ -18,66 +17,86 @@
             z-index: 10; 
         }
         
-        #top-hud { width: 100%; display: flex; justify-content: space-around; padding-top: 15px; }
+        #top-hud { width: 100%; display: flex; justify-content: space-around; padding-top: 10px; }
         .hud-box { 
-            background: rgba(0, 242, 255, 0.1); /* כמעט שקוף */
-            padding: 8px 15px; 
-            border-radius: 20px; 
-            border: 1px solid rgba(0, 242, 255, 0.4); 
+            background: rgba(0, 242, 255, 0.05);
+            padding: 5px 12px; 
+            border-radius: 15px; 
+            border: 1px solid rgba(0, 242, 255, 0.3); 
             color: #00f2ff; 
-            backdrop-filter: blur(5px); /* טשטוש עדין של הרקע */
+            font-size: 0.8rem;
+            backdrop-filter: blur(4px);
         }
         
-        #game-area { flex-grow: 1; }
+        /* אזור המשחק - תופס 75% מהמסך */
+        #game-view { flex-grow: 1; }
 
+        /* פנל בקרה - מוגבל ל-1/4 מסך */
         #control-panel { 
-            padding-bottom: 30px; 
+            max-height: 25vh; 
+            padding-bottom: 10px;
             display: flex; 
             flex-direction: column; 
             align-items: center; 
+            justify-content: flex-end;
             pointer-events: auto; 
+            background: linear-gradient(to top, rgba(0,0,0,0.4), transparent);
         }
         
-        #scan-title { color: #00f2ff; font-size: 1.3rem; text-shadow: 0 0 10px #000; margin: 0; }
-        #question { 
-            font-size: 5rem; 
-            color: #fff; 
-            margin: 5px 0; 
-            text-shadow: 0 0 20px #000, 0 0 10px #000; /* צל כפול לקריאות */
+        #scan-title { color: #00f2ff; font-size: 0.9rem; margin: 0; opacity: 0.8; }
+        
+        #question-row { 
+            display: flex; 
+            align-items: center; 
+            gap: 15px; 
+            margin-bottom: 5px;
         }
-        #answer-display { font-size: 3.5rem; color: #ff00de; min-height: 4rem; text-shadow: 0 0 15px #000; }
+
+        #question { 
+            font-size: 2.2rem; 
+            color: #fff; 
+            text-shadow: 0 0 15px #000;
+            margin: 0;
+        }
+        
+        #answer-display { 
+            font-size: 2.2rem; 
+            color: #ff00de; 
+            min-width: 50px;
+            text-align: center;
+            text-shadow: 0 0 10px #000;
+        }
         
         #numpad { 
             display: grid; 
-            grid-template-columns: repeat(3, 1fr); 
-            gap: 12px; 
-            background: rgba(255, 255, 255, 0.05); /* שקיפות גבוהה מאוד */
-            padding: 20px; 
-            border-radius: 30px; 
-            backdrop-filter: blur(8px); 
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            grid-template-columns: repeat(6, 1fr); /* פריסה רוחבית יותר כדי לחסוך גובה */
+            gap: 6px; 
+            background: rgba(255, 255, 255, 0.03); 
+            padding: 8px; 
+            border-radius: 15px; 
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
         }
         
         .btn { 
-            background: rgba(255, 255, 255, 0.1); 
-            border: 1px solid rgba(255, 255, 255, 0.2); 
+            background: rgba(255, 255, 255, 0.08); 
+            border: 1px solid rgba(255, 255, 255, 0.15); 
             color: white; 
-            font-size: 1.8rem; 
-            width: 65px; 
-            height: 65px; 
-            border-radius: 50%; 
+            font-size: 1.2rem; 
+            width: 45px; 
+            height: 45px; 
+            border-radius: 12px; 
             display: flex; 
             align-items: center; 
             justify-content: center; 
         }
         
         .btn-go { 
-            background: linear-gradient(45deg, rgba(0, 102, 34, 0.8), rgba(0, 255, 102, 0.8)); 
+            background: linear-gradient(45deg, rgba(0, 150, 50, 0.7), rgba(0, 255, 100, 0.7)); 
             border: none; 
-            grid-column: span 2; 
-            width: auto; 
-            border-radius: 20px; 
+            width: 80px;
             font-weight: bold; 
+            font-size: 1rem;
         }
     </style>
 </head>
@@ -86,20 +105,30 @@
 <div id="ui-layer">
     <div id="top-hud">
         <div class="hud-box">📍 <span id="dist">0</span> ק"מ</div>
-        <div class="hud-box">🎖️ <span id="rank-name">צוערת חלל</span></div>
+        <div class="hud-box">🎖️ <span id="rank-name">צוערת</span></div>
     </div>
     
-    <div id="game-area"></div>
+    <div id="game-view"></div>
 
     <div id="control-panel">
-        <p id="scan-title">מזהה אובייקט...</p>
-        <div id="question">? × ?</div>
-        <div id="answer-display">?</div>
+        <p id="scan-title">מזהה אובייקט</p>
+        <div id="question-row">
+            <div id="question">? × ?</div>
+            <div id="answer-display">?</div>
+        </div>
         <div id="numpad">
-            <div class="btn" onclick="press(1)">1</div><div class="btn" onclick="press(2)">2</div><div class="btn" onclick="press(3)">3</div>
-            <div class="btn" onclick="press(4)">4</div><div class="btn" onclick="press(5)">5</div><div class="btn" onclick="press(6)">6</div>
-            <div class="btn" onclick="press(7)">7</div><div class="btn" onclick="press(8)">8</div><div class="btn" onclick="press(9)">9</div>
-            <div class="btn" style="color:#ff4444" onclick="del()">X</div><div class="btn" onclick="press(0)">0</div><div class="btn btn-go" onclick="check()">שיגור 🚀</div>
+            <div class="btn" onclick="press(1)">1</div>
+            <div class="btn" onclick="press(2)">2</div>
+            <div class="btn" onclick="press(3)">3</div>
+            <div class="btn" onclick="press(4)">4</div>
+            <div class="btn" onclick="press(5)">5</div>
+            <div class="btn" style="color:#ff4444" onclick="del()">X</div>
+            <div class="btn" onclick="press(6)">6</div>
+            <div class="btn" onclick="press(7)">7</div>
+            <div class="btn" onclick="press(8)">8</div>
+            <div class="btn" onclick="press(9)">9</div>
+            <div class="btn" onclick="press(0)">0</div>
+            <div class="btn btn-go" onclick="check()">שיגור</div>
         </div>
     </div>
 </div>
@@ -112,37 +141,37 @@
 
     function init() {
         scene = new THREE.Scene();
-        camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 5000);
-        camera.position.set(0, 20, 160);
+        camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.1, 5000);
+        camera.position.set(0, 5, 150); // מצלמה נמוכה יותר כדי שהאובייקט יהיה במרכז ה-75% העליונים
         
         renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         document.body.appendChild(renderer.domElement);
 
-        scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-        const light = new THREE.DirectionalLight(0xffffff, 1);
-        light.position.set(10, 20, 50);
+        scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+        const light = new THREE.PointLight(0xffffff, 1);
+        light.position.set(50, 50, 100);
         scene.add(light);
 
         // כוכבים
         const starGeo = new THREE.BufferGeometry();
         const starPos = [];
-        for(let i=0; i<7000; i++) starPos.push((Math.random()-0.5)*3000, (Math.random()-0.5)*3000, (Math.random()-0.5)*3000);
+        for(let i=0; i<5000; i++) starPos.push((Math.random()-0.5)*3000, (Math.random()-0.5)*3000, (Math.random()-0.5)*3000);
         starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPos, 3));
-        stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.8 }));
+        stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.7 }));
         scene.add(stars);
 
         universeGroup = new THREE.Group();
-        universeGroup.position.y = 40; // ממקם את האובייקט בחלק העליון
+        universeGroup.position.y = 20; // מרכוז בשטח הפנוי
         scene.add(universeGroup);
 
         createObject("earth");
 
-        // סיבוב האובייקט
+        // שליטה בסיבוב
         let sX, sY;
         window.addEventListener('touchstart', e => {
-            if(e.touches[0].clientY < window.innerHeight * 0.7) {
+            if(e.touches[0].clientY < window.innerHeight * 0.75) {
                 sX = e.touches[0].clientX; sY = e.touches[0].clientY;
             }
         });
@@ -159,39 +188,39 @@
 
     function createObject(type) {
         universeGroup.clear();
-        universeGroup.position.z = -600;
+        universeGroup.position.z = -500;
         const color = new THREE.Color().setHSL(Math.random(), 0.8, 0.5);
         
         if(type === "earth") {
-            document.getElementById('scan-title').innerText = "כדור הארץ";
+            document.getElementById('scan-title').innerText = "מזהה: כדור הארץ";
             const geo = new THREE.SphereGeometry(45, 32, 32);
             const mat = new THREE.MeshStandardMaterial({ color: 0x2266ff, emissive: 0x112244 });
             universeGroup.add(new THREE.Mesh(geo, mat));
         } else {
             const obs = ["גלקסיה", "חור שחור", "שמש", "ערפילית"];
             const choice = obs[Math.floor(Math.random()*obs.length)];
-            document.getElementById('scan-title').innerText = choice;
+            document.getElementById('scan-title').innerText = "מזהה: " + choice;
             
             if(choice === "גלקסיה") {
                 const gGeo = new THREE.BufferGeometry(); const gPos = [];
-                for(let i=0; i<5000; i++) {
-                    const r = Math.random()*130; const a = r*0.1 + (i%3)*(Math.PI*2/3);
+                for(let i=0; i<4000; i++) {
+                    const r = Math.random()*120; const a = r*0.1 + (i%3)*(Math.PI*2/3);
                     gPos.push(Math.cos(a)*r, (Math.random()-0.5)*10, Math.sin(a)*r);
                 }
                 gGeo.setAttribute('position', new THREE.Float32BufferAttribute(gPos, 3));
-                universeGroup.add(new THREE.Points(gGeo, new THREE.PointsMaterial({color: color, size: 1.5})));
+                universeGroup.add(new THREE.Points(gGeo, new THREE.PointsMaterial({color: color, size: 1.2})));
             } else {
-                universeGroup.add(new THREE.Mesh(new THREE.SphereGeometry(40,32,32), new THREE.MeshStandardMaterial({color: color})));
+                universeGroup.add(new THREE.Mesh(new THREE.SphereGeometry(35,32,32), new THREE.MeshStandardMaterial({color: color})));
             }
         }
     }
 
     function check() {
         if(parseInt(inputStr) === currentAns) {
-            score++; distance += 12000;
+            score++; distance += 15000;
             document.getElementById('dist').innerText = distance.toLocaleString();
             isJumping = true;
-            setTimeout(() => { createObject("random"); nextLevel(); }, 800);
+            setTimeout(() => { createObject("random"); nextLevel(); }, 700);
         } else { del(); }
     }
 
@@ -210,9 +239,9 @@
     function animate() {
         requestAnimationFrame(animate);
         if(isJumping) {
-            universeGroup.position.z += (1200 - universeGroup.position.z) * 0.1;
-            speed = 60;
-            if(universeGroup.position.z > 1100) { isJumping = false; universeGroup.position.z = -800; speed = 0.1; }
+            universeGroup.position.z += (1200 - universeGroup.position.z) * 0.12;
+            speed = 50;
+            if(universeGroup.position.z > 1100) { isJumping = false; universeGroup.position.z = -600; speed = 0.1; }
         } else {
             universeGroup.position.z += (0 - universeGroup.position.z) * 0.05;
         }
@@ -229,4 +258,3 @@
 </script>
 </body>
 </html>
-
