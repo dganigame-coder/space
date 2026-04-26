@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<script src="https://cdn.babylonjs.com/babylon.js"></script>
+<style>
+html, body { margin:0; padding:0; overflow:hidden; }
+canvas { width:100%; height:100%; touch-action:none; }
+</style>
+</head>
+<body>
+
+<canvas id="game"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const engine = new BABYLON.Engine(canvas, true);
+
+let distance = 0;
+let xp = 0;
+let level = 1;
+let speed = 0.3;
+
+function createScene() {
+    const scene = new BABYLON.Scene(engine);
+
+    // מצלמה
+    const camera = new BABYLON.FreeCamera("cam", new BABYLON.Vector3(0, 2, -10), scene);
+    camera.setTarget(new BABYLON.Vector3(0, 1, 10));
+
+    // תאורה
+    new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0,1,0), scene);
+
+    // 🌍 כדור הארץ אמיתי
+    const earth = BABYLON.MeshBuilder.CreateSphere("earth", {diameter: 20}, scene);
+    earth.position.z = 40;
+    earth.material = new BABYLON.StandardMaterial("earthMat", scene);
+    earth.material.diffuseTexture = new BABYLON.Texture(
+        "https://www.solarsystemscope.com/textures/download/2k_earth_daymap.jpg",
+        scene
+    );
+
+    // חללית
+    const ship = BABYLON.MeshBuilder.CreateBox("ship", {size:1}, scene);
+    ship.position.y = 1;
+
+    // שליטה במגע
+    let startX = 0, startY = 0;
+
+    canvas.addEventListener("touchstart", e => {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+    });
+
+    canvas.addEventListener("touchmove", e => {
+        const dx = e.touches[0].clientX - startX;
+        const dy = e.touches[0].clientY - startY;
+
+        ship.position.x += dx * 0.01;
+        ship.position.y -= dy * 0.01;
+
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+    });
+
+    // יצירת אייטם אמיתי (אסטרואיד)
+    function spawnAsteroid(type, value) {
+        const asteroid = BABYLON.MeshBuilder.CreateSphere("item", {diameter:1}, scene);
+        asteroid.position = new BABYLON.Vector3(
+            (Math.random()-0.5)*6,
+            (Math.random()*3)+0.5,
+            ship.position.z + 30
+        );
+        asteroid.type = type;
+        asteroid.value = value;
+
+        asteroid.material = new BABYLON.StandardMaterial("m", scene);
+        asteroid.material.diffuseTexture = new BABYLON.Texture(
+            "https://www.solarsystemscope.com/textures/download/2k_moon.jpg",
+            scene
+        );
+
+        return asteroid;
+    }
+
+    // יצירת תרגיל
+    function generateQuestion() {
+        const a = Math.floor(Math.random()*10);
+        const b = Math.floor(Math.random()*10);
+        const correct = a*b;
+
+        const wrong1 = correct + 1 + Math.floor(Math.random()*3);
+        const wrong2 = correct - 1 - Math.floor(Math.random()*3);
+
+        spawnAsteroid("correct", correct);
+        spawnAsteroid("wrong", wrong1);
+        spawnAsteroid("wrong", wrong2);
+    }
+
+    generateQuestion();
+
+    // לולאת משחק
+    scene.onBeforeRenderObservable.add(() => {
+        ship.position.z += speed;
+        distance += speed;
+
+        scene.meshes.forEach(m => {
+            if (m.name === "item") {
+                m.position.z -= speed;
+
+                if (m.intersectsMesh(ship, false)) {
+                    if (m.type === "correct") {
+                        xp += 10;
+                        distance += 50;
+
+                        if (xp >= level * 40) {
+                            level++;
+                            speed += 0.05;
+                            alert("שלב חדש! דרגה " + level);
+                        }
+                    }
+                    m.dispose();
+                }
+            }
+        });
+    });
+
+    return scene;
+}
+
+const scene = createScene();
+engine.runRenderLoop(() => scene.render());
+</script>
+
+</body>
+</html>
