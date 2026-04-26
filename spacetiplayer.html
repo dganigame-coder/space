@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>מסע הכפל: v8.5.1 Stabilized</title>
+    <title>מסע הכפל: v8.5.2 Keyboard Layout</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; touch-action: none; }
         #ui-layer { position: absolute; width: 100%; height: 100%; display: flex; flex-direction: column; pointer-events: none; z-index: 1000; }
@@ -15,6 +15,7 @@
         #lower-controls { margin-top: auto; padding-bottom: 5px; width: 100%; display: flex; flex-direction: column; align-items: center; pointer-events: none; }
         #question { font-size: 3.8rem; color: #fff; margin: 0; text-shadow: 0 0 20px #fff; }
         #answer-display { font-size: 3.2rem; color: #ff00de; font-weight: bold; min-height: 3.5rem; text-shadow: 0 0 15px #ff00de; }
+        /* מקלדת מסודרת */
         #numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 10px; background: rgba(255, 255, 255, 0.05); border-radius: 20px; backdrop-filter: blur(15px); pointer-events: auto; transform: scale(0.75); margin-bottom: 5px; border: 1px solid rgba(255,255,255,0.1); }
         .btn { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); color: white; font-size: 1.7rem; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
         .btn:active { background: #00f2ff; color: #000; }
@@ -25,12 +26,12 @@
 
 <div id="ui-layer">
     <div id="top-hud">
-        <div class="hud-box">🎖️ <span id="rank">קפטן חלל</span></div>
+        <div class="hud-box">🎖️ <span id="rank">אדמירל חלל</span></div>
         <div class="hud-box">📍 <span id="dist">0</span> ק"מ</div>
     </div>
     <div id="feedback">מעולה!</div>
     <div id="data-scanner">
-        <p id="scan-title">מזהה מטרה...</p>
+        <p id="scan-title">סורק...</p>
         <p id="scan-desc"></p>
     </div>
     <div id="lower-controls">
@@ -121,8 +122,7 @@
                 pPos.push(Math.sin(a1)*Math.cos(a2)*r, Math.sin(a1)*Math.sin(a2)*r, Math.cos(a1)*r);
             }
             pGeo.setAttribute('position', new THREE.Float32BufferAttribute(pPos, 3));
-            const p = new THREE.Points(pGeo, new THREE.PointsMaterial({color: 0xffaa00, size: 2, blending: THREE.AdditiveBlending}));
-            universeGroup.add(p);
+            universeGroup.add(new THREE.Points(pGeo, new THREE.PointsMaterial({color: 0xffaa00, size: 2, blending: THREE.AdditiveBlending})));
         } else if(obj.type === 'wormhole') {
             const tube = new THREE.Mesh(new THREE.TorusGeometry(60, 20, 16, 100), new THREE.MeshBasicMaterial({color: 0x00f2ff, wireframe: true, transparent:true, opacity:0.4}));
             tube.rotation.x = 1.5;
@@ -201,7 +201,7 @@
             universeGroup.children.forEach(c => {
                 if(currentType==='supernova' && c instanceof THREE.Points) c.scale.setScalar(1 + Math.sin(t*4)*0.15);
                 if(currentType==='wormhole' && c instanceof THREE.Points) c.rotation.z += 0.15;
-                if(currentType==='asteroids' && c.userData.rs) { c.rotation.x+=c.userData.rs; c.rotation.y+=c.userData.rs; }
+                if(currentType==='asteroids' && c.userData && c.userData.rs) { c.rotation.x+=c.userData.rs; c.rotation.y+=c.userData.rs; }
                 if(currentType==='nebula') c.material.opacity = 0.08 + Math.sin(t*2)*0.04;
             });
         }
