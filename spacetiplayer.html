@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>מסע הכפל: v8.7.0 Pro Keyboard</title>
+    <title>מסע הכפל: v9.1.0 Final Build</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; touch-action: none; }
         #ui-layer { position: absolute; width: 100%; height: 100%; display: flex; flex-direction: column; pointer-events: none; z-index: 1000; }
@@ -16,7 +16,6 @@
         #scan-title { color: #fff; font-weight: bold; font-size: 1.4rem; text-shadow: 0 0 10px #00f2ff; margin: 0; }
         #scan-desc { color: #00f2ff; font-size: 0.8rem; margin: 0; opacity: 0.8; }
 
-        /* מרכז השאלה */
         #lower-controls { margin-top: auto; width: 100%; display: flex; flex-direction: column; align-items: center; pointer-events: none; }
         
         #mission-panel { 
@@ -31,10 +30,9 @@
         #question { font-size: 3rem; color: #fff; margin: 0; line-height: 1; }
         #answer-display { font-size: 2.5rem; color: #ff00de; font-weight: bold; min-height: 2.8rem; margin-top: 5px; }
 
-        /* מקלדת שורה אחת (Mobile Keyboard Style) */
         #keyboard-container {
             width: 100%;
-            background: rgba(0, 0, 0, 0.7); /* Drop Background כהה */
+            background: rgba(0, 0, 0, 0.7); 
             backdrop-filter: blur(20px);
             padding: 15px 5px env(safe-area-inset-bottom, 15px);
             border-top: 1px solid rgba(255, 255, 255, 0.1);
@@ -45,7 +43,7 @@
             display: flex;
             justify-content: center;
             gap: 4px;
-            max-width: 500px;
+            max-width: 600px;
             margin: 0 auto;
             direction: ltr;
         }
@@ -56,17 +54,15 @@
             border: none;
             color: white;
             font-size: 1.2rem;
-            height: 45px;
-            border-radius: 6px;
+            height: 48px;
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: 0.1s;
         }
         .btn:active { background: rgba(255, 255, 255, 0.4); transform: scale(0.95); }
-        
-        .btn-go { background: #00ff66; color: #000; font-weight: bold; flex: 1.5; margin-left: 5px; }
-        .btn-del { background: rgba(255, 68, 68, 0.3); color: #ff4444; flex: 1; margin-right: 5px; }
+        .btn-go { background: #00ff66; color: #000; font-weight: bold; flex: 1.8; margin-left: 5px; }
+        .btn-del { background: rgba(255, 68, 68, 0.3); color: #ff4444; flex: 1.2; margin-right: 5px; }
 
         #feedback { position: absolute; top: 30%; left: 50%; transform: translate(-50%, -50%); color: #00ff66; font-size: 2.5rem; font-weight: bold; opacity: 0; pointer-events: none; }
     </style>
@@ -75,23 +71,19 @@
 
 <div id="ui-layer">
     <div id="top-hud">
-        <div class="hud-box">🎖️ <span id="rank">סגן אדמירל</span></div>
+        <div class="hud-box">🎖️ <span id="rank">אדמירל</span></div>
         <div class="hud-box">📍 <span id="dist">0</span> ק"מ</div>
     </div>
-
     <div id="scan-info">
         <p id="scan-title">מזהה...</p>
         <p id="scan-desc"></p>
     </div>
-
     <div id="feedback">מעולה!</div>
-
     <div id="lower-controls">
         <div id="mission-panel">
             <div id="question">? × ?</div>
             <div id="answer-display">?</div>
         </div>
-        
         <div id="keyboard-container">
             <div id="numpad-row">
                 <div class="btn btn-del" onclick="clr()">X</div>
@@ -113,10 +105,9 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
-    let scene, camera, renderer, universeGroup, stars;
+    let scene, camera, renderer, universeGroup, stars, disk;
     let score=0, target=0, input="", distance=0, warping=false, starSpd=0.5;
     let isDown=false, lx, ly, rx=0, ry=0;
-    let currentType = "";
     let playlist = [];
 
     const catalog = [
@@ -168,13 +159,21 @@
     }
 
     function spawn(obj) {
-        universeGroup.clear();
+        universeGroup.clear(); disk = null;
         universeGroup.position.set(0, 15, -1000);
-        currentType = obj.type;
         document.getElementById('scan-title').innerText = obj.name;
         document.getElementById('scan-desc').innerText = "סיווג: " + obj.cat;
 
-        if(obj.type === 'supernova') {
+        if(obj.type === 'blackhole') {
+            const bh = new THREE.Mesh(new THREE.SphereGeometry(25, 32, 32), new THREE.MeshBasicMaterial({color: 0x000000}));
+            universeGroup.add(bh);
+            disk = new THREE.Mesh(new THREE.TorusGeometry(55, 6, 2, 80), new THREE.MeshBasicMaterial({color: 0xff6600, wireframe: true, transparent:true}));
+            disk.rotation.x = 1.4;
+            universeGroup.add(disk);
+            const glow = new THREE.Mesh(new THREE.TorusGeometry(60, 10, 2, 80), new THREE.MeshBasicMaterial({color: 0xffaa00, transparent:true, opacity:0.2}));
+            glow.rotation.x = 1.4;
+            universeGroup.add(glow);
+        } else if(obj.type === 'supernova') {
             const core = new THREE.Mesh(new THREE.SphereGeometry(15, 32, 32), new THREE.MeshBasicMaterial({color: 0xffffff}));
             universeGroup.add(core);
             const pGeo = new THREE.BufferGeometry(); const pPos = [];
@@ -188,7 +187,6 @@
             for(let i=0; i<80; i++) {
                 const ast = new THREE.Mesh(new THREE.IcosahedronGeometry(Math.random()*5, 0), new THREE.MeshStandardMaterial({color: 0x888888}));
                 ast.position.set((Math.random()-0.5)*300, (Math.random()-0.5)*200, (Math.random()-0.5)*200);
-                ast.userData = {rs: Math.random()*0.03};
                 universeGroup.add(ast);
             }
         } else {
@@ -223,7 +221,6 @@
 
     function animate() {
         requestAnimationFrame(animate);
-        let t = Date.now() * 0.001;
         if(warping) {
             universeGroup.position.z += (1500 - universeGroup.position.z) * 0.1;
             starSpd = 50;
@@ -232,6 +229,7 @@
             universeGroup.position.z += (0 - universeGroup.position.z) * 0.05;
             universeGroup.rotation.y += (ry - universeGroup.rotation.y) * 0.1 + 0.003;
             universeGroup.rotation.x += (rx - universeGroup.rotation.x) * 0.1;
+            if(disk) disk.rotation.z += 0.2;
         }
         const pA = stars.geometry.attributes.position.array;
         for(let i=0; i<pA.length; i+=3) { pA[i+2]+=starSpd; if(pA[i+2]>500) pA[i+2]=-4000; }
