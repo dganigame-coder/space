@@ -3,42 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>מסע הכפל: v9.3.0 Deep Space Objects</title>
+    <title>מסע הכפל: v9.4.0 Ranks & Distance</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; touch-action: none; }
         #ui-layer { position: absolute; width: 100%; height: 100%; display: flex; flex-direction: column; pointer-events: none; z-index: 1000; }
         
+        /* HUD */
         #top-hud { width: 95%; display: flex; justify-content: space-between; margin: 15px auto 0; color: #00f2ff; font-size: 0.8rem; }
-        .hud-box { background: rgba(0, 40, 80, 0.6); padding: 5px 12px; border-radius: 10px; border: 1px solid #00f2ff; backdrop-filter: blur(5px); }
+        .hud-box { background: rgba(0, 40, 80, 0.6); padding: 8px 15px; border-radius: 12px; border: 1px solid #00f2ff; backdrop-filter: blur(5px); }
+        .stat-label { font-size: 0.6rem; display: block; opacity: 0.7; }
         
         #scan-info { text-align: center; margin-top: 10px; }
         #scan-title { color: #fff; font-weight: bold; font-size: 1.4rem; text-shadow: 0 0 10px #00f2ff; margin: 0; }
         #scan-desc { color: #00f2ff; font-size: 0.8rem; margin: 0; }
 
         #lower-controls { margin-top: auto; width: 100%; display: flex; flex-direction: column; align-items: center; pointer-events: none; }
-        #mission-panel { background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(10px); border-radius: 15px; padding: 10px 30px; border: 1px solid rgba(0, 242, 255, 0.4); margin-bottom: 15px; }
+        #mission-panel { background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(10px); border-radius: 15px; padding: 15px 30px; border: 1px solid rgba(0, 242, 255, 0.4); margin-bottom: 15px; text-align: center; }
         #question { font-size: 3.5rem; color: #fff; margin: 0; }
         #answer-display { font-size: 2.8rem; color: #ff00de; font-weight: bold; min-height: 3rem; }
 
         #keyboard-container { width: 100%; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(20px); padding: 15px 5px env(safe-area-inset-bottom, 15px); border-top: 1px solid rgba(255, 255, 255, 0.1); pointer-events: auto; }
         #numpad-row { display: flex; justify-content: center; gap: 4px; max-width: 650px; margin: 0 auto; direction: ltr; }
-        .btn { flex: 1; background: rgba(255, 255, 255, 0.1); border: none; color: white; font-size: 1.2rem; height: 50px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
-        .btn:active { background: #00f2ff; color: #000; }
+        .btn { flex: 1; background: rgba(255, 255, 255, 0.1); border: none; color: white; font-size: 1.2rem; height: 50px; border-radius: 8px; display: flex; align-items: center; justify-content: center; transition: 0.1s; }
+        .btn:active { background: #00f2ff; color: #000; transform: scale(0.9); }
         .btn-go { background: #00ff66; color: #000; font-weight: bold; flex: 2; }
         .btn-del { background: rgba(255, 68, 68, 0.3); color: #ff4444; flex: 1.2; }
+
+        #feedback { position: absolute; top: 35%; left: 50%; transform: translate(-50%, -50%); color: #00ff66; font-size: 2.2rem; font-weight: bold; opacity: 0; pointer-events: none; text-align: center; transition: 0.4s; }
     </style>
 </head>
 <body>
 
 <div id="ui-layer">
     <div id="top-hud">
-        <div class="hud-box">🎖️ <span id="rank">אדמירל</span></div>
-        <div class="hud-box">📍 <span id="dist">0</span> ק"מ</div>
+        <div class="hud-box">
+            <span class="stat-label">דרגת פיקוד</span>
+            🎖️ <span id="rank">מתלמד</span>
+        </div>
+        <div class="hud-box">
+            <span class="stat-label">מרחק מכדור הארץ</span>
+            📍 <span id="dist">0</span> ק"מ
+        </div>
     </div>
+
     <div id="scan-info">
-        <p id="scan-title"></p>
+        <p id="scan-title">סורק גופים...</p>
         <p id="scan-desc"></p>
     </div>
+
+    <div id="feedback">מעולה! +100,000 ק"מ</div>
+
     <div id="lower-controls">
         <div id="mission-panel">
             <div id="question"></div>
@@ -60,9 +74,12 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
     let scene, camera, renderer, universeGroup, stars;
-    let target=0, input="", distance=0, warping=false, starSpd=0.5;
+    let score=0, target=0, input="", distance=0, warping=false, starSpd=0.5;
     let rx=0, ry=0, lx, ly, isDown=false;
     let playlist = [];
+
+    const ranks = ["מתלמד", "צוער חלל", "סגן", "קפטן", "קומודור", "אדמירל", "אדמירל צי"];
+    const praises = ["מעולה!", "בדיוק!", "מדהים!", "קפיצת הדרכה!", "בול!", "המשך כך!"];
 
     const catalog = [
         { name: "ערפילית אוריון", cat: "ענן גז כוכבי", color: 0x00f2ff, type: 'nebula' },
@@ -85,7 +102,6 @@
         universeGroup = new THREE.Group();
         scene.add(universeGroup);
 
-        // רקע כוכבים
         const sGeo = new THREE.BufferGeometry();
         const sPos = [];
         for(let i=0; i<10000; i++) sPos.push((Math.random()-0.5)*5000, (Math.random()-0.5)*5000, (Math.random()-0.5)*5000);
@@ -107,34 +123,31 @@
         document.getElementById('scan-desc').innerText = "סיווג: " + obj.cat;
 
         if(obj.type === 'nebula') {
-            const pGeo = new THREE.BufferGeometry();
-            const pPos = [];
-            for(let i=0; i<4000; i++) pPos.push((Math.random()-0.5)*200, (Math.random()-0.5)*200, (Math.random()-0.5)*200);
-            pGeo.setAttribute('position', new THREE.Float32BufferAttribute(pPos, 3));
-            universeGroup.add(new THREE.Points(pGeo, new THREE.PointsMaterial({color: obj.color, size: 3, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending})));
+            const pGeo = new THREE.BufferGeometry(); const pP = [];
+            for(let i=0; i<3000; i++) pP.push((Math.random()-0.5)*200, (Math.random()-0.5)*200, (Math.random()-0.5)*200);
+            pGeo.setAttribute('position', new THREE.Float32BufferAttribute(pP, 3));
+            universeGroup.add(new THREE.Points(pGeo, new THREE.PointsMaterial({color: obj.color, size: 3, transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending})));
         } else if(obj.type === 'blackhole') {
             universeGroup.add(new THREE.Mesh(new THREE.SphereGeometry(30, 32, 32), new THREE.MeshBasicMaterial({color: 0x000000})));
-            const disk = new THREE.Mesh(new THREE.TorusGeometry(65, 8, 2, 100), new THREE.MeshBasicMaterial({color: 0xff6600, wireframe: true}));
-            disk.rotation.x = 1.5; universeGroup.add(disk);
-        } else if(obj.type === 'asteroids') {
-            for(let i=0; i<100; i++) {
-                const ast = new THREE.Mesh(new THREE.IcosahedronGeometry(Math.random()*6, 0), new THREE.MeshStandardMaterial({color: 0x777777}));
-                ast.position.set((Math.random()-0.5)*300, (Math.random()-0.5)*200, (Math.random()-0.5)*200);
-                universeGroup.add(ast);
-            }
-        } else if(obj.type === 'wormhole') {
-            const worm = new THREE.Mesh(new THREE.TorusKnotGeometry(40, 15, 150, 20), new THREE.MeshBasicMaterial({color: 0xcc00ff, wireframe: true}));
-            universeGroup.add(worm);
+            const d = new THREE.Mesh(new THREE.TorusGeometry(65, 6, 2, 100), new THREE.MeshBasicMaterial({color: 0xff6600, wireframe: true}));
+            d.rotation.x = 1.5; universeGroup.add(d);
         } else if(obj.type === 'saturn') {
             universeGroup.add(new THREE.Mesh(new THREE.SphereGeometry(50, 32, 32), new THREE.MeshStandardMaterial({color: 0xeeddaa})));
-            const rings = new THREE.Mesh(new THREE.TorusGeometry(85, 10, 2, 100), new THREE.MeshBasicMaterial({color: 0x998877, transparent: true, opacity: 0.5}));
-            rings.rotation.x = 1.8; universeGroup.add(rings);
+            const r = new THREE.Mesh(new THREE.TorusGeometry(85, 10, 2, 100), new THREE.MeshBasicMaterial({color: 0x998877, transparent: true, opacity: 0.5}));
+            r.rotation.x = 1.8; universeGroup.add(r);
+        } else if(obj.type === 'asteroids') {
+            for(let i=0; i<80; i++) {
+                const a = new THREE.Mesh(new THREE.IcosahedronGeometry(Math.random()*5, 0), new THREE.MeshStandardMaterial({color: 0x777777}));
+                a.position.set((Math.random()-0.5)*300, (Math.random()-0.5)*200, (Math.random()-0.5)*200);
+                universeGroup.add(a);
+            }
+        } else if(obj.type === 'wormhole') {
+            universeGroup.add(new THREE.Mesh(new THREE.TorusKnotGeometry(40, 15, 100, 16), new THREE.MeshBasicMaterial({color: 0xcc00ff, wireframe: true})));
         } else {
-            // Galaxy
             const gGeo = new THREE.BufferGeometry(); const gP = [];
-            for(let i=0; i<6000; i++) { let r=Math.random()*150, a=r*0.1; gP.push(Math.cos(a)*r, (Math.random()-0.5)*15, Math.sin(a)*r); }
+            for(let i=0; i<5000; i++) { let r=Math.random()*150, a=r*0.15; gP.push(Math.cos(a)*r, (Math.random()-0.5)*10, Math.sin(a)*r); }
             gGeo.setAttribute('position', new THREE.Float32BufferAttribute(gP, 3));
-            universeGroup.add(new THREE.Points(gGeo, new THREE.PointsMaterial({color: 0xffffff, size: 1})));
+            universeGroup.add(new THREE.Points(gGeo, new THREE.PointsMaterial({color: 0xffffff, size: 0.8})));
         }
     }
 
@@ -150,9 +163,30 @@
 
     function check() {
         if(parseInt(input)===target) {
-            distance+=100000; document.getElementById('dist').innerText = distance.toLocaleString();
-            warping=true; setTimeout(()=>{ warping=false; universeGroup.position.z=-1000; pickNext(); ask(); }, 800);
-        } else clr();
+            score++;
+            distance += 100000;
+            
+            // עדכון HUD
+            document.getElementById('dist').innerText = distance.toLocaleString();
+            let rankIdx = Math.min(Math.floor(score / 5), ranks.length - 1);
+            document.getElementById('rank').innerText = ranks[rankIdx];
+
+            // משוב קרדיט
+            const f = document.getElementById('feedback');
+            f.innerText = praises[Math.floor(Math.random()*praises.length)] + "\n+100,000 ק\"מ";
+            f.style.opacity = 1;
+            
+            warping=true;
+            setTimeout(()=>{ 
+                f.style.opacity = 0;
+                warping=false; 
+                universeGroup.position.z=-1000; 
+                pickNext(); 
+                ask(); 
+            }, 1000);
+        } else {
+            clr();
+        }
     }
 
     function pickNext() {
@@ -162,7 +196,7 @@
 
     function animate() {
         requestAnimationFrame(animate);
-        if(warping) { universeGroup.position.z += (1500-universeGroup.position.z)*0.1; starSpd=50; }
+        if(warping) { universeGroup.position.z += (1500-universeGroup.position.z)*0.1; starSpd=60; }
         else { 
             universeGroup.position.z += (0-universeGroup.position.z)*0.05; starSpd=0.5;
             universeGroup.rotation.y += (ry-universeGroup.rotation.y)*0.1 + 0.003;
