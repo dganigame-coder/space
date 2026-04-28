@@ -1,36 +1,40 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Space Math 3D - Hyper Realistic</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Math 3D - The Code Breaker</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; }
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; }
         #ui {
-            position: absolute; top: 20px; width: 100%;
+            position: absolute; top: 5%; width: 100%;
             text-align: center; color: #00f2ff;
-            font-family: 'Orbitron', sans-serif; pointer-events: none;
-            text-shadow: 0 0 10px #00f2ff;
+            pointer-events: none; z-index: 100;
+            text-shadow: 0 0 15px #00f2ff;
         }
-        #target { font-size: 48px; font-weight: bold; }
+        #target { font-size: 60px; font-weight: 900; letter-spacing: 5px; }
+        #instruction { font-size: 18px; color: #ff00ff; text-transform: uppercase; }
+        #score-panel { position: absolute; bottom: 20px; left: 20px; color: white; font-size: 20px; }
     </style>
     <script type="importmap">
         {
             "imports": {
-                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
             }
         }
     </script>
 </head>
 <body>
     <div id="ui">
-        <div id="target">INITIALIZING...</div>
-        <div id="status">חפש את רכיבי הקוד המתאימים</div>
+        <div id="instruction">מפענח קוד אנרגיה פעיל</div>
+        <div id="target">--</div>
     </div>
+    <div id="score-panel">אנרגיה שנאספה: <span id="score">0</span></div>
 
     <script type="module">
         import * as THREE from 'three';
 
-        // 1. Scene Setup - יצירת העולם
+        // --- הגדרות עולם ---
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -38,54 +42,131 @@
         renderer.setPixelRatio(window.devicePixelRatio);
         document.body.appendChild(renderer.domElement);
 
-        // 2. תאורה היפראליסטית
-        const light = new THREE.PointLight(0x00f2ff, 2, 100);
-        light.position.set(0, 0, 5);
-        scene.add(light);
-        scene.add(new THREE.AmbientLight(0x404040, 0.5));
+        // --- תאורה ---
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+        scene.add(ambientLight);
+        const pointLight = new THREE.PointLight(0x00f2ff, 2, 50);
+        scene.add(pointLight);
 
-        // 3. יצירת ה"חללית" (כאן נשים מודל תלת ממדי בהמשך)
-        const shipGeometry = new THREE.ConeGeometry(0.5, 1, 32);
-        const shipMaterial = new THREE.MeshPhongMaterial({ color: 0x00f2ff, shininess: 100 });
-        const ship = new THREE.Mesh(shipGeometry, shipMaterial);
-        ship.rotation.x = Math.PI / 2;
-        scene.add(ship);
+        // --- יצירת חללית (חרוט ניאון) ---
+        const shipGroup = new THREE.Group();
+        const bodyGeo = new THREE.ConeGeometry(0.4, 1.2, 4);
+        const bodyMat = new THREE.MeshPhongMaterial({ color: 0x00f2ff, emissive: 0x0055ff, flatShading: true });
+        const shipBody = new THREE.Mesh(bodyGeo, bodyMat);
+        shipBody.rotation.x = Math.PI / 2;
+        shipGroup.add(shipBody);
+        scene.add(shipGroup);
+        camera.position.z = 8;
 
-        camera.position.z = 5;
-
-        // 4. יצירת שדה כוכבים עמוק (Particles)
-        const starGeo = new THREE.BufferGeometry();
-        const starCount = 5000;
-        const posArray = new Float32Array(starCount * 3);
-        for(let i=0; i<starCount * 3; i++) {
-            posArray[i] = (Math.random() - 0.5) * 100;
-        }
-        starGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-        const starMat = new THREE.PointsMaterial({ size: 0.05, color: 0xffdocument });
-        const starField = new THREE.Points(starGeo, starMat);
+        // --- שדה כוכבים נע ---
+        const starsGeo = new THREE.BufferGeometry();
+        const starsCount = 3000;
+        const posArray = new Float32Array(starsCount * 3);
+        for(let i=0; i<starsCount*3; i++) posArray[i] = (Math.random()-0.5) * 100;
+        starsGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        const starsMat = new THREE.PointsMaterial({ size: 0.05, color: 0xffffff });
+        const starField = new THREE.Points(starsGeo, starsMat);
         scene.add(starField);
 
-        // לוגיקת תנועה
-        window.addEventListener('mousemove', (e) => {
-            const x = (e.clientX / window.innerWidth) * 2 - 1;
-            const y = -(e.clientY / window.innerHeight) * 2 + 1;
-            ship.position.x = x * 4;
-            ship.position.y = y * 3;
-            ship.rotation.z = -x * 0.5; // הטיה של החללית בפנייה
+        // --- לוגיקת משחק ---
+        let targetNum = 0;
+        let score = 0;
+        let collectedFactor = null;
+        let items = [];
+
+        function initLevel() {
+            const a = Math.floor(Math.random() * 8) + 2;
+            const b = Math.floor(Math.random() * 8) + 2;
+            targetNum = a * b;
+            document.getElementById('target').innerText = targetNum;
+            collectedFactor = null;
+            
+            // ניקוי חפצים ישנים
+            items.forEach(item => scene.remove(item.mesh));
+            items = [];
+
+            // יצירת חפצי אנרגיה (קוביות עם מספרים)
+            const nums = [a, b, 3, 4, 5, 6, 7, 8, 9].sort(() => Math.random() - 0.5).slice(0, 6);
+            nums.forEach((n, i) => {
+                createEnergyCube(n, i);
+            });
+        }
+
+        function createEnergyCube(num, index) {
+            const geo = new THREE.BoxGeometry(0.8, 0.8, 0.8);
+            const mat = new THREE.MeshPhongMaterial({ color: 0xff00ff, emissive: 0x220022 });
+            const mesh = new THREE.Mesh(geo, mat);
+            
+            mesh.position.set((Math.random()-0.5)*10, (Math.random()-0.5)*6, -20);
+            scene.add(mesh);
+            items.push({ mesh, num, speed: 0.1 + (Math.random()*0.05) });
+        }
+
+        // --- שליטה (מגע/עכבר) ---
+        let mouseX = 0, mouseY = 0;
+        window.addEventListener('pointermove', (e) => {
+            mouseX = (e.clientX / window.innerWidth) * 2 - 1;
+            mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
         });
 
-        // 5. לולאת רינדור ב-60FPS
+        // --- לולאת אנימציה ---
         function animate() {
             requestAnimationFrame(animate);
-            starField.rotation.y += 0.001;
-            starField.position.z += 0.1; // תחושת טיסה קדימה
-            if(starField.position.z > 50) starField.position.z = 0;
-            
+
+            // תנועת חללית חלקה
+            shipGroup.position.x += (mouseX * 5 - shipGroup.position.x) * 0.1;
+            shipGroup.position.y += (mouseY * 4 - shipGroup.position.y) * 0.1;
+            shipGroup.rotation.z = -shipGroup.position.x * 0.2;
+            shipGroup.rotation.y = shipGroup.position.x * 0.2;
+
+            starField.position.z += 0.2;
+            if(starField.position.z > 20) starField.position.z = 0;
+
+            // תנועת קוביות ובדיקת פגיעה
+            items.forEach((item, index) => {
+                item.mesh.position.z += item.speed;
+                item.mesh.rotation.x += 0.02;
+                item.mesh.rotation.y += 0.02;
+
+                const dist = shipGroup.position.distanceTo(item.mesh.position);
+                if(dist < 0.8) {
+                    handleHit(item, index);
+                }
+
+                if(item.mesh.position.z > 10) {
+                    item.mesh.position.z = -30;
+                }
+            });
+
             renderer.render(scene, camera);
         }
+
+        function handleHit(item, index) {
+            if(collectedFactor === null) {
+                collectedFactor = item.num;
+                document.getElementById('target').innerText = item.num + " × ?";
+                scene.remove(item.mesh);
+                items.splice(index, 1);
+            } else {
+                if(collectedFactor * item.num === targetNum) {
+                    score += 100;
+                    document.getElementById('score').innerText = score;
+                    // אפקט הצלחה
+                    pointLight.color.setHex(0x00ff00);
+                    setTimeout(() => pointLight.color.setHex(0x00f2ff), 500);
+                    initLevel();
+                } else {
+                    // טעות
+                    pointLight.color.setHex(0xff0000);
+                    setTimeout(() => pointLight.color.setHex(0x00f2ff), 500);
+                    initLevel();
+                }
+            }
+        }
+
+        initLevel();
         animate();
 
-        // עדכון גודל מסך
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
