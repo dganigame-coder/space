@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Space Math 3D - Hyper Realistic</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #000; }
+        #ui {
+            position: absolute; top: 20px; width: 100%;
+            text-align: center; color: #00f2ff;
+            font-family: 'Orbitron', sans-serif; pointer-events: none;
+            text-shadow: 0 0 10px #00f2ff;
+        }
+        #target { font-size: 48px; font-weight: bold; }
+    </style>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+    <div id="ui">
+        <div id="target">INITIALIZING...</div>
+        <div id="status">חפש את רכיבי הקוד המתאימים</div>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+
+        // 1. Scene Setup - יצירת העולם
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        document.body.appendChild(renderer.domElement);
+
+        // 2. תאורה היפראליסטית
+        const light = new THREE.PointLight(0x00f2ff, 2, 100);
+        light.position.set(0, 0, 5);
+        scene.add(light);
+        scene.add(new THREE.AmbientLight(0x404040, 0.5));
+
+        // 3. יצירת ה"חללית" (כאן נשים מודל תלת ממדי בהמשך)
+        const shipGeometry = new THREE.ConeGeometry(0.5, 1, 32);
+        const shipMaterial = new THREE.MeshPhongMaterial({ color: 0x00f2ff, shininess: 100 });
+        const ship = new THREE.Mesh(shipGeometry, shipMaterial);
+        ship.rotation.x = Math.PI / 2;
+        scene.add(ship);
+
+        camera.position.z = 5;
+
+        // 4. יצירת שדה כוכבים עמוק (Particles)
+        const starGeo = new THREE.BufferGeometry();
+        const starCount = 5000;
+        const posArray = new Float32Array(starCount * 3);
+        for(let i=0; i<starCount * 3; i++) {
+            posArray[i] = (Math.random() - 0.5) * 100;
+        }
+        starGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        const starMat = new THREE.PointsMaterial({ size: 0.05, color: 0xffdocument });
+        const starField = new THREE.Points(starGeo, starMat);
+        scene.add(starField);
+
+        // לוגיקת תנועה
+        window.addEventListener('mousemove', (e) => {
+            const x = (e.clientX / window.innerWidth) * 2 - 1;
+            const y = -(e.clientY / window.innerHeight) * 2 + 1;
+            ship.position.x = x * 4;
+            ship.position.y = y * 3;
+            ship.rotation.z = -x * 0.5; // הטיה של החללית בפנייה
+        });
+
+        // 5. לולאת רינדור ב-60FPS
+        function animate() {
+            requestAnimationFrame(animate);
+            starField.rotation.y += 0.001;
+            starField.position.z += 0.1; // תחושת טיסה קדימה
+            if(starField.position.z > 50) starField.position.z = 0;
+            
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // עדכון גודל מסך
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
