@@ -1,28 +1,23 @@
-<!DOCTYPE html>
+     <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Space Logic - Subconscious Mode</title>
+    <title>Space Logic - Zen Mode</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: 'Orbitron', sans-serif; }
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Orbitron', sans-serif; touch-action: none; }
         #ui {
-            position: absolute; top: 30px; width: 100%;
+            position: absolute; top: 5%; width: 100%;
             text-align: center; pointer-events: none; z-index: 100;
         }
-        /* המטרה נראית כמו ליבה של כור גרעיני */
         #core-target {
-            font-size: 70px; font-weight: 900;
-            color: #00f2ff; text-shadow: 0 0 30px #00f2ff, 0 0 50px #00f2ff;
+            font-size: 80px; font-weight: 900;
+            color: #00f2ff; text-shadow: 0 0 20px #00f2ff;
         }
-        #current-status {
-            font-size: 24px; color: #ff00ff; margin-top: 10px;
-            letter-spacing: 3px; text-shadow: 0 0 10px #ff00ff;
-        }
+        #status-bar { color: #ff00ff; font-size: 18px; margin-top: 10px; letter-spacing: 2px; }
         .cube-label {
-            position: absolute; color: white; font-size: 28px; font-weight: bold;
-            pointer-events: none; z-index: 50; text-shadow: 0 0 15px #ff00ff;
-            transform: translate(-50%, -50%);
+            position: absolute; color: white; font-size: 26px; font-weight: bold;
+            pointer-events: none; z-index: 50; text-shadow: 0 0 10px black;
         }
     </style>
     <script type="importmap">
@@ -32,7 +27,7 @@
 <body>
     <div id="ui">
         <div id="core-target">--</div>
-        <div id="current-status">סורק רכיבי קוד...</div>
+        <div id="status-bar">סריקה גלקטית...</div>
     </div>
     <div id="labels-container"></div>
 
@@ -40,29 +35,26 @@
         import * as THREE from 'three';
 
         const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.setPixelRatio(window.devicePixelRatio);
         document.body.appendChild(renderer.domElement);
 
-        // --- תאורה ואווירה ---
-        scene.add(new THREE.AmbientLight(0xffffff, 0.2));
-        const engineLight = new THREE.PointLight(0x00f2ff, 3, 50);
-        scene.add(engineLight);
+        // תאורה
+        scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+        const pLight = new THREE.PointLight(0x00f2ff, 2, 50);
+        scene.add(pLight);
 
-        // --- חללית (הופכת לזוהרת כשאוספת חלק) ---
-        const ship = new THREE.Group();
-        const body = new THREE.Mesh(
-            new THREE.OctahedronGeometry(0.5), 
-            new THREE.MeshPhongMaterial({ color: 0x00f2ff, emissive: 0x003344, wireframe: true })
+        // חללית - יהלום אנרגיה
+        const ship = new THREE.Mesh(
+            new THREE.OctahedronGeometry(0.4), 
+            new THREE.MeshPhongMaterial({ color: 0x00f2ff, emissive: 0x002233, wireframe: true })
         );
-        ship.add(body);
         scene.add(ship);
-        camera.position.z = 8;
+        camera.position.z = 10; // התרחקות מהאקשן כדי לראות טוב יותר
 
-        // --- לוגיקה "תת-מודעת" ---
-        let targetNum, score = 0, activePart = null, items = [];
+        let targetNum, activePart = null, items = [];
 
         function initLevel() {
             const a = Math.floor(Math.random() * 8) + 2;
@@ -70,73 +62,79 @@
             targetNum = a * b;
             
             document.getElementById('core-target').innerText = targetNum;
-            document.getElementById('current-status').innerText = "ממתין לרכיב ראשון";
             document.getElementById('core-target').style.color = "#00f2ff";
-            
-            activePart = null;
-            body.material.color.setHex(0x00f2ff);
+            document.getElementById('status-bar').innerText = activePart ? "מחפש רכיב משלים ל-" + activePart : "אסוף רכיב קוד ראשון";
             
             items.forEach(item => { scene.remove(item.mesh); item.label.remove(); });
             items = [];
 
-            // יצירת קוביות אנרגיה
-            const pool = [a, b, 2, 3, 4, 5, 6, 7, 8, 9].sort(() => Math.random() - 0.5).slice(0, 7);
+            const pool = [a, b, 2, 3, 4, 5, 6, 7, 8, 9].sort(() => Math.random() - 0.5).slice(0, 5);
             pool.forEach(n => {
                 const mesh = new THREE.Mesh(
                     new THREE.BoxGeometry(0.8, 0.8, 0.8),
-                    new THREE.MeshPhongMaterial({ color: 0xff00ff, transparent: true, opacity: 0.8 })
+                    new THREE.MeshPhongMaterial({ color: 0xff00ff, flatShading: true })
                 );
-                mesh.position.set((Math.random()-0.5)*12, (Math.random()-0.5)*8, -30);
+                // מתחילים רחוק מאוד (Z = -40) ובקצב רגוע
+                mesh.position.set((Math.random()-0.5)*10, (Math.random()-0.5)*15, -40);
                 scene.add(mesh);
 
                 const label = document.createElement('div');
                 label.className = 'cube-label';
                 label.innerText = n;
                 document.getElementById('labels-container').appendChild(label);
-                items.push({ mesh, label, num: n, speed: 0.15 + (Math.random()*0.1) });
+                items.push({ mesh, label, num: n, speed: 0.08 + (Math.random() * 0.04) }); // מהירות איטית פי 2
             });
         }
 
-        // --- אנימציה ושליטה ---
-        let tx = 0, ty = 0;
+        let mx = 0, my = 0;
         window.addEventListener('pointermove', (e) => {
-            tx = (e.clientX / window.innerWidth) * 2 - 1;
-            ty = -(e.clientY / window.innerHeight) * 2 + 1;
+            mx = (e.clientX / window.innerWidth) * 2 - 1;
+            my = -(e.clientY / window.innerHeight) * 2 + 1;
         });
 
         function animate() {
             requestAnimationFrame(animate);
-            ship.position.x += (tx * 5 - ship.position.x) * 0.1;
-            ship.position.y += (ty * 4 - ship.position.y) * 0.1;
-            ship.rotation.y += 0.05;
+            
+            ship.position.x += (mx * 6 - ship.position.x) * 0.05;
+            ship.position.y += (my * 8 - ship.position.y) * 0.05;
+            ship.rotation.y += 0.02;
 
             items.forEach((item, i) => {
                 item.mesh.position.z += item.speed;
-                item.mesh.rotation.x += 0.03;
+                item.mesh.rotation.x += 0.01;
                 
                 const v = item.mesh.position.clone().project(camera);
                 item.label.style.left = (v.x + 1) / 2 * window.innerWidth + 'px';
                 item.label.style.top = (-v.y + 1) / 2 * window.innerHeight + 'px';
 
-                if(ship.position.distanceTo(item.mesh.position) < 0.8) {
+                // בדיקת פגיעה
+                if(ship.position.distanceTo(item.mesh.position) < 1.0) {
                     if(!activePart) {
                         activePart = item.num;
-                        document.getElementById('current-status').innerText = "רכיב " + activePart + " נקלט. מחפש משלים...";
-                        body.material.color.setHex(0xff00ff); // שינוי צבע חללית
+                        ship.material.color.setHex(0xff00ff);
+                        initLevel();
                     } else {
                         if(activePart * item.num === targetNum) {
-                            document.getElementById('current-status').innerText = "קוד פוצח!";
+                            activePart = null;
+                            ship.material.color.setHex(0x00ff00);
                             document.getElementById('core-target').style.color = "#00ff00";
-                            setTimeout(initLevel, 1000);
+                            setTimeout(initLevel, 800);
                         } else {
-                            document.getElementById('current-status').innerText = "שגיאת קוד! מערכת מאתחלת...";
+                            activePart = null;
+                            ship.material.color.setHex(0xff0000);
                             document.getElementById('core-target').style.color = "#ff0000";
-                            setTimeout(initLevel, 1000);
+                            setTimeout(initLevel, 800);
                         }
                     }
                     scene.remove(item.mesh); item.label.remove(); items.splice(i, 1);
                 }
-                if(item.mesh.position.z > 5) { item.mesh.position.z = -30; }
+                
+                // איפוס קוביה שחלפה
+                if(item.mesh.position.z > 10) {
+                    item.mesh.position.z = -40;
+                    item.mesh.position.x = (Math.random()-0.5)*10;
+                    item.mesh.position.y = (Math.random()-0.5)*15;
+                }
             });
             renderer.render(scene, camera);
         }
