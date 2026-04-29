@@ -181,19 +181,67 @@ function createStars() {
     scene.add(new THREE.Mesh(starGeo, starMat));
 }
 
-function createCelestialBody() {
-    const geo = new THREE.SphereGeometry(100, 64, 64);
-    const mat = new THREE.MeshStandardMaterial({ color: 0x110022, emissive: 0x4400ff, emissiveIntensity: 0.2 });
-    const planet = new THREE.Mesh(geo, mat);
-    planet.position.set(0, 0, -800);
+ function createCelestialBody() {
+    // 1. A Glowing Gas Giant (Closer)
+    const planetGeo = new THREE.SphereGeometry(120, 64, 64);
+    const planetMat = new THREE.MeshStandardMaterial({ 
+        color: 0x220044, 
+        emissive: 0x5500ff, 
+        emissiveIntensity: 0.2,
+        roughness: 0.8 
+    });
+    const planet = new THREE.Mesh(planetGeo, planetMat);
+    planet.position.set(300, 100, -600); // Moved closer and to the side
     scene.add(planet);
 
-    const light = new THREE.PointLight(0x00f2ff, 2, 2000);
-    light.position.set(0, 0, -700);
-    scene.add(light);
-    scene.add(new THREE.AmbientLight(0x111111));
+    // 2. A Black Hole (The "Focal Point")
+    const bhGroup = new THREE.Group();
+    const bhGeo = new THREE.SphereGeometry(40, 32, 32);
+    const bhMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+    const hole = new THREE.Mesh(bhGeo, bhMat);
+    
+    // Accretion Disk (The glowing ring)
+    const ringGeo = new THREE.TorusGeometry(70, 5, 2, 100);
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.rotation.x = Math.PI / 2;
+    
+    bhGroup.add(hole);
+    bhGroup.add(ring);
+    bhGroup.position.set(-400, -100, -1000);
+    scene.add(bhGroup);
+
+    // 3. THE "HEADLIGHT" (Fixes the black asteroids)
+    const headLight = new THREE.PointLight(0xffffff, 50, 300);
+    camera.add(headLight); // Attaches light to your ship
+    scene.add(camera);
+    
+    scene.add(new THREE.AmbientLight(0x111111, 0.5)); // General faint light
 }
 
+function spawnAsteroids() {
+    // Adding variety to the rocks
+    const mat = new THREE.MeshStandardMaterial({ 
+        color: 0x888888, 
+        flatShading: true,
+        metalness: 0.2
+    });
+    for(let i=0; i<300; i++) {
+        const geo = new THREE.DodecahedronGeometry(Math.random() * 2 + 1, 1);
+        const m = new THREE.Mesh(geo, mat);
+        m.position.set(
+            (Math.random()-0.5)*2000, 
+            (Math.random()-0.5)*2000, 
+            (Math.random()-0.5)*2000
+        );
+        m.scale.setScalar(Math.random()*15 + 2);
+        m.rotation.set(Math.random(), Math.random(), 0);
+        scene.add(m);
+        asteroids.push(m);
+    }
+}
+
+    
 function spawnAsteroids() {
     const geo = new THREE.DodecahedronGeometry(1, 1);
     const mat = new THREE.MeshStandardMaterial({ color: 0x333333, flatShading: true });
