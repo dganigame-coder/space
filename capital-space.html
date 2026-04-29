@@ -7,131 +7,166 @@
     <style>
         html, body {
             overflow: hidden;
-            width: 100%;
-            height: 100%;
-            margin: 0;
-            padding: 0;
+            width: 100%; height: 100%;
+            margin: 0; padding: 0;
             background-color: #05050a;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
         }
         #renderCanvas {
-            width: 100%;
-            height: 100%;
-            touch-action: none; /* קריטי למובייל */
+            width: 100%; height: 100%;
+            touch-action: none;
         }
         #ui-container {
             position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(0, 10, 20, 0.8);
+            top: 20px; right: 20px;
+            background: rgba(0, 10, 25, 0.85);
             border: 1px solid #00f2ff;
             color: #00f2ff;
             padding: 15px;
-            border-radius: 10px;
+            border-radius: 12px;
             pointer-events: none;
-            box-shadow: 0 0 15px rgba(0, 242, 255, 0.3);
-            min-width: 180px;
+            box-shadow: 0 0 20px rgba(0, 242, 255, 0.2);
+            min-width: 200px;
+            transition: all 0.3s ease;
         }
-        .stats { font-size: 14px; margin-top: 5px; }
+        .stats { font-size: 14px; margin-top: 8px; }
         .ticker { color: #00ff88; font-weight: bold; }
+        #trade-panel {
+            position: absolute;
+            bottom: 30px; left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 20, 40, 0.9);
+            padding: 20px;
+            border-radius: 15px;
+            border: 2px solid #00f2ff;
+            display: none; /* יופיע רק בבחירה */
+            text-align: center;
+            color: white;
+            min-width: 250px;
+        }
+        button {
+            background: #00f2ff; border: none; padding: 10px 20px;
+            border-radius: 5px; font-weight: bold; cursor: pointer;
+            margin: 5px;
+        }
     </style>
 </head>
 <body>
 
     <div id="ui-container">
-        <div style="font-weight: bold; border-bottom: 1px solid #00f2ff; padding-bottom: 5px;">מערכת ניהול תיק</div>
-        <div class="stats">הון עצמי: <span id="cash">$125,400</span></div>
-        <div class="stats">מגמת שוק: <span class="ticker">↑ BULLISH</span></div>
-        <div class="stats" style="font-size: 10px; opacity: 0.7; margin-top: 10px;">* השתמש באצבע לסיבוב המצלמה</div>
+        <div style="font-weight: bold; border-bottom: 1px solid #00f2ff; padding-bottom: 5px; font-size: 18px;">Stellar Capital</div>
+        <div class="stats">תיק השקעות: <span id="cash">$100,000</span></div>
+        <div class="stats">נכס נבחר: <span id="selected-name" style="color:#ffff00">בחר אסטרואיד</span></div>
+        <div class="stats">שווי שוק: <span id="selected-value">-</span></div>
+    </div>
+
+    <div id="trade-panel">
+        <h3 id="panel-title">שם הנכס</h3>
+        <p>האם ברצונך להשקיע בנכס זה?</p>
+        <button onclick="trade('buy')">קנייה (Long)</button>
+        <button onclick="trade('sell')" style="background:#ff4444">מכירה (Short)</button>
     </div>
 
     <canvas id="renderCanvas"></canvas>
 
     <script src="https://cdn.babylonjs.com/babylon.js"></script>
-    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
-
+    
     <script>
         const canvas = document.getElementById("renderCanvas");
-        const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true });
+        const engine = new BABYLON.Engine(canvas, true);
+        let selectedAsset = null;
 
         const createScene = function () {
             const scene = new BABYLON.Scene(engine);
-            
-            // צבע רקע - חלל עמוק
-            scene.clearColor = new BABYLON.Color4(0.01, 0.01, 0.02, 1);
+            scene.clearColor = new BABYLON.Color4(0.01, 0.01, 0.03, 1);
 
-            // מצלמה - מוגדרת כך שתמיד תראה את המרכז
-            const camera = new BABYLON.ArcRotateCamera("camera", 0, Math.PI / 2.5, 50, BABYLON.Vector3.Zero(), scene);
+            // מצלמה מותאמת מובייל
+            const camera = new BABYLON.ArcRotateCamera("camera", 0, Math.PI / 3, 60, BABYLON.Vector3.Zero(), scene);
             camera.attachControl(canvas, true);
-            camera.lowerRadiusLimit = 20;
-            camera.upperRadiusLimit = 150;
+            camera.lowerRadiusLimit = 15;
+            camera.upperRadiusLimit = 120;
 
-            // תאורה - "שמש" במרכז המערכת
-            const light = new BABYLON.PointLight("sunLight", new BABYLON.Vector3(0, 0, 0), scene);
-            light.intensity = 2;
-            light.diffuse = new BABYLON.Color3(1, 0.9, 0.7);
+            // אור מרכזי (השמש)
+            const light = new BABYLON.PointLight("sun", new BABYLON.Vector3(0, 0, 0), scene);
+            light.intensity = 2.5;
 
-            // הוספת אור סביבתי חלש כדי שנראה את הצד החשוך של האובייקטים
-            const ambientLight = new BABYLON.HemisphericLight("ambient", new BABYLON.Vector3(0, 1, 0), scene);
-            ambientLight.intensity = 0.3;
-
-            // --- אפקטים של "איכות גבוהה" (Post Processing) ---
+            // אפקט זוהר (High Quality Bloom)
             const gl = new BABYLON.GlowLayer("glow", scene);
-            gl.intensity = 0.6;
+            gl.intensity = 0.7;
 
-            // יצירת שדה כוכבים (Starfield)
-            const starCount = 1000;
-            const starPositions = [];
-            for (let i = 0; i < starCount; i++) {
-                starPositions.push(Math.random() * 400 - 200, Math.random() * 400 - 200, Math.random() * 400 - 200);
-            }
-            const starSystem = new BABYLON.PointsCloudSystem("pcs", 1, scene);
-            starSystem.addPoints(starCount, (particle, i) => {
-                particle.position = new BABYLON.Vector3(starPositions[i*3], starPositions[i*3+1], starPositions[i*3+2]);
-                particle.color = new BABYLON.Color4(1, 1, 1, Math.random());
-            });
-            starSystem.buildMeshAsync();
+            // יצירת כוכבים ברקע
+            const starfield = BABYLON.MeshBuilder.CreateSphere("stars", {diameter: 500, sideOrientation: BABYLON.Mesh.BACKSIDE}, scene);
+            const starMat = new BABYLON.StandardMaterial("starMat", scene);
+            starMat.emissiveColor = new BABYLON.Color3(0.1, 0.1, 0.2);
+            starfield.material = starMat;
 
-            // --- יצירת אובייקטים (מניות ואסטרואידים) ---
             const assets = [];
-            const createAsset = (id, isPlanet) => {
+            
+            // יצירת אובייקטים (מניות)
+            for (let i = 0; i < 40; i++) {
+                const isPlanet = i < 5;
                 const mesh = isPlanet ? 
-                    BABYLON.MeshBuilder.CreateSphere("p"+id, {diameter: 4}, scene) :
-                    BABYLON.MeshBuilder.CreatePolyhedron("a"+id, {type: 1, size: 1.5}, scene);
+                    BABYLON.MeshBuilder.CreateSphere("Planet_"+i, {diameter: 4}, scene) :
+                    BABYLON.MeshBuilder.CreatePolyhedron("Asset_"+i, {type: 1, size: 1.8}, scene);
 
-                // מיקום רנדומלי בטבעת סביב המרכז
                 const angle = Math.random() * Math.PI * 2;
-                const radius = 20 + Math.random() * 40;
-                mesh.position = new BABYLON.Vector3(Math.cos(angle) * radius, (Math.random() - 0.5) * 15, Math.sin(angle) * radius);
-
-                // חומר (Material)
-                const mat = new BABYLON.StandardMaterial("mat"+id, scene);
-                const isBull = Math.random() > 0.4;
-                mat.diffuseColor = isBull ? new BABYLON.Color3(0, 1, 0.5) : new BABYLON.Color3(1, 0.2, 0.2);
-                mat.emissiveColor = mat.diffuseColor.scale(0.3); // גורם להם להאיר קצת
+                const radius = 25 + Math.random() * 40;
+                mesh.position = new BABYLON.Vector3(Math.cos(angle) * radius, (Math.random()-0.5)*10, Math.sin(angle) * radius);
+                
+                const mat = new BABYLON.StandardMaterial("mat"+i, scene);
+                const isBullish = Math.random() > 0.5;
+                mat.diffuseColor = isBullish ? new BABYLON.Color3(0, 1, 0.5) : new BABYLON.Color3(1, 0.2, 0.2);
+                mat.emissiveColor = mat.diffuseColor.scale(0.2);
                 mesh.material = mat;
 
-                // נתונים "כלכליים"
-                mesh.speed = (Math.random() * 0.005) + 0.002;
-                mesh.orbitAngle = angle;
+                // נתונים פיננסיים מוצמדים לאובייקט
+                mesh.marketValue = (Math.random() * 1000 + 100).toFixed(2);
+                mesh.orbitSpeed = (Math.random() * 0.004) + 0.001;
+                mesh.angle = angle;
                 mesh.radius = radius;
-                
+
                 assets.push(mesh);
-            };
+            }
 
-            for (let i = 0; i < 40; i++) createAsset(i, i < 5);
+            // לוגיקת בחירה (Raycasting)
+            scene.onPointerObservable.add((pointerInfo) => {
+                if (pointerInfo.type === BABYLON.PointerEventTypes.POINTERDOWN) {
+                    const pickInfo = pointerInfo.pickInfo;
+                    if (pickInfo.hit && pickInfo.pickedMesh && pickInfo.pickedMesh.name.includes("set") || pickInfo.pickedMesh.name.includes("net")) {
+                        
+                        // ביטול בחירה קודמת
+                        if(selectedAsset) selectedAsset.renderOutline = false;
 
-            // אנימציית שוק חיה
+                        selectedAsset = pickInfo.pickedMesh;
+                        
+                        // אפקט ויזואלי לבחירה
+                        selectedAsset.renderOutline = true;
+                        selectedAsset.outlineColor = BABYLON.Color3.White();
+                        selectedAsset.outlineWidth = 0.1;
+
+                        // עדכון UI
+                        document.getElementById("selected-name").innerText = selectedAsset.name;
+                        document.getElementById("selected-value").innerText = "$" + selectedAsset.marketValue;
+                        document.getElementById("panel-title").innerText = selectedAsset.name;
+                        document.getElementById("trade-panel").style.display = "block";
+
+                        // התמקדות המצלמה
+                        camera.setTarget(selectedAsset.position);
+                    } else {
+                        // לחיצה על החלל הריק
+                        document.getElementById("trade-panel").style.display = "none";
+                        if(selectedAsset) selectedAsset.renderOutline = false;
+                    }
+                }
+            });
+
+            // אנימציה
             scene.registerBeforeRender(() => {
                 assets.forEach(a => {
-                    // תנועה סיבובית סביב המרכז
-                    a.orbitAngle += a.speed;
-                    a.position.x = Math.cos(a.orbitAngle) * a.radius;
-                    a.position.z = Math.sin(a.orbitAngle) * a.radius;
-                    
-                    // סיבוב עצמי
+                    a.angle += a.orbitSpeed;
+                    a.position.x = Math.cos(a.angle) * a.radius;
+                    a.position.z = Math.sin(a.angle) * a.radius;
                     a.rotation.y += 0.01;
-                    a.rotation.x += 0.005;
                 });
             });
 
@@ -139,16 +174,14 @@
         };
 
         const scene = createScene();
+        engine.runRenderLoop(() => scene.render());
+        window.addEventListener("resize", () => engine.resize());
 
-        engine.runRenderLoop(function () {
-            scene.render();
-        });
-
-        // התאמה לשינויי גודל מסך (מובייל/דסקטופ)
-        window.addEventListener("resize", function () {
-            engine.resize();
-        });
-
+        // פונקציית מסחר (דוגמה)
+        function trade(type) {
+            alert(`ביצעת פעולת ${type === 'buy' ? 'קנייה' : 'מכירה'} על ${selectedAsset.name} במחיר $${selectedAsset.marketValue}`);
+            document.getElementById("trade-panel").style.display = "none";
+        }
     </script>
 </body>
 </html>
