@@ -3,81 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AETHERIS | Hyper-Realistic Navigator</title>
+    <title>AETHERIS | AI Starshot Probe</title>
     <style>
-        :root { --ui: #00f2ff; --bg: #000; }
+        :root { --ui: #00f2ff; --bg: #000; --laser: #ff1144; }
         body { margin: 0; overflow: hidden; background: var(--bg); font-family: 'Courier New', monospace; color: var(--ui); user-select: none; touch-action: none; }
         
-        /* UI HUD LAYER */
-        #hud {
-            position: absolute; inset: 0; pointer-events: none;
-            padding: 20px; display: flex; flex-direction: column; justify-content: space-between;
-            z-index: 10;
-        }
-        .stats { display: flex; justify-content: space-between; text-shadow: 0 0 10px var(--ui); font-weight: bold; }
+        #hud { position: absolute; inset: 0; pointer-events: none; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; z-index: 10; }
+        .stats { display: flex; justify-content: space-between; text-shadow: 0 0 10px var(--ui); font-size: 11px; background: rgba(0,0,0,0.4); padding: 5px; }
         
-        #crosshair { 
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 40px; height: 40px; border: 1px solid rgba(0, 242, 255, 0.3); border-radius: 50%;
+        /* AI INTERFACE */
+        #ai-terminal {
+            pointer-events: auto; background: rgba(0, 20, 30, 0.85); border: 1px solid var(--ui);
+            padding: 12px; width: 300px; max-width: 80vw; align-self: center; margin-bottom: 20px;
+            box-shadow: 0 0 20px rgba(0, 242, 255, 0.2);
+        }
+        #ai-log { height: 40px; overflow: hidden; font-size: 12px; line-height: 1.2; margin-bottom: 8px; }
+        #ai-input { 
+            background: transparent; border: none; border-bottom: 1px solid var(--ui); 
+            color: var(--ui); width: 100%; outline: none; font-family: inherit;
+        }
+
+        /* LASER BEAM VISUAL */
+        #laser {
+            position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+            width: 6px; height: 100vh; background: linear-gradient(to top, transparent, var(--laser), transparent);
+            filter: blur(5px); opacity: 0.4; z-index: 1; display: none;
         }
 
         /* MOBILE CONTROLS */
-        .controls-container { display: flex; justify-content: space-between; align-items: flex-end; width: 100%; pointer-events: none; }
-        .joystick-area { 
-            width: 140px; height: 140px; border: 2px solid var(--ui); border-radius: 50%; 
-            background: rgba(0, 242, 255, 0.05); position: relative; pointer-events: auto;
-        }
-        .knob { 
-            width: 50px; height: 50px; background: var(--ui); border-radius: 50%; 
-            position: absolute; top: 45px; left: 45px; box-shadow: 0 0 20px var(--ui); 
-        }
+        .joystick-container { display: flex; justify-content: space-between; width: 100%; pointer-events: none; }
+        .joystick { width: 120px; height: 120px; border: 1px solid var(--ui); border-radius: 50%; position: relative; pointer-events: auto; background: rgba(0, 242, 255, 0.05); }
+        .knob { width: 40px; height: 40px; background: var(--ui); border-radius: 50%; position: absolute; top: 40px; left: 40px; box-shadow: 0 0 15px var(--ui); }
 
-        /* LIGHT BUTTON */
-        #light-btn {
-            pointer-events: auto; background: rgba(0, 0, 0, 0.6); color: var(--ui);
-            border: 1px solid var(--ui); padding: 10px 20px; font-size: 12px; cursor: pointer;
-            margin-bottom: 10px; transition: 0.2s;
-        }
-        #light-btn.active { background: var(--ui); color: #000; box-shadow: 0 0 15px var(--ui); }
+        #overlay { position: fixed; inset: 0; background: #000; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; }
+        button#init { background: transparent; border: 2px solid var(--ui); color: var(--ui); padding: 20px 40px; font-size: 18px; cursor: pointer; transition: 0.3s; }
+        button#init:hover { background: var(--ui); color: #000; }
 
-        /* OVERLAY */
-        #overlay {
-            position: fixed; inset: 0; background: #000; z-index: 100;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-        }
-        button#start { 
-            background: transparent; border: 2px solid var(--ui); color: var(--ui);
-            padding: 20px 40px; font-size: 20px; cursor: pointer; box-shadow: 0 0 10px var(--ui);
-        }
-
-        /* IMPACT ANIMATION */
-        .shake { animation: shake 0.1s infinite; }
-        @keyframes shake { 0% { transform: translate(2px, 2px); } 50% { transform: translate(-2px, -2px); } 100% { transform: translate(0, 0); } }
+        .glitch { animation: glitch 0.2s infinite; border: 4px solid var(--laser) !important; }
+        @keyframes glitch { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
     </style>
 </head>
 <body>
 
+<div id="laser"></div>
+
 <div id="overlay">
-    <h1 style="letter-spacing: 10px;">AETHERIS</h1>
-    <p>DEEP SPACE NAVIGATION ENGINE v4.0</p>
-    <button id="start">INITIALIZE DRIVE</button>
+    <h1 style="letter-spacing: 8px;">STARSHOT AI</h1>
+    <p>RELATIVISTIC PROBE PROTOCOL<br>MISSION: REACH EXOPLANET HABITABLE ZONE</p>
+    <button id="init">INITIALIZE NEURAL LINK</button>
 </div>
 
 <div id="hud">
     <div class="stats">
-        <div>SYS: NOMINAL<br>SECTOR: HAZARD_4</div>
-        <div style="text-align: right;">VEL: <span id="vel">0.0</span> M/S<br>HULL: 100%</div>
+        <div>PROBE: AI-V4<br>TARGET: ALPHA-7</div>
+        <div style="text-align: right;">VELOCITY: <span id="vel-val">0</span> km/s<br>DATA_SYNC: <span id="dist-val">0</span>ly</div>
     </div>
 
-    <div id="crosshair"></div>
+    <div id="ai-terminal">
+        <div id="ai-log">AI: System standby. Engaging laser push...</div>
+        <input type="text" id="ai-input" placeholder="Query Mission AI...">
+    </div>
 
-    <div class="controls-container">
-        <div id="joy-left" class="joystick-area"><div class="knob"></div></div>
-        <div style="display: flex; flex-direction: column; align-items: center;">
-            <button id="light-btn">FLOODLIGHTS [OFF]</button>
-            <div id="log" style="font-size: 10px; background: rgba(0,0,0,0.5); padding: 5px;">> DRIVE READY</div>
-        </div>
-        <div id="joy-right" class="joystick-area"><div class="knob"></div></div>
+    <div class="joystick-container">
+        <div id="joy-l" class="joystick"><div class="knob"></div></div>
+        <div id="joy-r" class="joystick"><div class="knob"></div></div>
     </div>
 </div>
 
@@ -96,171 +85,170 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
-let scene, camera, renderer, composer, clock;
-let shipInertia = new THREE.Vector3();
-let shipRotation = new THREE.Euler(0, 0, 0, 'YXZ');
-let asteroids = [], floodLight;
-let touchData = { left: { x: 0, y: 0 }, right: { x: 0, y: 0 } };
+let scene, camera, renderer, composer, clock, planet, floodLight;
+let velocity = new THREE.Vector3();
+let rotation = new THREE.Euler(0, 0, 0, 'YXZ');
+let touchData = { l: { x: 0, y: 0 }, r: { x: 0, y: 0 } };
 const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-document.getElementById('start').onclick = init;
+document.getElementById('init').onclick = startMission;
 
-async function init() {
+function startMission() {
     document.getElementById('overlay').style.display = 'none';
-    if (isMobile && typeof DeviceOrientationEvent.requestPermission === 'function') {
-        await DeviceOrientationEvent.requestPermission();
-    }
+    document.getElementById('laser').style.display = 'block';
 
-    // CORE SETUP
     scene = new THREE.Scene();
     clock = new THREE.Clock();
-    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 5000);
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 15000);
     
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(window.devicePixelRatio);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     document.body.appendChild(renderer.domElement);
 
-    // LIGHTING
-    const sun = new THREE.DirectionalLight(0xffffff, 2.5);
+    // --- Lighting ---
+    const sun = new THREE.DirectionalLight(0xffffff, 2);
     sun.position.set(10, 10, 10);
     scene.add(sun);
-    scene.add(new THREE.AmbientLight(0x222222));
+    scene.add(new THREE.AmbientLight(0x111122, 0.5));
 
-    // FLOODLIGHT (The "On/Off" Light)
-    floodLight = new THREE.SpotLight(0xffffff, 0, 500, Math.PI/6, 0.5);
+    floodLight = new THREE.SpotLight(0xffffff, 0, 800, Math.PI/6, 0.5);
     camera.add(floodLight);
-    floodLight.position.set(0,0,0);
-    floodLight.target.position.set(0,0,-1);
+    floodLight.target.position.set(0, 0, -1);
     camera.add(floodLight.target);
     scene.add(camera);
 
-    // WORLD OBJECTS
-    createStars();
-    createPlanet();
-    createBlackHole();
-    spawnAsteroids();
+    // --- World ---
+    createStarfield();
+    planet = createHabitableWorld();
+    spawnObstacles();
     
-    // POST PROCESSING
+    // --- Post Processing ---
     composer = new EffectComposer(renderer);
     composer.addPass(new RenderPass(scene, camera));
     composer.addPass(new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85));
 
-    // CONTROLS
-    setupJoystick('joy-left', 'left');
-    setupJoystick('joy-right', 'right');
+    // --- Inputs ---
+    setupControls();
+    setupAINarrator();
     
-    document.getElementById('light-btn').onclick = function() {
-        const active = this.classList.toggle('active');
-        floodLight.intensity = active ? 2000 : 0;
-        this.innerText = `FLOODLIGHTS [${active ? 'ON' : 'OFF'}]`;
-        if(navigator.vibrate) navigator.vibrate(50);
-    };
-
     if(isMobile) {
         window.addEventListener('deviceorientation', e => {
-            if(e.gamma) shipRotation.z = e.gamma * (Math.PI / 180) * 0.5;
+            if(e.gamma) rotation.z = e.gamma * (Math.PI / 180) * 0.6;
         });
     }
 
     animate();
 }
 
-function createStars() {
-    const geo = new THREE.SphereGeometry(2000, 32, 32);
+function createStarfield() {
+    const geo = new THREE.SphereGeometry(10000, 32, 32);
     const mat = new THREE.ShaderMaterial({
         side: THREE.BackSide,
         vertexShader: `varying vec3 vN; void main() { vN = normal; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
-        fragmentShader: `varying vec3 vN; void main() { float n = fract(sin(dot(vN, vec3(12.9, 78.2, 45.1))) * 43758.5); gl_FragColor = vec4(vec3(pow(n, 50.0)), 1.0); }`
+        fragmentShader: `varying vec3 vN; void main() { float n = fract(sin(dot(vN, vec3(12.9, 78.2, 45.1))) * 43758.5); gl_FragColor = vec4(vec3(pow(n, 60.0)), 1.0); }`
     });
     scene.add(new THREE.Mesh(geo, mat));
 }
 
-function createPlanet() {
-    const geo = new THREE.SphereGeometry(150, 64, 64);
-    const mat = new THREE.MeshStandardMaterial({ color: 0x2233ff, emissive: 0x112244, roughness: 0.7 });
-    const planet = new THREE.Mesh(geo, mat);
-    planet.position.set(400, 200, -800);
-    scene.add(planet);
-}
-
-function createBlackHole() {
-    const bh = new THREE.Mesh(new THREE.SphereGeometry(50, 32, 32), new THREE.MeshBasicMaterial({color: 0x000000}));
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(85, 3, 2, 100), new THREE.MeshStandardMaterial({color: 0xff6600, emissive: 0xff2200, emissiveIntensity: 10, side: THREE.DoubleSide}));
-    ring.rotation.x = Math.PI/2.1;
+function createHabitableWorld() {
     const group = new THREE.Group();
-    group.add(bh); group.add(ring);
-    group.position.set(-500, -100, -1200);
+    const geo = new THREE.SphereGeometry(150, 64, 64);
+    const mat = new THREE.MeshStandardMaterial({ color: 0x0066ff, emissive: 0x001133, roughness: 0.8 });
+    const p = new THREE.Mesh(geo, mat);
+    
+    // Atmosphere glow
+    const atmGeo = new THREE.SphereGeometry(160, 64, 64);
+    const atmMat = new THREE.MeshBasicMaterial({ color: 0x00f2ff, transparent: true, opacity: 0.1, side: THREE.BackSide });
+    
+    group.add(p);
+    group.add(new THREE.Mesh(atmGeo, atmMat));
+    group.position.set(0, 0, -2000);
     scene.add(group);
+    return group;
 }
 
-function spawnAsteroids() {
-    const geo = new THREE.DodecahedronGeometry(1, 1);
-    const mat = new THREE.MeshStandardMaterial({ color: 0x666666, roughness: 0.9 });
-    for(let i=0; i<300; i++) {
+function spawnObstacles() {
+    const geo = new THREE.IcosahedronGeometry(1, 0);
+    const mat = new THREE.MeshStandardMaterial({ color: 0x444444 });
+    for(let i=0; i<400; i++) {
         const m = new THREE.Mesh(geo, mat);
-        m.position.set((Math.random()-0.5)*2000, (Math.random()-0.5)*2000, (Math.random()-0.5)*2000);
-        m.scale.setScalar(Math.random()*15 + 2);
-        m.rotation.set(Math.random()*3, Math.random()*3, 0);
+        m.position.set((Math.random()-0.5)*4000, (Math.random()-0.5)*4000, (Math.random()-0.5)*4000);
+        m.scale.setScalar(Math.random()*20 + 5);
+        m.rotation.set(Math.random(), Math.random(), 0);
         scene.add(m);
-        asteroids.push(m);
     }
 }
 
-function setupJoystick(id, side) {
-    const area = document.getElementById(id);
-    const knob = area.querySelector('.knob');
-    const handle = (e) => {
-        const t = e.touches[0];
-        const r = area.getBoundingClientRect();
-        const dx = t.clientX - (r.left + 70);
-        const dy = t.clientY - (r.top + 70);
-        const dist = Math.min(Math.sqrt(dx*dx + dy*dy), 50);
-        const angle = Math.atan2(dy, dx);
-        const x = Math.cos(angle) * dist;
-        const y = Math.sin(angle) * dist;
-        knob.style.transform = `translate(${x}px, ${y}px)`;
-        touchData[side] = { x: x/50, y: y/50 };
+function setupControls() {
+    const bindJoy = (id, side) => {
+        const el = document.getElementById(id);
+        const knob = el.querySelector('.knob');
+        el.addEventListener('touchmove', e => {
+            const r = el.getBoundingClientRect();
+            const x = e.touches[0].clientX - (r.left + 60);
+            const y = e.touches[0].clientY - (r.top + 60);
+            knob.style.transform = `translate(${x}px, ${y}px)`;
+            touchData[side] = { x: x/60, y: y/60 };
+        });
+        el.addEventListener('touchend', () => {
+            knob.style.transform = `translate(0,0)`;
+            touchData[side] = { x: 0, y: 0 };
+        });
     };
-    area.addEventListener('touchmove', handle);
-    area.addEventListener('touchend', () => {
-        knob.style.transform = `translate(0,0)`;
-        touchData[side] = { x: 0, y: 0 };
+    bindJoy('joy-l', 'l');
+    bindJoy('joy-r', 'r');
+}
+
+function setupAINarrator() {
+    const input = document.getElementById('ai-input');
+    const log = document.getElementById('ai-log');
+    
+    input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            const val = input.value.toLowerCase();
+            input.value = '';
+            log.innerText = "AI: Neural Sync in progress...";
+            
+            setTimeout(() => {
+                if(val.includes('life')) log.innerText = "AI: Analyzing spectra... Methane detected on Alpha-7. Life high probability.";
+                else if(val.includes('speed')) log.innerText = `AI: Currently at ${Math.abs(Math.round(velocity.z * 100))} km/s. Structural integrity 100%.`;
+                else if(val.includes('light')) {
+                    floodLight.intensity = floodLight.intensity > 0 ? 0 : 2000;
+                    log.innerText = `AI: Floodlights ${floodLight.intensity > 0 ? 'ONLINE' : 'OFFLINE'}.`;
+                }
+                else log.innerText = "AI: Data received. Staying on mission parameters.";
+            }, 800);
+        }
     });
 }
 
 function animate() {
     requestAnimationFrame(animate);
-    const move = new THREE.Vector3(touchData.left.x, 0, touchData.left.y);
-    shipRotation.y -= touchData.right.x * 0.03;
-    shipRotation.x -= touchData.right.y * 0.03;
+    
+    // Physics: Constant Laser Push
+    velocity.z -= 0.15;
+    
+    // Steering
+    rotation.y -= touchData.r.x * 0.04;
+    rotation.x -= touchData.r.y * 0.04;
+    
+    velocity.applyEuler(rotation);
+    camera.position.add(velocity);
+    camera.setRotationFromEuler(rotation);
+    
+    // Orbital Motion
+    const time = clock.getElapsedTime();
+    planet.position.x = Math.sin(time * 0.15) * 2500;
+    planet.position.z = Math.cos(time * 0.15) * 2500 - 2000;
 
-    move.applyEuler(shipRotation);
-    shipInertia.addScaledVector(move, 0.08);
-    shipInertia.multiplyScalar(0.97);
-    camera.position.add(shipInertia);
-    camera.setRotationFromEuler(shipRotation);
-
-    // Collision Check
-    asteroids.forEach(a => {
-        if(camera.position.distanceTo(a.position) < a.scale.x + 2) {
-            shipInertia.multiplyScalar(-0.5);
-            document.body.classList.add('shake');
-            setTimeout(() => document.body.classList.remove('shake'), 100);
-            if(navigator.vibrate) navigator.vibrate(100);
-        }
-    });
-
-    document.getElementById('vel').innerText = (shipInertia.length()*100).toFixed(1);
+    // HUD Update
+    document.getElementById('vel-val').innerText = Math.abs(Math.round(velocity.z * 100));
+    document.getElementById('dist-val').innerText = (camera.position.length() / 10000).toFixed(5);
+    
     composer.render();
 }
-
-window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth/window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-});
 </script>
 </body>
 </html>
