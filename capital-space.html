@@ -3,66 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Stellar Capital | שוק ההון הגלקטי</title>
+    <title>Stellar Capital | תיקון תצוגה</title>
     <style>
         html, body {
-            overflow: hidden;
-            width: 100%; height: 100%;
-            margin: 0; padding: 0;
-            background-color: #05050a;
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            overflow: hidden; width: 100%; height: 100%;
+            margin: 0; padding: 0; background-color: #05050a; /* רקע שחור ב-CSS לביטחון */
         }
-        #renderCanvas {
-            width: 100%; height: 100%;
-            touch-action: none;
-        }
+        #renderCanvas { width: 100%; height: 100%; touch-action: none; }
         #ui-container {
-            position: absolute;
-            top: 20px; right: 20px;
-            background: rgba(0, 10, 25, 0.85);
-            border: 1px solid #00f2ff;
-            color: #00f2ff;
-            padding: 15px;
-            border-radius: 12px;
-            pointer-events: none;
-            box-shadow: 0 0 20px rgba(0, 242, 255, 0.2);
-            min-width: 200px;
-            transition: all 0.3s ease;
+            position: absolute; top: 20px; right: 20px;
+            background: rgba(0, 15, 30, 0.9); border: 1px solid #00f2ff;
+            color: #00f2ff; padding: 15px; border-radius: 12px;
+            pointer-events: none; font-family: sans-serif; z-index: 10;
         }
-        .stats { font-size: 14px; margin-top: 8px; }
-        .ticker { color: #00ff88; font-weight: bold; }
         #trade-panel {
-            position: absolute;
-            bottom: 30px; left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 20, 40, 0.9);
-            padding: 20px;
-            border-radius: 15px;
-            border: 2px solid #00f2ff;
-            display: none; /* יופיע רק בבחירה */
-            text-align: center;
-            color: white;
-            min-width: 250px;
+            position: absolute; bottom: 30px; left: 50%;
+            transform: translateX(-50%); background: rgba(0, 20, 40, 0.95);
+            padding: 20px; border-radius: 15px; border: 2px solid #00f2ff;
+            display: none; text-align: center; color: white; font-family: sans-serif;
         }
         button {
-            background: #00f2ff; border: none; padding: 10px 20px;
-            border-radius: 5px; font-weight: bold; cursor: pointer;
-            margin: 5px;
+            background: #00f2ff; border: none; padding: 12px 24px;
+            border-radius: 8px; font-weight: bold; margin: 5px; color: #000;
         }
     </style>
 </head>
 <body>
 
     <div id="ui-container">
-        <div style="font-weight: bold; border-bottom: 1px solid #00f2ff; padding-bottom: 5px; font-size: 18px;">Stellar Capital</div>
-        <div class="stats">תיק השקעות: <span id="cash">$100,000</span></div>
-        <div class="stats">נכס נבחר: <span id="selected-name" style="color:#ffff00">בחר אסטרואיד</span></div>
-        <div class="stats">שווי שוק: <span id="selected-value">-</span></div>
+        <div style="font-weight: bold; border-bottom: 1px solid #00f2ff; margin-bottom: 5px;">Stellar Capital</div>
+        <div id="selected-name">בחר נכס בשוק...</div>
+        <div id="selected-value">---</div>
     </div>
 
     <div id="trade-panel">
         <h3 id="panel-title">שם הנכס</h3>
-        <p>האם ברצונך להשקיע בנכס זה?</p>
         <button onclick="trade('buy')">קנייה (Long)</button>
         <button onclick="trade('sell')" style="background:#ff4444">מכירה (Short)</button>
     </div>
@@ -70,7 +45,7 @@
     <canvas id="renderCanvas"></canvas>
 
     <script src="https://cdn.babylonjs.com/babylon.js"></script>
-    
+
     <script>
         const canvas = document.getElementById("renderCanvas");
         const engine = new BABYLON.Engine(canvas, true);
@@ -78,96 +53,64 @@
 
         const createScene = function () {
             const scene = new BABYLON.Scene(engine);
-            scene.clearColor = new BABYLON.Color4(0.01, 0.01, 0.03, 1);
+            
+            // תיקון הרקע הלבן: הגדרת צבע חלל עמוק בצורה מפורשת
+            scene.clearColor = new BABYLON.Color4(0.02, 0.02, 0.05, 1.0);
 
-            // מצלמה מותאמת מובייל
-            const camera = new BABYLON.ArcRotateCamera("camera", 0, Math.PI / 3, 60, BABYLON.Vector3.Zero(), scene);
+            // מצלמה
+            const camera = new BABYLON.ArcRotateCamera("camera", Math.PI/4, Math.PI/3, 50, BABYLON.Vector3.Zero(), scene);
             camera.attachControl(canvas, true);
             camera.lowerRadiusLimit = 15;
-            camera.upperRadiusLimit = 120;
+            camera.upperRadiusLimit = 150;
 
-            // אור מרכזי (השמש)
-            const light = new BABYLON.PointLight("sun", new BABYLON.Vector3(0, 0, 0), scene);
-            light.intensity = 2.5;
+            // תאורה יציבה
+            const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+            light.intensity = 0.7;
+            const sun = new BABYLON.PointLight("sun", BABYLON.Vector3.Zero(), scene);
+            sun.intensity = 1.5;
 
-            // אפקט זוהר (High Quality Bloom)
-            const gl = new BABYLON.GlowLayer("glow", scene);
-            gl.intensity = 0.7;
-
-            // יצירת כוכבים ברקע
-            const starfield = BABYLON.MeshBuilder.CreateSphere("stars", {diameter: 500, sideOrientation: BABYLON.Mesh.BACKSIDE}, scene);
-            const starMat = new BABYLON.StandardMaterial("starMat", scene);
-            starMat.emissiveColor = new BABYLON.Color3(0.1, 0.1, 0.2);
-            starfield.material = starMat;
-
+            // יצירת קבוצת אובייקטים
             const assets = [];
-            
-            // יצירת אובייקטים (מניות)
-            for (let i = 0; i < 40; i++) {
-                const isPlanet = i < 5;
-                const mesh = isPlanet ? 
-                    BABYLON.MeshBuilder.CreateSphere("Planet_"+i, {diameter: 4}, scene) :
-                    BABYLON.MeshBuilder.CreatePolyhedron("Asset_"+i, {type: 1, size: 1.8}, scene);
-
+            for (let i = 0; i < 30; i++) {
+                const mesh = BABYLON.MeshBuilder.CreatePolyhedron("asset_"+i, {type: 1, size: 2}, scene);
                 const angle = Math.random() * Math.PI * 2;
-                const radius = 25 + Math.random() * 40;
-                mesh.position = new BABYLON.Vector3(Math.cos(angle) * radius, (Math.random()-0.5)*10, Math.sin(angle) * radius);
+                const dist = 20 + Math.random() * 30;
+                mesh.position = new BABYLON.Vector3(Math.cos(angle)*dist, (Math.random()-0.5)*10, Math.sin(angle)*dist);
                 
                 const mat = new BABYLON.StandardMaterial("mat"+i, scene);
-                const isBullish = Math.random() > 0.5;
-                mat.diffuseColor = isBullish ? new BABYLON.Color3(0, 1, 0.5) : new BABYLON.Color3(1, 0.2, 0.2);
-                mat.emissiveColor = mat.diffuseColor.scale(0.2);
+                const isGreen = Math.random() > 0.5;
+                mat.diffuseColor = isGreen ? new BABYLON.Color3(0, 1, 0.4) : new BABYLON.Color3(1, 0.1, 0.1);
+                // הגנה מפני מראה "לבן" - הגדרת צבעים כהים יותר לבסיס
+                mat.specularColor = new BABYLON.Color3(0.2, 0.2, 0.2);
                 mesh.material = mat;
 
-                // נתונים פיננסיים מוצמדים לאובייקט
-                mesh.marketValue = (Math.random() * 1000 + 100).toFixed(2);
-                mesh.orbitSpeed = (Math.random() * 0.004) + 0.001;
-                mesh.angle = angle;
-                mesh.radius = radius;
-
+                mesh.marketValue = (Math.random() * 500 + 50).toFixed(2);
                 assets.push(mesh);
             }
 
-            // לוגיקת בחירה (Raycasting)
+            // זיהוי נגיעה
             scene.onPointerObservable.add((pointerInfo) => {
                 if (pointerInfo.type === BABYLON.PointerEventTypes.POINTERDOWN) {
                     const pickInfo = pointerInfo.pickInfo;
-                    if (pickInfo.hit && pickInfo.pickedMesh && pickInfo.pickedMesh.name.includes("set") || pickInfo.pickedMesh.name.includes("net")) {
-                        
-                        // ביטול בחירה קודמת
+                    if (pickInfo.hit && pickInfo.pickedMesh) {
                         if(selectedAsset) selectedAsset.renderOutline = false;
-
+                        
                         selectedAsset = pickInfo.pickedMesh;
-                        
-                        // אפקט ויזואלי לבחירה
                         selectedAsset.renderOutline = true;
-                        selectedAsset.outlineColor = BABYLON.Color3.White();
-                        selectedAsset.outlineWidth = 0.1;
-
-                        // עדכון UI
-                        document.getElementById("selected-name").innerText = selectedAsset.name;
-                        document.getElementById("selected-value").innerText = "$" + selectedAsset.marketValue;
-                        document.getElementById("panel-title").innerText = selectedAsset.name;
+                        selectedAsset.outlineColor = BABYLON.Color3.Cyan();
+                        
+                        document.getElementById("selected-name").innerText = "נכס: " + selectedAsset.name;
+                        document.getElementById("selected-value").innerText = "מחיר: $" + selectedAsset.marketValue;
                         document.getElementById("trade-panel").style.display = "block";
-
-                        // התמקדות המצלמה
-                        camera.setTarget(selectedAsset.position);
+                        document.getElementById("panel-title").innerText = selectedAsset.name;
                     } else {
-                        // לחיצה על החלל הריק
                         document.getElementById("trade-panel").style.display = "none";
-                        if(selectedAsset) selectedAsset.renderOutline = false;
                     }
                 }
             });
 
-            // אנימציה
             scene.registerBeforeRender(() => {
-                assets.forEach(a => {
-                    a.angle += a.orbitSpeed;
-                    a.position.x = Math.cos(a.angle) * a.radius;
-                    a.position.z = Math.sin(a.angle) * a.radius;
-                    a.rotation.y += 0.01;
-                });
+                assets.forEach(a => { a.rotation.y += 0.01; });
             });
 
             return scene;
@@ -177,10 +120,8 @@
         engine.runRenderLoop(() => scene.render());
         window.addEventListener("resize", () => engine.resize());
 
-        // פונקציית מסחר (דוגמה)
         function trade(type) {
-            alert(`ביצעת פעולת ${type === 'buy' ? 'קנייה' : 'מכירה'} על ${selectedAsset.name} במחיר $${selectedAsset.marketValue}`);
-            document.getElementById("trade-panel").style.display = "none";
+            alert("ביצעת " + (type === 'buy' ? "קנייה" : "מכירה") + " של " + selectedAsset.name);
         }
     </script>
 </body>
