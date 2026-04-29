@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AETHERIS | Hyper-Realistic Space Navigator</title>
+    <style>
+        :root { --glitch-color: rgba(0, 255, 242, 0.4); }
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', Roboto, sans-serif; color: #0ff; }
+        #canvas-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        
+        /* HUD UI */
+        #hud {
+            position: absolute; width: 100%; height: 100%;
+            pointer-events: none; border: 20px solid transparent;
+            box-sizing: border-box; transition: border 0.1s;
+            display: grid; grid-template-columns: 1fr 2fr 1fr; grid-template-rows: 1fr 2fr 1fr;
+        }
+        .hud-corner { border: 1px solid rgba(0, 255, 255, 0.3); padding: 20px; text-transform: uppercase; letter-spacing: 2px; font-size: 10px; }
+        #log { grid-column: 1; grid-row: 3; align-self: end; background: rgba(0,0,0,0.5); }
+        #stats { grid-column: 3; grid-row: 1; text-align: right; }
+        #crosshair { 
+            grid-column: 2; grid-row: 2; border: 2px solid var(--glitch-color); 
+            width: 40px; height: 40px; justify-self: center; align-self: center; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .impact-flicker { animation: flicker 0.1s infinite; border: 20px solid rgba(255, 0, 0, 0.2) !important; }
+        @keyframes flicker { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+        
+        #overlay-msg {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            text-align: center; background: rgba(0,0,0,0.8); padding: 40px; border: 1px solid #0ff;
+        }
+        button { background: #0ff; color: #000; border: none; padding: 10px 20px; cursor: pointer; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div id="canvas-container"></div>
+
+<div id="hud">
+    <div id="stats" class="hud-corner">
+        VELOCITY: <span id="vel-val">0</span> m/s<br>
+        COORD: <span id="coord-val">0,0,0</span><br>
+        HULL: 100%
+    </div>
+    <div id="crosshair"> <div style="width:2px; height:10px; background:#0ff;"></div> </div>
+    <div id="log" class="hud-corner">
+        > SYSTEM: STANDBY...<br>
+        > AI: Awaiting ignition sequence.
+    </div>
+</div>
+
+<div id="overlay-msg">
+    <h1>AETHERIS ENGINE</h1>
+    <p>6DOF Navigation Protocol Active</p>
+    <button onclick="initSequence()">INITIALIZE DRIVE</button>
+</div>
+
+<script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.167.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.167.0/examples/jsm/"
+        }
+    }
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { gsap } from 'https://cdn.skypack.dev/gsap';
+
+// --- Global Variables ---
+let scene, camera, renderer, composer, clock;
+let shipInertia = new THREE.Vector3();
+let shipRotation = new THREE.Euler(0, 0, 0, 'YXZ');
+let asteroids = [];
+let audioCtx, engineNoise, filterNode;
+const keys = {};
+
+const CONFIG = {
+    acceleration: 0.05,
+    friction: 0.98,
+    lookSensitivity: 0.002,
+    rollSpeed: 0.03
+};
+
+// --- Initialization ---
+window.initSequence = async () => {
+    document.getElementById('overlay-msg').style.display = 'none';
+    
+    // Audio Setup
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    setupEngineAudio();
+    
+    // Three.js Core
+    scene = new THREE.Scene();
+    clock = new THREE.Clock();
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 5000);
+    
+    renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.2;
+    document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+    // Environment Construction
+    createStarfield();
+    createBlackHole();
+    createNebula();
+    spawnAsteroids();
+    
+    // Post Processing
+    setupPostProcessing();
+    
+    // Event Listeners
+    window.addEventListener('keydown', (e) => keys[e.code] = true);
+    window.addEventListener('keyup', (e) => keys[e.code] = false);
+    window.addEventListener('mousemove', handleMouseMove);
+    document.body.requestPointerLock = document.body.requestPointerLock || document.body.mozRequestPointerLock;
+    renderer.domElement.addEventListener('click', () => renderer.domElement.requestPointerLock());
+
+    animate();
+    logToHUD("AI: Orbital drive engaged. Safe travels, Pilot.");
+};
+
+// --- Shaders & Visuals ---
+function createStarfield() {
+    const starGeo = new THREE.SphereGeometry(2000, 64, 64);
+    const starMat = new THREE.ShaderMaterial({
+        side: THREE.BackSide,
+        uniforms: { time: { value: 0 } },
+        vertexShader: `
+            varying vec3 vNormal;
+            void main() {
+                vNormal = normal;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `,
+        fragmentShader: `
+            varying vec3 vNormal;
+            float noise(vec3 p) { return fract(sin(dot(p, vec3(12.9898, 78.233, 45.164))) * 43758.5453); }
+            void main() {
+                float n = noise(vNormal * 500.0);
+                float star = pow(n, 50.0);
+                vec3 color = mix(vec3(0.0), vec3(0.8, 0.9, 1.0), star);
+                gl_FragColor = vec4(color, 1.0);
+            }
+        `
+    });
+    scene.add(new THREE.Mesh(starGeo, starMat));
+}
+
+function createBlackHole() {
+    // Gravitational Lensing Placeholder (Simplified for single file)
+    const bhGeo = new THREE.SphereGeometry(50, 64, 64);
+    const bhMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+    const bhMesh = new THREE.Mesh(bhGeo, bhMat);
+    bhMesh.position.set(0, 0, -800);
+    
+    // Accretion Disk
+    const diskGeo = new THREE.TorusGeometry(80, 2, 2, 100);
+    const diskMat = new THREE.MeshBasicMaterial({ color: 0xffaa00, transparent: true, opacity: 0.5 });
+    const disk = new THREE.Mesh(diskGeo, diskMat);
+    disk.rotation.x = Math.PI / 2.1;
+    bhMesh.add(disk);
+    
+    scene.add(bhMesh);
+}
+
+function spawnAsteroids() {
+    const geometry = new THREE.DodecahedronGeometry(1, 1);
+    const material = new THREE.MeshStandardMaterial({ 
+        color: 0x444444, 
+        roughness: 0.8, 
+        metalness: 0.2,
+        flatShading: true 
+    });
+
+    for(let i=0; i<300; i++) {
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.position.set(
+            (Math.random()-0.5)*1500,
+            (Math.random()-0.5)*1500,
+            (Math.random()-0.5)*1500
+        );
+        mesh.scale.setScalar(Math.random() * 15 + 2);
+        mesh.rotation.set(Math.random()*Math.PI, Math.random()*Math.PI, 0);
+        scene.add(mesh);
+        asteroids.push(mesh);
+    }
+}
+
+function createNebula() {
+    const loader = new THREE.TextureLoader();
+    const cloudGeo = new THREE.PlaneGeometry(1000, 1000);
+    const cloudMat = new THREE.MeshLambertMaterial({
+        color: 0x440088,
+        transparent: true,
+        opacity: 0.1,
+        depthWrite: false,
+        side: THREE.DoubleSide
+    });
+    
+    for(let i=0; i<15; i++) {
+        const cloud = new THREE.Mesh(cloudGeo, cloudMat);
+        cloud.position.set((Math.random()-0.5)*1000, (Math.random()-0.5)*1000, -1200);
+        cloud.rotation.z = Math.random() * Math.PI;
+        scene.add(cloud);
+    }
+    scene.add(new THREE.AmbientLight(0x222222));
+    const pLight = new THREE.PointLight(0x00ffff, 2, 2000);
+    pLight.position.set(0, 0, -700);
+    scene.add(pLight);
+}
+
+// --- Navigation & Physics ---
+function handleMouseMove(e) {
+    if (document.pointerLockElement) {
+        shipRotation.y -= e.movementX * CONFIG.lookSensitivity;
+        shipRotation.x -= e.movementY * CONFIG.lookSensitivity;
+    }
+}
+
+function updatePhysics() {
+    const moveDir = new THREE.Vector3();
+    
+    // Translation
+    if (keys['KeyW']) moveDir.z -= 1;
+    if (keys['KeyS']) moveDir.z += 1;
+    if (keys['KeyA']) moveDir.x -= 1;
+    if (keys['KeyD']) moveDir.x += 1;
+    
+    // 6DOF Roll
+    if (keys['KeyQ']) shipRotation.z += CONFIG.rollSpeed;
+    if (keys['KeyE']) shipRotation.z -= CONFIG.rollSpeed;
+
+    moveDir.applyEuler(shipRotation);
+    shipInertia.addScaledVector(moveDir, CONFIG.acceleration);
+    shipInertia.multiplyScalar(CONFIG.friction);
+
+    camera.position.add(shipInertia);
+    camera.setRotationFromEuler(shipRotation);
+    
+    // Collision Detection (Basic Sphere)
+    asteroids.forEach(ast => {
+        const dist = camera.position.distanceTo(ast.position);
+        if (dist < ast.scale.x + 2) {
+            handleCollision();
+        }
+    });
+
+    // Update Audio Pitch based on speed
+    if(filterNode) filterNode.frequency.value = 200 + (shipInertia.length() * 500);
+}
+
+function handleCollision() {
+    shipInertia.multiplyScalar(-0.5); // Bounce
+    document.getElementById('hud').classList.add('impact-flicker');
+    setTimeout(() => document.getElementById('hud').classList.remove('impact-flicker'), 500);
+    
+    if (navigator.vibrate) navigator.vibrate(100);
+    playImpactSound();
+}
+
+// --- Audio Engine ---
+function setupEngineAudio() {
+    const osc = audioCtx.createOscillator();
+    filterNode = audioCtx.createBiquadFilter();
+    const gainNode = audioCtx.createGain();
+    
+    osc.type = 'sawtooth';
+    filterNode.type = 'lowpass';
+    gainNode.gain.value = 0.1;
+    
+    osc.connect(filterNode);
+    filterNode.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    
+    osc.start();
+}
+
+function playImpactSound() {
+    const noise = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    noise.type = 'triangle';
+    noise.frequency.setValueAtTime(150, audioCtx.currentTime);
+    noise.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.2);
+    g.gain.setValueAtTime(0.3, audioCtx.currentTime);
+    g.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.2);
+    noise.connect(g);
+    g.connect(audioCtx.destination);
+    noise.start();
+    noise.stop(audioCtx.currentTime + 0.2);
+}
+
+// --- Post Processing ---
+function setupPostProcessing() {
+    composer = new EffectComposer(renderer);
+    composer.addPass(new RenderPass(scene, camera));
+    
+    const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+    composer.addPass(bloomPass);
+}
+
+// --- UI & AI Helper ---
+function logToHUD(msg) {
+    const log = document.getElementById('log');
+    log.innerHTML += `<br>> ${msg}`;
+    if(log.childNodes.length > 10) log.removeChild(log.childNodes[0]);
+}
+
+async function fetchAIResponse(query) {
+    // Simulated LLM Logic
+    const responses = [
+        "Trajectory aligned with Event Horizon.",
+        "Anomalous readings detected in Sector 7.",
+        "Asteroid density increasing. Maintain vector.",
+        "Warning: Proximity alert."
+    ];
+    return responses[Math.floor(Math.random() * responses.length)];
+}
+
+// --- Loop ---
+function animate() {
+    requestAnimationFrame(animate);
+    const delta = clock.getDelta();
+    
+    updatePhysics();
+    
+    // UI Update
+    document.getElementById('vel-val').innerText = (shipInertia.length() * 100).toFixed(1);
+    document.getElementById('coord-val').innerText = 
+        `${Math.round(camera.position.x)}, ${Math.round(camera.position.y)}, ${Math.round(camera.position.z)}`;
+
+    composer.render();
+}
+
+// Resize Handling
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    composer.setSize(window.innerWidth, window.innerHeight);
+});
+
+</script>
+</body>
+</html>
