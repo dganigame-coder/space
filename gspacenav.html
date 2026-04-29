@@ -3,79 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AETHERIS | 6DOF Mobile Space Navigator</title>
+    <title>AETHERIS | Hyper-Realistic Navigator</title>
     <style>
-        :root { --ui-color: #00f2ff; }
-        body { margin: 0; overflow: hidden; background: #000; font-family: 'Courier New', Courier, monospace; color: var(--ui-color); user-select: none; touch-action: none; }
-        canvas { display: block; }
-
-        /* HUD UI */
+        :root { --ui: #00f2ff; --bg: #000; }
+        body { margin: 0; overflow: hidden; background: var(--bg); font-family: 'Courier New', monospace; color: var(--ui); user-select: none; touch-action: none; }
+        
+        /* UI HUD LAYER */
         #hud {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; padding: 20px; box-sizing: border-box;
-            display: flex; flex-direction: column; justify-content: space-between;
+            position: absolute; inset: 0; pointer-events: none;
+            padding: 20px; display: flex; flex-direction: column; justify-content: space-between;
+            z-index: 10;
         }
-        .hud-top { display: flex; justify-content: space-between; font-size: 12px; text-shadow: 0 0 5px var(--ui-color); }
-        .hud-bottom { display: flex; justify-content: space-between; align-items: flex-end; }
-        #log { max-width: 300px; background: rgba(0,0,0,0.3); padding: 10px; border-left: 2px solid var(--ui-color); }
+        .stats { display: flex; justify-content: space-between; text-shadow: 0 0 10px var(--ui); font-weight: bold; }
         
         #crosshair { 
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 30px; height: 30px; border: 1px solid rgba(0, 242, 255, 0.5); border-radius: 50%;
+            width: 40px; height: 40px; border: 1px solid rgba(0, 242, 255, 0.3); border-radius: 50%;
         }
 
-        /* Mobile Joysticks (Hidden by default, shown via JS) */
-        .joystick-base {
-            width: 120px; height: 120px; border: 2px solid var(--ui-color);
-            border-radius: 50%; background: rgba(0, 242, 255, 0.1);
-            position: relative; display: none; pointer-events: auto;
+        /* MOBILE CONTROLS */
+        .controls-container { display: flex; justify-content: space-between; align-items: flex-end; width: 100%; pointer-events: none; }
+        .joystick-area { 
+            width: 140px; height: 140px; border: 2px solid var(--ui); border-radius: 50%; 
+            background: rgba(0, 242, 255, 0.05); position: relative; pointer-events: auto;
         }
-        .joystick-knob {
-            width: 40px; height: 40px; background: var(--ui-color);
-            border-radius: 50%; position: absolute; top: 40px; left: 40px;
-            box-shadow: 0 0 15px var(--ui-color);
+        .knob { 
+            width: 50px; height: 50px; background: var(--ui); border-radius: 50%; 
+            position: absolute; top: 45px; left: 45px; box-shadow: 0 0 20px var(--ui); 
         }
 
-        /* Impact FX */
-        .impact { animation: shake 0.1s infinite; border: 10px solid rgba(255,0,0,0.4) !important; }
-        @keyframes shake { 0% { transform: translate(1px, 1px); } 50% { transform: translate(-2px, -1px); } 100% { transform: translate(1px, -1px); } }
+        /* LIGHT BUTTON */
+        #light-btn {
+            pointer-events: auto; background: rgba(0, 0, 0, 0.6); color: var(--ui);
+            border: 1px solid var(--ui); padding: 10px 20px; font-size: 12px; cursor: pointer;
+            margin-bottom: 10px; transition: 0.2s;
+        }
+        #light-btn.active { background: var(--ui); color: #000; box-shadow: 0 0 15px var(--ui); }
 
-        /* Welcome Screen */
+        /* OVERLAY */
         #overlay {
             position: fixed; inset: 0; background: #000; z-index: 100;
-            display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
-        button { 
-            background: transparent; border: 1px solid var(--ui-color); color: var(--ui-color);
-            padding: 15px 30px; cursor: pointer; font-size: 18px; margin-top: 20px;
-            transition: 0.3s;
+        button#start { 
+            background: transparent; border: 2px solid var(--ui); color: var(--ui);
+            padding: 20px 40px; font-size: 20px; cursor: pointer; box-shadow: 0 0 10px var(--ui);
         }
-        button:hover { background: var(--ui-color); color: #000; }
+
+        /* IMPACT ANIMATION */
+        .shake { animation: shake 0.1s infinite; }
+        @keyframes shake { 0% { transform: translate(2px, 2px); } 50% { transform: translate(-2px, -2px); } 100% { transform: translate(0, 0); } }
     </style>
 </head>
 <body>
 
-<div id="hud">
-    <div class="hud-top">
-        <div>SYS_STATUS: NOMINAL<br>SECTOR: HAZARD_4</div>
-        <div>VEL: <span id="vel-val">0</span> M/S<br>HULL: 100%</div>
-    </div>
-    
-    <div id="crosshair"></div>
-
-    <div class="hud-bottom">
-        <div id="log">> STANDBY...</div>
-        <div id="mobile-controls" style="display: flex; gap: 100px;">
-            <div id="joy-left" class="joystick-base"><div class="joystick-knob"></div></div>
-            <div id="joy-right" class="joystick-base"><div class="joystick-knob"></div></div>
-        </div>
-    </div>
+<div id="overlay">
+    <h1 style="letter-spacing: 10px;">AETHERIS</h1>
+    <p>DEEP SPACE NAVIGATION ENGINE v4.0</p>
+    <button id="start">INITIALIZE DRIVE</button>
 </div>
 
-<div id="overlay">
-    <h1>AETHERIS ENGINE V3</h1>
-    <p>6DOF DEEP SPACE NAVIGATION PROTOCOL</p>
-    <button id="start-btn">INITIALIZE NEURAL LINK</button>
+<div id="hud">
+    <div class="stats">
+        <div>SYS: NOMINAL<br>SECTOR: HAZARD_4</div>
+        <div style="text-align: right;">VEL: <span id="vel">0.0</span> M/S<br>HULL: 100%</div>
+    </div>
+
+    <div id="crosshair"></div>
+
+    <div class="controls-container">
+        <div id="joy-left" class="joystick-area"><div class="knob"></div></div>
+        <div style="display: flex; flex-direction: column; align-items: center;">
+            <button id="light-btn">FLOODLIGHTS [OFF]</button>
+            <div id="log" style="font-size: 10px; background: rgba(0,0,0,0.5); padding: 5px;">> DRIVE READY</div>
+        </div>
+        <div id="joy-right" class="joystick-area"><div class="knob"></div></div>
+    </div>
 </div>
 
 <script type="importmap">
@@ -93,42 +96,25 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
-// Global Logic
 let scene, camera, renderer, composer, clock;
 let shipInertia = new THREE.Vector3();
 let shipRotation = new THREE.Euler(0, 0, 0, 'YXZ');
-let asteroids = [];
-let audioCtx, filterNode;
-const keys = {};
-const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+let asteroids = [], floodLight;
 let touchData = { left: { x: 0, y: 0 }, right: { x: 0, y: 0 } };
+const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-const CONFIG = {
-    accel: isMobile ? 0.08 : 0.04,
-    friction: 0.97,
-    lookSens: 0.002,
-    rollSpeed: 0.03
-};
-
-document.getElementById('start-btn').addEventListener('click', init);
+document.getElementById('start').onclick = init;
 
 async function init() {
     document.getElementById('overlay').style.display = 'none';
-    if (isMobile) {
-        document.querySelectorAll('.joystick-base').forEach(el => el.style.display = 'block');
-        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-            await DeviceOrientationEvent.requestPermission();
-        }
+    if (isMobile && typeof DeviceOrientationEvent.requestPermission === 'function') {
+        await DeviceOrientationEvent.requestPermission();
     }
 
-    // Audio
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    setupAudio();
-
-    // Scene Setup
+    // CORE SETUP
     scene = new THREE.Scene();
     clock = new THREE.Clock();
-    camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 5000);
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 5000);
     
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -136,196 +122,137 @@ async function init() {
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     document.body.appendChild(renderer.domElement);
 
-    // World Building
+    // LIGHTING
+    const sun = new THREE.DirectionalLight(0xffffff, 2.5);
+    sun.position.set(10, 10, 10);
+    scene.add(sun);
+    scene.add(new THREE.AmbientLight(0x222222));
+
+    // FLOODLIGHT (The "On/Off" Light)
+    floodLight = new THREE.SpotLight(0xffffff, 0, 500, Math.PI/6, 0.5);
+    camera.add(floodLight);
+    floodLight.position.set(0,0,0);
+    floodLight.target.position.set(0,0,-1);
+    camera.add(floodLight.target);
+    scene.add(camera);
+
+    // WORLD OBJECTS
     createStars();
-    createCelestialBody();
+    createPlanet();
+    createBlackHole();
     spawnAsteroids();
     
-    // Post-Process
+    // POST PROCESSING
     composer = new EffectComposer(renderer);
     composer.addPass(new RenderPass(scene, camera));
-    composer.addPass(new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.2, 0.4, 0.85));
+    composer.addPass(new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85));
 
-    // Input Listeners
-    window.addEventListener('keydown', e => keys[e.code] = true);
-    window.addEventListener('keyup', e => keys[e.code] = false);
+    // CONTROLS
+    setupJoystick('joy-left', 'left');
+    setupJoystick('joy-right', 'right');
     
-    if (isMobile) {
-        setupTouch(document.getElementById('joy-left'), 'left');
-        setupTouch(document.getElementById('joy-right'), 'right');
+    document.getElementById('light-btn').onclick = function() {
+        const active = this.classList.toggle('active');
+        floodLight.intensity = active ? 2000 : 0;
+        this.innerText = `FLOODLIGHTS [${active ? 'ON' : 'OFF'}]`;
+        if(navigator.vibrate) navigator.vibrate(50);
+    };
+
+    if(isMobile) {
         window.addEventListener('deviceorientation', e => {
-            if (e.gamma) shipRotation.z = e.gamma * (Math.PI / 180) * 0.4;
+            if(e.gamma) shipRotation.z = e.gamma * (Math.PI / 180) * 0.5;
         });
-    } else {
-        window.addEventListener('mousemove', e => {
-            if (document.pointerLockElement) {
-                shipRotation.y -= e.movementX * CONFIG.lookSens;
-                shipRotation.x -= e.movementY * CONFIG.lookSens;
-            }
-        });
-        renderer.domElement.addEventListener('click', () => renderer.domElement.requestPointerLock());
     }
 
     animate();
-    logHUD("SYSTEM: Drive active. Roll ship via tilt/QE.");
 }
 
 function createStars() {
-    const starGeo = new THREE.SphereGeometry(1500, 32, 32);
-    const starMat = new THREE.ShaderMaterial({
+    const geo = new THREE.SphereGeometry(2000, 32, 32);
+    const mat = new THREE.ShaderMaterial({
         side: THREE.BackSide,
-        uniforms: { time: { value: 0 } },
         vertexShader: `varying vec3 vN; void main() { vN = normal; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
-        fragmentShader: `varying vec3 vN; void main() { float n = fract(sin(dot(vN, vec3(12.9, 78.2, 45.1))) * 43758.5); float s = pow(n, 60.0); gl_FragColor = vec4(vec3(s), 1.0); }`
+        fragmentShader: `varying vec3 vN; void main() { float n = fract(sin(dot(vN, vec3(12.9, 78.2, 45.1))) * 43758.5); gl_FragColor = vec4(vec3(pow(n, 50.0)), 1.0); }`
     });
-    scene.add(new THREE.Mesh(starGeo, starMat));
+    scene.add(new THREE.Mesh(geo, mat));
 }
 
- function createCelestialBody() {
-    // 1. A Glowing Gas Giant (Closer)
-    const planetGeo = new THREE.SphereGeometry(120, 64, 64);
-    const planetMat = new THREE.MeshStandardMaterial({ 
-        color: 0x220044, 
-        emissive: 0x5500ff, 
-        emissiveIntensity: 0.2,
-        roughness: 0.8 
-    });
-    const planet = new THREE.Mesh(planetGeo, planetMat);
-    planet.position.set(300, 100, -600); // Moved closer and to the side
+function createPlanet() {
+    const geo = new THREE.SphereGeometry(150, 64, 64);
+    const mat = new THREE.MeshStandardMaterial({ color: 0x2233ff, emissive: 0x112244, roughness: 0.7 });
+    const planet = new THREE.Mesh(geo, mat);
+    planet.position.set(400, 200, -800);
     scene.add(planet);
-
-    // 2. A Black Hole (The "Focal Point")
-    const bhGroup = new THREE.Group();
-    const bhGeo = new THREE.SphereGeometry(40, 32, 32);
-    const bhMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
-    const hole = new THREE.Mesh(bhGeo, bhMat);
-    
-    // Accretion Disk (The glowing ring)
-    const ringGeo = new THREE.TorusGeometry(70, 5, 2, 100);
-    const ringMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
-    const ring = new THREE.Mesh(ringGeo, ringMat);
-    ring.rotation.x = Math.PI / 2;
-    
-    bhGroup.add(hole);
-    bhGroup.add(ring);
-    bhGroup.position.set(-400, -100, -1000);
-    scene.add(bhGroup);
-
-    // 3. THE "HEADLIGHT" (Fixes the black asteroids)
-    const headLight = new THREE.PointLight(0xffffff, 50, 300);
-    camera.add(headLight); // Attaches light to your ship
-    scene.add(camera);
-    
-    scene.add(new THREE.AmbientLight(0x111111, 0.5)); // General faint light
 }
 
-function spawnAsteroids() {
-    // Adding variety to the rocks
-    const mat = new THREE.MeshStandardMaterial({ 
-        color: 0x888888, 
-        flatShading: true,
-        metalness: 0.2
-    });
-    for(let i=0; i<300; i++) {
-        const geo = new THREE.DodecahedronGeometry(Math.random() * 2 + 1, 1);
-        const m = new THREE.Mesh(geo, mat);
-        m.position.set(
-            (Math.random()-0.5)*2000, 
-            (Math.random()-0.5)*2000, 
-            (Math.random()-0.5)*2000
-        );
-        m.scale.setScalar(Math.random()*15 + 2);
-        m.rotation.set(Math.random(), Math.random(), 0);
-        scene.add(m);
-        asteroids.push(m);
-    }
+function createBlackHole() {
+    const bh = new THREE.Mesh(new THREE.SphereGeometry(50, 32, 32), new THREE.MeshBasicMaterial({color: 0x000000}));
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(85, 3, 2, 100), new THREE.MeshStandardMaterial({color: 0xff6600, emissive: 0xff2200, emissiveIntensity: 10, side: THREE.DoubleSide}));
+    ring.rotation.x = Math.PI/2.1;
+    const group = new THREE.Group();
+    group.add(bh); group.add(ring);
+    group.position.set(-500, -100, -1200);
+    scene.add(group);
 }
 
-    
 function spawnAsteroids() {
     const geo = new THREE.DodecahedronGeometry(1, 1);
-    const mat = new THREE.MeshStandardMaterial({ color: 0x333333, flatShading: true });
-    for(let i=0; i<250; i++) {
+    const mat = new THREE.MeshStandardMaterial({ color: 0x666666, roughness: 0.9 });
+    for(let i=0; i<300; i++) {
         const m = new THREE.Mesh(geo, mat);
-        m.position.set((Math.random()-0.5)*1200, (Math.random()-0.5)*1200, (Math.random()-0.5)*1200);
-        m.scale.setScalar(Math.random()*20 + 2);
-        m.rotation.set(Math.random(), Math.random(), 0);
+        m.position.set((Math.random()-0.5)*2000, (Math.random()-0.5)*2000, (Math.random()-0.5)*2000);
+        m.scale.setScalar(Math.random()*15 + 2);
+        m.rotation.set(Math.random()*3, Math.random()*3, 0);
         scene.add(m);
         asteroids.push(m);
     }
 }
 
-function setupTouch(el, side) {
-    const knob = el.querySelector('.joystick-knob');
-    el.addEventListener('touchmove', e => {
+function setupJoystick(id, side) {
+    const area = document.getElementById(id);
+    const knob = area.querySelector('.knob');
+    const handle = (e) => {
         const t = e.touches[0];
-        const r = el.getBoundingClientRect();
-        const x = (t.clientX - (r.left + 60));
-        const y = (t.clientY - (r.top + 60));
-        const dist = Math.min(Math.sqrt(x*x + y*y), 50);
-        const angle = Math.atan2(y, x);
-        const lx = Math.cos(angle) * dist;
-        const ly = Math.sin(angle) * dist;
-        knob.style.transform = `translate(${lx}px, ${ly}px)`;
-        touchData[side].x = lx / 50;
-        touchData[side].y = ly / 50;
-    });
-    el.addEventListener('touchend', () => {
-        knob.style.transform = `translate(0, 0)`;
+        const r = area.getBoundingClientRect();
+        const dx = t.clientX - (r.left + 70);
+        const dy = t.clientY - (r.top + 70);
+        const dist = Math.min(Math.sqrt(dx*dx + dy*dy), 50);
+        const angle = Math.atan2(dy, dx);
+        const x = Math.cos(angle) * dist;
+        const y = Math.sin(angle) * dist;
+        knob.style.transform = `translate(${x}px, ${y}px)`;
+        touchData[side] = { x: x/50, y: y/50 };
+    };
+    area.addEventListener('touchmove', handle);
+    area.addEventListener('touchend', () => {
+        knob.style.transform = `translate(0,0)`;
         touchData[side] = { x: 0, y: 0 };
     });
 }
 
-function setupAudio() {
-    const osc = audioCtx.createOscillator();
-    filterNode = audioCtx.createBiquadFilter();
-    const gain = audioCtx.createGain();
-    osc.type = 'sawtooth';
-    filterNode.type = 'lowpass';
-    gain.gain.value = 0.05;
-    osc.connect(filterNode);
-    filterNode.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.start();
-}
-
-function logHUD(m) { document.getElementById('log').innerText = `> ${m}`; }
-
 function animate() {
     requestAnimationFrame(animate);
-    const move = new THREE.Vector3();
-    
-    // Key Logic
-    if (keys['KeyW']) move.z -= 1; if (keys['KeyS']) move.z += 1;
-    if (keys['KeyA']) move.x -= 1; if (keys['KeyD']) move.x += 1;
-    if (keys['KeyQ']) shipRotation.z += CONFIG.rollSpeed;
-    if (keys['KeyE']) shipRotation.z -= CONFIG.rollSpeed;
-
-    // Touch Logic
-    if (isMobile) {
-        move.z = touchData.left.y; move.x = touchData.left.x;
-        shipRotation.y -= touchData.right.x * 0.04;
-        shipRotation.x -= touchData.right.y * 0.04;
-    }
+    const move = new THREE.Vector3(touchData.left.x, 0, touchData.left.y);
+    shipRotation.y -= touchData.right.x * 0.03;
+    shipRotation.x -= touchData.right.y * 0.03;
 
     move.applyEuler(shipRotation);
-    shipInertia.addScaledVector(move, CONFIG.accel);
-    shipInertia.multiplyScalar(CONFIG.friction);
+    shipInertia.addScaledVector(move, 0.08);
+    shipInertia.multiplyScalar(0.97);
     camera.position.add(shipInertia);
     camera.setRotationFromEuler(shipRotation);
 
-    // Collisions
+    // Collision Check
     asteroids.forEach(a => {
-        if (camera.position.distanceTo(a.position) < a.scale.x + 2) {
-            shipInertia.multiplyScalar(-0.8);
+        if(camera.position.distanceTo(a.position) < a.scale.x + 2) {
+            shipInertia.multiplyScalar(-0.5);
+            document.body.classList.add('shake');
+            setTimeout(() => document.body.classList.remove('shake'), 100);
             if(navigator.vibrate) navigator.vibrate(100);
-            document.body.classList.add('impact');
-            setTimeout(() => document.body.classList.remove('impact'), 200);
         }
     });
 
-    if(filterNode) filterNode.frequency.value = 150 + (shipInertia.length() * 400);
-    document.getElementById('vel-val').innerText = (shipInertia.length() * 100).toFixed(1);
+    document.getElementById('vel').innerText = (shipInertia.length()*100).toFixed(1);
     composer.render();
 }
 
