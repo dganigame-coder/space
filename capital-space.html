@@ -3,126 +3,110 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Stellar Capital | תיקון תצוגה</title>
+    <title>Stellar Capital | Fixed Selection</title>
     <style>
-        html, body {
-            overflow: hidden; width: 100%; height: 100%;
-            margin: 0; padding: 0; background-color: #05050a; /* רקע שחור ב-CSS לביטחון */
-        }
+        html, body { overflow: hidden; width: 100%; height: 100%; margin: 0; background: #000; }
         #renderCanvas { width: 100%; height: 100%; touch-action: none; }
-        #ui-container {
-            position: absolute; top: 20px; right: 20px;
-            background: rgba(0, 15, 30, 0.9); border: 1px solid #00f2ff;
-            color: #00f2ff; padding: 15px; border-radius: 12px;
-            pointer-events: none; font-family: sans-serif; z-index: 10;
+        #ui {
+            position: absolute; top: 10px; right: 10px;
+            background: rgba(0, 20, 40, 0.9); border: 1px solid #00f2ff;
+            color: #00f2ff; padding: 10px; border-radius: 8px;
+            pointer-events: none; font-family: sans-serif;
         }
         #trade-panel {
-            position: absolute; bottom: 30px; left: 50%;
-            transform: translateX(-50%); background: rgba(0, 20, 40, 0.95);
-            padding: 20px; border-radius: 15px; border: 2px solid #00f2ff;
-            display: none; text-align: center; color: white; font-family: sans-serif;
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(0, 10, 20, 0.95); padding: 15px; border: 2px solid #00f2ff;
+            border-radius: 12px; display: none; text-align: center; color: white;
         }
-        button {
-            background: #00f2ff; border: none; padding: 12px 24px;
-            border-radius: 8px; font-weight: bold; margin: 5px; color: #000;
-        }
+        button { background: #00f2ff; border: none; padding: 10px 20px; border-radius: 5px; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <div id="ui-container">
-        <div style="font-weight: bold; border-bottom: 1px solid #00f2ff; margin-bottom: 5px;">Stellar Capital</div>
-        <div id="selected-name">בחר נכס בשוק...</div>
-        <div id="selected-value">---</div>
-    </div>
+<div id="ui">
+    <b>Stellar Capital</b><br>
+    <span id="target">לחץ על אסטרואיד לבחירה</span>
+</div>
 
-    <div id="trade-panel">
-        <h3 id="panel-title">שם הנכס</h3>
-        <button onclick="trade('buy')">קנייה (Long)</button>
-        <button onclick="trade('sell')" style="background:#ff4444">מכירה (Short)</button>
-    </div>
+<div id="trade-panel" id="panel">
+    <h3 id="panel-title">Asset</h3>
+    <button onclick="trade()">בצע עסקה</button>
+    <button onclick="closePanel()" style="background:#444; color:white;">סגור</button>
+</div>
 
-    <canvas id="renderCanvas"></canvas>
+<canvas id="renderCanvas"></canvas>
 
-    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+<script src="https://cdn.babylonjs.com/babylon.js"></script>
 
-    <script>
-        const canvas = document.getElementById("renderCanvas");
-        const engine = new BABYLON.Engine(canvas, true);
-        let selectedAsset = null;
+<script>
+    const canvas = document.getElementById("renderCanvas");
+    const engine = new BABYLON.Engine(canvas, true);
+    let selectedMesh = null;
 
-        const createScene = function () {
-            const scene = new BABYLON.Scene(engine);
+    const createScene = function() {
+        const scene = new BABYLON.Scene(engine);
+        scene.clearColor = new BABYLON.Color4(0.01, 0.01, 0.02, 1);
+
+        const camera = new BABYLON.ArcRotateCamera("cam", 0, Math.PI/3, 50, BABYLON.Vector3.Zero(), scene);
+        camera.attachControl(canvas, true);
+        
+        const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+        light.intensity = 0.8;
+
+        // יצירת אסטרואידים
+        for (let i = 0; i < 30; i++) {
+            const mesh = BABYLON.MeshBuilder.CreatePolyhedron("asset_" + i, {type: 1, size: 2}, scene);
+            mesh.position = new BABYLON.Vector3(Math.random()*40-20, Math.random()*20-10, Math.random()*40-20);
             
-            // תיקון הרקע הלבן: הגדרת צבע חלל עמוק בצורה מפורשת
-            scene.clearColor = new BABYLON.Color4(0.02, 0.02, 0.05, 1.0);
+            const mat = new BABYLON.StandardMaterial("m", scene);
+            mat.diffuseColor = Math.random() > 0.5 ? new BABYLON.Color3(0, 1, 0.5) : new BABYLON.Color3(1, 0, 0);
+            mesh.material = mat;
 
-            // מצלמה
-            const camera = new BABYLON.ArcRotateCamera("camera", Math.PI/4, Math.PI/3, 50, BABYLON.Vector3.Zero(), scene);
-            camera.attachControl(canvas, true);
-            camera.lowerRadiusLimit = 15;
-            camera.upperRadiusLimit = 150;
+            // מאפשר לקרן "לפגוע" באובייקט
+            mesh.isPickable = true; 
+        }
 
-            // תאורה יציבה
-            const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
-            light.intensity = 0.7;
-            const sun = new BABYLON.PointLight("sun", BABYLON.Vector3.Zero(), scene);
-            sun.intensity = 1.5;
-
-            // יצירת קבוצת אובייקטים
-            const assets = [];
-            for (let i = 0; i < 30; i++) {
-                const mesh = BABYLON.MeshBuilder.CreatePolyhedron("asset_"+i, {type: 1, size: 2}, scene);
-                const angle = Math.random() * Math.PI * 2;
-                const dist = 20 + Math.random() * 30;
-                mesh.position = new BABYLON.Vector3(Math.cos(angle)*dist, (Math.random()-0.5)*10, Math.sin(angle)*dist);
+        // --- התיקון הקריטי: זיהוי לחיצה מדויק ---
+        scene.onPointerDown = function (evt, pickResult) {
+            // אם הקרן פגעה באובייקט
+            if (pickResult.hit && pickResult.pickedMesh) {
                 
-                const mat = new BABYLON.StandardMaterial("mat"+i, scene);
-                const isGreen = Math.random() > 0.5;
-                mat.diffuseColor = isGreen ? new BABYLON.Color3(0, 1, 0.4) : new BABYLON.Color3(1, 0.1, 0.1);
-                // הגנה מפני מראה "לבן" - הגדרת צבעים כהים יותר לבסיס
-                mat.specularColor = new BABYLON.Color3(0.2, 0.2, 0.2);
-                mesh.material = mat;
+                // ניקוי בחירה קודמת
+                if (selectedMesh) selectedMesh.renderOutline = false;
 
-                mesh.marketValue = (Math.random() * 500 + 50).toFixed(2);
-                assets.push(mesh);
+                selectedMesh = pickResult.pickedMesh;
+                
+                // סימון ויזואלי
+                selectedMesh.renderOutline = true;
+                selectedMesh.outlineColor = BABYLON.Color3.Yellow();
+                selectedMesh.outlineWidth = 0.1;
+
+                // עדכון ממשק
+                document.getElementById("target").innerText = "נבחר: " + selectedMesh.name;
+                document.getElementById("panel-title").innerText = selectedMesh.name;
+                document.getElementById("trade-panel").style.display = "block";
+                
+                // מיקוד מצלמה
+                camera.setTarget(selectedMesh.position);
             }
-
-            // זיהוי נגיעה
-            scene.onPointerObservable.add((pointerInfo) => {
-                if (pointerInfo.type === BABYLON.PointerEventTypes.POINTERDOWN) {
-                    const pickInfo = pointerInfo.pickInfo;
-                    if (pickInfo.hit && pickInfo.pickedMesh) {
-                        if(selectedAsset) selectedAsset.renderOutline = false;
-                        
-                        selectedAsset = pickInfo.pickedMesh;
-                        selectedAsset.renderOutline = true;
-                        selectedAsset.outlineColor = BABYLON.Color3.Cyan();
-                        
-                        document.getElementById("selected-name").innerText = "נכס: " + selectedAsset.name;
-                        document.getElementById("selected-value").innerText = "מחיר: $" + selectedAsset.marketValue;
-                        document.getElementById("trade-panel").style.display = "block";
-                        document.getElementById("panel-title").innerText = selectedAsset.name;
-                    } else {
-                        document.getElementById("trade-panel").style.display = "none";
-                    }
-                }
-            });
-
-            scene.registerBeforeRender(() => {
-                assets.forEach(a => { a.rotation.y += 0.01; });
-            });
-
-            return scene;
         };
 
-        const scene = createScene();
-        engine.runRenderLoop(() => scene.render());
-        window.addEventListener("resize", () => engine.resize());
+        return scene;
+    };
 
-        function trade(type) {
-            alert("ביצעת " + (type === 'buy' ? "קנייה" : "מכירה") + " של " + selectedAsset.name);
-        }
-    </script>
+    const scene = createScene();
+    engine.runRenderLoop(() => scene.render());
+    window.addEventListener("resize", () => engine.resize());
+
+    function trade() {
+        alert("עסקה בוצעה על " + selectedMesh.name);
+        closePanel();
+    }
+
+    function closePanel() {
+        document.getElementById("trade-panel").style.display = "none";
+        if (selectedMesh) selectedMesh.renderOutline = false;
+    }
+</script>
 </body>
 </html>
