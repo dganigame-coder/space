@@ -2,29 +2,153 @@
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>Stellar Capital: The Odyssey</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Stellar Capital | שוק ההון הגלקטי</title>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Segoe UI', sans-serif; }
-        #canvasZone { width: 100%; height: 100%; }
-        #ui-layer {
-            position: absolute; top: 20px; left: 20px;
-            color: #00ffcc; background: rgba(0,0,0,0.7);
-            padding: 15px; border: 1px solid #00ffcc; border-radius: 8px;
-            pointer-events: none;
+        html, body {
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background-color: #05050a;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        .market-up { color: #00ff00; }
-        .market-down { color: #ff0000; }
+        #renderCanvas {
+            width: 100%;
+            height: 100%;
+            touch-action: none; /* קריטי למובייל */
+        }
+        #ui-container {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 10, 20, 0.8);
+            border: 1px solid #00f2ff;
+            color: #00f2ff;
+            padding: 15px;
+            border-radius: 10px;
+            pointer-events: none;
+            box-shadow: 0 0 15px rgba(0, 242, 255, 0.3);
+            min-width: 180px;
+        }
+        .stats { font-size: 14px; margin-top: 5px; }
+        .ticker { color: #00ff88; font-weight: bold; }
     </style>
 </head>
 <body>
-    <div id="ui-layer">
-        <h2>פורטפוליו גלקטי</h2>
-        <div>יתרת מזומן: <span id="cash">$100,000</span></div>
-        <div>מדד תנודתיות חלל: <span class="market-up">יציב</span></div>
+
+    <div id="ui-container">
+        <div style="font-weight: bold; border-bottom: 1px solid #00f2ff; padding-bottom: 5px;">מערכת ניהול תיק</div>
+        <div class="stats">הון עצמי: <span id="cash">$125,400</span></div>
+        <div class="stats">מגמת שוק: <span class="ticker">↑ BULLISH</span></div>
+        <div class="stats" style="font-size: 10px; opacity: 0.7; margin-top: 10px;">* השתמש באצבע לסיבוב המצלמה</div>
     </div>
+
     <canvas id="renderCanvas"></canvas>
-    
+
     <script src="https://cdn.babylonjs.com/babylon.js"></script>
     <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+
+    <script>
+        const canvas = document.getElementById("renderCanvas");
+        const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true });
+
+        const createScene = function () {
+            const scene = new BABYLON.Scene(engine);
+            
+            // צבע רקע - חלל עמוק
+            scene.clearColor = new BABYLON.Color4(0.01, 0.01, 0.02, 1);
+
+            // מצלמה - מוגדרת כך שתמיד תראה את המרכז
+            const camera = new BABYLON.ArcRotateCamera("camera", 0, Math.PI / 2.5, 50, BABYLON.Vector3.Zero(), scene);
+            camera.attachControl(canvas, true);
+            camera.lowerRadiusLimit = 20;
+            camera.upperRadiusLimit = 150;
+
+            // תאורה - "שמש" במרכז המערכת
+            const light = new BABYLON.PointLight("sunLight", new BABYLON.Vector3(0, 0, 0), scene);
+            light.intensity = 2;
+            light.diffuse = new BABYLON.Color3(1, 0.9, 0.7);
+
+            // הוספת אור סביבתי חלש כדי שנראה את הצד החשוך של האובייקטים
+            const ambientLight = new BABYLON.HemisphericLight("ambient", new BABYLON.Vector3(0, 1, 0), scene);
+            ambientLight.intensity = 0.3;
+
+            // --- אפקטים של "איכות גבוהה" (Post Processing) ---
+            const gl = new BABYLON.GlowLayer("glow", scene);
+            gl.intensity = 0.6;
+
+            // יצירת שדה כוכבים (Starfield)
+            const starCount = 1000;
+            const starPositions = [];
+            for (let i = 0; i < starCount; i++) {
+                starPositions.push(Math.random() * 400 - 200, Math.random() * 400 - 200, Math.random() * 400 - 200);
+            }
+            const starSystem = new BABYLON.PointsCloudSystem("pcs", 1, scene);
+            starSystem.addPoints(starCount, (particle, i) => {
+                particle.position = new BABYLON.Vector3(starPositions[i*3], starPositions[i*3+1], starPositions[i*3+2]);
+                particle.color = new BABYLON.Color4(1, 1, 1, Math.random());
+            });
+            starSystem.buildMeshAsync();
+
+            // --- יצירת אובייקטים (מניות ואסטרואידים) ---
+            const assets = [];
+            const createAsset = (id, isPlanet) => {
+                const mesh = isPlanet ? 
+                    BABYLON.MeshBuilder.CreateSphere("p"+id, {diameter: 4}, scene) :
+                    BABYLON.MeshBuilder.CreatePolyhedron("a"+id, {type: 1, size: 1.5}, scene);
+
+                // מיקום רנדומלי בטבעת סביב המרכז
+                const angle = Math.random() * Math.PI * 2;
+                const radius = 20 + Math.random() * 40;
+                mesh.position = new BABYLON.Vector3(Math.cos(angle) * radius, (Math.random() - 0.5) * 15, Math.sin(angle) * radius);
+
+                // חומר (Material)
+                const mat = new BABYLON.StandardMaterial("mat"+id, scene);
+                const isBull = Math.random() > 0.4;
+                mat.diffuseColor = isBull ? new BABYLON.Color3(0, 1, 0.5) : new BABYLON.Color3(1, 0.2, 0.2);
+                mat.emissiveColor = mat.diffuseColor.scale(0.3); // גורם להם להאיר קצת
+                mesh.material = mat;
+
+                // נתונים "כלכליים"
+                mesh.speed = (Math.random() * 0.005) + 0.002;
+                mesh.orbitAngle = angle;
+                mesh.radius = radius;
+                
+                assets.push(mesh);
+            };
+
+            for (let i = 0; i < 40; i++) createAsset(i, i < 5);
+
+            // אנימציית שוק חיה
+            scene.registerBeforeRender(() => {
+                assets.forEach(a => {
+                    // תנועה סיבובית סביב המרכז
+                    a.orbitAngle += a.speed;
+                    a.position.x = Math.cos(a.orbitAngle) * a.radius;
+                    a.position.z = Math.sin(a.orbitAngle) * a.radius;
+                    
+                    // סיבוב עצמי
+                    a.rotation.y += 0.01;
+                    a.rotation.x += 0.005;
+                });
+            });
+
+            return scene;
+        };
+
+        const scene = createScene();
+
+        engine.runRenderLoop(function () {
+            scene.render();
+        });
+
+        // התאמה לשינויי גודל מסך (מובייל/דסקטופ)
+        window.addEventListener("resize", function () {
+            engine.resize();
+        });
+
+    </script>
 </body>
 </html>
