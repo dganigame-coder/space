@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Autonomous Supreme AI v3.0.0</title>
+    <title>Autonomous Supreme AI v3.1.0</title>
     <script src="https://cdn.babylonjs.com/babylon.js"></script>
     <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
     <style>
@@ -26,14 +26,14 @@
 
     <div id="boot-screen">
         <div style="text-align: center;">
-            <h2>SUPREME AI CORE v3.0.0</h2>
+            <h2>SUPREME AI CORE v3.1.0</h2>
             <p>ASSETS LOADED | HDR NORMALIZED | WEBGPU READY</p>
             <p style="font-size: 0.8em; color: #555;">[ CLICK TO INITIALIZE NEURAL LINK ]</p>
         </div>
     </div>
 
     <div id="ui-overlay">
-        <div style="font-size: 0.7em; letter-spacing: 2px; color: #00f2ff; margin-bottom: 5px;">SYSTEM TELEMETRY // SLM-V3</div>
+        <div style="font-size: 0.7em; letter-spacing: 2px; color: #00f2ff; margin-bottom: 5px;">SYSTEM TELEMETRY // SLM-V3.1</div>
         <div id="ai-thought">Awaiting user handshake...</div>
     </div>
 
@@ -43,7 +43,7 @@
         const canvas = document.getElementById("renderCanvas");
         const engine = new BABYLON.Engine(canvas, true);
         const aiThought = document.getElementById("ai-thought");
-        let car, pedestrian, shadowGenerator;
+        let car, pedestrian, shadowGenerator, pipeline;
         let speed = 0;
         let isDriving = false;
 
@@ -51,13 +51,22 @@
             const scene = new BABYLON.Scene(engine);
             scene.clearColor = new BABYLON.Color4(0, 0, 0, 1);
 
-            // 1. HDR ENVIRONMENT & SKYBOX
+            // 1. CAMERA INITIALIZATION (Required before Pipeline)
+            const camera = new BABYLON.FollowCamera("camera", new BABYLON.Vector3(0, 10, -15), scene);
+            camera.radius = 10;
+            camera.heightOffset = 3;
+            camera.rotationOffset = 180;
+            camera.cameraAcceleration = 0.05;
+            camera.maxCameraSpeed = 10;
+            scene.activeCamera = camera;
+
+            // 2. HDR ENVIRONMENT & SKYBOX
             scene.environmentTexture = BABYLON.CubeTexture.CreateFromPrefilteredData(
                 "https://playground.babylonjs.com/textures/environment.env", scene
             );
             scene.createDefaultSkybox(scene.environmentTexture, true, 1000, 0.1);
 
-            // 2. LIGHTING & REAL SHADOWS
+            // 3. LIGHTING & REAL SHADOWS
             const dirLight = new BABYLON.DirectionalLight("sun", new BABYLON.Vector3(-1, -2, -1), scene);
             dirLight.position = new BABYLON.Vector3(20, 40, 20);
             dirLight.intensity = 1.5;
@@ -66,20 +75,24 @@
             shadowGenerator.useBlurExponentialShadowMap = true;
             shadowGenerator.blurKernel = 32;
 
-            // 3. CINEMATIC AAA RENDERING PIPELINE
-            const pipeline = new BABYLON.DefaultRenderingPipeline("default", true, scene, [scene.activeCamera]);
+            // 4. RENDERING PIPELINE (FIXED ORDER)
+            pipeline = new BABYLON.DefaultRenderingPipeline("default", true, scene, [camera]);
+            
+            // Enable effects FIRST to avoid "undefined" property errors
             pipeline.fxaaEnabled = true;
             pipeline.bloomEnabled = true;
-            pipeline.bloomWeight = 0.6;
             pipeline.chromaticAberrationEnabled = true;
-            pipeline.chromaticAberration.aberrationAmount = 15;
             pipeline.depthOfFieldEnabled = true;
+            pipeline.grainEnabled = true;
+
+            // Configure properties after enabling
+            pipeline.bloomWeight = 0.6;
+            pipeline.chromaticAberration.aberrationAmount = 15;
             pipeline.depthOfField.focalLength = 150;
             pipeline.depthOfField.fStop = 1.4;
-            pipeline.grainEnabled = true;
             pipeline.grain.intensity = 8;
 
-            // 4. REAL PBR ROAD (Wet Asphalt)
+            // 5. REAL PBR ROAD (Wet Asphalt)
             const roadMat = new BABYLON.PBRMaterial("roadMat", scene);
             roadMat.albedoTexture = new BABYLON.Texture("https://assets.babylonjs.com/environments/road_asphalt_albedo.jpg", scene);
             roadMat.bumpTexture = new BABYLON.Texture("https://assets.babylonjs.com/environments/road_asphalt_normal.jpg", scene);
@@ -88,28 +101,19 @@
             roadMat.roughness = 1.0;
             roadMat.metallic = 0.0;
             roadMat.reflectivityColor = new BABYLON.Color3(0.3, 0.3, 0.3);
-            roadMat.microSurface = 0.95; // Reflections for wet look
+            roadMat.microSurface = 0.95;
 
             const road = BABYLON.MeshBuilder.CreateGround("road", {width: 40, height: 2000}, scene);
             road.material = roadMat;
             road.receiveShadows = true;
 
-            // 5. ASSET LOADING: REAL CAR & PEDESTRIAN
+            // 6. ASSET LOADING: REAL CAR & PEDESTRIAN
             BABYLON.SceneLoader.ImportMesh("", "https://assets.babylonjs.com/meshes/", "car.glb", scene, function (meshes) {
                 car = meshes[0];
                 car.scaling = new BABYLON.Vector3(1.5, 1.5, 1.5);
                 car.position = new BABYLON.Vector3(0, 0, -20);
                 shadowGenerator.addShadowCaster(car);
-                
-                // Attach camera to car once loaded
-                const camera = new BABYLON.FollowCamera("camera", new BABYLON.Vector3(0, 10, -15), scene);
                 camera.lockedTarget = car;
-                camera.radius = 10;
-                camera.heightOffset = 3;
-                camera.rotationOffset = 180;
-                camera.cameraAcceleration = 0.05;
-                camera.maxCameraSpeed = 10;
-                scene.activeCamera = camera;
             });
 
             BABYLON.SceneLoader.ImportMesh("", "https://assets.babylonjs.com/meshes/", "dummy3.babylon", scene, function(meshes, ps, skeletons) {
@@ -117,20 +121,20 @@
                 pedestrian.scaling = new BABYLON.Vector3(2, 2, 2);
                 pedestrian.position = new BABYLON.Vector3(2, 0, 30);
                 shadowGenerator.addShadowCaster(pedestrian);
-                scene.beginAnimation(skeletons[0], 0, 100, true); // Loop Walk/Idle
+                scene.beginAnimation(skeletons[0], 0, 100, true);
             });
 
-            // 6. AI & DRIVING SYSTEM
+            // 7. AI & DRIVING SYSTEM
             scene.onBeforeRenderObservable.add(() => {
                 if (!isDriving || !car || !pedestrian) return;
 
                 const dist = BABYLON.Vector3.Distance(car.position, pedestrian.position);
 
                 if (dist < 18) {
-                    speed = BABYLON.Scalar.Lerp(speed, 0, 0.05); // Smooth brake
+                    speed = BABYLON.Scalar.Lerp(speed, 0, 0.05);
                     updateSLM("DANGER: Pedestrian collision imminent. Applying ABS braking. Yielding right-of-way.");
                 } else {
-                    speed = BABYLON.Scalar.Lerp(speed, 0.4, 0.02); // Accelerate
+                    speed = BABYLON.Scalar.Lerp(speed, 0.4, 0.02);
                     updateSLM("System: Autonomous cruise active. Surface traction optimal. Navigating via high-resolution GPS.");
                 }
 
