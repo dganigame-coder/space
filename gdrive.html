@@ -2,140 +2,105 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Autonomous SLM Driver v1.4.0 - 4K Ultra</title>
+    <title>Autonomous SLM Driver v1.5.0</title>
     <script src="https://cdn.babylonjs.com/babylon.js"></script>
-    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
-        #renderCanvas { width: 100%; height: 100%; outline: none; }
-        #slm-interface {
-            position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
-            width: 70%; background: rgba(5, 5, 15, 0.95); border: 1px solid #00f2ff;
-            color: #00f2ff; padding: 25px; font-family: 'Segoe UI', sans-serif;
-            border-radius: 4px; box-shadow: 0 0 40px rgba(0, 242, 255, 0.2);
-            text-transform: uppercase; letter-spacing: 1px;
+        #renderCanvas { width: 100%; height: 100%; touch-action: none; }
+        #slm-monitor {
+            position: absolute; top: 20px; left: 20px; 
+            background: rgba(0, 20, 40, 0.9); color: #00ffcc; 
+            padding: 20px; font-family: 'monospace'; border: 2px solid #00ffcc;
+            border-radius: 10px; pointer-events: none; max-width: 400px;
         }
     </style>
 </head>
 <body>
-    <div id="slm-interface">
-        <div style="font-weight: bold; font-size: 0.8em; margin-bottom: 10px;">[ SLM BRAIN CORE v1.4.0 ]</div>
-        <div id="ai-speech">Synchronizing with GPS satellites...</div>
+    <div id="slm-monitor">
+        <div style="font-size: 10px; opacity: 0.7;">CORE_V1.5.0_STABLE</div>
+        <div id="ai-text">INITIALIZING ENGINE... CLICK SCREEN TO SYNC AUDIO.</div>
     </div>
     <canvas id="renderCanvas"></canvas>
 
     <script>
         const canvas = document.getElementById("renderCanvas");
         const engine = new BABYLON.Engine(canvas, true);
-        const aiSpeech = document.getElementById("ai-speech");
+        const aiText = document.getElementById("ai-text");
 
         const createScene = function () {
             const scene = new BABYLON.Scene(engine);
-            scene.clearColor = new BABYLON.Color4(0, 0, 0, 1);
+            scene.clearColor = new BABYLON.Color3(0.02, 0.02, 0.05);
 
-            // --- 4K Post Processing ---
-            const pipeline = new BABYLON.DefaultRenderingPipeline("pipeline", true, scene, [scene.activeCamera]);
-            pipeline.bloomEnabled = true;
-            pipeline.bloomThreshold = 0.8;
-            pipeline.bloomWeight = 0.5;
-            pipeline.fxaaEnabled = true;
+            // --- Robust Lighting (Prevents Black Screen) ---
+            const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+            light.intensity = 1.0;
 
-            // --- Lighting ---
-            const mainLight = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
-            mainLight.intensity = 0.5;
-            const skyLight = new BABYLON.PointLight("skyLight", new BABYLON.Vector3(0, 50, 0), scene);
-            skyLight.diffuse = new BABYLON.Color3(0.5, 0, 1);
+            // --- The Car ---
+            const car = BABYLON.MeshBuilder.CreateBox("car", {width: 2, height: 1, depth: 4}, scene);
+            car.position.y = 1;
+            const carMat = new BABYLON.StandardMaterial("carMat", scene);
+            carMat.diffuseColor = new BABYLON.Color3(0, 0.5, 1);
+            carMat.emissiveColor = new BABYLON.Color3(0, 0.1, 0.2);
+            car.material = carMat;
 
-            // --- Procedural Road & Buildings ---
-            const createBuilding = (x, z) => {
-                const h = Math.random() * 20 + 10;
-                const b = BABYLON.MeshBuilder.CreateBox("build", {width: 8, height: h, depth: 8}, scene);
-                b.position = new BABYLON.Vector3(x, h/2, z);
-                const mat = new BABYLON.PBRMaterial("bMat", scene);
-                mat.albedoColor = new BABYLON.Color3(0.05, 0.05, 0.1);
-                mat.emissiveColor = new BABYLON.Color3(0, 0.1, 0.2);
-                b.material = mat;
-            };
+            // --- The Road (Infinite GPS Reset) ---
+            const road = BABYLON.MeshBuilder.CreateGround("road", {width: 20, height: 2000}, scene);
+            const roadMat = new BABYLON.StandardMaterial("roadMat", scene);
+            roadMat.diffuseColor = new BABYLON.Color3(0.1, 0.1, 0.1);
+            roadMat.specularColor = new BABYLON.Color3(0, 0, 0);
+            road.material = roadMat;
 
-            for(let i=0; i<40; i++) {
-                createBuilding(-15, i * 25);
-                createBuilding(15, i * 25);
+            // --- Procedural Pedestrians ---
+            const peds = [];
+            for (let i = 0; i < 10; i++) {
+                let ped = BABYLON.MeshBuilder.CreateSphere("ped" + i, {diameter: 1.5}, scene);
+                ped.position = new BABYLON.Vector3(Math.random() * 8 - 4, 1, 50 + (i * 100));
+                let pMat = new BABYLON.StandardMaterial("pMat", scene);
+                pMat.diffuseColor = new BABYLON.Color3(1, 1, 0);
+                ped.material = pMat;
+                peds.push(ped);
             }
 
-            const ground = BABYLON.MeshBuilder.CreateGround("road", {width: 20, height: 1000}, scene);
-            const roadMat = new BABYLON.PBRMaterial("roadMat", scene);
-            roadMat.albedoColor = new BABYLON.Color3(0.01, 0.01, 0.01);
-            roadMat.emissiveColor = new BABYLON.Color3(0, 0.05, 0.1);
-            ground.material = roadMat;
+            // --- Force Camera Focus ---
+            const camera = new BABYLON.ArcRotateCamera("cam", -Math.PI/2, Math.PI/3, 20, car.position, scene);
+            camera.attachControl(canvas, true);
+            camera.lowerRadiusLimit = 10;
+            camera.upperRadiusLimit = 50;
 
-            // --- The Vehicle ---
-            const carBody = BABYLON.MeshBuilder.CreateBox("car", {width: 2.2, height: 0.8, depth: 4.5}, scene);
-            carBody.position.y = 0.6;
-            const carMat = new BABYLON.PBRMaterial("carMat", scene);
-            carMat.metallic = 1.0; carMat.roughness = 0.2;
-            carMat.albedoColor = new BABYLON.Color3(0.9, 0.9, 0.9);
-            carBody.material = carMat;
-
-            // Headlights
-            const headL = new BABYLON.SpotLight("headL", new BABYLON.Vector3(-1, 0.5, 2), new BABYLON.Vector3(0, -0.2, 1), Math.PI/3, 2, scene);
-            headL.parent = carBody;
-            headL.intensity = 2;
-
-            // --- Pedestrians ---
-            const pedestrians = [];
-            const createPed = (z) => {
-                const group = new BABYLON.TransformNode("pedNode");
-                const body = BABYLON.MeshBuilder.CreateCapsule("p", {height: 1.8, radius: 0.4}, scene);
-                body.parent = group;
-                body.position.y = 1;
-                group.position = new BABYLON.Vector3(Math.random() * 4 - 2, 0, z);
-                const pMat = new BABYLON.PBRMaterial("pMat", scene);
-                pMat.emissiveColor = new BABYLON.Color3(1, 0.5, 0);
-                body.material = pMat;
-                return group;
-            };
-
-            for(let i=1; i<10; i++) pedestrians.push(createPed(i * 80));
-
-            // --- Camera ---
-            const camera = new BABYLON.FollowCamera("cam", new BABYLON.Vector3(0, 10, -20), scene);
-            camera.lockedTarget = carBody;
-            camera.radius = 12; camera.heightOffset = 3;
-
-            // --- AI Brain & SLM ---
-            let velocity = 0;
-            let targetVelocity = 0.6;
-
+            // --- Driving & AI Logic ---
+            let speed = 0.5;
             scene.onBeforeRenderObservable.add(() => {
-                let stopForSafety = false;
-                pedestrians.forEach(p => {
-                    let dist = BABYLON.Vector3.Distance(carBody.position, p.position);
-                    if (dist < 15 && p.position.z > carBody.position.z) {
-                        stopForSafety = true;
+                let obstacleDetected = false;
+                
+                peds.forEach(p => {
+                    let distance = BABYLON.Vector3.Distance(car.position, p.position);
+                    // Check if pedestrian is in front and close
+                    if (distance < 20 && p.position.z > car.position.z) {
+                        obstacleDetected = true;
                     }
-                    // Small walk animation
-                    p.position.x += Math.sin(Date.now() * 0.005) * 0.01;
                 });
 
-                if (stopForSafety) {
-                    targetVelocity = 0;
-                    updateSLM("Pedestrian in proximity. Executive override: Full brake. Yielding right-of-way.");
+                if (obstacleDetected) {
+                    speed = Math.max(0, speed - 0.05); // Smooth deceleration
+                    speakAI("Detection: Non-autonomous entity in path. Executing safety stop.");
                 } else {
-                    targetVelocity = 0.6;
-                    updateSLM("Autonomous cruise active. Road rules scanned. Adjusting trajectory for current GPS sector.");
+                    speed = Math.min(0.8, speed + 0.01); // Smooth acceleration
+                    speakAI("GPS Active. Navigating through sector. Speed optimal.");
                 }
 
-                velocity = BABYLON.Scalar.Lerp(velocity, targetVelocity, 0.05);
-                carBody.position.z += velocity;
+                car.position.z += speed;
+                camera.target = car.position; // Keep camera locked
             });
 
-            function updateSLM(text) {
-                if (aiSpeech.innerText === text) return;
-                aiSpeech.innerText = text;
-                const utter = new SpeechSynthesisUtterance(text);
-                utter.pitch = 0.7; utter.rate = 1.2;
+            let lastMsg = "";
+            function speakAI(msg) {
+                if (msg === lastMsg) return;
+                lastMsg = msg;
+                aiText.innerText = msg;
+                const utterance = new SpeechSynthesisUtterance(msg);
+                utterance.rate = 1.2;
                 window.speechSynthesis.cancel();
-                window.speechSynthesis.speak(utter);
+                window.speechSynthesis.speak(utterance);
             }
 
             return scene;
@@ -144,7 +109,7 @@
         const scene = createScene();
         engine.runRenderLoop(() => scene.render());
         window.addEventListener("resize", () => engine.resize());
-        window.onclick = () => { window.speechSynthesis.speak(new SpeechSynthesisUtterance("Neural link established.")); };
+        window.onclick = () => window.speechSynthesis.speak(new SpeechSynthesisUtterance("System online."));
     </script>
 </body>
 </html>
