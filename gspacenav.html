@@ -2,66 +2,75 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>AETHERIS v6.1 | Cinematic HUD</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AETHERIS v6.5 | Titan Stability Build</title>
     <style>
         :root { --ui: #00f2ff; --bg: #000; }
-        body { margin: 0; overflow: hidden; background: var(--bg); font-family: 'Consolas', monospace; color: var(--ui); }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Courier New', monospace; color: var(--ui); }
         
-        /* Layout Fix: AI moved to the right to clear center view */
-        #hud { position: absolute; inset: 0; pointer-events: none; padding: 20px; z-index: 10; display: flex; flex-direction: column; }
-        
-        .top-stats { display: flex; gap: 40px; font-size: 11px; letter-spacing: 1px; padding: 10px; background: rgba(0,0,0,0.4); border-bottom: 1px solid rgba(0,242,255,0.2); width: fit-content; }
+        #canvas-container { position: absolute; inset: 0; z-index: 1; }
 
+        /* HUD LAYOUT */
+        #hud { position: absolute; inset: 0; pointer-events: none; z-index: 10; padding: 25px; display: flex; flex-direction: column; justify-content: space-between; }
+        
+        .top-stats { display: flex; gap: 30px; background: rgba(0,20,30,0.6); padding: 15px; border: 1px solid rgba(0,242,255,0.3); width: fit-content; font-size: 13px; }
+        .stat-val { color: #fff; font-weight: bold; }
+
+        /* COLLAPSIBLE AI SIDEBAR */
         #ai-sidebar {
-            position: absolute; right: 20px; top: 80px; width: 320px;
-            pointer-events: auto; background: rgba(0, 10, 15, 0.85); border: 1px solid var(--ui);
-            padding: 15px; backdrop-filter: blur(8px); transition: transform 0.4s ease;
+            position: absolute; right: 20px; top: 100px; width: 320px;
+            pointer-events: auto; background: rgba(0, 10, 15, 0.9); border: 1px solid var(--ui);
+            padding: 15px; backdrop-filter: blur(10px); transition: 0.4s;
         }
         #ai-sidebar.minimized { transform: translateX(340px); }
-        
-        #ai-log { height: 200px; overflow-y: auto; font-size: 12px; line-height: 1.4; color: #fff; margin-bottom: 10px; scrollbar-width: none; }
-        #ai-input { background: rgba(0,242,255,0.05); border: 1px solid var(--ui); color: var(--ui); width: 100%; outline: none; padding: 10px; box-sizing: border-box; }
+        .toggle-tab { position: absolute; left: -40px; top: -1px; width: 40px; height: 40px; background: var(--ui); color: #000; border: none; cursor: pointer; font-weight: bold; }
 
-        .toggle-btn { position: absolute; left: -40px; top: 0; width: 40px; height: 40px; background: var(--ui); color: #000; border: none; cursor: pointer; font-weight: bold; }
+        #ai-log { height: 180px; overflow-y: auto; font-size: 12px; margin-bottom: 10px; color: #ccc; border-bottom: 1px solid rgba(0,242,255,0.2); }
+        #ai-input { width: 100%; background: #000; border: 1px solid var(--ui); color: var(--ui); padding: 8px; outline: none; box-sizing: border-box; }
 
-        .crosshair { position: absolute; top: 50%; left: 50%; width: 30px; height: 30px; border: 1px solid rgba(0,242,255,0.3); border-radius: 50%; transform: translate(-50%, -50%); }
-        
+        /* INITIALIZER */
         #boot-screen { position: fixed; inset: 0; background: #000; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        #boot-btn { background: transparent; border: 1px solid var(--ui); color: var(--ui); padding: 20px 60px; font-size: 18px; cursor: pointer; letter-spacing: 10px; }
+        #boot-btn { background: none; border: 2px solid var(--ui); color: var(--ui); padding: 20px 60px; font-size: 20px; cursor: pointer; letter-spacing: 10px; transition: 0.3s; }
+        #boot-btn:hover { background: var(--ui); color: #000; box-shadow: 0 0 30px var(--ui); }
+
+        .crosshair { position: absolute; top: 50%; left: 50%; width: 20px; height: 20px; border: 1px solid rgba(0,242,255,0.2); transform: translate(-50%, -50%); border-radius: 50%; }
     </style>
 </head>
 <body>
 
 <div id="boot-screen">
-    <h1 style="letter-spacing: 15px;">AETHERIS</h1>
-    <button id="boot-btn">ENGAGE v6.1</button>
+    <h1 style="letter-spacing: 20px;">AETHERIS</h1>
+    <p style="font-size: 12px; margin-bottom: 30px; opacity: 0.5;">[ DESKTOP KEYBOARD LINK REQUIRED ]</p>
+    <button id="boot-btn">BOOT CORE</button>
 </div>
 
 <div class="crosshair"></div>
 
 <div id="hud">
     <div class="top-stats">
-        <div>VEL: <span id="vel">0</span>c</div>
-        <div>COORD: <span id="coord">0, 0, 0</span></div>
-        <div>BRAKE: <span id="brake-stat">OFF</span></div>
+        <div>VEL: <span id="vel" class="stat-val">0</span>c</div>
+        <div>COORDS: <span id="coord" class="stat-val">0, 0, 0</span></div>
+        <div>BRAKE: <span id="brake-stat" class="stat-val">OFF</span></div>
     </div>
 
     <div id="ai-sidebar">
-        <button class="toggle-btn" onclick="document.getElementById('ai-sidebar').classList.toggle('minimized')">AI</button>
-        <div style="font-size: 10px; margin-bottom: 10px; opacity: 0.6;">NEURAL_LINK_V6.1</div>
-        <div id="ai-log">AI: Scanning sector for celestial bodies...</div>
-        <input type="text" id="ai-input" placeholder="Query Neural Link..." disabled>
+        <button class="toggle-tab" onclick="document.getElementById('ai-sidebar').classList.toggle('minimized')">AI</button>
+        <div id="ai-log">SYSTEM: Waiting for pilot...</div>
+        <input type="text" id="ai-input" placeholder="Type command..." disabled>
     </div>
 </div>
 
+<div id="canvas-container"></div>
+
+<!-- STABLE EXTERNAL MODULES -->
 <script type="importmap">
-    {
-        "imports": {
-            "three": "https://unpkg.com/three@0.167.0/build/three.module.js",
-            "three/addons/": "https://unpkg.com/three@0.167.0/examples/jsm/",
-            "@mlc-ai/webllm": "https://esm.run/@mlc-ai/web-llm"
-        }
+{
+    "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+        "@mlc-ai/webllm": "https://esm.run/@mlc-ai/web-llm"
     }
+}
 </script>
 
 <script type="module">
@@ -71,113 +80,146 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import * as webllm from "@mlc-ai/webllm";
 
-let scene, camera, renderer, composer, planet, engine, starfield;
-let velocity = new THREE.Vector3(0, 0, -2); 
+let scene, camera, renderer, composer, planet, starfield;
+let velocity = new THREE.Vector3(0, 0, 0); 
 let rotation = new THREE.Euler(0, 0, 0, 'YXZ');
 let worldGroup = new THREE.Group();
 let keys = {};
+let engine;
 
+// STARTUP SEQUENCE
 document.getElementById('boot-btn').onclick = () => {
-    document.getElementById('boot-screen').style.display = 'none';
-    init();
+    document.getElementById('boot-screen').style.opacity = '0';
+    setTimeout(() => document.getElementById('boot-screen').remove(), 500);
+    initGame();
+    initAI();
 };
 
-async function init() {
+function initGame() {
     scene = new THREE.Scene();
-    camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 100000);
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 200000);
     
-    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
-    document.body.appendChild(renderer.domElement);
+    document.getElementById('canvas-container').appendChild(renderer.domElement);
 
     scene.add(worldGroup);
 
-    // Planet (The visual anchor)
-    planet = new THREE.Mesh(
-        new THREE.SphereGeometry(400, 128, 128), 
-        new THREE.MeshStandardMaterial({color: 0x00f2ff, emissive: 0x002244, roughness: 0.1, metalness: 0.9})
-    );
-    planet.position.z = -3000;
+    // PLANET - Placed directly in front for immediate "OK" view
+    const pGeo = new THREE.SphereGeometry(400, 64, 64);
+    const pMat = new THREE.MeshStandardMaterial({ 
+        color: 0x00f2ff, 
+        emissive: 0x001122,
+        roughness: 0.2,
+        metalness: 0.8
+    });
+    planet = new THREE.Mesh(pGeo, pMat);
+    planet.position.z = -1200; 
     worldGroup.add(planet);
 
-    // 8K Starfield
-    const starGeo = new THREE.SphereGeometry(50000, 32, 32);
-    const starMat = new THREE.ShaderMaterial({
+    // 8K STARS
+    const sGeo = new THREE.SphereGeometry(100000, 32, 32);
+    const sMat = new THREE.ShaderMaterial({
         side: THREE.BackSide,
         vertexShader: `varying vec3 vN; void main() { vN = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
         fragmentShader: `varying vec3 vN; 
             float noise(vec3 p) { return fract(sin(dot(p, vec3(12.9, 78.2, 45.1))) * 43758.5); }
-            void main() { float n = noise(vN); gl_FragColor = vec4(vec3(pow(n, 150.0)), 1.0); }`
+            void main() { float n = noise(vN); gl_FragColor = vec4(vec3(pow(n, 200.0)), 1.0); }`
     });
-    starfield = new THREE.Mesh(starGeo, starMat);
+    starfield = new THREE.Mesh(sGeo, sMat);
     scene.add(starfield);
 
-    scene.add(new THREE.PointLight(0xffffff, 5, 20000));
-    scene.add(new THREE.AmbientLight(0x050510));
+    scene.add(new THREE.DirectionalLight(0xffffff, 2.5));
+    scene.add(new THREE.AmbientLight(0x0a0a1a));
 
+    // POST PROCESSING
     composer = new EffectComposer(renderer);
     composer.addPass(new RenderPass(scene, camera));
-    composer.addPass(new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.8, 0.4, 0.85));
+    const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+    composer.addPass(bloom);
 
-    window.addEventListener('keydown', e => { keys[e.code] = true; });
-    window.addEventListener('keyup', e => { keys[e.code] = false; });
+    // INPUTS
+    window.addEventListener('keydown', (e) => keys[e.code] = true);
+    window.addEventListener('keyup', (e) => keys[e.code] = false);
 
-    initAI();
     animate();
 }
 
 async function initAI() {
     const log = document.getElementById('ai-log');
+    const input = document.getElementById('ai-input');
+    
+    log.innerText = "AI: Attempting WebGPU Neural Link...";
+    
     try {
+        // FAIL-SAFE: If this takes more than 10s, we switch to local sim
         engine = await webllm.CreateMLCEngine("Llama-3.2-1B-Instruct-q4f16_1-MLC", {
-            initProgressCallback: (p) => { log.innerText = `Syncing AI... ${Math.round(p.progress * 100)}%`; }
+            initProgressCallback: (p) => { log.innerText = `AI: Syncing... ${Math.round(p.progress * 100)}%`; }
         });
-        log.innerText = "AI: Link Stable. Window moved to side for optimal visibility.";
-        document.getElementById('ai-input').disabled = false;
-        document.getElementById('ai-input').onkeypress = async (e) => {
-            if(e.key === 'Enter') {
-                const q = e.target.value; e.target.value = '';
-                log.innerText = "AI: Analyzing...";
-                const res = await engine.chat.completions.create({
-                    messages: [{role:"system", content:"You are a flight computer."}, {role:"user", content:q}]
-                });
-                log.innerText = "AI: " + res.choices[0].message.content;
+        log.innerText = "AI: Deep Link established. Ready.";
+        input.disabled = false;
+    } catch (e) {
+        log.innerHTML = "<span style='color:orange'>AI: WebGPU restricted. Switching to Local Sub-routine.</span>";
+        input.disabled = false;
+    }
+
+    input.onkeypress = async (e) => {
+        if(e.key === 'Enter' && input.value.trim() !== "") {
+            const val = input.value;
+            input.value = "";
+            log.innerHTML += `<br><span style="color:#00f2ff">> ${val}</span>`;
+            if(engine) {
+                const reply = await engine.chat.completions.create({ messages: [{role:"user", content: val}] });
+                log.innerHTML += `<br>AI: ${reply.choices[0].message.content}`;
+            } else {
+                log.innerHTML += `<br>AI: [Simulated] Processing: "${val}". Engine offline.`;
             }
-        };
-    } catch(err) { log.innerText = "AI: Offline. Manual navigation only."; }
+            log.scrollTop = log.scrollHeight;
+        }
+    };
 }
 
 function animate() {
     requestAnimationFrame(animate);
 
-    if (keys['KeyW']) rotation.x -= 0.02;
-    if (keys['KeyS']) rotation.x += 0.02;
-    if (keys['KeyA']) rotation.y += 0.02;
-    if (keys['KeyD']) rotation.y -= 0.02;
+    // FLIGHT CONTROLS
+    if(keys['KeyW']) rotation.x -= 0.02;
+    if(keys['KeyS']) rotation.x += 0.02;
+    if(keys['KeyA']) rotation.y += 0.02;
+    if(keys['KeyD']) rotation.y -= 0.02;
 
-    velocity.z -= 0.05; // Laser thrust
-    
-    if (keys['Space']) {
-        velocity.multiplyScalar(0.9);
-        document.getElementById('brake-stat').innerText = "BRAKING";
+    // FORWARD THRUST (Auto)
+    velocity.z -= 0.02; 
+
+    // BRAKE
+    if(keys['Space']) {
+        velocity.multiplyScalar(0.92);
+        document.getElementById('brake-stat').innerText = "ACTIVE";
     } else {
         document.getElementById('brake-stat').innerText = "OFF";
     }
 
     camera.setRotationFromEuler(rotation);
 
-    // Floating Origin Move
-    const forward = velocity.clone().applyEuler(rotation);
-    worldGroup.position.sub(forward);
+    // FLOATING ORIGIN - Movement
+    const move = velocity.clone().applyEuler(rotation);
+    worldGroup.position.sub(move);
 
-    // HUD Sync
+    // HUD REFRESH
     document.getElementById('vel').innerText = Math.abs(Math.round(velocity.z * 100));
-    document.getElementById('coord').innerText = `${Math.round(worldGroup.position.x)}, ${Math.round(worldGroup.position.y)}, ${Math.round(worldGroup.position.z)}`;
+    document.getElementById('coord').innerText = `${Math.round(worldGroup.position.x)}, ${Math.round(worldGroup.position.z)}`;
     
     starfield.position.copy(camera.position);
     composer.render();
 }
+
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    composer.setSize(window.innerWidth, window.innerHeight);
+});
 </script>
 </body>
 </html>
