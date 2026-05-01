@@ -2,57 +2,95 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>AETHERIS v9 | STABLE CORE</title>
+<title>AETHERIS v10 | AI + Space Sim</title>
 
 <style>
 :root { --ui:#00f2ff; }
 body { margin:0; overflow:hidden; background:#000; font-family:Consolas; color:var(--ui); }
-#boot { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column; background:#000; z-index:10; }
-button { padding:20px 60px; border:2px solid var(--ui); background:none; color:var(--ui); cursor:pointer; }
+
+#boot {
+    position:fixed; inset:0; display:flex;
+    align-items:center; justify-content:center;
+    flex-direction:column; background:#000; z-index:10;
+}
+button {
+    padding:20px 60px; border:2px solid var(--ui);
+    background:none; color:var(--ui); cursor:pointer;
+}
+
 #hud { position:absolute; top:10px; left:10px; z-index:5; }
+
+#aiBox {
+    position:absolute; right:10px; top:10px;
+    width:300px; background:rgba(0,0,0,0.7);
+    border:1px solid var(--ui); padding:10px;
+}
+#aiLog { height:200px; overflow:auto; font-size:12px; color:#fff; }
+#aiInput {
+    width:100%; background:#001; border:1px solid var(--ui);
+    color:var(--ui); padding:8px;
+}
 </style>
 </head>
 
 <body>
 
 <div id="boot">
-<h1>AETHERIS</h1>
-<button id="start">INIT</button>
+<h1>AETHERIS v10</h1>
+<button id="start">INIT SYSTEM</button>
 </div>
 
 <div id="hud">
 Velocity: <span id="vel">0</span>
 </div>
 
-<script type="module">
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+<div id="aiBox">
+<div id="aiLog">AI: Booting...</div>
+<input id="aiInput" placeholder="Ask ship AI..." disabled>
+</div>
 
-let scene, camera, renderer, clock;
+<script type="importmap">
+{
+ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "@mlc-ai/webllm": "https://esm.run/@mlc-ai/web-llm"
+ }
+}
+</script>
+
+<script type="module">
+import * as THREE from "three";
+import * as webllm from "@mlc-ai/webllm";
+
+let scene, camera, renderer;
 let velocity = new THREE.Vector3();
 let keys = {};
+let aiEngine = null;
 
-document.getElementById('start').onclick = init;
+let objects = {
+    blackHole: null,
+    planet: null
+};
 
-function init() {
+document.getElementById("start").onclick = async () => {
+    document.getElementById("boot").remove();
+    initGraphics();
+    initControls();
+    initAI();
+};
 
-document.getElementById('boot').remove();
+function initGraphics() {
 
-try {
 renderer = new THREE.WebGLRenderer({ antialias:true });
-} catch(e) {
-alert("WebGL not supported");
-return;
-}
-
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
+
 document.body.appendChild(renderer.domElement);
 
 scene = new THREE.Scene();
 camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 1000000);
-clock = new THREE.Clock();
 
 addLights();
 addSkybox();
@@ -62,19 +100,15 @@ addBlackHole();
 addWormhole();
 addAsteroids();
 
-window.addEventListener('keydown', e=>keys[e.code]=true);
-window.addEventListener('keyup', e=>keys[e.code]=false);
-window.addEventListener('resize', onResize);
-
 animate();
 }
 
 function addLights() {
 scene.add(new THREE.AmbientLight(0x222244));
 
-const sun = new THREE.PointLight(0xffffff, 5, 100000);
-sun.position.set(5000,5000,5000);
-scene.add(sun);
+const light = new THREE.PointLight(0xffffff, 5, 100000);
+light.position.set(5000,5000,5000);
+scene.add(light);
 }
 
 function addSkybox() {
@@ -95,33 +129,30 @@ const tex = new THREE.TextureLoader();
 const planet = new THREE.Mesh(
 new THREE.SphereGeometry(1000,64,64),
 new THREE.MeshStandardMaterial({
-map: tex.load('https://planetpixelemporium.com/images/earthmap1k.jpg'),
-roughness:1
+map: tex.load('https://planetpixelemporium.com/images/earthmap1k.jpg')
 })
 );
+
 planet.position.z = -4000;
 scene.add(planet);
+objects.planet = planet;
 }
 
 function addStars() {
 const geo = new THREE.BufferGeometry();
-const vertices = [];
+const verts = [];
 
-for(let i=0;i<20000;i++){
-vertices.push(
+for(let i=0;i<15000;i++){
+verts.push(
 (Math.random()-0.5)*50000,
 (Math.random()-0.5)*50000,
 (Math.random()-0.5)*50000
 );
 }
 
-geo.setAttribute('position', new THREE.Float32BufferAttribute(vertices,3));
+geo.setAttribute('position', new THREE.Float32BufferAttribute(verts,3));
 
-const stars = new THREE.Points(geo, new THREE.PointsMaterial({
-color:0xffffff,
-size:2
-}));
-
+const stars = new THREE.Points(geo, new THREE.PointsMaterial({color:0xffffff,size:2}));
 scene.add(stars);
 }
 
@@ -130,8 +161,9 @@ const bh = new THREE.Mesh(
 new THREE.SphereGeometry(300,64,64),
 new THREE.MeshBasicMaterial({color:0x000000})
 );
-bh.position.set(5000,0,-15000);
+bh.position.set(6000,0,-15000);
 scene.add(bh);
+objects.blackHole = bh;
 }
 
 function addWormhole() {
@@ -149,7 +181,7 @@ function addAsteroids() {
 const geo = new THREE.IcosahedronGeometry(50,1);
 const mat = new THREE.MeshStandardMaterial({color:0x888888});
 
-for(let i=0;i<200;i++){
+for(let i=0;i<150;i++){
 const m = new THREE.Mesh(geo,mat);
 m.position.set(
 (Math.random()-0.5)*20000,
@@ -158,6 +190,11 @@ m.position.set(
 );
 scene.add(m);
 }
+}
+
+function initControls() {
+window.addEventListener('keydown', e=>keys[e.code]=true);
+window.addEventListener('keyup', e=>keys[e.code]=false);
 }
 
 function animate() {
@@ -169,8 +206,13 @@ if(keys['KeyS']) velocity.z += 0.1;
 velocity.multiplyScalar(0.99);
 camera.position.add(velocity);
 
-document.getElementById('vel').innerText = Math.abs(velocity.z.toFixed(2));
+document.getElementById("vel").innerText = velocity.z.toFixed(2);
 
+// black hole gravity
+const dist = camera.position.distanceTo(objects.blackHole.position);
+if(dist < 3000) velocity.multiplyScalar(0.97);
+
+// animate objects
 scene.traverse(o=>{
 if(o.userData.animate) o.userData.animate();
 });
@@ -178,10 +220,83 @@ if(o.userData.animate) o.userData.animate();
 renderer.render(scene,camera);
 }
 
-function onResize() {
-camera.aspect = innerWidth/innerHeight;
-camera.updateProjectionMatrix();
-renderer.setSize(innerWidth,innerHeight);
+////////////////////////////////////////////////////
+// 🧠 AI SYSTEM (WITH FALLBACK)
+////////////////////////////////////////////////////
+async function initAI() {
+
+const log = document.getElementById("aiLog");
+const input = document.getElementById("aiInput");
+
+try {
+aiEngine = await webllm.CreateMLCEngine(
+"SmolLM2-360M-Instruct-q4f16_1-MLC",
+{
+initProgressCallback: p=>{
+log.innerText = "AI loading: " + Math.round(p.progress*100)+"%";
+}
+}
+);
+
+log.innerHTML = "AI: <span style='color:#0f0'>ONLINE</span>";
+input.disabled = false;
+
+speak("Ship artificial intelligence online.");
+
+} catch(e) {
+log.innerHTML = "AI: FALLBACK MODE";
+input.disabled = false;
+}
+
+input.onkeypress = async e=>{
+if(e.key === "Enter" && input.value.trim()){
+const msg = input.value;
+input.value="";
+
+log.innerHTML += "<br>PILOT: "+msg;
+
+let reply = await processAI(msg);
+
+log.innerHTML += "<br>AI: "+reply;
+log.scrollTop = log.scrollHeight;
+
+speak(reply);
+}
+};
+}
+
+async function processAI(msg){
+
+// WORLD-AWARE RESPONSES
+if(msg.includes("where")) {
+return "Coordinates: " + camera.position.x.toFixed(0)+", "+camera.position.z.toFixed(0);
+}
+
+if(msg.includes("black hole")) {
+return "Warning: gravitational anomaly detected ahead.";
+}
+
+// SLM
+if(aiEngine){
+const res = await aiEngine.chat.completions.create({
+messages:[{role:"user",content:msg}]
+});
+return res.choices[0].message.content;
+}
+
+// fallback
+return "Manual mode: " + msg;
+}
+
+////////////////////////////////////////////////////
+// 🔊 VOICE
+////////////////////////////////////////////////////
+function speak(text){
+if('speechSynthesis' in window){
+const u = new SpeechSynthesisUtterance(text);
+u.pitch = 0.7;
+speechSynthesis.speak(u);
+}
 }
 
 </script>
