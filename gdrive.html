@@ -2,168 +2,166 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Autonomous Sim HD v1.8.0</title>
+    <title>Autonomous Supreme AI v3.0.0</title>
     <script src="https://cdn.babylonjs.com/babylon.js"></script>
     <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #111; }
-        #renderCanvas { width: 100%; height: 100%; outline: none; }
-        #slm-interface {
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
+        #renderCanvas { width: 100%; height: 100%; touch-action: none; outline: none; }
+        #ui-overlay {
             position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
-            width: 70%; max-width: 600px;
-            background: rgba(10, 10, 20, 0.95); border: 1px solid #444; color: #fff;
-            padding: 20px; font-family: 'Times New Roman', serif;
-            font-size: 1.1em; border-radius: 4px; text-align: center; font-style: italic;
+            width: 75%; max-width: 800px; background: rgba(5, 5, 10, 0.9);
+            border: 1px solid #00f2ff; color: #fff; padding: 25px;
+            font-family: 'Segoe UI', sans-serif; border-radius: 5px;
+            box-shadow: 0 0 50px rgba(0, 242, 255, 0.2); pointer-events: none;
+        }
+        #boot-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; display: flex; align-items: center; justify-content: center;
+            z-index: 100; cursor: pointer; color: #00f2ff; font-family: monospace;
         }
     </style>
 </head>
 <body>
-    <div id="slm-interface">Awaiting GPS synchronization. Click to initialize AI narrative.</div>
+
+    <div id="boot-screen">
+        <div style="text-align: center;">
+            <h2>SUPREME AI CORE v3.0.0</h2>
+            <p>ASSETS LOADED | HDR NORMALIZED | WEBGPU READY</p>
+            <p style="font-size: 0.8em; color: #555;">[ CLICK TO INITIALIZE NEURAL LINK ]</p>
+        </div>
+    </div>
+
+    <div id="ui-overlay">
+        <div style="font-size: 0.7em; letter-spacing: 2px; color: #00f2ff; margin-bottom: 5px;">SYSTEM TELEMETRY // SLM-V3</div>
+        <div id="ai-thought">Awaiting user handshake...</div>
+    </div>
+
     <canvas id="renderCanvas"></canvas>
 
     <script>
         const canvas = document.getElementById("renderCanvas");
         const engine = new BABYLON.Engine(canvas, true);
-        const slmText = document.getElementById("slm-interface");
-        let slmEnabled = false;
+        const aiThought = document.getElementById("ai-thought");
+        let car, pedestrian, shadowGenerator;
+        let speed = 0;
+        let isDriving = false;
 
         const createScene = async function () {
             const scene = new BABYLON.Scene(engine);
-            scene.clearColor = new BABYLON.Color4(0.1, 0.1, 0.15, 1);
+            scene.clearColor = new BABYLON.Color4(0, 0, 0, 1);
 
-            // --- 4K Ultra Post-Processing (Cinematic Look) ---
-            const pipeline = new BABYLON.DefaultRenderingPipeline("pipeline", true, scene, [scene.activeCamera]);
-            pipeline.samples = 4;
+            // 1. HDR ENVIRONMENT & SKYBOX
+            scene.environmentTexture = BABYLON.CubeTexture.CreateFromPrefilteredData(
+                "https://playground.babylonjs.com/textures/environment.env", scene
+            );
+            scene.createDefaultSkybox(scene.environmentTexture, true, 1000, 0.1);
+
+            // 2. LIGHTING & REAL SHADOWS
+            const dirLight = new BABYLON.DirectionalLight("sun", new BABYLON.Vector3(-1, -2, -1), scene);
+            dirLight.position = new BABYLON.Vector3(20, 40, 20);
+            dirLight.intensity = 1.5;
+            
+            shadowGenerator = new BABYLON.ShadowGenerator(2048, dirLight);
+            shadowGenerator.useBlurExponentialShadowMap = true;
+            shadowGenerator.blurKernel = 32;
+
+            // 3. CINEMATIC AAA RENDERING PIPELINE
+            const pipeline = new BABYLON.DefaultRenderingPipeline("default", true, scene, [scene.activeCamera]);
             pipeline.fxaaEnabled = true;
             pipeline.bloomEnabled = true;
-            pipeline.bloomThreshold = 0.8;
-            pipeline.bloomWeight = 0.5;
+            pipeline.bloomWeight = 0.6;
+            pipeline.chromaticAberrationEnabled = true;
+            pipeline.chromaticAberration.aberrationAmount = 15;
+            pipeline.depthOfFieldEnabled = true;
+            pipeline.depthOfField.focalLength = 150;
+            pipeline.depthOfField.fStop = 1.4;
+            pipeline.grainEnabled = true;
+            pipeline.grain.intensity = 8;
 
-            // --- Enhanced Lighting ---
-            const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
-            light.intensity = 0.7;
-            const skyLight = new BABYLON.PointLight("sky", new BABYLON.Vector3(0, 50, -50), scene);
-            skyLight.intensity = 1.0; skyLight.diffuse = new BABYLON.Color3(0.5, 0.8, 1);
+            // 4. REAL PBR ROAD (Wet Asphalt)
+            const roadMat = new BABYLON.PBRMaterial("roadMat", scene);
+            roadMat.albedoTexture = new BABYLON.Texture("https://assets.babylonjs.com/environments/road_asphalt_albedo.jpg", scene);
+            roadMat.bumpTexture = new BABYLON.Texture("https://assets.babylonjs.com/environments/road_asphalt_normal.jpg", scene);
+            roadMat.metallicTexture = new BABYLON.Texture("https://assets.babylonjs.com/environments/road_asphalt_metallicRoughness.jpg", scene);
+            roadMat.ambientTexture = new BABYLON.Texture("https://assets.babylonjs.com/environments/road_asphalt_ao.jpg", scene);
+            roadMat.roughness = 1.0;
+            roadMat.metallic = 0.0;
+            roadMat.reflectivityColor = new BABYLON.Color3(0.3, 0.3, 0.3);
+            roadMat.microSurface = 0.95; // Reflections for wet look
 
-            // --- Procedural GPS Map Generation (Changes every Reset) ---
-            createEnvironment(scene);
+            const road = BABYLON.MeshBuilder.CreateGround("road", {width: 40, height: 2000}, scene);
+            road.material = roadMat;
+            road.receiveShadows = true;
 
-            // --- The "Autonomous" Driver (Detailed Mesh with Rules) ---
-            const car = createDetailedCar(scene);
-            car.position = new BABYLON.Vector3(0, 0.3, -20); // GPS Starting Sector
-
-            // Raycasting "Eyes" for traffic/peds
-            const forwardRay = new BABYLON.Ray();
-            // forwardRay.show(scene); // Uncomment to visualize AI vision
-
-            // --- AI Logic & Driving Rules ---
-            let speed = 0.2;
-            let targetSpeed = 0.2;
-
-            scene.onBeforeRenderObservable.add(() => {
-                // SENSE: Update forward ray
-                forwardRay.origin = car.position.clone().add(new BABYLON.Vector3(0, 0.8, 0)); // Nose of car
-                forwardRay.direction = car.forward;
-                forwardRay.length = 20;
-
-                const hit = scene.pickWithRay(forwardRay);
-
-                // PLAN: Rule Priority System
-                if (hit && hit.hit) {
-                    const id = hit.pickedMesh.id;
-                    if (id.includes("ped")) {
-                        setState("STOPPED_PEDS", "Alert. Non-compliant entity in roadway. Full brake. Yielding right-of-way.");
-                    } else if (id.includes("traffic_light") && hit.pickedMesh.material.emissiveColor.equals(BABYLON.Color3.Red())) {
-                        setState("STOPPED_LIGHT", "Scanning intersection. Light is red. Executing mandatory stop.");
-                    } else if (id.includes("obstacle")) {
-                        setState("OBSTACLE", "Static obstruction detected. Adjusting trajectory for safe pass.");
-                    }
-                    targetSpeed = 0;
-                } else {
-                    setState("CRUISING", "Road clear. Accelerating to optimal 40mph. Analyzing GPS telemetry.");
-                    targetSpeed = 0.4; // CRUISE
-                }
-
-                // ACT: Smooth Movement
-                speed = BABYLON.Scalar.Lerp(speed, targetSpeed, 0.05); // Braking feel
-                car.translate(BABYLON.Axis.Z, speed, BABYLON.Space.LOCAL);
+            // 5. ASSET LOADING: REAL CAR & PEDESTRIAN
+            BABYLON.SceneLoader.ImportMesh("", "https://assets.babylonjs.com/meshes/", "car.glb", scene, function (meshes) {
+                car = meshes[0];
+                car.scaling = new BABYLON.Vector3(1.5, 1.5, 1.5);
+                car.position = new BABYLON.Vector3(0, 0, -20);
+                shadowGenerator.addShadowCaster(car);
+                
+                // Attach camera to car once loaded
+                const camera = new BABYLON.FollowCamera("camera", new BABYLON.Vector3(0, 10, -15), scene);
+                camera.lockedTarget = car;
+                camera.radius = 10;
+                camera.heightOffset = 3;
+                camera.rotationOffset = 180;
+                camera.cameraAcceleration = 0.05;
+                camera.maxCameraSpeed = 10;
+                scene.activeCamera = camera;
             });
 
-            // Camera Setup (Locked to Car)
-            const camera = new BABYLON.FollowCamera("carCam", new BABYLON.Vector3(0, 8, -20), scene);
-            camera.lockedTarget = car;
-            camera.heightOffset = 4; camera.rotationOffset = 180;
-            camera.cameraAcceleration = 0.05;
+            BABYLON.SceneLoader.ImportMesh("", "https://assets.babylonjs.com/meshes/", "dummy3.babylon", scene, function(meshes, ps, skeletons) {
+                pedestrian = meshes[0];
+                pedestrian.scaling = new BABYLON.Vector3(2, 2, 2);
+                pedestrian.position = new BABYLON.Vector3(2, 0, 30);
+                shadowGenerator.addShadowCaster(pedestrian);
+                scene.beginAnimation(skeletons[0], 0, 100, true); // Loop Walk/Idle
+            });
+
+            // 6. AI & DRIVING SYSTEM
+            scene.onBeforeRenderObservable.add(() => {
+                if (!isDriving || !car || !pedestrian) return;
+
+                const dist = BABYLON.Vector3.Distance(car.position, pedestrian.position);
+
+                if (dist < 18) {
+                    speed = BABYLON.Scalar.Lerp(speed, 0, 0.05); // Smooth brake
+                    updateSLM("DANGER: Pedestrian collision imminent. Applying ABS braking. Yielding right-of-way.");
+                } else {
+                    speed = BABYLON.Scalar.Lerp(speed, 0.4, 0.02); // Accelerate
+                    updateSLM("System: Autonomous cruise active. Surface traction optimal. Navigating via high-resolution GPS.");
+                }
+
+                car.position.z += speed;
+            });
 
             return scene;
         };
 
-        // --- Environmental/Asset Factories ---
-
-        function createDetailedCar(scene) {
-            const body = BABYLON.MeshBuilder.CreateBox("carBody", {width: 2.2, height: 1, depth: 4.8}, scene);
-            const carMat = new BABYLON.PBRMaterial("carMat", scene);
-            carMat.albedoColor = new BABYLON.Color3(0.9, 0.9, 0.9);
-            carMat.metallic = 1.0; carMat.roughness = 0.1;
-            body.material = carMat;
-            // Add headlights (actually emit light on the ground)
-            const headL = new BABYLON.SpotLight("hL", new BABYLON.Vector3(-1, 0.5, 2.3), new BABYLON.Vector3(0, -0.2, 1), Math.PI/3, 2, scene);
-            headL.parent = body; headL.intensity = 2;
-            return body;
+        let lastThought = "";
+        function updateSLM(text) {
+            if (lastThought === text) return;
+            lastThought = text;
+            aiThought.innerText = text;
+            const utter = new SpeechSynthesisUtterance(text);
+            utter.pitch = 0.7;
+            window.speechSynthesis.cancel();
+            window.speechSynthesis.speak(utter);
         }
 
-        function createEnvironment(scene) {
-            const roadMat = new BABYLON.PBRMaterial("roadMat", scene);
-            roadMat.albedoTexture = new BABYLON.Texture("https://playground.babylonjs.com/textures/asphalt.png", scene);
-            roadMat.albedoTexture.uScale = 2; roadMat.albedoTexture.vScale = 100;
-            
-            const road = BABYLON.MeshBuilder.CreateGround("gps_road", {width: 15, height: 1000}, scene);
-            road.material = roadMat;
+        const scenePromise = createScene();
+        engine.runRenderLoop(() => {
+            scenePromise.then(s => s.render());
+        });
 
-            // Generate Procedural City Grid (Buildings and Peds change location per reset)
-            for (let i = 0; i < 50; i++) {
-                // Buildings
-                const h = Math.random() * 20 + 10;
-                const building = BABYLON.MeshBuilder.CreateBox("build"+i, {width: 10, height: h, depth: 10}, scene);
-                building.position = new BABYLON.Vector3(i%2==0 ? 15 : -15, h/2, i * 20 - 100);
-                const bMat = new BABYLON.StandardMaterial("bMat"+i, scene); bMat.diffuseColor = BABYLON.Color3.Random();
-                building.material = bMat;
+        window.addEventListener("click", () => {
+            document.getElementById("boot-screen").style.display = "none";
+            isDriving = true;
+            updateSLM("Neural link established. Autonomous drive initiated.");
+        });
 
-                // Random Pedestrians (Rule Check)
-                if(i > 5 && i % 8 == 0) {
-                    const ped = BABYLON.MeshBuilder.CreateCapsule("ped"+i, {height: 1.8, radius: 0.4}, scene);
-                    ped.position = new BABYLON.Vector3(Math.random() * 8 - 4, 1.2, i * 15);
-                    const pMat = new BABYLON.StandardMaterial("pMat", scene); pMat.emissiveColor = BABYLON.Color3.Red();
-                    ped.material = pMat;
-                }
-            }
-
-            // Static Traffic Light (v1.6 Core rule check)
-            const tLightParent = new BABYLON.TransformNode("tl");
-            const tBox = BABYLON.MeshBuilder.CreateBox("traffic_light_signal", {size: 1.5}, scene);
-            tBox.position = new BABYLON.Vector3(6, 7, 100); tBox.parent = tLightParent;
-            const tMat = new BABYLON.StandardMaterial("tMat", scene);
-            tMat.emissiveColor = BABYLON.Color3.Red(); // RULE: STOP
-            tBox.material = tMat;
-        }
-
-        // --- SLM Narrative System ---
-
-        let currentState = "";
-        function setState(state, narrative) {
-            if (currentState === state) return;
-            currentState = state;
-            slmText.innerText = narrative;
-            if (slmEnabled) {
-                const utter = new SpeechSynthesisUtterance(narrative);
-                utter.rate = 1.0; utter.pitch = 0.8;
-                window.speechSynthesis.cancel();
-                window.speechSynthesis.speak(utter);
-            }
-        }
-
-        window.addEventListener("click", () => { slmEnabled = true; window.speechSynthesis.speak(new SpeechSynthesisUtterance("Neural link established. SLM active.")); });
-        createScene().then(scene => engine.runRenderLoop(() => scene.render()));
         window.addEventListener("resize", () => engine.resize());
     </script>
 </body>
