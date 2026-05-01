@@ -1,19 +1,238 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>AETHERIS</title>
+<title>AETHERIS SLM UNIVERSE</title>
+
 <style>
-body { margin:0; background:black; color:#0ff; font-family:monospace; }
-#log { position:absolute; top:10px; left:10px; }
+body { margin:0; overflow:hidden; background:black; font-family:monospace; color:#0ff; }
+#log {
+    position:absolute;
+    top:10px;
+    left:10px;
+    width:420px;
+    max-height:60vh;
+    overflow:auto;
+    background:rgba(0,0,0,0.5);
+    padding:10px;
+    border:1px solid #0ff;
+}
+#input {
+    position:absolute;
+    bottom:10px;
+    left:10px;
+    width:400px;
+    padding:10px;
+    background:black;
+    color:#0ff;
+    border:1px solid #0ff;
+}
+canvas { display:block; }
 </style>
 </head>
 
 <body>
 
-<div id="log">Booting...</div>
+<div id="log">🚀 AETHERIS INITIALIZING...</div>
+<input id="input" placeholder="Ask ship AI..." />
 
-<script src="https://raw.githubusercontent.com/dganigame-coder/space/d071abb5dbed01f5fe2bee24c1202f46c115e9dd/app.js" type="module"></script>
+<script type="module">
 
+// -----------------------------
+// THREE.JS
+// -----------------------------
+import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+import * as webllm from "https://esm.run/@mlc-ai/web-llm";
+
+// -----------------------------
+// UI
+// -----------------------------
+const log = document.getElementById("log");
+const input = document.getElementById("input");
+
+function print(t){
+    log.innerHTML += "<br>" + t;
+    log.scrollTop = log.scrollHeight;
+}
+
+// -----------------------------
+// AI ENGINE (SLM)
+// -----------------------------
+let engine = null;
+let aiReady = false;
+
+async function initAI() {
+    print("🧠 Loading AETHERIS AI (SLM)...");
+
+    try {
+        engine = await webllm.CreateMLCEngine(
+            "SmolLM2-360M-Instruct-q4f16_1-MLC",
+            {
+                initProgressCallback: (p) => {
+                    print("AI Loading: " + Math.round(p.progress * 100) + "%");
+                }
+            }
+        );
+
+        aiReady = true;
+        print("✅ AETHERIS AI ONLINE");
+    } catch (e) {
+        print("❌ AI failed → fallback mode active");
+    }
+}
+
+// -----------------------------
+// FALLBACK AI
+// -----------------------------
+function fakeAI(text){
+    if(text.includes("sun")) return "The Sun is a fusion star.";
+    if(text.includes("black hole")) return "A black hole bends spacetime infinitely.";
+    if(text.includes("jupiter")) return "Jupiter is a gas giant planet.";
+    return "Simulation AI: " + text;
+}
+
+// -----------------------------
+// ASK AI
+// -----------------------------
+async function askAI(text){
+
+    print("👤 You: " + text);
+
+    if(!aiReady){
+        print("🤖 AI: " + fakeAI(text));
+        return;
+    }
+
+    print("🧠 AI thinking...");
+
+    const res = await engine.chat.completions.create({
+        messages:[
+            {
+                role:"system",
+                content:"You are AETHERIS ship AI. You are a space navigation assistant. Be concise and scientific."
+            },
+            {
+                role:"user",
+                content:text
+            }
+        ]
+    });
+
+    print("🤖 AI: " + res.choices[0].message.content);
+}
+
+// -----------------------------
+// THREE.JS SETUP
+// -----------------------------
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 100000);
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth, innerHeight);
+document.body.appendChild(renderer.domElement);
+
+// LIGHT
+scene.add(new THREE.PointLight(0xffffff, 2));
+
+// -----------------------------
+// TEXTURE LOADER
+// -----------------------------
+const loader = new THREE.TextureLoader();
+const tex = (url)=>loader.load(url);
+
+// -----------------------------
+// SUN
+// -----------------------------
+const sun = new THREE.Mesh(
+    new THREE.SphereGeometry(2000,64,64),
+    new THREE.MeshBasicMaterial({
+        map: tex("https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/Solarsystemscope_texture_2k_sun.jpg/1280px-Solarsystemscope_texture_2k_sun.jpg")
+    })
+);
+scene.add(sun);
+
+// -----------------------------
+// EARTH
+// -----------------------------
+const earth = new THREE.Mesh(
+    new THREE.SphereGeometry(800,64,64),
+    new THREE.MeshStandardMaterial({
+        map: tex("https://www.solarsystemscope.com/textures/download/8k_earth_daymap.jpg")
+    })
+);
+earth.position.set(5000,0,0);
+scene.add(earth);
+
+// -----------------------------
+// MARS
+// -----------------------------
+const mars = new THREE.Mesh(
+    new THREE.SphereGeometry(600,64,64),
+    new THREE.MeshStandardMaterial({
+        map: tex("https://www.solarsystemscope.com/textures/download/8k_mars.jpg")
+    })
+);
+mars.position.set(-4000,0,0);
+scene.add(mars);
+
+// -----------------------------
+// GALAXY BACKGROUND
+// -----------------------------
+const galaxy = new THREE.Mesh(
+    new THREE.SphereGeometry(50000,32,32),
+    new THREE.MeshBasicMaterial({
+        map: tex("https://static.vecteezy.com/system/resources/thumbnails/012/827/025/small_2x/hand-painted-watercolor-cosmic-texture-with-stars-space-starry-night-sky-galaxy-illustration-vector.jpg"),
+        side: THREE.BackSide
+    })
+);
+scene.add(galaxy);
+
+// -----------------------------
+// CAMERA
+// -----------------------------
+camera.position.z = 9000;
+
+// -----------------------------
+// CONTROLS
+// -----------------------------
+let keys = {};
+addEventListener("keydown",e=>keys[e.code]=true);
+addEventListener("keyup",e=>keys[e.code]=false);
+
+// -----------------------------
+// INPUT
+// -----------------------------
+input.addEventListener("keydown",(e)=>{
+    if(e.key==="Enter"){
+        askAI(input.value);
+        input.value="";
+    }
+});
+
+// -----------------------------
+// START AI
+// -----------------------------
+initAI();
+
+// -----------------------------
+// LOOP
+// -----------------------------
+function animate(){
+    requestAnimationFrame(animate);
+
+    if(keys["ArrowLeft"]) camera.rotation.y += 0.01;
+    if(keys["ArrowRight"]) camera.rotation.y -= 0.01;
+    if(keys["ArrowUp"]) camera.position.z -= 50;
+    if(keys["ArrowDown"]) camera.position.z += 50;
+
+    earth.rotation.y += 0.002;
+    mars.rotation.y += 0.003;
+    sun.rotation.y += 0.001;
+
+    renderer.render(scene,camera);
+}
+
+animate();
+
+</script>
 </body>
 </html>
