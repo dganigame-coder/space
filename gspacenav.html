@@ -2,73 +2,40 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AETHERIS v6.5 | Titan Stability Build</title>
+    <title>AETHERIS v7.0 | Deep Space 4K</title>
     <style>
         :root { --ui: #00f2ff; --bg: #000; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Courier New', monospace; color: var(--ui); }
-        
-        #canvas-container { position: absolute; inset: 0; z-index: 1; }
-
-        /* HUD LAYOUT */
-        #hud { position: absolute; inset: 0; pointer-events: none; z-index: 10; padding: 25px; display: flex; flex-direction: column; justify-content: space-between; }
-        
-        .top-stats { display: flex; gap: 30px; background: rgba(0,20,30,0.6); padding: 15px; border: 1px solid rgba(0,242,255,0.3); width: fit-content; font-size: 13px; }
-        .stat-val { color: #fff; font-weight: bold; }
-
-        /* COLLAPSIBLE AI SIDEBAR */
-        #ai-sidebar {
-            position: absolute; right: 20px; top: 100px; width: 320px;
-            pointer-events: auto; background: rgba(0, 10, 15, 0.9); border: 1px solid var(--ui);
-            padding: 15px; backdrop-filter: blur(10px); transition: 0.4s;
-        }
-        #ai-sidebar.minimized { transform: translateX(340px); }
-        .toggle-tab { position: absolute; left: -40px; top: -1px; width: 40px; height: 40px; background: var(--ui); color: #000; border: none; cursor: pointer; font-weight: bold; }
-
-        #ai-log { height: 180px; overflow-y: auto; font-size: 12px; margin-bottom: 10px; color: #ccc; border-bottom: 1px solid rgba(0,242,255,0.2); }
-        #ai-input { width: 100%; background: #000; border: 1px solid var(--ui); color: var(--ui); padding: 8px; outline: none; box-sizing: border-box; }
-
-        /* INITIALIZER */
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Consolas', monospace; color: var(--ui); }
+        #hud { position: absolute; inset: 0; pointer-events: none; padding: 20px; z-index: 10; }
+        .top-stats { display: flex; gap: 40px; background: rgba(0,0,0,0.5); padding: 10px; border: 1px solid var(--ui); width: fit-content; }
+        #ai-sidebar { position: absolute; right: 20px; top: 100px; width: 300px; pointer-events: auto; background: rgba(0,10,15,0.9); border: 1px solid var(--ui); padding: 15px; }
         #boot-screen { position: fixed; inset: 0; background: #000; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        #boot-btn { background: none; border: 2px solid var(--ui); color: var(--ui); padding: 20px 60px; font-size: 20px; cursor: pointer; letter-spacing: 10px; transition: 0.3s; }
-        #boot-btn:hover { background: var(--ui); color: #000; box-shadow: 0 0 30px var(--ui); }
-
-        .crosshair { position: absolute; top: 50%; left: 50%; width: 20px; height: 20px; border: 1px solid rgba(0,242,255,0.2); transform: translate(-50%, -50%); border-radius: 50%; }
+        #boot-btn { background: none; border: 2px solid var(--ui); color: var(--ui); padding: 20px 60px; cursor: pointer; letter-spacing: 5px; }
     </style>
 </head>
 <body>
 
 <div id="boot-screen">
-    <h1 style="letter-spacing: 20px;">AETHERIS</h1>
-    <p style="font-size: 12px; margin-bottom: 30px; opacity: 0.5;">[ DESKTOP KEYBOARD LINK REQUIRED ]</p>
-    <button id="boot-btn">BOOT CORE</button>
+    <h1>AETHERIS v7.0</h1>
+    <p>GENERATING MULTIVERSE ASSETS...</p>
+    <button id="boot-btn">ENTER DIMENSION</button>
 </div>
-
-<div class="crosshair"></div>
 
 <div id="hud">
     <div class="top-stats">
-        <div>VEL: <span id="vel" class="stat-val">0</span>c</div>
-        <div>COORDS: <span id="coord" class="stat-val">0, 0, 0</span></div>
-        <div>BRAKE: <span id="brake-stat" class="stat-val">OFF</span></div>
+        <div>VEL: <span id="vel">0</span>c</div>
+        <div>SCAN: <span id="scan">IDLE</span></div>
     </div>
-
     <div id="ai-sidebar">
-        <button class="toggle-tab" onclick="document.getElementById('ai-sidebar').classList.toggle('minimized')">AI</button>
-        <div id="ai-log">SYSTEM: Waiting for pilot...</div>
-        <input type="text" id="ai-input" placeholder="Type command..." disabled>
+        <div id="ai-log" style="height:150px; overflow-y:auto; font-size:11px;">AI: Awaiting neural sync...</div>
     </div>
 </div>
 
-<div id="canvas-container"></div>
-
-<!-- STABLE EXTERNAL MODULES -->
 <script type="importmap">
 {
     "imports": {
         "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
-        "@mlc-ai/webllm": "https://esm.run/@mlc-ai/web-llm"
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
     }
 }
 </script>
@@ -78,148 +45,103 @@ import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-import * as webllm from "@mlc-ai/webllm";
 
-let scene, camera, renderer, composer, planet, starfield;
-let velocity = new THREE.Vector3(0, 0, 0); 
-let rotation = new THREE.Euler(0, 0, 0, 'YXZ');
-let worldGroup = new THREE.Group();
+let scene, camera, renderer, composer, worldGroup = new THREE.Group();
+let velocity = new THREE.Vector3(0,0,0), rotation = new THREE.Euler(0,0,0,'YXZ');
 let keys = {};
-let engine;
 
-// STARTUP SEQUENCE
 document.getElementById('boot-btn').onclick = () => {
-    document.getElementById('boot-screen').style.opacity = '0';
-    setTimeout(() => document.getElementById('boot-screen').remove(), 500);
-    initGame();
-    initAI();
+    document.getElementById('boot-screen').style.display = 'none';
+    init();
 };
 
-function initGame() {
+function init() {
     scene = new THREE.Scene();
-    camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 200000);
-    
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000000);
     renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(window.devicePixelRatio);
-    document.getElementById('canvas-container').appendChild(renderer.domElement);
-
+    document.body.appendChild(renderer.domElement);
     scene.add(worldGroup);
 
-    // PLANET - Placed directly in front for immediate "OK" view
-    const pGeo = new THREE.SphereGeometry(400, 64, 64);
-    const pMat = new THREE.MeshStandardMaterial({ 
-        color: 0x00f2ff, 
-        emissive: 0x001122,
-        roughness: 0.2,
-        metalness: 0.8
-    });
-    planet = new THREE.Mesh(pGeo, pMat);
-    planet.position.z = -1200; 
+    // 1. GALAXY GENERATOR (Using Points)
+    const points = [];
+    for (let i = 0; i < 15000; i++) {
+        const r = Math.random() * 5000;
+        const a = Math.random() * Math.PI * 2;
+        points.push(new THREE.Vector3(Math.cos(a)*r, (Math.random()-0.5)*500, Math.sin(a)*r));
+    }
+    const galGeo = new THREE.BufferGeometry().setFromPoints(points);
+    const galMat = new THREE.PointsMaterial({ color: 0x8844ff, size: 2, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending });
+    const galaxy = new THREE.Points(galGeo, galMat);
+    galaxy.position.set(-10000, 2000, -20000);
+    worldGroup.add(galaxy);
+
+    // 2. ATMOSPHERIC PLANET
+    const pGeo = new THREE.SphereGeometry(1000, 64, 64);
+    const pMat = new THREE.MeshStandardMaterial({ color: 0x0044ff, roughness: 0.8 });
+    const planet = new THREE.Mesh(pGeo, pMat);
+    planet.position.set(0, 0, -5000);
     worldGroup.add(planet);
 
-    // 8K STARS
-    const sGeo = new THREE.SphereGeometry(100000, 32, 32);
-    const sMat = new THREE.ShaderMaterial({
+    // Atmosphere Layer (Rayleigh-ish glow)
+    const atmGeo = new THREE.SphereGeometry(1050, 64, 64);
+    const atmMat = new THREE.ShaderMaterial({
         side: THREE.BackSide,
-        vertexShader: `varying vec3 vN; void main() { vN = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
-        fragmentShader: `varying vec3 vN; 
-            float noise(vec3 p) { return fract(sin(dot(p, vec3(12.9, 78.2, 45.1))) * 43758.5); }
-            void main() { float n = noise(vN); gl_FragColor = vec4(vec3(pow(n, 200.0)), 1.0); }`
+        transparent: true,
+        uniforms: { "c": { value: 0.1 }, "p": { value: 4.0 }, glowColor: { value: new THREE.Color(0x00f2ff) }, viewVector: { value: camera.position } },
+        vertexShader: `varying float intensity; void main() { vec3 vNormal = normalize( normalMatrix * normal ); gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 ); intensity = pow( 0.6 - dot( vNormal, vec3( 0, 0, 1.0 ) ), 4.0 ); }`,
+        fragmentShader: `uniform vec3 glowColor; varying float intensity; void main() { gl_FragColor = vec4( glowColor, intensity ); }`
     });
-    starfield = new THREE.Mesh(sGeo, sMat);
-    scene.add(starfield);
+    const atmosphere = new THREE.Mesh(atmGeo, atmMat);
+    planet.add(atmosphere);
 
-    scene.add(new THREE.DirectionalLight(0xffffff, 2.5));
-    scene.add(new THREE.AmbientLight(0x0a0a1a));
+    // 3. BLACK HOLE (Event Horizon)
+    const bhGeo = new THREE.SphereGeometry(500, 32, 32);
+    const bhMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+    const blackHole = new THREE.Mesh(bhGeo, bhMat);
+    blackHole.position.set(15000, 0, -30000);
+    worldGroup.add(blackHole);
 
-    // POST PROCESSING
+    // Accretion Disk
+    const diskGeo = new THREE.TorusGeometry(1200, 100, 2, 100);
+    const diskMat = new THREE.MeshBasicMaterial({ color: 0xffaa00, transparent: true, opacity: 0.5 });
+    const disk = new THREE.Mesh(diskGeo, diskMat);
+    disk.rotation.x = Math.PI / 2;
+    blackHole.add(disk);
+
+    // Lighting & Stars
+    scene.add(new THREE.AmbientLight(0x0a0a0a));
+    const sun = new THREE.DirectionalLight(0xffffff, 2);
+    sun.position.set(5000, 5000, 5000);
+    scene.add(sun);
+
     composer = new EffectComposer(renderer);
     composer.addPass(new RenderPass(scene, camera));
-    const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
-    composer.addPass(bloom);
+    composer.addPass(new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85));
 
-    // INPUTS
-    window.addEventListener('keydown', (e) => keys[e.code] = true);
-    window.addEventListener('keyup', (e) => keys[e.code] = false);
+    window.addEventListener('keydown', e => keys[e.code] = true);
+    window.addEventListener('keyup', e => keys[e.code] = false);
 
     animate();
 }
 
-async function initAI() {
-    const log = document.getElementById('ai-log');
-    const input = document.getElementById('ai-input');
-    
-    log.innerText = "AI: Attempting WebGPU Neural Link...";
-    
-    try {
-        // FAIL-SAFE: If this takes more than 10s, we switch to local sim
-        engine = await webllm.CreateMLCEngine("Llama-3.2-1B-Instruct-q4f16_1-MLC", {
-            initProgressCallback: (p) => { log.innerText = `AI: Syncing... ${Math.round(p.progress * 100)}%`; }
-        });
-        log.innerText = "AI: Deep Link established. Ready.";
-        input.disabled = false;
-    } catch (e) {
-        log.innerHTML = "<span style='color:orange'>AI: WebGPU restricted. Switching to Local Sub-routine.</span>";
-        input.disabled = false;
-    }
-
-    input.onkeypress = async (e) => {
-        if(e.key === 'Enter' && input.value.trim() !== "") {
-            const val = input.value;
-            input.value = "";
-            log.innerHTML += `<br><span style="color:#00f2ff">> ${val}</span>`;
-            if(engine) {
-                const reply = await engine.chat.completions.create({ messages: [{role:"user", content: val}] });
-                log.innerHTML += `<br>AI: ${reply.choices[0].message.content}`;
-            } else {
-                log.innerHTML += `<br>AI: [Simulated] Processing: "${val}". Engine offline.`;
-            }
-            log.scrollTop = log.scrollHeight;
-        }
-    };
-}
-
 function animate() {
     requestAnimationFrame(animate);
-
-    // FLIGHT CONTROLS
-    if(keys['KeyW']) rotation.x -= 0.02;
-    if(keys['KeyS']) rotation.x += 0.02;
-    if(keys['KeyA']) rotation.y += 0.02;
-    if(keys['KeyD']) rotation.y -= 0.02;
-
-    // FORWARD THRUST (Auto)
-    velocity.z -= 0.02; 
-
-    // BRAKE
-    if(keys['Space']) {
-        velocity.multiplyScalar(0.92);
-        document.getElementById('brake-stat').innerText = "ACTIVE";
-    } else {
-        document.getElementById('brake-stat').innerText = "OFF";
-    }
+    if(keys['KeyW']) rotation.x -= 0.01;
+    if(keys['KeyS']) rotation.x += 0.01;
+    if(keys['KeyA']) rotation.y += 0.01;
+    if(keys['KeyD']) rotation.y -= 0.01;
+    
+    velocity.z -= 0.1; // Thrust
+    if(keys['Space']) velocity.multiplyScalar(0.9); // Brake
 
     camera.setRotationFromEuler(rotation);
-
-    // FLOATING ORIGIN - Movement
     const move = velocity.clone().applyEuler(rotation);
     worldGroup.position.sub(move);
 
-    // HUD REFRESH
     document.getElementById('vel').innerText = Math.abs(Math.round(velocity.z * 100));
-    document.getElementById('coord').innerText = `${Math.round(worldGroup.position.x)}, ${Math.round(worldGroup.position.z)}`;
-    
-    starfield.position.copy(camera.position);
     composer.render();
 }
-
-window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    composer.setSize(window.innerWidth, window.innerHeight);
-});
 </script>
 </body>
 </html>
