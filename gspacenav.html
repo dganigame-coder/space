@@ -3,52 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AETHERIS ULTIMA | 8K AI MISSION</title>
+    <title>AETHERIS v5.2 | Production AI Build</title>
     <style>
         :root { --ui: #00f2ff; --bg: #000; --laser: #ff1144; }
-        body { margin: 0; overflow: hidden; background: var(--bg); font-family: 'Segoe UI', 'Courier New', monospace; color: var(--ui); touch-action: none; }
+        body { margin: 0; overflow: hidden; background: var(--bg); font-family: 'Segoe UI', system-ui, sans-serif; color: var(--ui); touch-action: none; }
         
-        #hud { position: absolute; inset: 0; pointer-events: none; padding: 25px; display: flex; flex-direction: column; justify-content: space-between; z-index: 10; }
-        .top-bar { display: flex; justify-content: space-between; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; }
+        #hud { position: absolute; inset: 0; pointer-events: none; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; z-index: 10; }
+        .top-bar { display: flex; justify-content: space-between; font-size: 10px; letter-spacing: 2px; background: rgba(0,0,0,0.5); padding: 8px; border-bottom: 1px solid rgba(0,242,255,0.2); }
         
-        /* AI NEURAL LINK TERMINAL */
+        /* AI NEURAL TERMINAL */
         #ai-terminal {
-            pointer-events: auto; background: rgba(0, 15, 20, 0.95); border-left: 3px solid var(--ui);
+            pointer-events: auto; background: rgba(0, 15, 20, 0.9); border: 1px solid var(--ui);
             padding: 15px; width: 340px; max-width: 85vw; align-self: center; margin-bottom: 20px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.8); backdrop-filter: blur(10px);
+            backdrop-filter: blur(15px); box-shadow: 0 0 40px rgba(0,0,0,1);
         }
-        #ai-loader { height: 2px; width: 0%; background: var(--ui); margin-bottom: 8px; transition: width 0.4s; }
-        #ai-log { height: 70px; overflow-y: auto; font-size: 12px; line-height: 1.5; color: #e0faff; scrollbar-width: none; }
-        #ai-input { background: transparent; border: none; border-bottom: 1px solid rgba(0, 242, 255, 0.3); color: var(--ui); width: 100%; outline: none; padding: 8px 0; font-size: 14px; }
+        #ai-bar { height: 2px; width: 0%; background: var(--ui); margin-bottom: 10px; transition: width 0.3s; }
+        #ai-log { height: 80px; overflow-y: auto; font-size: 12px; line-height: 1.4; color: #fff; margin-bottom: 10px; scrollbar-width: none; }
+        #ai-input { background: transparent; border: none; border-bottom: 1px solid var(--ui); color: var(--ui); width: 100%; outline: none; font-size: 14px; padding: 5px 0; }
 
-        /* 8K HUD ELEMENTS */
-        .joystick { width: 140px; height: 140px; border: 1.5px solid rgba(0, 242, 255, 0.2); border-radius: 50%; position: relative; pointer-events: auto; background: radial-gradient(circle, rgba(0, 242, 255, 0.05) 0%, transparent 70%); }
-        .knob { width: 50px; height: 50px; background: var(--ui); border-radius: 50%; position: absolute; top: 45px; left: 45px; box-shadow: 0 0 25px var(--ui); }
+        .joystick { width: 120px; height: 120px; border: 1px solid rgba(0,242,255,0.3); border-radius: 50%; position: relative; pointer-events: auto; background: radial-gradient(circle, rgba(0,242,255,0.05), transparent); }
+        .knob { width: 40px; height: 40px; background: var(--ui); border-radius: 50%; position: absolute; top: 40px; left: 40px; box-shadow: 0 0 20px var(--ui); }
         
-        #overlay { position: fixed; inset: 0; background: radial-gradient(circle at center, #0a111a 0%, #000 100%); z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 1s; }
-        button#launch { background: transparent; border: 1px solid var(--ui); color: var(--ui); padding: 20px 60px; font-size: 18px; cursor: pointer; letter-spacing: 8px; text-transform: uppercase; overflow: hidden; position: relative; }
-        button#launch::after { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(0,242,255,0.2), transparent); animation: sweep 3s infinite; }
-        @keyframes sweep { 0% { left: -100%; } 100% { left: 100%; } }
+        #boot-screen { position: fixed; inset: 0; background: #000; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        #boot-btn { background: transparent; border: 1px solid var(--ui); color: var(--ui); padding: 20px 50px; font-size: 16px; cursor: pointer; letter-spacing: 5px; }
+        .v-num { position: absolute; bottom: 10px; right: 10px; font-size: 10px; opacity: 0.5; }
     </style>
 </head>
 <body>
 
-<div id="overlay">
-    <h1 style="font-size: 2.5rem; letter-spacing: 15px; margin: 0;">AETHERIS</h1>
-    <p style="opacity: 0.6; font-size: 10px; margin-top: 10px;">8K NEURAL INTERSTELLAR SIMULATOR v2026.4</p>
-    <button id="launch">Engage Neural Link</button>
+<div id="boot-screen">
+    <h1 style="letter-spacing: 12px;">AETHERIS</h1>
+    <button id="boot-btn">INITIALIZE CORE v5.2</button>
+    <div class="v-num">BUILD_VER: 5.2.0-STABLE</div>
 </div>
 
 <div id="hud">
     <div class="top-bar">
-        <div>PROBE: VOID_WALKER_01<br>STATUS: <span id="sync-status">DISCONNECTED</span></div>
-        <div style="text-align: right;">VEL: <span id="vel-txt">0</span>c<br>POS: <span id="pos-txt">0,0,0</span></div>
+        <div>PROBE_ID: VOID-WLR<br>CORE: <span id="cpu-stat">OK</span></div>
+        <div style="text-align: right;">VEL: <span id="vel">0</span>c<br>MEM: <span id="mem">GPU_ACCEL</span></div>
     </div>
 
     <div id="ai-terminal">
-        <div id="ai-loader"></div>
-        <div id="ai-log">AI: Systems offline. Awaiting neural sync...</div>
-        <input type="text" id="ai-input" placeholder="Query Ship Mind..." disabled>
+        <div id="ai-bar"></div>
+        <div id="ai-log">AI: Awaiting neural synchronization...</div>
+        <input type="text" id="ai-input" placeholder="Querying Neural Link..." disabled>
     </div>
 
     <div style="display:flex; justify-content: space-between; width:100%; pointer-events:none;">
@@ -62,7 +60,7 @@
         "imports": {
             "three": "https://unpkg.com/three@0.167.0/build/three.module.js",
             "three/addons/": "https://unpkg.com/three@0.167.0/examples/jsm/",
-            "@mlc-ai/webllm": "https://esm.run/@mlc-ai/webllm"
+            "@mlc-ai/webllm": "https://esm.run/@mlc-ai/web-llm"
         }
     }
 </script>
@@ -75,137 +73,117 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import * as webllm from "@mlc-ai/webllm";
 
 let scene, camera, renderer, composer, planet, engine;
-let velocity = new THREE.Vector3(), rotation = new THREE.Euler(0,0,0,'YXZ');
-let touchPoints = { l: {x:0, y:0}, r: {x:0, y:0} };
-const clock = new THREE.Clock();
+let vel = new THREE.Vector3(), rot = new THREE.Euler(0,0,0,'YXZ');
+let touch = { l: {x:0, y:0}, r: {x:0, y:0} };
 
-document.getElementById('launch').onclick = async () => {
-    document.getElementById('overlay').style.opacity = '0';
-    setTimeout(() => document.getElementById('overlay').style.display = 'none', 1000);
-    initWorld();
-    await initNeuralLink();
+document.getElementById('boot-btn').onclick = () => {
+    document.getElementById('boot-screen').style.display = 'none';
+    init();
 };
 
-function initWorld() {
+async function init() {
+    // 1. 8K Renderer Setup
     scene = new THREE.Scene();
-    camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.1, 30000);
-    
-    renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 20000);
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
     document.body.appendChild(renderer.domElement);
 
-    // 8K Starfield Shader
-    const starGeo = new THREE.SphereGeometry(20000, 64, 64);
+    // 2. 8K Starfield (Optimized)
+    const starGeo = new THREE.SphereGeometry(15000, 32, 32);
     const starMat = new THREE.ShaderMaterial({
         side: THREE.BackSide,
-        vertexShader: `varying vec3 vP; void main() { vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
-        fragmentShader: `varying vec3 vP; 
-            float hash(vec3 p) { p = fract(p*0.3183099+.1); p *= 17.0; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
-            void main() {
-                float n = hash(floor(vP * 0.5));
-                float s = pow(n, 150.0) * 1.5;
-                gl_FragColor = vec4(vec3(s), 1.0);
-            }`
+        vertexShader: `varying vec3 vN; void main() { vN = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+        fragmentShader: `varying vec3 vN; 
+            float noise(vec3 p) { return fract(sin(dot(p, vec3(12.9898,78.233,45.164))) * 43758.5453); }
+            void main() { float n = noise(vN); gl_FragColor = vec4(vec3(pow(n, 80.0)), 1.0); }`
     });
     scene.add(new THREE.Mesh(starGeo, starMat));
 
-    // Orbital Planet
-    planet = new THREE.Mesh(
-        new THREE.SphereGeometry(250, 128, 128),
-        new THREE.MeshStandardMaterial({ color: 0x00f2ff, emissive: 0x002233, roughness: 0.4, metalness: 0.8 })
-    );
+    // 3. Objects
+    planet = new THREE.Mesh(new THREE.SphereGeometry(200, 64, 64), new THREE.MeshStandardMaterial({color: 0x00f2ff, roughness: 0.3, metalness: 0.8}));
+    planet.position.z = -3000;
     scene.add(planet);
-    
-    const sun = new THREE.DirectionalLight(0xffffff, 3);
-    sun.position.set(1, 1, 1);
-    scene.add(sun);
-    scene.add(new THREE.AmbientLight(0x111122));
+    scene.add(new THREE.DirectionalLight(0xffffff, 2.5));
+    scene.add(new THREE.AmbientLight(0x222244));
 
     composer = new EffectComposer(renderer);
     composer.addPass(new RenderPass(scene, camera));
-    composer.addPass(new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.4, 0.3, 0.9));
+    composer.addPass(new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85));
 
-    setupJoysticks();
+    setupControls();
+    initAI();
     animate();
 }
 
-async function initNeuralLink() {
+async function initAI() {
     const log = document.getElementById('ai-log');
-    const bar = document.getElementById('ai-loader');
-    const status = document.getElementById('sync-status');
-    
+    const bar = document.getElementById('ai-bar');
     try {
-        // Fetching Gemma-3-1B-Web (Highly optimized 2026 SLM)
-        engine = await webllm.CreateMLCEngine("Gemma-2-2b-it-q4f16_1-MLC", { 
+        // Updated 2026 Import Logic for Stable WebLLM
+        engine = await webllm.CreateMLCEngine("Llama-3.2-1B-Instruct-q4f16_1-MLC", {
             initProgressCallback: (p) => {
                 bar.style.width = (p.progress * 100) + "%";
-                log.innerText = `AI: Synchronizing Neural Weights... ${Math.round(p.progress * 100)}%`;
+                log.innerText = `AI: Syncing Neural Link... ${Math.round(p.progress * 100)}%`;
             }
         });
-        
-        status.innerText = "CONNECTED";
-        status.style.color = "#00f2ff";
-        log.innerText = "AI: Neural Link established. Starshot probe ready for query.";
+        log.innerText = "AI: Connection Stable. Ready for query.";
         document.getElementById('ai-input').disabled = false;
-        
-        document.getElementById('ai-input').addEventListener('keypress', async (e) => {
+        document.getElementById('ai-input').onkeypress = async (e) => {
             if(e.key === 'Enter') {
-                const query = e.target.value; e.target.value = '';
-                log.innerText = "AI: Deep scanning...";
-                const reply = await engine.chat.completions.create({
-                    messages: [{ role: "system", content: "You are the AI of an interstellar laser-sail probe. Be technical, cold, and brief." }, { role: "user", content: query }]
+                const q = e.target.value; e.target.value = '';
+                log.innerText = "AI: Processing...";
+                const res = await engine.chat.completions.create({
+                    messages: [{role:"system", content:"You are an AI probe in deep space. Be brief."}, {role:"user", content:q}]
                 });
-                log.innerText = "AI: " + reply.choices[0].message.content;
+                log.innerText = "AI: " + res.choices[0].message.content;
             }
-        });
+        };
     } catch(err) {
-        log.innerText = "AI ERROR: WebGPU Check Failed. Phone may be incompatible with Local Neural Link.";
+        log.innerText = "AI: WebGPU not detected. AI disabled.";
+        console.error(err);
     }
 }
 
-function setupJoysticks() {
-    const bind = (id, side) => {
+function setupControls() {
+    const mapJoy = (id, side) => {
         const el = document.getElementById(id);
-        const kn = el.querySelector('.knob');
-        const handle = (e) => {
+        el.addEventListener('touchmove', e => {
             const r = el.getBoundingClientRect();
-            const x = (e.touches[0].clientX - (r.left + 70)) / 70;
-            const y = (e.touches[0].clientY - (r.top + 70)) / 70;
-            kn.style.transform = `translate(${x*45}px, ${y*45}px)`;
-            touchPoints[side] = {x, y};
-        };
-        el.ontouchmove = handle;
-        el.ontouchend = () => { kn.style.transform = ''; touchPoints[side] = {x:0, y:0}; };
+            const x = (e.touches[0].clientX - (r.left + 60)) / 60;
+            const y = (e.touches[0].clientY - (r.top + 60)) / 60;
+            el.querySelector('.knob').style.transform = `translate(${x*40}px, ${y*40}px)`;
+            touch[side] = {x, y};
+        });
+        el.addEventListener('touchend', () => {
+            el.querySelector('.knob').style.transform = '';
+            touch[side] = {x:0, y:0};
+        });
     };
-    bind('joy-l', 'l'); bind('joy-r', 'r');
+    mapJoy('joy-l', 'l'); mapJoy('joy-r', 'r');
 }
 
 function animate() {
     requestAnimationFrame(animate);
     
-    // Laser Propulsion: Constant acceleration
-    velocity.z -= 0.25;
+    // Constant Laser Force
+    vel.z -= 0.15;
     
-    // Steering Logic
-    rotation.y -= touchPoints.r.x * 0.045;
-    rotation.x -= touchPoints.r.y * 0.045;
+    // Rotation + Flight
+    rot.y -= touch.r.x * 0.04;
+    rot.x -= touch.r.y * 0.04;
     
-    const currentVel = velocity.clone().applyEuler(rotation);
-    camera.position.add(currentVel);
-    camera.setRotationFromEuler(rotation);
+    const forward = vel.clone().applyEuler(rot);
+    camera.position.add(forward);
+    camera.setRotationFromEuler(rot);
 
-    // Planet Orbital Path
-    const t = clock.getElapsedTime();
-    planet.position.x = Math.sin(t * 0.12) * 4000;
-    planet.position.z = Math.cos(t * 0.12) * 4000 - 3000;
-    planet.rotation.y += 0.01;
+    // Orbiting target
+    const t = Date.now() * 0.0005;
+    planet.position.x = Math.sin(t) * 2000;
+    planet.position.z = Math.cos(t) * 2000 - 3000;
 
-    // HUD Logic
-    document.getElementById('vel-txt').innerText = (Math.abs(velocity.z) / 100).toFixed(4);
-    document.getElementById('pos-txt').innerText = `${Math.round(camera.position.x)},${Math.round(camera.position.y)}`;
-    
+    document.getElementById('vel').innerText = Math.abs(Math.round(vel.z * 100));
     composer.render();
 }
 </script>
