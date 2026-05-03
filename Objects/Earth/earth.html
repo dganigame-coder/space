@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Professional Earth</title>
+<title>Adaptive Earth</title>
 <style>
   body { margin: 0; overflow: hidden; background: black; }
-  canvas { display: block; }
+  canvas { display: block; touch-action: none; }
 </style>
 </head>
 <body>
@@ -13,8 +13,12 @@
 <script src="https://unpkg.com/three@0.158.0/build/three.min.js"></script>
 
 <script>
+const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+
+// 🌍 Scene
 const scene = new THREE.Scene();
 
+// 📷 Camera
 const camera = new THREE.PerspectiveCamera(
   60,
   window.innerWidth / window.innerHeight,
@@ -23,22 +27,26 @@ const camera = new THREE.PerspectiveCamera(
 );
 camera.position.z = 3;
 
-const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+// 🎮 Renderer (adaptive quality)
+const renderer = new THREE.WebGLRenderer({ antialias: !isMobile });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(window.devicePixelRatio);
+
+// 👇 key mobile optimization
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.2 : 2));
 document.body.appendChild(renderer.domElement);
 
-// 🌞 Sun direction (fixed)
+// ☀️ Sun direction
 const sunDirection = new THREE.Vector3(5, 0, 5).normalize();
 
-// Textures
+// 🧰 Loader
 const loader = new THREE.TextureLoader();
 
+// 🌍 Textures
 const dayTex = loader.load("https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg");
 const nightTex = loader.load("https://assets.science.nasa.gov/content/dam/science/esd/eo/images/imagerecords/144000/144898/BlackMarble_2016_01deg.jpg");
 const cloudTex = loader.load("https://www.shadedrelief.com/natural3/images/earth_clouds.jpg");
 
-// 🌍 EARTH SHADER MATERIAL (day/night blend)
+// 🌍 Earth Shader
 const earthMaterial = new THREE.ShaderMaterial({
   uniforms: {
     dayMap: { value: dayTex },
@@ -48,16 +56,11 @@ const earthMaterial = new THREE.ShaderMaterial({
   vertexShader: `
     varying vec2 vUv;
     varying vec3 vNormal;
-    varying vec3 vWorldPosition;
 
     void main() {
       vUv = uv;
       vNormal = normalize(normalMatrix * normal);
-
-      vec4 worldPos = modelMatrix * vec4(position, 1.0);
-      vWorldPosition = worldPos.xyz;
-
-      gl_Position = projectionMatrix * viewMatrix * worldPos;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
     }
   `,
   fragmentShader: `
@@ -70,61 +73,64 @@ const earthMaterial = new THREE.ShaderMaterial({
 
     void main() {
 
-      vec3 dayColor = texture2D(dayMap, vUv).rgb;
-      vec3 nightColor = texture2D(nightMap, vUv).rgb;
+      vec3 day = texture2D(dayMap, vUv).rgb;
+      vec3 night = texture2D(nightMap, vUv).rgb;
 
-      float light = dot(vNormal, sunDirection);
+      float intensity = dot(vNormal, sunDirection);
 
-      float dayFactor = smoothstep(-0.1, 0.3, light);
-      float nightFactor = 1.0 - dayFactor;
+      float dayMix = smoothstep(-0.1, 0.3, intensity);
+      float nightMix = 1.0 - dayMix;
 
-      vec3 color = dayColor * dayFactor + nightColor * nightFactor * 1.2;
+      vec3 color = day * dayMix + night * nightMix * 1.2;
 
       gl_FragColor = vec4(color, 1.0);
     }
   `
 });
 
-// 🌍 Earth mesh
-const earthGeo = new THREE.SphereGeometry(1, 128, 128);
-const earth = new THREE.Mesh(earthGeo, earthMaterial);
+// 🌍 Earth (adaptive geometry)
+const segments = isMobile ? 64 : 128;
+const earth = new THREE.Mesh(
+  new THREE.SphereGeometry(1, segments, segments),
+  earthMaterial
+);
 scene.add(earth);
 
-// ☁️ Clouds
-const cloudMat = new THREE.MeshPhongMaterial({
-  map: cloudTex,
-  transparent: true,
-  opacity: 0.35,
-  depthWrite: false
-});
-
-const clouds = new THREE.Mesh(
-  new THREE.SphereGeometry(1.01, 128, 128),
-  cloudMat
-);
-scene.add(clouds);
-
-// 🌫️ Atmosphere glow (fake Rayleigh)
-const atmosphere = new THREE.Mesh(
-  new THREE.SphereGeometry(1.15, 128, 128),
-  new THREE.MeshBasicMaterial({
-    color: 0x4aa3ff,
+// ☁️ Clouds (lighter on mobile)
+const cloud = new THREE.Mesh(
+  new THREE.SphereGeometry(1.01, isMobile ? 64 : 128, isMobile ? 64 : 128),
+  new THREE.MeshPhongMaterial({
+    map: cloudTex,
     transparent: true,
-    opacity: 0.15,
-    side: THREE.BackSide
+    opacity: 0.35,
+    depthWrite: false
   })
 );
-scene.add(atmosphere);
+scene.add(cloud);
 
-// 💡 Key light (sun feel)
+// 🌫️ Atmosphere (disabled on weak devices if mobile)
+if (!isMobile) {
+  const atmosphere = new THREE.Mesh(
+    new THREE.SphereGeometry(1.15, 128, 128),
+    new THREE.MeshBasicMaterial({
+      color: 0x4aa3ff,
+      transparent: true,
+      opacity: 0.15,
+      side: THREE.BackSide
+    })
+  );
+  scene.add(atmosphere);
+}
+
+// 💡 Light
 const light = new THREE.DirectionalLight(0xffffff, 1.2);
 light.position.copy(sunDirection);
 scene.add(light);
 
-// 🌌 Stars
+// 🌌 Stars (adaptive count)
 function addStars() {
   const geo = new THREE.BufferGeometry();
-  const count = 6000;
+  const count = isMobile ? 2000 : 6000;
   const pos = [];
 
   for (let i = 0; i < count; i++) {
@@ -135,25 +141,56 @@ function addStars() {
 
   geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
 
-  const mat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.6 });
-  const stars = new THREE.Points(geo, mat);
+  const stars = new THREE.Points(
+    geo,
+    new THREE.PointsMaterial({ color: 0xffffff, size: isMobile ? 0.5 : 0.7 })
+  );
+
   scene.add(stars);
 }
 addStars();
 
-// 🎬 Animation
-function animate() {
+// 👆 Simple touch/drag rotation (mobile control)
+let isDragging = false;
+let prevX = 0;
+
+renderer.domElement.addEventListener("pointerdown", (e) => {
+  isDragging = true;
+  prevX = e.clientX;
+});
+
+renderer.domElement.addEventListener("pointerup", () => {
+  isDragging = false;
+});
+
+renderer.domElement.addEventListener("pointermove", (e) => {
+  if (!isDragging) return;
+  const delta = e.clientX - prevX;
+  earth.rotation.y += delta * 0.005;
+  cloud.rotation.y += delta * 0.006;
+  prevX = e.clientX;
+});
+
+// 🎬 Animation (mobile-safe FPS control)
+let last = 0;
+
+function animate(time) {
   requestAnimationFrame(animate);
 
-  earth.rotation.y += 0.0012;
-  clouds.rotation.y += 0.0018;
+  if (time - last < (isMobile ? 20 : 16)) return;
+  last = time;
+
+  if (!isDragging) {
+    earth.rotation.y += 0.0012;
+    cloud.rotation.y += 0.0018;
+  }
 
   renderer.render(scene, camera);
 }
 
 animate();
 
-// resize
+// 📏 Resize
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
