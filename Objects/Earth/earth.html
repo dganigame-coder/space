@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Adaptive Earth</title>
+<title>NASA Earth Engine</title>
 <style>
   body { margin: 0; overflow: hidden; background: black; }
   canvas { display: block; touch-action: none; }
@@ -13,46 +13,57 @@
 <script src="https://unpkg.com/three@0.158.0/build/three.min.js"></script>
 
 <script>
+// =====================
+// DEVICE ADAPTIVE MODE
+// =====================
 const isMobile = /Mobi|Android/i.test(navigator.userAgent);
 
-// 🌍 Scene
+// =====================
+// SCENE SETUP
+// =====================
 const scene = new THREE.Scene();
 
-// 📷 Camera
 const camera = new THREE.PerspectiveCamera(
   60,
   window.innerWidth / window.innerHeight,
   0.1,
   1000
 );
-camera.position.z = 3;
+camera.position.z = 3.2;
 
-// 🎮 Renderer (adaptive quality)
-const renderer = new THREE.WebGLRenderer({ antialias: !isMobile });
+const renderer = new THREE.WebGLRenderer({
+  antialias: !isMobile,
+  alpha: true
+});
+
 renderer.setSize(window.innerWidth, window.innerHeight);
-
-// 👇 key mobile optimization
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.2 : 2));
 document.body.appendChild(renderer.domElement);
 
-// ☀️ Sun direction
-const sunDirection = new THREE.Vector3(5, 0, 5).normalize();
+// =====================
+// SUN DIRECTION (ORBITING)
+// =====================
+const sunDirection = new THREE.Vector3();
 
-// 🧰 Loader
+// =====================
+// TEXTURES
+// =====================
 const loader = new THREE.TextureLoader();
 
-// 🌍 Textures
-const dayTex = loader.load("https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg");
-const nightTex = loader.load("https://assets.science.nasa.gov/content/dam/science/esd/eo/images/imagerecords/144000/144898/BlackMarble_2016_01deg.jpg");
-const cloudTex = loader.load("https://www.shadedrelief.com/natural3/images/earth_clouds.jpg");
+const dayMap = loader.load("https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg");
+const nightMap = loader.load("https://assets.science.nasa.gov/content/dam/science/esd/eo/images/imagerecords/144000/144898/BlackMarble_2016_01deg.jpg");
+const cloudMap = loader.load("https://www.shadedrelief.com/natural3/images/earth_clouds.jpg");
 
-// 🌍 Earth Shader
-const earthMaterial = new THREE.ShaderMaterial({
+// =====================
+// EARTH SHADER (NASA STYLE)
+// =====================
+const earthMat = new THREE.ShaderMaterial({
   uniforms: {
-    dayMap: { value: dayTex },
-    nightMap: { value: nightTex },
-    sunDirection: { value: sunDirection }
+    dayMap: { value: dayMap },
+    nightMap: { value: nightMap },
+    sunDir: { value: sunDirection }
   },
+
   vertexShader: `
     varying vec2 vUv;
     varying vec3 vNormal;
@@ -60,13 +71,14 @@ const earthMaterial = new THREE.ShaderMaterial({
     void main() {
       vUv = uv;
       vNormal = normalize(normalMatrix * normal);
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
     }
   `,
+
   fragmentShader: `
     uniform sampler2D dayMap;
     uniform sampler2D nightMap;
-    uniform vec3 sunDirection;
+    uniform vec3 sunDir;
 
     varying vec2 vUv;
     varying vec3 vNormal;
@@ -76,67 +88,74 @@ const earthMaterial = new THREE.ShaderMaterial({
       vec3 day = texture2D(dayMap, vUv).rgb;
       vec3 night = texture2D(nightMap, vUv).rgb;
 
-      float intensity = dot(vNormal, sunDirection);
+      float light = dot(vNormal, sunDir);
 
-      float dayMix = smoothstep(-0.1, 0.3, intensity);
-      float nightMix = 1.0 - dayMix;
+      float dayFactor = smoothstep(-0.1, 0.35, light);
+      float nightFactor = 1.0 - dayFactor;
 
-      vec3 color = day * dayMix + night * nightMix * 1.2;
+      // 🌍 Earth lighting blend
+      vec3 color = day * dayFactor + night * nightFactor * 1.25;
 
       gl_FragColor = vec4(color, 1.0);
     }
   `
 });
 
-// 🌍 Earth (adaptive geometry)
-const segments = isMobile ? 64 : 128;
+// =====================
+// EARTH MESH
+// =====================
 const earth = new THREE.Mesh(
-  new THREE.SphereGeometry(1, segments, segments),
-  earthMaterial
+  new THREE.SphereGeometry(1, isMobile ? 64 : 128, isMobile ? 64 : 128),
+  earthMat
 );
 scene.add(earth);
 
-// ☁️ Clouds (lighter on mobile)
-const cloud = new THREE.Mesh(
+// =====================
+// CLOUD LAYER
+// =====================
+const clouds = new THREE.Mesh(
   new THREE.SphereGeometry(1.01, isMobile ? 64 : 128, isMobile ? 64 : 128),
   new THREE.MeshPhongMaterial({
-    map: cloudTex,
+    map: cloudMap,
     transparent: true,
     opacity: 0.35,
     depthWrite: false
   })
 );
-scene.add(cloud);
+scene.add(clouds);
 
-// 🌫️ Atmosphere (disabled on weak devices if mobile)
-if (!isMobile) {
-  const atmosphere = new THREE.Mesh(
-    new THREE.SphereGeometry(1.15, 128, 128),
-    new THREE.MeshBasicMaterial({
-      color: 0x4aa3ff,
-      transparent: true,
-      opacity: 0.15,
-      side: THREE.BackSide
-    })
-  );
-  scene.add(atmosphere);
-}
+// =====================
+// ATMOSPHERE (NASA glow)
+// =====================
+const atmosphere = new THREE.Mesh(
+  new THREE.SphereGeometry(1.15, 128, 128),
+  new THREE.MeshBasicMaterial({
+    color: 0x4aa3ff,
+    transparent: true,
+    opacity: 0.12,
+    side: THREE.BackSide
+  })
+);
+scene.add(atmosphere);
 
-// 💡 Light
-const light = new THREE.DirectionalLight(0xffffff, 1.2);
-light.position.copy(sunDirection);
+// =====================
+// LIGHT (SUN)
+// =====================
+const light = new THREE.DirectionalLight(0xffffff, 1.4);
 scene.add(light);
 
-// 🌌 Stars (adaptive count)
+// =====================
+// STARS
+// =====================
 function addStars() {
   const geo = new THREE.BufferGeometry();
   const count = isMobile ? 2000 : 6000;
-  const pos = [];
 
+  const pos = [];
   for (let i = 0; i < count; i++) {
-    pos.push((Math.random() - 0.5) * 250);
-    pos.push((Math.random() - 0.5) * 250);
-    pos.push((Math.random() - 0.5) * 250);
+    pos.push((Math.random() - 0.5) * 300);
+    pos.push((Math.random() - 0.5) * 300);
+    pos.push((Math.random() - 0.5) * 300);
   }
 
   geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
@@ -150,39 +169,54 @@ function addStars() {
 }
 addStars();
 
-// 👆 Simple touch/drag rotation (mobile control)
-let isDragging = false;
-let prevX = 0;
+// =====================
+// TOUCH / DRAG CONTROL
+// =====================
+let dragging = false;
+let lastX = 0;
 
 renderer.domElement.addEventListener("pointerdown", (e) => {
-  isDragging = true;
-  prevX = e.clientX;
+  dragging = true;
+  lastX = e.clientX;
 });
 
-renderer.domElement.addEventListener("pointerup", () => {
-  isDragging = false;
-});
+renderer.domElement.addEventListener("pointerup", () => dragging = false);
 
 renderer.domElement.addEventListener("pointermove", (e) => {
-  if (!isDragging) return;
-  const delta = e.clientX - prevX;
-  earth.rotation.y += delta * 0.005;
-  cloud.rotation.y += delta * 0.006;
-  prevX = e.clientX;
+  if (!dragging) return;
+  const dx = e.clientX - lastX;
+
+  earth.rotation.y += dx * 0.005;
+  clouds.rotation.y += dx * 0.006;
+
+  lastX = e.clientX;
 });
 
-// 🎬 Animation (mobile-safe FPS control)
-let last = 0;
+// =====================
+// ANIMATION LOOP
+// =====================
+let t = 0;
 
-function animate(time) {
+function animate() {
   requestAnimationFrame(animate);
 
-  if (time - last < (isMobile ? 20 : 16)) return;
-  last = time;
+  t += 0.001;
 
-  if (!isDragging) {
+  // 🌞 moving sun (simulates orbit)
+  sunDirection.set(
+    Math.sin(t) * 5,
+    1.5,
+    Math.cos(t) * 5
+  ).normalize();
+
+  earthMat.uniforms.sunDir.value = sunDirection;
+
+  light.position.copy(sunDirection);
+
+  // 🌍 auto rotation
+  if (!dragging) {
     earth.rotation.y += 0.0012;
-    cloud.rotation.y += 0.0018;
+    clouds.rotation.y += 0.0016;
   }
 
   renderer.render(scene, camera);
@@ -190,7 +224,9 @@ function animate(time) {
 
 animate();
 
-// 📏 Resize
+// =====================
+// RESIZE
+// =====================
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
