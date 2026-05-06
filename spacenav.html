@@ -3,28 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Hyperspace Sim v3.0</title>
+    <title>Interstellar: The Web Simulator</title>
     <style>
-        body { margin: 0; background: #000; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; touch-action: none; }
-        #overlay { position: fixed; z-index: 100; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle, #111, #000); display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; text-align: center; }
-        #ui { position: absolute; bottom: 20px; left: 20px; pointer-events: none; opacity: 0.7; font-size: 12px; letter-spacing: 1px; }
-        .btn { border: 1px solid #fff; padding: 15px 30px; border-radius: 30px; text-transform: uppercase; font-weight: bold; margin-top: 20px; transition: 0.3s; }
-        .btn:hover { background: #fff; color: #000; }
+        body { margin: 0; background: #000; color: #0f0; font-family: 'Courier New', monospace; overflow: hidden; touch-action: none; }
+        #ui { position: fixed; top: 20px; left: 20px; z-index: 10; pointer-events: none; text-shadow: 0 0 5px #0f0; }
+        #overlay { position: fixed; z-index: 100; top: 0; left: 0; width: 100%; height: 100%; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; }
+        .hud-line { margin-bottom: 5px; background: rgba(0, 40, 0, 0.5); padding: 5px; }
         canvas { display: block; }
+        #warp-indicator { position: fixed; bottom: 50px; width: 100%; text-align: center; color: cyan; display: none; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <div id="overlay">
-        <h1>SINGULARITY ENGINE</h1>
-        <p>Schwarzschild Metric & Gravitational Lensing</p>
-        <div class="btn">Initiate Simulation</div>
+    <div id="ui">
+        <div class="hud-line">SYSTEM: <span id="location">EARTH ORBIT</span></div>
+        <div class="hud-line">VELOCITY: <span id="vel">0</span> km/s</div>
+        <div class="hud-line">TARGET: <span id="target-ui">MOON</span></div>
     </div>
 
-    <div id="ui">
-        LOCATION: EVENT HORIZON [R = 2M]<br>
-        TIME DILATION: INFINITE<br>
-        STATUS: STABLE
+    <div id="warp-indicator">WARP DRIVE ACTIVE - BENDING SPACETIME</div>
+
+    <div id="overlay">
+        <h1 style="color: white;">MISSION: INTERSTELLAR</h1>
+        <p style="color: #888;">[ TAP TO INITIATE SEPARATION ]</p>
     </div>
 
     <script type="importmap">
@@ -34,136 +35,152 @@
     <script type="module">
         import * as THREE from 'three';
 
-        // --- SCENE & RENDERER ---
+        // --- 1. ENGINE INITIALIZATION ---
         const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Mobile performance cap
         document.body.appendChild(renderer.domElement);
 
-        // --- RELATIVITY SHADER (The Black Hole) ---
-        const bhGeometry = new THREE.SphereGeometry(2, 64, 64);
-        const bhMaterial = new THREE.ShaderMaterial({
-            uniforms: {
-                time: { value: 0 },
-                mouse: { value: new THREE.Vector2(0, 0) }
-            },
-            vertexShader: `
-                varying vec2 vUv;
-                void main() {
-                    vUv = uv;
-                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                }
-            `,
-            fragmentShader: `
-                uniform float time;
-                uniform vec2 mouse;
-                varying vec2 vUv;
+        const loader = new THREE.TextureLoader();
+        let stage = 0; // 0: Launch, 1: Separation/Float, 2: Deep Space, 3: Warp
+        let velocity = 0;
 
-                void main() {
-                    vec2 uv = vUv - 0.5;
-                    float r = length(uv);
-                    
-                    // Gravitational Lensing (Schwarzschild-like warp)
-                    float distortion = 0.03 / (r + 0.005);
-                    vec2 distortedUv = vUv + (uv * distortion);
+        // --- 2. CELESTIAL BODIES (Local & Star Systems) ---
+        
+        // Earth (Hyperrealistic textures)
+        const earthGroup = new THREE.Group();
+        const earth = new THREE.Mesh(
+            new THREE.SphereGeometry(5, 64, 64),
+            new THREE.MeshPhongMaterial({
+                map: loader.load('https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg'),
+                bumpMap: loader.load('https://threejs.org/examples/textures/planets/earth_normal_2048.jpg'),
+                bumpScale: 0.05
+            })
+        );
+        earthGroup.add(earth);
+        scene.add(earthGroup);
 
-                    // Event Horizon
-                    float horizon = smoothstep(0.14, 0.15, r);
+        // The "Fuel Burner" (Rocket Stage)
+        const burner = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.4, 0.5, 2, 32),
+            new THREE.MeshStandardMaterial({ color: 0xaaaaaa, metalness: 0.9, roughness: 0.1 })
+        );
+        burner.position.set(0, -1, 8); // Positioned right in front of camera
+        scene.add(burner);
 
-                    // Accretion Disk Physics
-                    float angle = atan(uv.y, uv.x) + time * 1.5;
-                    float disk = sin(angle * 4.0 + r * 60.0) * 0.5 + 0.5;
-                    disk *= smoothstep(0.45, 0.2, r) * smoothstep(0.18, 0.25, r);
+        // The Moon (Target 1)
+        const moon = new THREE.Mesh(
+            new THREE.SphereGeometry(1.5, 32, 32),
+            new THREE.MeshStandardMaterial({ color: 0xaaaaaa })
+        );
+        moon.position.set(20, 10, -200);
+        scene.add(moon);
 
-                    // Color: Blue shift vs Red shift (Doppler approximation)
-                    vec3 color = vec3(1.0, 0.5, 0.1) * disk * 2.5;
-                    if(uv.x > 0.0) color += vec3(0.0, 0.1, 0.3) * disk; 
+        // Alpha Centauri (Interstellar Target)
+        const alphaCentauri = new THREE.Group();
+        alphaCentauri.position.set(0, 0, -2000);
+        const starGeo = new THREE.SphereGeometry(10, 32, 32);
+        const starMat = new THREE.MeshBasicMaterial({ color: 0xffcc00 });
+        alphaCentauri.add(new THREE.Mesh(starGeo, starMat));
+        scene.add(alphaCentauri);
 
-                    gl_FragColor = vec4(color * horizon, 1.0);
-                }
-            `,
-            transparent: true
-        });
+        // --- 3. PHYSICS & INTERACTION ---
+        const sunLight = new THREE.DirectionalLight(0xffffff, 2);
+        sunLight.position.set(10, 10, 20);
+        scene.add(sunLight);
+        scene.add(new THREE.AmbientLight(0x111111));
 
-        const blackHole = new THREE.Mesh(bhGeometry, bhMaterial);
-        scene.add(blackHole);
-
-        // --- WORMHOLE / STARFIELD ---
-        const starGeom = new THREE.BufferGeometry();
-        const starCount = 8000;
-        const posArray = new Float32Array(starCount * 3);
-        for(let i=0; i < starCount * 3; i++) {
-            posArray[i] = (Math.random() - 0.5) * 150;
-        }
-        starGeom.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-        const starMat = new THREE.PointsMaterial({ size: 0.07, color: 0xaaaaaa, transparent: true, opacity: 0.8 });
-        const stars = new THREE.Points(starGeom, starMat);
-        scene.add(stars);
-
-        camera.position.z = 6;
-
-        // --- INTERACTION & SOUND ---
-        let targetX = 0, targetY = 0;
+        // Interaction state
+        let isTouching = false;
         const overlay = document.getElementById('overlay');
-        const listener = new THREE.AudioListener();
-        const sound = new THREE.Audio(listener);
+        const warpUI = document.getElementById('warp-indicator');
 
-        // Load Ambient Deep Space Sound
-        const audioLoader = new THREE.AudioLoader();
-        audioLoader.load('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3', (buffer) => {
-            sound.setBuffer(buffer);
-            sound.setLoop(true);
-            sound.setVolume(0.4);
-        });
+        // Mobile Touch Support: Toggle Warp or Start
+        overlay.addEventListener('touchstart', startMission);
+        overlay.addEventListener('mousedown', startMission);
 
-        overlay.addEventListener('click', () => {
-            overlay.style.display = 'none';
-            if (THREE.AudioContext.getContext().state === 'suspended') {
-                THREE.AudioContext.getContext().resume();
+        function startMission() {
+            if (stage === 0) {
+                stage = 1; // Start Separation
+                overlay.style.display = 'none';
             }
-            if (sound.buffer) sound.play();
-        });
-
-        function updateInput(x, y) {
-            targetX = (x / window.innerWidth - 0.5) * 4;
-            targetY = (y / window.innerHeight - 0.5) * 4;
         }
 
-        window.addEventListener('mousemove', (e) => updateInput(e.clientX, e.clientY));
-        window.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-            updateInput(e.touches[0].clientX, e.touches[0].clientY);
-        }, { passive: false });
+        // Warp trigger for mobile (long press) or desktop (space)
+        window.addEventListener('touchstart', () => { if(stage >= 2) isTouching = true; });
+        window.addEventListener('touchend', () => { isTouching = false; });
+        window.addEventListener('keydown', (e) => { if(e.code === 'Space') isTouching = true; });
+        window.addEventListener('keyup', (e) => { if(e.code === 'Space') isTouching = false; });
 
-        // --- ANIMATION LOOP ---
-        function animate(t) {
+        // --- 4. THE ANIMATION LOOP (The Physics Engine) ---
+        camera.position.z = 12;
+
+        function animate() {
             requestAnimationFrame(animate);
-            const time = t * 0.001;
+            const time = Date.now() * 0.001;
 
-            bhMaterial.uniforms.time.value = time;
-            
-            // Subtle rotation of the universe
-            stars.rotation.y = time * 0.02;
-            stars.position.z = Math.sin(time * 0.2) * 5;
+            // Rotation of planets
+            earth.rotation.y += 0.0005;
 
-            // Smooth Camera Follow
-            camera.position.x += (targetX - camera.position.x) * 0.05;
-            camera.position.y += (-targetY - camera.position.y) * 0.05;
-            camera.lookAt(0, 0, 0);
+            if (stage === 1) {
+                // SEPARATION PHYSICS:
+                // Simulate the burner disconnecting and drifting with momentum
+                burner.position.z += 0.02;
+                burner.position.y -= 0.005;
+                burner.rotation.x += 0.002;
+                
+                // Camera slowly floats back to reveal Earth scale
+                camera.position.z += 0.01;
+                velocity = 7.8; // Orbital velocity
+                
+                if (burner.position.z > 30) stage = 2; // Move to deep space
+            }
 
+            if (stage >= 2) {
+                // NAVIGATION / WARP PHYSICS:
+                // If user touches screen/holds space, simulate FTL (Faster Than Light)
+                if (isTouching) {
+                    velocity = THREE.MathUtils.lerp(velocity, 5000, 0.02);
+                    warpUI.style.display = 'block';
+                    camera.fov = THREE.MathUtils.lerp(camera.fov, 100, 0.05); // "Tunnel vision" effect
+                } else {
+                    velocity = THREE.MathUtils.lerp(velocity, 20, 0.02);
+                    warpUI.style.display = 'none';
+                    camera.fov = THREE.MathUtils.lerp(camera.fov, 75, 0.05);
+                }
+                camera.updateProjectionMatrix();
+
+                // Move camera forward based on calculated velocity
+                camera.position.z -= (velocity * 0.01);
+
+                // UI Updates based on distance
+                const distToMoon = camera.position.distanceTo(moon.position);
+                const distToStar = camera.position.distanceTo(alphaCentauri.position);
+
+                if (distToMoon < 50) {
+                    document.getElementById('location').innerText = "LUNAR ORBIT";
+                    document.getElementById('target-ui').innerText = "ALPHA CENTAURI";
+                }
+                if (distToStar < 200) {
+                    document.getElementById('location').innerText = "ALPHA CENTAURI SYSTEM";
+                    document.getElementById('target-ui').innerText = "PROXIMA B (Exoplanet)";
+                }
+            }
+
+            document.getElementById('vel').innerText = velocity.toFixed(1);
             renderer.render(scene, camera);
         }
 
+        // Handle window scaling for mobile rotation
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        animate(0);
+        animate();
     </script>
 </body>
 </html>
-                    
