@@ -3,42 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Interstellar 2026: Pro Edition</title>
+    <title>VOYAGER 2026: FINAL</title>
     <style>
         body { margin: 0; background: #000; color: #00ffff; font-family: 'Segoe UI', sans-serif; overflow: hidden; touch-action: none; }
-        #hud { position: fixed; top: 20px; left: 20px; z-index: 10; pointer-events: none; border-left: 2px solid #00ffff; padding-left: 15px; background: rgba(0,0,0,0.4); }
-        #surface-card { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0, 20, 40, 0.9); padding: 30px; border: 1px solid #00ffff; display: none; text-align: center; }
+        #hud { position: fixed; top: 20px; left: 20px; z-index: 10; pointer-events: none; border-left: 2px solid #00ffff; padding-left: 15px; background: rgba(0,0,0,0.5); font-size: 14px; }
+        #surface-intel { position: fixed; bottom: 20px; width: 100%; text-align: center; color: #fff; font-weight: bold; background: rgba(0,255,255,0.1); padding: 10px 0; display: none; }
         
-        /* THE JOYSTICKS */
-        .joystick-base { position: fixed; bottom: 50px; width: 120px; height: 120px; border: 2px solid rgba(0,255,255,0.3); border-radius: 50%; background: rgba(0,255,255,0.05); }
-        #left-js { left: 40px; }
-        #right-js { right: 40px; }
-        .knob { width: 40px; height: 40px; background: #00ffff; border-radius: 50%; position: absolute; top: 40px; left: 40px; box-shadow: 0 0 15px #00ffff; opacity: 0.8; }
+        /* Smooth Joystick UI */
+        .js-base { position: fixed; bottom: 50px; width: 100px; height: 100px; border: 2px solid rgba(0,255,255,0.3); border-radius: 50%; background: rgba(0,255,255,0.05); }
+        #js-left { left: 40px; }
+        #js-right { right: 40px; }
+        .js-knob { width: 30px; height: 30px; background: #00ffff; border-radius: 50%; position: absolute; top: 35px; left: 35px; box-shadow: 0 0 20px #00ffff; }
         
-        #overlay { position: fixed; z-index: 1000; width: 100%; height: 100%; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; }
+        #overlay { position: fixed; z-index: 1000; width: 100%; height: 100%; background: radial-gradient(circle, #111, #000); display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; text-align: center; }
     </style>
 </head>
 <body>
 
     <div id="hud">
-        <div style="font-weight: bold; letter-spacing: 2px;">Vessel: X-1 EXPLORER</div>
-        <div id="loc-display">Location: Earth Surface</div>
-        <div id="spd-display">Speed: 0.0 AU/s</div>
-        <div style="color: #55ff55; margin-top: 5px;">[Left Stick: Rotate | Right Stick: Thrust]</div>
+        <div style="font-weight: bold;">COMMANDER: ON MISSION</div>
+        <div id="loc-ui">LOC: EARTH ORBIT</div>
+        <div id="spd-ui">SPD: 0.0 AU/s</div>
+        <div id="tgt-ui">TARGET: MOON</div>
     </div>
 
-    <div id="surface-card">
-        <h2 id="planet-name">PLANET</h2>
-        <p id="planet-info">Surface details loading...</p>
-        <button onclick="this.parentElement.style.display='none'" style="background:none; color:white; border:1px solid white; padding:5px 15px; cursor:pointer;">EXIT COCKPIT</button>
-    </div>
+    <div id="surface-intel"></div>
 
-    <div id="left-js" class="joystick-base"><div class="knob" id="knob-l"></div></div>
-    <div id="right-js" class="joystick-base"><div class="knob" id="knob-r"></div></div>
+    <div id="js-left" class="js-base"><div class="js-knob" id="knob-l"></div></div>
+    <div id="js-right" class="js-base"><div class="js-knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="color: white; margin-bottom: 0;">IGNITION READY</h1>
-        <p style="color: #00ffff;">TAP TO BEGIN ASCENT</p>
+        <h1 style="color: white; letter-spacing: 5px;">MISSION START</h1>
+        <p style="color: #00ffff;">[ TAP TO SEPARATE FROM EARTH ]</p>
     </div>
 
     <script type="importmap">
@@ -48,7 +44,7 @@
     <script type="module">
         import * as THREE from 'three';
 
-        // --- 1. ENGINE SETUP WITH LOGARITHMIC DEPTH (Stops flicker) ---
+        // --- 1. SETUP & REALISTIC LIGHTING ---
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000000);
         const renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true });
@@ -58,128 +54,112 @@
 
         const loader = new THREE.TextureLoader();
 
-        // --- 2. BRIGHTENING SPACE (The Starfield Fix) ---
-        // Instead of dark, we create 15,000 bright stars of varying sizes
-        const starGeom = new THREE.BufferGeometry();
-        const starCoords = [];
-        const starColors = [];
-        for(let i=0; i<15000; i++) {
-            const x = (Math.random() - 0.5) * 100000;
-            const y = (Math.random() - 0.5) * 100000;
-            const z = (Math.random() - 0.5) * 100000;
-            starCoords.push(x, y, z);
-            starColors.push(0.5 + Math.random(), 0.5 + Math.random(), 1);
-        }
-        starGeom.setAttribute('position', new THREE.Float32BufferAttribute(starCoords, 3));
-        starGeom.setAttribute('color', new THREE.Float32BufferAttribute(starColors, 3));
-        const starMat = new THREE.PointsMaterial({ size: 25, vertexColors: true, transparent: true, opacity: 0.8 });
-        scene.add(new THREE.Points(starGeom, starMat));
+        // High-Quality Stars
+        const starGeom = new THREE.SphereGeometry(900000, 32, 32);
+        const starMat = new THREE.MeshBasicMaterial({ 
+            map: loader.load('https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg'), // Using as star noise
+            side: THREE.BackSide, transparent: true, opacity: 0.2, color: 0x8888ff
+        });
+        scene.add(new THREE.Mesh(starGeom, starMat));
 
-        // --- 3. PLANETARY BODIES ---
+        // --- 2. PLANET GENERATOR (TEXTURING) ---
         const planets = [
-            { name: "SUN", r: 4000, pos: [0, 0, -50000], color: 0xffaa00, info: "The center of our system. Extreme heat and radiation." },
-            { name: "EARTH", r: 600, pos: [0, 0, 0], color: 0x2266ff, info: "The Blue Marble. Nitrogen-Oxygen atmosphere. Perfect for life." },
-            { name: "MOON", r: 150, pos: [1000, 500, -3000], color: 0x888888, info: "Earth's companion. Low gravity and craters." },
-            { name: "MARS", r: 350, pos: [-5000, 0, -20000], color: 0xff4400, info: "The Red Planet. Iron oxide surface and thin air." },
-            { name: "JUPITER", r: 6000, pos: [15000, -2000, -80000], color: 0xccaa88, info: "The Giant. Intense gravity and a massive storm system." }
+            { name: "SUN", r: 4000, pos: [0, 0, -60000], color: 0xffaa00, map: '', info: "WARNING: EXTERNAL HEAT 5000K" },
+            { name: "EARTH", r: 600, pos: [0, 0, 0], color: 0x4488ff, map: 'https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg', info: "LANDED: EARTH. 1G GRAVITY. OXYGEN STABLE." },
+            { name: "MOON", r: 150, pos: [1500, 800, -5000], color: 0xaaaaaa, map: 'https://threejs.org/examples/textures/planets/moon_1024.jpg', info: "LANDED: MOON. LOW GRAVITY. VACUUM." },
+            { name: "MARS", r: 350, pos: [-8000, 0, -40000], color: 0xff5522, map: 'https://threejs.org/examples/textures/planets/mars_1k_color.jpg', info: "LANDED: MARS. THIN ATMOSPHERE. COLD." }
         ];
 
         const bodies = [];
         planets.forEach(p => {
             const group = new THREE.Group();
-            group.position.set(...p.pos);
-            
-            // Core Sphere
-            const mesh = new THREE.Mesh(
-                new THREE.SphereGeometry(p.r, 64, 64),
-                new THREE.MeshStandardMaterial({ 
-                    color: p.color, 
-                    emissive: p.name === "SUN" ? p.color : 0x000000,
-                    emissiveIntensity: 2
-                })
-            );
+            const mat = new THREE.MeshPhongMaterial({
+                color: p.color,
+                map: p.map ? loader.load(p.map) : null,
+                emissive: p.name === "SUN" ? p.color : 0x000000,
+                emissiveIntensity: 2
+            });
+            const mesh = new THREE.Mesh(new THREE.SphereGeometry(p.r, 64, 64), mat);
             group.add(mesh);
 
-            // Atmosphere Glow (Fixes the "Too Dark" look)
+            // Atmospheric Glow (Makes them look like spheres of gas/rock)
             const glow = new THREE.Mesh(
-                new THREE.SphereGeometry(p.r * 1.1, 32, 32),
-                new THREE.MeshBasicMaterial({ color: p.color, transparent: true, opacity: 0.15, side: THREE.BackSide })
+                new THREE.SphereGeometry(p.r * 1.05, 32, 32),
+                new THREE.MeshBasicMaterial({ color: p.color, transparent: true, opacity: 0.1, side: THREE.BackSide })
             );
             group.add(glow);
 
+            group.position.set(...p.pos);
             group.userData = p;
             scene.add(group);
             bodies.push(group);
         });
 
-        const sunLight = new THREE.PointLight(0xffffff, 5, 500000);
-        sunLight.position.set(0, 0, -50000);
+        const sunLight = new THREE.PointLight(0xffffff, 8, 1000000);
+        sunLight.position.set(0, 0, -60000);
         scene.add(sunLight);
-        scene.add(new THREE.AmbientLight(0x333333)); // General space brightness
+        scene.add(new THREE.AmbientLight(0x222222));
 
-        // --- 4. SMOOTH CONTROL ENGINE ---
+        // --- 3. PHYSICS & SMOOTH CONTROLS ---
         let velocity = new THREE.Vector3();
-        let targetRot = new THREE.Euler(0, 0, 0, 'YXZ');
+        let targetVelocity = new THREE.Vector3();
+        let currentRot = new THREE.Euler(0, 0, 0, 'YXZ');
         let controls = { yaw: 0, pitch: 0, thrust: 0 };
         let active = false;
 
-        document.getElementById('overlay').onclick = () => {
-            active = true;
-            document.getElementById('overlay').style.display = 'none';
-        };
+        document.getElementById('overlay').onclick = () => { active = true; document.getElementById('overlay').style.display = 'none'; };
 
-        // Joystick Logic with Smoothing
-        const updateStick = (e) => {
+        window.addEventListener('touchmove', (e) => {
+            e.preventDefault();
             for(let t of e.touches) {
-                if(t.clientX < window.innerWidth/2) { // LEFT STICK: ROTATION
-                    controls.yaw = -((t.clientX - 100) / 60) * 0.03;
-                    controls.pitch = -((t.clientY - (window.innerHeight - 110)) / 60) * 0.03;
-                } else { // RIGHT STICK: THRUST
-                    controls.thrust = -(t.clientY - (window.innerHeight - 110)) * 0.02;
+                if(t.clientX < window.innerWidth/2) {
+                    controls.yaw = -((t.clientX - 90)/50) * 0.03;
+                    controls.pitch = -((t.clientY - (window.innerHeight - 100))/50) * 0.03;
+                } else {
+                    controls.thrust = (window.innerHeight - 100 - t.clientY) * 0.05;
                 }
             }
-        };
+        }, {passive: false});
 
-        window.addEventListener('touchmove', (e) => { e.preventDefault(); updateStick(e); }, {passive: false});
-        window.addEventListener('touchend', () => { controls.thrust = 0; controls.yaw = 0; controls.pitch = 0; });
+        window.addEventListener('touchend', () => { controls = { yaw:0, pitch:0, thrust:0 }; });
 
-        // --- 5. THE LOOP ---
-        camera.position.set(0, 610, 50); // Start just off Earth surface
+        // --- 4. FLIGHT LOOP ---
+        camera.position.set(0, 610, 100);
 
         function animate() {
             requestAnimationFrame(animate);
             if(!active) return;
 
-            // Rotation with Inertia
-            targetRot.y += controls.yaw;
-            targetRot.x += controls.pitch;
-            camera.setRotationFromEuler(targetRot);
+            // Rotate
+            currentRot.y += controls.yaw;
+            currentRot.x += controls.pitch;
+            camera.setRotationFromEuler(currentRot);
 
-            // Thrust
+            // Move
             const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-            velocity.add(dir.multiplyScalar(controls.thrust * 0.1));
-            velocity.multiplyScalar(0.99); // Drag
+            velocity.add(dir.multiplyScalar(controls.thrust * 0.02));
+            velocity.multiplyScalar(0.98); // Space Damping
             camera.position.add(velocity);
 
-            // Landing & Proximity
-            let nearest = "Deep Space";
+            // Landing & Tidal Info
+            let near = "DEEP SPACE";
+            let intel = "";
             bodies.forEach(b => {
                 const d = camera.position.distanceTo(b.position);
                 const r = b.userData.r;
-                if(d < r * 5) nearest = b.userData.name;
-
-                if(d < r + 10) { // LANDING
+                if (d < r * 10) near = b.userData.name;
+                if (d < r + 15) {
                     velocity.set(0,0,0);
-                    const push = new THREE.Vector3().subVectors(camera.position, b.position).setLength(r + 10);
+                    const push = new THREE.Vector3().subVectors(camera.position, b.position).setLength(r + 15);
                     camera.position.copy(b.position).add(push);
-                    document.getElementById('surface-card').style.display = 'block';
-                    document.getElementById('planet-name').innerText = b.userData.name;
-                    document.getElementById('planet-info').innerText = b.userData.info;
+                    intel = b.userData.info;
                 }
             });
 
-            document.getElementById('loc-display').innerText = "Location: " + nearest;
-            document.getElementById('spd-display').innerText = "Speed: " + (velocity.length() * 10).toFixed(1) + " AU/s";
+            document.getElementById('loc-ui').innerText = "LOC: " + near;
+            document.getElementById('spd-ui').innerText = "SPD: " + (velocity.length() * 10).toFixed(1) + " AU/s";
+            document.getElementById('surface-intel').innerText = intel;
+            document.getElementById('surface-intel').style.display = intel ? "block" : "none";
 
             renderer.render(scene, camera);
         }
