@@ -3,30 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Solar Navigator Pro</title>
+    <title>Interstellar Mission Control</title>
     <style>
-        body { margin: 0; background: #000; color: #0f0; font-family: monospace; overflow: hidden; touch-action: none; }
-        #ui { position: fixed; top: 10px; left: 10px; z-index: 10; pointer-events: none; font-size: 12px; }
+        body { margin: 0; background: #000; color: #0f0; font-family: 'Courier New', monospace; overflow: hidden; touch-action: none; }
+        #ui { position: fixed; top: 10px; left: 10px; z-index: 10; pointer-events: none; }
         #overlay { position: fixed; z-index: 100; top: 0; left: 0; width: 100%; height: 100%; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; text-align: center; color: white; }
-        /* Virtual Joystick UI */
-        #joystick-zone { position: fixed; bottom: 40px; left: 40px; width: 120px; height: 120px; border: 2px solid rgba(0,255,0,0.3); border-radius: 50%; z-index: 10; }
-        #joystick-stick { position: absolute; top: 50%; left: 50%; width: 40px; height: 40px; background: rgba(0,255,0,0.5); border-radius: 50%; transform: translate(-50%, -50%); }
+        
+        /* Joystick Styles */
+        .joystick { position: fixed; bottom: 40px; width: 100px; height: 100px; border: 1px solid #0f0; border-radius: 50%; display: none; }
+        #left-stick { left: 40px; }
+        #right-stick { right: 40px; border-color: cyan; }
+        .knob { width: 30px; height: 30px; background: rgba(0, 255, 0, 0.5); border-radius: 50%; position: absolute; top: 35px; left: 35px; }
     </style>
 </head>
 <body>
 
     <div id="ui">
-        <div>COORDINATES: <span id="pos">0,0,0</span></div>
-        <div>SPEED: <span id="spd">0</span> AU/s</div>
-        <div>NEAREST: <span id="near">EARTH</span></div>
-        <div style="color: yellow; margin-top: 5px;">DRAG LEFT SIDE TO STEER | TAP RIGHT TO THRUST</div>
+        <div id="mission-log">STATUS: WAITING FOR IGNITION</div>
+        <div>DIST TO TARGET: <span id="dist-ui">--</span> km</div>
     </div>
 
-    <div id="joystick-zone"><div id="joystick-stick"></div></div>
+    <div id="left-stick" class="joystick"><div class="knob" id="left-knob"></div></div>
+    <div id="right-stick" class="joystick"><div class="knob" id="right-knob"></div></div>
 
     <div id="overlay">
-        <h1>COMMANDER: INITIATE MISSION</h1>
-        <p>1. Tap to separate booster<br>2. Use Joystick to steer<br>3. Tap/Hold screen to accelerate</p>
+        <h1>LAUNCH SEQUENCE READY</h1>
+        <p>TAP TO INITIATE LIFT-OFF</p>
     </div>
 
     <script type="importmap">
@@ -36,113 +38,104 @@
     <script type="module">
         import * as THREE from 'three';
 
-        // --- 1. CORE ENGINE ---
+        // 1. ENGINE SETUP
         const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 20000);
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        // --- 2. THE UNIVERSE (The "Nothing to See" Fix) ---
-        // We create a giant sphere and flip it inside out to draw stars everywhere
-        const starGeo = new THREE.SphereGeometry(10000, 32, 32);
-        const starMat = new THREE.MeshBasicMaterial({
-            map: new THREE.TextureLoader().load('https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg'), // Placeholder for stars
-            side: THREE.BackSide,
-            color: 0x111111 // Dark starry dim
-        });
-        const starField = new THREE.Mesh(starGeo, starMat);
-        scene.add(starField);
+        // 2. THE SOLAR SYSTEM (Scale-correct positioning)
+        const loader = new THREE.TextureLoader();
+        const starGeo = new THREE.SphereGeometry(50000, 32, 32);
+        const starMat = new THREE.MeshBasicMaterial({ color: 0x111111, side: THREE.BackSide });
+        scene.add(new THREE.Mesh(starGeo, starMat));
 
-        // --- 3. PLANETARY SYSTEMS ---
-        const planets = [
-            { name: "SUN", pos: [0, 0, -500], size: 50, color: 0xffcc00 },
-            { name: "EARTH", pos: [0, 0, 0], size: 5, color: 0x2244ff },
-            { name: "MOON", pos: [10, 5, -30], size: 1.2, color: 0x888888 },
-            { name: "MARS", pos: [50, 0, -800], size: 3, color: 0xff4400 }
-        ];
+        // Create Earth (Start Point)
+        const earth = new THREE.Mesh(new THREE.SphereGeometry(500, 64, 64), new THREE.MeshPhongMaterial({ map: loader.load('https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg') }));
+        scene.add(earth);
 
-        const planetMeshes = [];
-        planets.forEach(p => {
-            const mesh = new THREE.Mesh(
-                new THREE.SphereGeometry(p.size, 32, 32),
-                new THREE.MeshStandardMaterial({ color: p.color, emissive: p.name === "SUN" ? p.color : 0x000000 })
-            );
-            mesh.position.set(...p.pos);
-            mesh.userData.name = p.name;
-            scene.add(mesh);
-            planetMeshes.push(mesh);
-        });
+        // Create Moon (Target 1)
+        const moon = new THREE.Mesh(new THREE.SphereGeometry(130, 32, 32), new THREE.MeshStandardMaterial({ color: 0x888888 }));
+        moon.position.set(0, 500, -15000); // Placed far for realistic travel
+        scene.add(moon);
 
-        const sunLight = new THREE.PointLight(0xffffff, 3, 5000);
-        sunLight.position.set(0, 0, -500);
-        scene.add(sunLight);
+        // Lighting
+        const sun = new THREE.DirectionalLight(0xffffff, 1.5);
+        sun.position.set(10000, 10000, 10000);
+        scene.add(sun);
+        scene.add(new THREE.AmbientLight(0x222222));
 
-        // --- 4. FLIGHT CONTROLS ---
+        // 3. FLIGHT CONTROLS & STATE
+        let phase = "WAIT"; // WAIT -> LAUNCH -> SEPARATE -> FREE
         let velocity = new THREE.Vector3();
-        let rotation = new THREE.Euler(0, 0, 0, 'YXZ');
-        let moveState = { forward: 0, yaw: 0, pitch: 0 };
-        let isSeparated = false;
+        let targetRot = new THREE.Euler(0, 0, 0, 'YXZ');
+        let controls = { left: {x:0, y:0}, right: {x:0, y:0} };
 
-        // Joystick Logic
-        const stick = document.getElementById('joystick-stick');
-        window.addEventListener('touchmove', (e) => {
-            const touch = e.touches[0];
-            if (touch.clientX < window.innerWidth / 2) {
-                // Steering
-                moveState.yaw = -(touch.clientX - 100) * 0.0005;
-                moveState.pitch = -(touch.clientY - (window.innerHeight - 100)) * 0.0005;
-                stick.style.transform = `translate(${moveState.yaw * 5000}%, ${moveState.pitch * 5000}%)`;
-            } else {
-                // Thrust
-                moveState.forward = 1;
-            }
-        });
-
-        window.addEventListener('touchend', () => { 
-            moveState.forward = 0; 
-            moveState.yaw = 0; 
-            moveState.pitch = 0;
-            stick.style.transform = `translate(-50%, -50%)`;
-        });
-
-        // PC Controls (WASD)
-        window.addEventListener('keydown', (e) => {
-            if(e.key === 'w') moveState.forward = 1;
-            if(e.key === 'a') moveState.yaw = 0.02;
-            if(e.key === 'd') moveState.yaw = -0.02;
-        });
-        window.addEventListener('keyup', () => { moveState.forward = 0; moveState.yaw = 0; });
-
-        document.getElementById('overlay').onclick = function() {
-            this.style.display = 'none';
-            isSeparated = true;
+        // 4. ANIMATION HANDLER
+        document.getElementById('overlay').onclick = () => {
+            phase = "LAUNCH";
+            document.getElementById('overlay').style.display = 'none';
         };
 
-        // --- 5. LOOP ---
-        camera.position.z = 20;
+        // Touch Interaction (Joysticks)
+        function handleTouch(e, side) {
+            const touch = e.touches[0];
+            const rect = document.getElementById(side + '-stick').getBoundingClientRect();
+            controls[side].x = (touch.clientX - (rect.left + 50)) / 50;
+            controls[side].y = (touch.clientY - (rect.top + 50)) / 50;
+        }
+
+        window.addEventListener('touchmove', (e) => {
+            if (e.touches[0].clientX < window.innerWidth/2) handleTouch(e, 'left');
+            else handleTouch(e, 'right');
+        });
+
+        // 5. MAIN LOOP
+        camera.position.set(0, 495, 20); // Starting just above Earth's surface
+        camera.lookAt(0, 500, 0);
 
         function animate() {
             requestAnimationFrame(animate);
+            const time = Date.now() * 0.001;
 
-            if (isSeparated) {
-                // Apply Rotation (Steering)
-                rotation.y += moveState.yaw;
-                rotation.x += moveState.pitch;
-                camera.setRotationFromEuler(rotation);
+            if (phase === "LAUNCH") {
+                // SCRIPTED: Ascend from Earth
+                camera.position.y += 0.5;
+                camera.position.z += 0.1;
+                document.getElementById('mission-log').innerText = "STATUS: ASCENDING TO ORBIT...";
+                if (camera.position.y > 700) phase = "SEPARATE";
+            }
 
-                // Apply Thrust
-                if (moveState.forward) {
-                    const direction = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-                    velocity.add(direction.multiplyScalar(0.01));
-                }
+            if (phase === "SEPARATE") {
+                // SCRIPTED: Level out and activate controls
+                camera.lookAt(moon.position);
+                document.getElementById('left-stick').style.display = 'block';
+                document.getElementById('right-stick').style.display = 'block';
+                document.getElementById('mission-log').innerText = "STATUS: BOOSTER SEPARATED. PILOT CONTROL ACTIVE.";
+                phase = "FREE";
+            }
 
-                // Move Camera
+            if (phase === "FREE") {
+                // PILOT CONTROLLED PHYSICS
+                // Steering (Left Stick)
+                targetRot.y -= controls.left.x * 0.02;
+                targetRot.x -= controls.left.y * 0.02;
+                camera.setRotationFromEuler(targetRot);
+
+                // Thrust (Right Stick)
+                const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+                velocity.add(dir.multiplyScalar(-controls.right.y * 0.5));
                 camera.position.add(velocity);
-                
-                // Update UI
-                document.getElementById('pos').innerText = `${Math.round(camera.position.x)}, ${Math.round(camera.position.y)}, ${Math.round(camera.position.z)}`;
-                document.getElementById('spd').innerText = (velocity.length() * 100).toFixed(1);
+
+                // Tidal/Gravity Feeling
+                const distToMoon = camera.position.distanceTo(moon.position);
+                document.getElementById('dist-ui').innerText = Math.round(distToMoon);
+
+                if (distToMoon < 500) {
+                    document.getElementById('mission-log').innerText = "STATUS: LUNAR GRAVITY DETECTED. PREPARE TO LAND.";
+                    velocity.multiplyScalar(0.98); // Simulate atmospheric/gravity drag
+                }
             }
 
             renderer.render(scene, camera);
