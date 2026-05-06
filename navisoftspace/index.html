@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>NaviSoft Space Simulator</title>
+    <style>
+        /* Deep Space UI Theme */
+        body { margin: 0; background: #000; overflow: hidden; touch-action: none; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        
+        #hud { 
+            position: fixed; top: 20px; left: 20px; color: #00ffff; z-index: 100; 
+            pointer-events: none; border-left: 2px solid #00ffff; padding-left: 15px;
+            background: rgba(0, 40, 40, 0.2); backdrop-filter: blur(5px);
+        }
+
+        .stick-base { 
+            position: fixed; bottom: 50px; width: 110px; height: 110px; 
+            border: 2px solid rgba(0, 255, 255, 0.2); border-radius: 50%; 
+            background: rgba(0, 255, 255, 0.05); z-index: 100;
+        }
+        #left-stick { left: 40px; }
+        #right-stick { right: 40px; }
+        .knob { 
+            position: absolute; width: 40px; height: 40px; background: #00ffff; 
+            border-radius: 50%; top: 35px; left: 35px; box-shadow: 0 0 20px #00ffff; 
+            opacity: 0.8; transition: transform 0.1s ease-out;
+        }
+
+        #surface-intel {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(0, 10, 20, 0.9); border: 1px solid #0ff; color: white;
+            padding: 20px; text-align: center; display: none; z-index: 200;
+        }
+
+        #overlay { 
+            position: fixed; inset: 0; background: radial-gradient(circle, #111, #000); 
+            z-index: 1000; display: flex; flex-direction: column; justify-content: center; 
+            align-items: center; cursor: pointer; color: white; 
+        }
+        
+        .btn-exit { margin-top: 15px; background: none; border: 1px solid #0ff; color: #0ff; padding: 5px 10px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div id="hud">
+        <div style="font-size: 10px; opacity: 0.7;">[ SYSTEM STATUS: ONLINE ]</div>
+        <div id="loc-display">LOCATION: EARTH SURFACE</div>
+        <div id="spd-display">VELOCITY: 0.0 AU/s</div>
+        <div id="target-display" style="color: #55ff55;">NEAREST: --</div>
+    </div>
+
+    <div id="surface-intel">
+        <h2 id="p-name">PLANET</h2>
+        <p id="p-data">Atmospheric conditions analyzed...</p>
+        <button class="btn-exit" onclick="document.getElementById('surface-intel').style.display='none'">CLOSE LOG</button>
+    </div>
+
+    <div id="left-stick" class="stick-base"><div class="knob" id="knob-l"></div></div>
+    <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
+
+    <div id="overlay">
+        <h1 style="letter-spacing: 10px;">NAVISOFT</h1>
+        <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
+        <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
+    </div>
+
+    <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "engine": "https://cdn.jsdelivr.net/gh/YOUR_GITHUB_USER/YOUR_REPO/navisoftspace/engine.js",
+        "pilot": "https://cdn.jsdelivr.net/gh/YOUR_GITHUB_USER/YOUR_REPO/navisoftspace/pilot.js",
+        "earth": "https://cdn.jsdelivr.net/gh/YOUR_GITHUB_USER/YOUR_REPO/navisoftspace/planets/earth.js",
+        "moon": "https://cdn.jsdelivr.net/gh/YOUR_GITHUB_USER/YOUR_REPO/navisoftspace/planets/moon.js",
+        "sun": "https://cdn.jsdelivr.net/gh/YOUR_GITHUB_USER/YOUR_REPO/navisoftspace/planets/sun.js"
+      }
+    }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { initEngine } from 'engine';
+        import { initPilot, updateFlight } from 'pilot';
+        import { createEarth } from 'earth';
+        import { createMoon } from 'moon';
+        import { createSun } from 'sun';
+
+        const overlay = document.getElementById('overlay');
+
+        overlay.onclick = () => {
+            overlay.style.display = 'none';
+            
+            // 1. Setup Render Engine
+            const engine = initEngine();
+            
+            // 2. Load Planet Modules
+            const sun = createSun();
+            const earth = createEarth();
+            const moon = createMoon();
+            
+            engine.scene.add(sun);
+            engine.scene.add(earth);
+            engine.scene.add(moon);
+            
+            const bodies = [sun, earth, moon];
+
+            // 3. Initialize Control Module
+            initPilot();
+            
+            function frame() {
+                requestAnimationFrame(frame);
+                
+                // Flight Physics & Collision
+                updateFlight(engine.camera, bodies);
+                
+                // Trigger specific planet animations (clouds, lava, rotation)
+                bodies.forEach(b => { if(b.onUpdate) b.onUpdate(); });
+
+                // Render Scene
+                engine.renderer.render(engine.scene, engine.camera);
+            }
+            frame();
+        };
+    </script>
+</body>
+</html>
