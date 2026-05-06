@@ -1,34 +1,40 @@
-<!DOCTYPE html>
+    <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Interstellar Mission Control</title>
+    <title>SOLAR VOYAGER: 2026</title>
     <style>
-        body { margin: 0; background: #000; color: #0f0; font-family: 'Courier New', monospace; overflow: hidden; touch-action: none; }
-        #ui { position: fixed; top: 10px; left: 10px; z-index: 10; pointer-events: none; }
-        #overlay { position: fixed; z-index: 100; top: 0; left: 0; width: 100%; height: 100%; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; text-align: center; color: white; }
+        body { margin: 0; background: #000; color: #00ff00; font-family: 'Courier New', monospace; overflow: hidden; touch-action: none; }
+        #hud { position: fixed; top: 15px; left: 15px; z-index: 10; pointer-events: none; }
+        #surface-intel { position: fixed; bottom: 20px; width: 100%; text-align: center; color: cyan; font-weight: bold; display: none; }
+        #overlay { position: fixed; z-index: 100; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle, #111, #000); display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; text-align: center; color: white; }
         
-        /* Joystick Styles */
-        .joystick { position: fixed; bottom: 40px; width: 100px; height: 100px; border: 1px solid #0f0; border-radius: 50%; display: none; }
-        #left-stick { left: 40px; }
-        #right-stick { right: 40px; border-color: cyan; }
-        .knob { width: 30px; height: 30px; background: rgba(0, 255, 0, 0.5); border-radius: 50%; position: absolute; top: 35px; left: 35px; }
+        /* Smooth Joystick UI */
+        .stick-container { position: fixed; bottom: 40px; width: 120px; height: 120px; border: 2px solid rgba(0,255,0,0.2); border-radius: 50%; }
+        #left-stick { left: 30px; }
+        #right-stick { right: 30px; }
+        .knob { width: 40px; height: 40px; background: #0f0; border-radius: 50%; position: absolute; top: 40px; left: 40px; opacity: 0.4; }
     </style>
 </head>
 <body>
 
-    <div id="ui">
-        <div id="mission-log">STATUS: WAITING FOR IGNITION</div>
-        <div>DIST TO TARGET: <span id="dist-ui">--</span> km</div>
+    <div id="hud">
+        <div style="font-size: 1.2em;">MISSION: SOLAR EXPLORER</div>
+        <hr>
+        <div>POS: <span id="pos-ui">0, 0, 0</span></div>
+        <div>SPD: <span id="spd-ui">0</span> AU/s</div>
+        <div>TARGET: <span id="target-ui">NONE</span></div>
     </div>
 
-    <div id="left-stick" class="joystick"><div class="knob" id="left-knob"></div></div>
-    <div id="right-stick" class="joystick"><div class="knob" id="right-knob"></div></div>
+    <div id="surface-intel"></div>
+
+    <div id="left-stick" class="stick-container"><div class="knob" id="knob-l"></div></div>
+    <div id="right-stick" class="stick-container"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1>LAUNCH SEQUENCE READY</h1>
-        <p>TAP TO INITIATE LIFT-OFF</p>
+        <h1>[ SYSTEM INITIALIZED ]</h1>
+        <p>TAP SCREEN TO DEPART EARTH</p>
     </div>
 
     <script type="importmap">
@@ -38,109 +44,129 @@
     <script type="module">
         import * as THREE from 'three';
 
-        // 1. ENGINE SETUP
+        // --- 1. ENGINE & SCENE SCALE ---
         const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        // 2. THE SOLAR SYSTEM (Scale-correct positioning)
         const loader = new THREE.TextureLoader();
-        const starGeo = new THREE.SphereGeometry(50000, 32, 32);
-        const starMat = new THREE.MeshBasicMaterial({ color: 0x111111, side: THREE.BackSide });
-        scene.add(new THREE.Mesh(starGeo, starMat));
 
-        // Create Earth (Start Point)
-        const earth = new THREE.Mesh(new THREE.SphereGeometry(500, 64, 64), new THREE.MeshPhongMaterial({ map: loader.load('https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg') }));
-        scene.add(earth);
+        // --- 2. THE SOLAR SYSTEM DATA ---
+        const planetsData = [
+            { name: "SUN", r: 2500, dist: 30000, color: 0xffcc00, info: "STAR: Surface Temp 5,500°C. Do not linger." },
+            { name: "MERCURY", r: 100, dist: 20000, color: 0x999999, info: "ROCKY: Extreme radiation. No atmosphere." },
+            { name: "VENUS", r: 250, dist: 12000, color: 0xeebb99, info: "CRUSHING: Sulfuric clouds. 460°C surface." },
+            { name: "EARTH", r: 260, dist: 0, color: 0x2244ff, info: "HOME: Nitrogen-Oxygen atmosphere. 1G Gravity." },
+            { name: "MOON", r: 70, dist: 1000, color: 0x888888, info: "SATELLITE: Low gravity. Lunar dust detected." },
+            { name: "MARS", r: 140, dist: -15000, color: 0xff4400, info: "DESERT: Iron oxide dust storms. Weak atmosphere." },
+            { name: "JUPITER", r: 2800, dist: -60000, color: 0xccaa88, info: "GAS GIANT: No solid surface. High pressure." },
+            { name: "SATURN", r: 2300, dist: -120000, color: 0xeeddaa, info: "RINGED: 82 Moons. Hydrogen-Helium composition." }
+        ];
 
-        // Create Moon (Target 1)
-        const moon = new THREE.Mesh(new THREE.SphereGeometry(130, 32, 32), new THREE.MeshStandardMaterial({ color: 0x888888 }));
-        moon.position.set(0, 500, -15000); // Placed far for realistic travel
-        scene.add(moon);
-
-        // Lighting
-        const sun = new THREE.DirectionalLight(0xffffff, 1.5);
-        sun.position.set(10000, 10000, 10000);
-        scene.add(sun);
-        scene.add(new THREE.AmbientLight(0x222222));
-
-        // 3. FLIGHT CONTROLS & STATE
-        let phase = "WAIT"; // WAIT -> LAUNCH -> SEPARATE -> FREE
-        let velocity = new THREE.Vector3();
-        let targetRot = new THREE.Euler(0, 0, 0, 'YXZ');
-        let controls = { left: {x:0, y:0}, right: {x:0, y:0} };
-
-        // 4. ANIMATION HANDLER
-        document.getElementById('overlay').onclick = () => {
-            phase = "LAUNCH";
-            document.getElementById('overlay').style.display = 'none';
-        };
-
-        // Touch Interaction (Joysticks)
-        function handleTouch(e, side) {
-            const touch = e.touches[0];
-            const rect = document.getElementById(side + '-stick').getBoundingClientRect();
-            controls[side].x = (touch.clientX - (rect.left + 50)) / 50;
-            controls[side].y = (touch.clientY - (rect.top + 50)) / 50;
-        }
-
-        window.addEventListener('touchmove', (e) => {
-            if (e.touches[0].clientX < window.innerWidth/2) handleTouch(e, 'left');
-            else handleTouch(e, 'right');
+        const bodies = [];
+        planetsData.forEach(p => {
+            const mesh = new THREE.Mesh(
+                new THREE.SphereGeometry(p.r, 64, 64),
+                new THREE.MeshStandardMaterial({ 
+                    color: p.color, 
+                    emissive: p.name === "SUN" ? p.color : 0x000000,
+                    emissiveIntensity: 1
+                })
+            );
+            mesh.position.set(0, 0, p.dist);
+            mesh.userData = p;
+            scene.add(mesh);
+            bodies.push(mesh);
         });
 
-        // 5. MAIN LOOP
-        camera.position.set(0, 495, 20); // Starting just above Earth's surface
-        camera.lookAt(0, 500, 0);
+        // Milky Way Background (Makes it feel like Space)
+        const starGeo = new THREE.SphereGeometry(800000, 32, 32);
+        const starMat = new THREE.MeshBasicMaterial({ 
+            color: 0xffffff,
+            map: loader.load('https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg'), // Using earth map as noise
+            side: THREE.BackSide,
+            transparent: true,
+            opacity: 0.1
+        });
+        scene.add(new THREE.Mesh(starGeo, starMat));
+
+        const light = new THREE.PointLight(0xffffff, 5, 2000000);
+        light.position.set(0, 0, 30000); // Light from the Sun
+        scene.add(light);
+        scene.add(new THREE.AmbientLight(0x111111));
+
+        // --- 3. SMOOTH CONTROLS ---
+        let velocity = new THREE.Vector3();
+        let currentRotation = new THREE.Euler(0, 0, 0, 'YXZ');
+        let controls = { yaw: 0, pitch: 0, thrust: 0 };
+        let isStarted = false;
+
+        const overlay = document.getElementById('overlay');
+        overlay.onclick = () => { isStarted = true; overlay.style.display = 'none'; };
+
+        // Joystick Input Logic
+        window.addEventListener('touchmove', (e) => {
+            for(let touch of e.touches) {
+                if (touch.clientX < window.innerWidth / 2) {
+                    controls.yaw = -(touch.clientX - 90) * 0.0004;
+                    controls.pitch = -(touch.clientY - (window.innerHeight - 100)) * 0.0004;
+                } else {
+                    controls.thrust = (window.innerHeight - 100 - touch.clientY) * 0.05;
+                }
+            }
+        });
+
+        window.addEventListener('touchend', () => { controls.thrust = 0; controls.yaw = 0; controls.pitch = 0; });
+
+        // --- 4. FLIGHT & LANDING PHYSICS ---
+        camera.position.set(0, 270, 50); // Start at Earth surface
 
         function animate() {
             requestAnimationFrame(animate);
-            const time = Date.now() * 0.001;
+            if (!isStarted) return;
 
-            if (phase === "LAUNCH") {
-                // SCRIPTED: Ascend from Earth
-                camera.position.y += 0.5;
-                camera.position.z += 0.1;
-                document.getElementById('mission-log').innerText = "STATUS: ASCENDING TO ORBIT...";
-                if (camera.position.y > 700) phase = "SEPARATE";
-            }
+            // 1. Smooth Rotation (Interpolation)
+            currentRotation.y += controls.yaw;
+            currentRotation.x += controls.pitch;
+            camera.setRotationFromEuler(currentRotation);
 
-            if (phase === "SEPARATE") {
-                // SCRIPTED: Level out and activate controls
-                camera.lookAt(moon.position);
-                document.getElementById('left-stick').style.display = 'block';
-                document.getElementById('right-stick').style.display = 'block';
-                document.getElementById('mission-log').innerText = "STATUS: BOOSTER SEPARATED. PILOT CONTROL ACTIVE.";
-                phase = "FREE";
-            }
+            // 2. Thrust & Inertia
+            const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+            velocity.add(forward.multiplyScalar(controls.thrust * 0.01));
+            velocity.multiplyScalar(0.995); // Space Damping (Very slight friction)
+            camera.position.add(velocity);
 
-            if (phase === "FREE") {
-                // PILOT CONTROLLED PHYSICS
-                // Steering (Left Stick)
-                targetRot.y -= controls.left.x * 0.02;
-                targetRot.x -= controls.left.y * 0.02;
-                camera.setRotationFromEuler(targetRot);
+            // 3. Landing & Surface Intel
+            let nearest = "DEEP SPACE";
+            let intelDisplay = "none";
 
-                // Thrust (Right Stick)
-                const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-                velocity.add(dir.multiplyScalar(-controls.right.y * 0.5));
-                camera.position.add(velocity);
+            bodies.forEach(b => {
+                const dist = camera.position.distanceTo(b.position);
+                const surface = b.userData.r + 5;
 
-                // Tidal/Gravity Feeling
-                const distToMoon = camera.position.distanceTo(moon.position);
-                document.getElementById('dist-ui').innerText = Math.round(distToMoon);
+                if (dist < surface + 500) nearest = b.userData.name;
 
-                if (distToMoon < 500) {
-                    document.getElementById('mission-log').innerText = "STATUS: LUNAR GRAVITY DETECTED. PREPARE TO LAND.";
-                    velocity.multiplyScalar(0.98); // Simulate atmospheric/gravity drag
+                // Landed State
+                if (dist <= surface) {
+                    velocity.set(0,0,0);
+                    const pushBack = new THREE.Vector3().subVectors(camera.position, b.position).setLength(surface);
+                    camera.position.copy(b.position).add(pushBack);
+                    
+                    document.getElementById('surface-intel').innerText = b.userData.info;
+                    intelDisplay = "block";
                 }
-            }
+            });
+
+            // UI Updates
+            document.getElementById('pos-ui').innerText = `${Math.round(camera.position.z)}`;
+            document.getElementById('spd-ui').innerText = (velocity.length() * 10).toFixed(1);
+            document.getElementById('target-ui').innerText = nearest;
+            document.getElementById('surface-intel').style.display = intelDisplay;
 
             renderer.render(scene, camera);
         }
-
         animate();
     </script>
 </body>
