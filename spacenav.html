@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hyperrealistic Space - Three.js</title>
+    <style>
+        body { margin: 0; background-color: #000; overflow: hidden; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // --- SCENE SETUP ---
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        document.body.appendChild(renderer.domElement);
+
+        // --- EARTH ---
+        const loader = new THREE.TextureLoader();
+        const geometry = new THREE.SphereGeometry(1, 64, 64);
+        
+        // Using high-quality texture placeholders
+        const material = new THREE.MeshPhongMaterial({
+            map: loader.load('https://unpkg.com/threejs-planets-tutorial@1.0.0/dist/textures/earthmap1k.jpg'),
+            bumpMap: loader.load('https://unpkg.com/threejs-planets-tutorial@1.0.0/dist/textures/earthbump1k.jpg'),
+            bumpScale: 0.05,
+        });
+
+        const earth = new THREE.Mesh(geometry, material);
+        scene.add(earth);
+
+        // --- LIGHTING ---
+        const sunLight = new THREE.DirectionalLight(0xffffff, 2);
+        sunLight.position.set(5, 3, 5);
+        scene.add(sunLight);
+        
+        const ambientLight = new THREE.AmbientLight(0x404040, 0.5); // Soft space light
+        scene.add(ambientLight);
+
+        // --- CONTROLS & POSITION ---
+        const controls = new OrbitControls(camera, renderer.domElement);
+        camera.position.z = 2.5;
+
+        // --- RESPONSIVE DESIGN ---
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // --- ANIMATION LOOP ---
+        function animate() {
+            requestAnimationFrame(animate);
+            earth.rotation.y += 0.0015; // Slow planetary rotation
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
