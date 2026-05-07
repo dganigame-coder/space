@@ -1,70 +1,65 @@
 import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
 
-/**
- * RESPONSIBILITY: 
- * 1. Initialize the WebGL Renderer
- * 2. Create the 15,000 Star Background
- * 3. Set up the Sun's light source
- */
+let velocity = new THREE.Vector3();
+let currentRotation = new THREE.Euler(0, 0, 0, 'YXZ');
+let controls = { yaw: 0, pitch: 0, thrust: 0 };
 
-export function initEngine() {
-    // 1. The Stage
-    const scene = new THREE.Scene();
-    
-    // Perspective Camera: 75 degree field of view
-    // LogarithmicDepthBuffer is CRITICAL for space—it stops "flickering" 
-    // when planets are far away.
-    const camera = new THREE.PerspectiveCamera(
-        75, 
-        window.innerWidth / window.innerHeight, 
-        0.1, 
-        5000000 
-    );
+export function initPilot() {
+    const knobL = document.getElementById('knob-l');
+    const knobR = document.getElementById('knob-r');
 
-    const renderer = new THREE.WebGLRenderer({ 
-        antialias: true, 
-        logarithmicDepthBuffer: true 
+    window.addEventListener('touchmove', (e) => {
+        e.preventDefault(); 
+        for (let touch of e.touches) {
+            if (touch.clientX < window.innerWidth / 2) {
+                const centerX = 90;
+                const centerY = window.innerHeight - 100;
+                controls.yaw = -((touch.clientX - centerX) / 50) * 0.03;
+                controls.pitch = -((touch.clientY - centerY) / 50) * 0.03;
+                if(knobL) knobL.style.transform = `translate(${controls.yaw * 500}%, ${controls.pitch * 500}%)`;
+            } else {
+                const centerY = window.innerHeight - 100;
+                controls.thrust = (centerY - touch.clientY) * 0.08;
+                if(knobR) knobR.style.transform = `translateY(${-controls.thrust * 2}px)`;
+            }
+        }
+    }, { passive: false });
+
+    window.addEventListener('touchend', () => {
+        controls.yaw = 0; controls.pitch = 0; controls.thrust = 0;
+        if(knobL) knobL.style.transform = `translate(0, 0)`;
+        if(knobR) knobR.style.transform = `translate(0, 0)`;
     });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // High-res but fast
-    document.body.appendChild(renderer.domElement);
+}
 
-    // 2. The Starfield (The "Space" Feeling)
-    // We create 15,000 points randomly distributed in a massive cube
-    const starGeometry = new THREE.BufferGeometry();
-    const starPositions = [];
-    for (let i = 0; i < 15000; i++) {
-        const x = (Math.random() - 0.5) * 150000;
-        const y = (Math.random() - 0.5) * 150000;
-        const z = (Math.random() - 0.5) * 150000;
-        starPositions.push(x, y, z);
-    }
-    starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starPositions, 3));
-    
-    const starMaterial = new THREE.PointsMaterial({
-        color: 0xffffff,
-        size: 20,
-        sizeAttenuation: true
-    });
-    const stars = new THREE.Points(starGeometry, starMaterial);
-    scene.add(stars);
+export function updateFlight(camera, planets) {
+    currentRotation.y += controls.yaw;
+    currentRotation.x += controls.pitch;
+    camera.setRotationFromEuler(currentRotation);
 
-    // 3. The Light (The "Touch and Feel" of 3D)
-    // PointLight acts as the Sun. All planets will be lit from this one spot.
-    const sunLight = new THREE.PointLight(0xffffff, 15, 2000000);
-    sunLight.position.set(0, 0, -60000); // Must match Sun's position in sun.js
-    scene.add(sunLight);
+    const forwardDir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+    velocity.add(forwardDir.multiplyScalar(controls.thrust * 0.02));
+    velocity.multiplyScalar(0.98); 
+    camera.position.add(velocity);
 
-    // Ambient Light: Softly lights the dark side of planets so they aren't pitch black
-    const ambientLight = new THREE.AmbientLight(0x222222);
-    scene.add(ambientLight);
-
-    // Handle Window Resizing
-    window.addEventListener('resize', () => {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
+    planets.forEach(planet => {
+        const distance = camera.position.distanceTo(planet.position);
+        const radius = planet.userData.r;
+        if (distance <= radius + 15) {
+            velocity.set(0, 0, 0);
+            const surfaceNormal = new THREE.Vector3().subVectors(camera.position, planet.position).normalize();
+            camera.position.copy(planet.position).add(surfaceNormal.multiplyScalar(radius + 15));
+            
+            const nameEl = document.getElementById('p-name');
+            const dataEl = document.getElementById('p-data');
+            const intelEl = document.getElementById('surface-intel');
+            
+            if(nameEl) nameEl.innerText = planet.userData.name;
+            if(dataEl) dataEl.innerText = planet.userData.info;
+            if(intelEl) intelEl.style.display = 'block';
+        }
     });
 
-    return { scene, camera, renderer };
+    const spdEl = document.getElementById('spd-display');
+    if(spdEl) spdEl.innerText = "VELOCITY: " + (velocity.length() * 10).toFixed(1) + " AU/s";
 }
