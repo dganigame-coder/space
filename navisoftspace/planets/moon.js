@@ -6,11 +6,14 @@ export function createMoon() {
 
     const moon = new THREE.Mesh(
         new THREE.SphereGeometry(160, 64, 64),
+        // Inside earth.js and moon.js
         new THREE.MeshPhongMaterial({
-            map: loader.load('https://threejs.org/examples/textures/planets/moon_1024.jpg'),
-            bumpMap: loader.load('https://threejs.org/examples/textures/planets/moon_1024.jpg'),
-            bumpScale: 5
-        })
+        color: 0xffffff, // Use white so the texture isn't "tinted" dark
+        map: loader.load('https://threejs.org/examples/textures/planets/moon_1024.jpg'),
+        bumpMap: loader.load('https://threejs.org/examples/textures/planets/moon_1024.jpg'),
+        bumpScale: 12,   // Increased slightly to make craters "pop" in the sunlight
+        shininess: 0,    // The moon is dusty/matte, it shouldn't be "shiny" like plastic
+    })
     );
     group.add(moon);
 
