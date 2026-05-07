@@ -58,10 +58,6 @@ export function initEngine() {
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.3); // Soft white light everywhere
     scene.add(ambientLight);
 
-    // Ambient Light: Softly lights the dark side of planets so they aren't pitch black
-    const ambientLight = new THREE.AmbientLight(0x222222);
-    scene.add(ambientLight);
-
     // Handle Window Resizing
     window.addEventListener('resize', () => {
         camera.aspect = window.innerWidth / window.innerHeight;
