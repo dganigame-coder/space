@@ -30,6 +30,31 @@ export function initPilot() {
         if(knobL) knobL.style.transform = `translate(0, 0)`;
         if(knobR) knobR.style.transform = `translate(0, 0)`;
     });
+    // KEYBOARD CONTROLS
+    window.addEventListener('keydown', (e) => {
+        const key = e.key.toLowerCase();
+        
+        // Thrust (Speed)
+        if (key === 'w') controls.thrust = 5.0;  // Go Forward
+        if (key === 's') controls.thrust = -2.0; // Go Backward (Brake)
+
+        // Rotation (Steering)
+        if (key === 'a') controls.yaw = 0.02;    // Turn Left
+        if (key === 'd') controls.yaw = -0.02;   // Turn Right
+        
+        // Pitch (Up/Down)
+        if (e.key === 'ArrowUp') controls.pitch = 0.02;
+        if (e.key === 'ArrowDown') controls.pitch = -0.02;
+    });
+
+    // Reset movement when you let go of the key
+    window.addEventListener('keyup', (e) => {
+        const key = e.key.toLowerCase();
+        if (key === 'w' || key === 's') controls.thrust = 0;
+        if (key === 'a' || key === 'd') controls.yaw = 0;
+        if (e.key === 'ArrowUp' || e.key === 'ArrowDown') controls.pitch = 0;
+    });
+
 }
 
 export function updateFlight(camera, planets) {
