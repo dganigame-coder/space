@@ -50,10 +50,13 @@ export function initEngine() {
     scene.add(stars);
 
     // 3. The Light (The "Touch and Feel" of 3D)
-    // PointLight acts as the Sun. All planets will be lit from this one spot.
-    const sunLight = new THREE.PointLight(0xffffff, 15, 2000000);
-    sunLight.position.set(0, 0, -60000); // Must match Sun's position in sun.js
+    const sunLight = new THREE.PointLight(0xffffff, 10, 0, 0); // 0 distance = no decay
+    sunLight.position.set(0, 0, -60000); 
     scene.add(sunLight);
+
+    // Add a Global Light so nothing is ever pitch black
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.3); // Soft white light everywhere
+    scene.add(ambientLight);
 
     // Ambient Light: Softly lights the dark side of planets so they aren't pitch black
     const ambientLight = new THREE.AmbientLight(0x222222);
