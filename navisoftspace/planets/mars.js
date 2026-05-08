@@ -22,7 +22,8 @@ export function createMars() {
     group.add(marsMesh);
 
     // Position Mars
-    group.position.set(-10000, 2000, -15000);
+    // Realistic Mars Position (1.52x Earth Distance)
+    group.position.set(5000, 500, -91200);
     group.userData = { 
         name: "MARS", 
         info: "The Red Planet. Iron oxide surface. 0.38G Gravity.",
