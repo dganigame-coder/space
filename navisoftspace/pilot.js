@@ -8,53 +8,52 @@ export function initPilot() {
     const knobL = document.getElementById('knob-l');
     const knobR = document.getElementById('knob-r');
 
-    window.addEventListener('touchmove', (e) => {
-        e.preventDefault(); 
+    // MOBILE TOUCH LOGIC
+    const handleTouch = (e) => {
+        e.preventDefault(); // CRITICAL: Stops mobile from scrolling
         for (let touch of e.touches) {
             if (touch.clientX < window.innerWidth / 2) {
+                // Left side: Steering
                 const centerX = 90;
                 const centerY = window.innerHeight - 100;
                 controls.yaw = -((touch.clientX - centerX) / 50) * 0.03;
                 controls.pitch = -((touch.clientY - centerY) / 50) * 0.03;
                 if(knobL) knobL.style.transform = `translate(${controls.yaw * 500}%, ${controls.pitch * 500}%)`;
             } else {
+                // Right side: Thrust
                 const centerY = window.innerHeight - 100;
                 controls.thrust = (centerY - touch.clientY) * 0.08;
                 if(knobR) knobR.style.transform = `translateY(${-controls.thrust * 2}px)`;
             }
         }
-    }, { passive: false });
+    };
+
+    window.addEventListener('touchstart', handleTouch, { passive: false });
+    window.addEventListener('touchmove', handleTouch, { passive: false });
 
     window.addEventListener('touchend', () => {
         controls.yaw = 0; controls.pitch = 0; controls.thrust = 0;
         if(knobL) knobL.style.transform = `translate(0, 0)`;
         if(knobR) knobR.style.transform = `translate(0, 0)`;
     });
-    // KEYBOARD CONTROLS
+
+    // DESKTOP KEYBOARD LOGIC
     window.addEventListener('keydown', (e) => {
         const key = e.key.toLowerCase();
-        
-        // Thrust (Speed)
-        if (key === 'w') controls.thrust = 5.0;  // Go Forward
-        if (key === 's') controls.thrust = -2.0; // Go Backward (Brake)
-
-        // Rotation (Steering)
-        if (key === 'a') controls.yaw = 0.02;    // Turn Left
-        if (key === 'd') controls.yaw = -0.02;   // Turn Right
-        
-        // Pitch (Up/Down)
+        if (key === 'w') controls.thrust = 5.0;
+        if (key === 's') controls.thrust = -2.0;
+        if (key === 'a') controls.yaw = 0.02;
+        if (key === 'd') controls.yaw = -0.02;
         if (e.key === 'ArrowUp') controls.pitch = 0.02;
         if (e.key === 'ArrowDown') controls.pitch = -0.02;
     });
 
-    // Reset movement when you let go of the key
     window.addEventListener('keyup', (e) => {
         const key = e.key.toLowerCase();
-        if (key === 'w' || key === 's') controls.thrust = 0;
-        if (key === 'a' || key === 'd') controls.yaw = 0;
-        if (e.key === 'ArrowUp' || e.key === 'ArrowDown') controls.pitch = 0;
+        if (['w', 's'].includes(key)) controls.thrust = 0;
+        if (['a', 'd'].includes(key)) controls.yaw = 0;
+        if (['arrowup', 'arrowdown'].includes(e.key.toLowerCase())) controls.pitch = 0;
     });
-
 }
 
 export function updateFlight(camera, planets) {
