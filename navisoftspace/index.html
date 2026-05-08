@@ -162,7 +162,33 @@
         // --- 3. ADD EVERYTHING TO THE COLLISION ARRAY ---
         // This is what allows you to land on them and see their HUD data
         const bodies = [sun, mercury, venus, earth, moon, mars, jupiter, saturn, uranus, neptune];
+
+        // --- ADD THE HUD CLICK LOGIC HERE ---
+        const nearestLabel = document.getElementById('target-display');
+        nearestLabel.style.cursor = "pointer";
+
+        nearestLabel.addEventListener('click', () => {
+        let closest = null;
+        let minDist = Infinity;
+    
+       bodies.forEach(b => {
+        const d = engine.camera.position.distanceTo(b.position);
+        if (d < minDist) { 
+            minDist = d; 
+            closest = b; 
+        }
+       });
+
+       if (closest) {
+        // Point the ship directly at the nearest planet
+        engine.camera.lookAt(closest.position);
         
+        // Peer Tip: If you want to stop the ship so you don't fly past it:
+        // velocity.set(0,0,0); 
+        
+        console.log("Locked on to " + closest.userData.name);
+    }
+    });
             // 3. Initialize Control Module
             initPilot();
             
@@ -175,9 +201,47 @@
                 // Trigger specific planet animations (clouds, lava, rotation)
                 bodies.forEach(b => { if(b.onUpdate) b.onUpdate(); });
 
-                // Render Scene
-                engine.renderer.render(engine.scene, engine.camera);
-            }
+                const nearestLabel = document.getElementById('target-display');
+
+const nearestLabel = document.getElementById('target-display');
+
+function frame() {
+    requestAnimationFrame(frame);
+    updateFlight(engine.camera, bodies);
+
+    // --- HUD LOGIC START ---
+    let closestBody = null;
+    let minDistance = Infinity;
+
+    bodies.forEach(b => {
+        // Calculate raw distance between ship and planet center
+        const dist = engine.camera.position.distanceTo(b.position);
+        
+        if (dist < minDistance) {
+            minDistance = dist;
+            closestBody = b;
+        }
+    });
+
+    if (closestBody) {
+        // 1 AU = 60,000 units. Let's convert it for the display.
+        const auDist = (minDistance / 60000).toFixed(2);
+        const name = closestBody.userData.name;
+
+        // Update the text
+        nearestLabel.innerText = `NEAREST: ${name} (${auDist} AU)`;
+        
+        // Bonus: Make it red if you're about to crash!
+        if (minDistance < closestBody.userData.r + 1000) {
+            nearestLabel.style.color = "#ff5555"; // Red for danger
+        } else {
+            nearestLabel.style.color = "#55ff55"; // Your original green
+        }
+    }
+    // --- HUD LOGIC END ---
+
+    engine.renderer.render(engine.scene, engine.camera);
+}
             frame();
         };
     </script>
