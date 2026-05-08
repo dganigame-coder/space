@@ -15,7 +15,7 @@ export function createSun() {
 
     // Solar Flare Glow (the "Aura")
     const spriteMat = new THREE.SpriteMaterial({
-        map: new THREE.TextureLoader().load('https://threejs.org/examples/textures/lensflare/lensflare0.png'),
+        map: new THREE.TextureLoader().load('https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/planets/texture/2k_sun.jpg'),
         color: 0xffaa00,
         transparent: true,
         opacity: 0.5,
