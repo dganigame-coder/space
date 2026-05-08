@@ -108,6 +108,7 @@
         "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
         "engine": "https://cdn.jsdelivr.net/gh/dganigame-coder/space@8fe1978/navisoftspace/engine.js",
         "pilot": "https://cdn.jsdelivr.net/gh/dganigame-coder/space@10a63d6/navisoftspace/pilot.js",
+        "stars:"https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/stars.js",
         "mars":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@75f7ce3/navisoftspace/planets/mars.js",
         "jupiter":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@71e5e44/navisoftspace/planets/jupiter.js",
         "earth": "https://cdn.jsdelivr.net/gh/dganigame-coder/space@fb6961b/navisoftspace/planets/earth.js",
@@ -126,6 +127,8 @@
     <script type="module">
     import { initEngine } from 'engine';
     import { initPilot, updateFlight } from 'pilot';
+    import { createStars } from 'stars';
+
     import { createSun } from 'sun';   
     import { createEarth } from 'earth';
     import { createMoon } from 'moon';
