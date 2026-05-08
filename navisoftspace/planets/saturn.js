@@ -22,7 +22,7 @@ export function createSaturn() {
     // The Rings
     const ringGeo = new THREE.RingGeometry(3000, 5000, 64);
     const ringMat = new THREE.MeshBasicMaterial({
-        map: loader.load('https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/planets/texture/2k_saturn_ring_alpha.pn'),
+        map: loader.load('https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/planets/texture/2k_saturn_ring_alpha.png'),
         side: THREE.DoubleSide,
         transparent: true,
         opacity: 0.8
