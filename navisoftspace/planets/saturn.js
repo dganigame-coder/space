@@ -23,8 +23,13 @@ export function createSaturn() {
     rings.rotation.x = Math.PI / 2.5; // Tilt the rings
     group.add(rings);
 
-    group.position.set(35000, 0, -55000);
-    group.userData = { name: "SATURN", info: "Gas giant with spectacular rings. Would float in water.", r: 2500 };
+    // Inside createSaturn()
+    group.position.set(30000, 1000, -572400); // 9.5 AU
+    group.userData = { 
+     name: "SATURN", 
+     info: "Ringed giant. Lowest density of any planet.",
+     r: 4200 
+    };
     group.onUpdate = () => { saturn.rotation.y += 0.001; };
     return group;
 }
