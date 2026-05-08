@@ -16,11 +16,12 @@ export function createUranus() {
     uranus.rotation.z = Math.PI / 2; 
     
     group.add(uranus);
-    group.position.set(-45000, 2000, -75000); 
+    // Correct Position: 19.2 AU
+    group.position.set(-50000, -2000, -1152000); 
     group.userData = { 
-        name: "URANUS", 
-        info: "The Sideways Planet. Ice giant with faint rings and cold methane clouds.", 
-        r: 1100 
+      name: "URANUS", 
+      info: "The Sideways Planet. Ice giant with faint rings and cold methane clouds.", 
+      r: 1100 
     };
 
     group.onUpdate = () => {
