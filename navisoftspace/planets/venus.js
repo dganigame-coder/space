@@ -6,7 +6,7 @@ export function createVenus() {
     const venus = new THREE.Mesh(
         new THREE.SphereGeometry(380, 64, 64),
         new THREE.MeshPhongMaterial({
-            map: loader.load('https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/textures/venus.jpg'),
+            map: loader.load('https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/planets/texture/2k_venus_surface.jpg'),
         })
     );
     group.add(venus);
