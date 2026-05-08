@@ -8,7 +8,7 @@ export function createJupiter() {
    const jupiter = new THREE.Mesh(
      new THREE.SphereGeometry(3000, 128, 128),
      new THREE.MeshStandardMaterial({
-         map: loader.load('https://www.solarsystemscope.com/textures/download/8k_jupiter.jpg'),
+         map: loader.load('https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/planets/texture/8k_jupiter.jpg'),
         roughness: 1.0,
        metalness: 0.0
      })
