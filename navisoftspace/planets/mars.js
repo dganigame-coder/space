@@ -4,15 +4,13 @@ export function createMars() {
     const loader = new THREE.TextureLoader();
     const group = new THREE.Group();
 
-    const mars = new THREE.Mesh(
-        new THREE.SphereGeometry(400, 64, 64),
-        new THREE.MeshPhongMaterial({
-            map: loader.load('https://threejs.org/examples/textures/planets/mars_1k_color.jpg'),
-            bumpMap: loader.load('https://threejs.org/examples/textures/planets/mars_1k_topo.jpg'),
-            bumpScale: 8,
-            shininess: 5
-        })
-    );
+    const marsMaterial = new THREE.MeshStandardMaterial({
+    map: loader.load('https://www.solarsystemscope.com/textures/download/2k_mars.jpg'),
+    bumpMap: loader.load('https://www.solarsystemscope.com/textures/download/8k_mars.jpg'),
+    bumpScale: 0.35,
+    roughness: 1,
+    metalness: 0
+    });
     group.add(mars);
 
     // Position Mars further out than the Moon
