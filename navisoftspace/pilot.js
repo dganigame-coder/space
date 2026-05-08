@@ -3,34 +3,32 @@ import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
 let velocity = new THREE.Vector3();
 let currentRotation = new THREE.Euler(0, 0, 0, 'YXZ');
 let controls = { yaw: 0, pitch: 0, thrust: 0 };
+let isWarping = false; // New state for Shift key
 
 export function initPilot() {
     const knobL = document.getElementById('knob-l');
     const knobR = document.getElementById('knob-r');
 
-    // MOBILE TOUCH LOGIC
     const handleTouch = (e) => {
-        e.preventDefault(); // CRITICAL: Stops mobile from scrolling
+        e.preventDefault(); 
         for (let touch of e.touches) {
             if (touch.clientX < window.innerWidth / 2) {
-                // Left side: Steering
                 const centerX = 90;
                 const centerY = window.innerHeight - 100;
                 controls.yaw = -((touch.clientX - centerX) / 50) * 0.03;
                 controls.pitch = -((touch.clientY - centerY) / 50) * 0.03;
                 if(knobL) knobL.style.transform = `translate(${controls.yaw * 500}%, ${controls.pitch * 500}%)`;
             } else {
-                // Right side: Thrust
                 const centerY = window.innerHeight - 100;
-                controls.thrust = (centerY - touch.clientY) * 0.08;
-                if(knobR) knobR.style.transform = `translateY(${-controls.thrust * 2}px)`;
+                // INCREASED MOBILE THRUST: Multiplied by 0.5 instead of 0.08
+                controls.thrust = (centerY - touch.clientY) * 0.5;
+                if(knobR) knobR.style.transform = `translateY(${-controls.thrust * 0.5}px)`;
             }
         }
     };
 
     window.addEventListener('touchstart', handleTouch, { passive: false });
     window.addEventListener('touchmove', handleTouch, { passive: false });
-
     window.addEventListener('touchend', () => {
         controls.yaw = 0; controls.pitch = 0; controls.thrust = 0;
         if(knobL) knobL.style.transform = `translate(0, 0)`;
@@ -40,8 +38,12 @@ export function initPilot() {
     // DESKTOP KEYBOARD LOGIC
     window.addEventListener('keydown', (e) => {
         const key = e.key.toLowerCase();
-        if (key === 'w') controls.thrust = 5.0;
-        if (key === 's') controls.thrust = -2.0;
+        
+        // CHECK FOR WARP DRIVE
+        if (e.shiftKey) isWarping = true;
+
+        if (key === 'w') controls.thrust = 50.0; // Increased from 5.0
+        if (key === 's') controls.thrust = -20.0; // Increased from -2.0
         if (key === 'a') controls.yaw = 0.02;
         if (key === 'd') controls.yaw = -0.02;
         if (e.key === 'ArrowUp') controls.pitch = 0.02;
@@ -50,6 +52,7 @@ export function initPilot() {
 
     window.addEventListener('keyup', (e) => {
         const key = e.key.toLowerCase();
+        if (key === 'shift') isWarping = false;
         if (['w', 's'].includes(key)) controls.thrust = 0;
         if (['a', 'd'].includes(key)) controls.yaw = 0;
         if (['arrowup', 'arrowdown'].includes(e.key.toLowerCase())) controls.pitch = 0;
@@ -62,17 +65,24 @@ export function updateFlight(camera, planets) {
     camera.setRotationFromEuler(currentRotation);
 
     const forwardDir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-    velocity.add(forwardDir.multiplyScalar(controls.thrust * 0.02));
-    velocity.multiplyScalar(0.98); 
+    
+    // APPLY THRUST
+    let multiplier = isWarping ? 10.0 : 1.0; // 10x speed if holding Shift
+    velocity.add(forwardDir.multiplyScalar(controls.thrust * 0.5 * multiplier));
+    
+    // REDUCED DAMPING: 0.99 means you keep 99% of your speed every frame.
+    // This allows you to "coast" through space much better.
+    velocity.multiplyScalar(0.99); 
+    
     camera.position.add(velocity);
 
     planets.forEach(planet => {
         const distance = camera.position.distanceTo(planet.position);
         const radius = planet.userData.r;
-        if (distance <= radius + 15) {
+        if (distance <= radius + 50) { // Slightly larger collision buffer
             velocity.set(0, 0, 0);
             const surfaceNormal = new THREE.Vector3().subVectors(camera.position, planet.position).normalize();
-            camera.position.copy(planet.position).add(surfaceNormal.multiplyScalar(radius + 15));
+            camera.position.copy(planet.position).add(surfaceNormal.multiplyScalar(radius + 50));
             
             const nameEl = document.getElementById('p-name');
             const dataEl = document.getElementById('p-data');
@@ -85,5 +95,9 @@ export function updateFlight(camera, planets) {
     });
 
     const spdEl = document.getElementById('spd-display');
-    if(spdEl) spdEl.innerText = "VELOCITY: " + (velocity.length() * 10).toFixed(1) + " AU/s";
+    if(spdEl) {
+        // Updated display logic to show relative speed
+        const speed = (velocity.length()).toFixed(0);
+        spdEl.innerText = isWarping ? "WARP SPEED: " + speed : "VELOCITY: " + speed;
+    }
 }
