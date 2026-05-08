@@ -25,10 +25,13 @@ export function createEarth() {
         })
     );
     group.add(clouds);
-
-    group.position.set(0, 0, 0);
-    group.userData = { name: "EARTH", info: "Habitable Zone. 1.0G Gravity. Nitrogen-Oxygen atmosphere." };
-
+    // Inside createEarth()
+    group.position.set(0, 0, -60000); // 1.0 AU
+    group.userData = { 
+     name: "EARTH", 
+     info: "The Blue Marble. Only known planet with life. 1G Gravity.",
+     r: 500 
+   };
     group.onUpdate = () => {
         surface.rotation.y += 0.0005;
         clouds.rotation.y += 0.0007; // Clouds move slightly faster for realism
