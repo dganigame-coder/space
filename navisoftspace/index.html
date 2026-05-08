@@ -148,7 +148,10 @@
     overlay.onclick = () => {
         overlay.style.display = 'none';
         const engine = initEngine();
-        
+        // Add the background
+       const starfield = createStars();
+       scene.add(starfield); 
+
         // --- 1. INITIALIZE ALL BODIES ---
         const sun = createSun();
         const mercury = createMercury();
