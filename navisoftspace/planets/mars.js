@@ -5,8 +5,8 @@ export function createMars() {
     const group = new THREE.Group();
 
     const mars = new THREE.MeshStandardMaterial({
-    map: loader.load('https://www.solarsystemscope.com/textures/download/2k_mars.jpg'),
-    bumpMap: loader.load('https://www.solarsystemscope.com/textures/download/8k_mars.jpg'),
+    map: loader.load('https://github.com/dganigame-coder/space/tree/master/navisoftspace/planets/texture/2k_mars.jpg'),
+    bumpMap: loader.load('https://github.com/dganigame-coder/space/tree/master/navisoftspace/planets/texture/8k_mars.jpg'),
     bumpScale: 0.35,
     roughness: 1,
     metalness: 0
