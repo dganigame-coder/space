@@ -4,43 +4,65 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>NaviSoft Space Simulator</title>
-    <style>
-        /* Deep Space UI Theme */
-        body { margin: 0; background: #000; overflow: hidden; touch-action: none; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        
-        #hud { 
-            position: fixed; top: 20px; left: 20px; color: #00ffff; z-index: 100; 
-            pointer-events: none; border-left: 2px solid #00ffff; padding-left: 15px;
-            background: rgba(0, 40, 40, 0.2); backdrop-filter: blur(5px);
-        }
+<style>
+    /* Deep Space UI Theme */
+    body { 
+        margin: 0; 
+        background: #000; 
+        overflow: hidden; 
+        /* Prevents the browser from handling touch (scrolling/zooming) */
+        touch-action: none; 
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+        user-select: none; /* Prevents text highlighting while flying */
+    }
 
-        .stick-base { 
-            position: fixed; bottom: 50px; width: 110px; height: 110px; 
-            border: 2px solid rgba(0, 255, 255, 0.2); border-radius: 50%; 
-            background: rgba(0, 255, 255, 0.05); z-index: 100;
-        }
-        #left-stick { left: 40px; }
-        #right-stick { right: 40px; }
-        .knob { 
-            position: absolute; width: 40px; height: 40px; background: #00ffff; 
-            border-radius: 50%; top: 35px; left: 35px; box-shadow: 0 0 20px #00ffff; 
-            opacity: 0.8; transition: transform 0.1s ease-out;
-        }
+    #hud { 
+        position: fixed; top: 20px; left: 20px; color: #00ffff; z-index: 100; 
+        pointer-events: none; border-left: 2px solid #00ffff; padding-left: 15px;
+        background: rgba(0, 40, 40, 0.2); backdrop-filter: blur(5px);
+    }
 
-        #surface-intel {
-            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: rgba(0, 10, 20, 0.9); border: 1px solid #0ff; color: white;
-            padding: 20px; text-align: center; display: none; z-index: 200;
-        }
+    /* Joystick Bases: These should be the "touch zones" */
+    .stick-base { 
+        position: fixed; bottom: 50px; width: 110px; height: 110px; 
+        border: 2px solid rgba(0, 255, 255, 0.2); border-radius: 50%; 
+        background: rgba(0, 255, 255, 0.05); 
+        z-index: 500; /* Higher than the 3D canvas */
+        touch-action: none; /* Critical for mobile */
+    }
+    
+    #left-stick { left: 40px; }
+    #right-stick { right: 40px; }
 
-        #overlay { 
-            position: fixed; inset: 0; background: radial-gradient(circle, #111, #000); 
-            z-index: 1000; display: flex; flex-direction: column; justify-content: center; 
-            align-items: center; cursor: pointer; color: white; 
-        }
-        
-        .btn-exit { margin-top: 15px; background: none; border: 1px solid #0ff; color: #0ff; padding: 5px 10px; cursor: pointer; }
-    </style>
+    .knob { 
+        position: absolute; width: 40px; height: 40px; background: #00ffff; 
+        border-radius: 50%; top: 35px; left: 35px; box-shadow: 0 0 20px #00ffff; 
+        opacity: 0.8; 
+        transition: transform 0.1s ease-out;
+        pointer-events: none; /* The knob itself shouldn't block the base */
+    }
+
+    #surface-intel {
+        position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        background: rgba(0, 10, 20, 0.9); border: 1px solid #0ff; color: white;
+        padding: 20px; text-align: center; display: none; z-index: 600;
+    }
+
+    #overlay { 
+        position: fixed; inset: 0; background: radial-gradient(circle, #111, #000); 
+        z-index: 1000; display: flex; flex-direction: column; justify-content: center; 
+        align-items: center; cursor: pointer; color: white; 
+    }
+    
+    .btn-exit { margin-top: 15px; background: none; border: 1px solid #0ff; color: #0ff; padding: 5px 10px; cursor: pointer; }
+    
+    canvas {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+        touch-action: none;
+    }
+</style>
 </head>
 <body>
 
@@ -71,7 +93,7 @@
       "imports": {
         "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
         "engine": "https://cdn.jsdelivr.net/gh/dganigame-coder/space@85f1fbb/navisoftspace/engine.js",
-        "pilot": "https://cdn.jsdelivr.net/gh/dganigame-coder/space@4fb4f27/navisoftspace/pilot.js",
+        "pilot": "https://cdn.jsdelivr.net/gh/dganigame-coder/space@042ea34/navisoftspace/pilot.js",
         "mars":"https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/planets/mars.js",
         "jupiter":"https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/planets/jupiter.js".
         "earth": "https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/planets/earth.js",
