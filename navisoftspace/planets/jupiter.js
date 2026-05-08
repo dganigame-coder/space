@@ -5,12 +5,13 @@ export function createJupiter() {
     const group = new THREE.Group();
 
     // Jupiter doesn't have a bump map (it's gas!), but it has high detail
-    const jupiter = new THREE.Mesh(
-        new THREE.SphereGeometry(3000, 64, 64),
-        new THREE.MeshPhongMaterial({
-            map: loader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/jupiter.jpg'),
-            shininess: 2
-        })
+   const jupiter = new THREE.Mesh(
+     new THREE.SphereGeometry(3000, 128, 128),
+     new THREE.MeshStandardMaterial({
+         map: loader.load('https://www.solarsystemscope.com/textures/download/8k_jupiter.jpg'),
+        roughness: 1.0,
+       metalness: 0.0
+     })
     );
     group.add(jupiter);
 
