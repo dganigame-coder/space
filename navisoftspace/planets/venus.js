@@ -10,8 +10,13 @@ export function createVenus() {
         })
     );
     group.add(venus);
-    group.position.set(-4000, 500, -20000); 
-    group.userData = { name: "VENUS", info: "Hottest planet. Greenhouse effect. Rotates backwards.", r: 380 };
+    // Inside createVenus()
+    group.position.set(8000, 200, -43200); // 0.72 AU
+    group.userData = { 
+     name: "VENUS", 
+     info: "Thick CO2 atmosphere. 460°C surface temps.",
+     r: 450 
+    };
     group.onUpdate = () => { venus.rotation.y -= 0.0002; };
     return group;
 }
