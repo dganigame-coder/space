@@ -16,7 +16,8 @@ export function createJupiter() {
     group.add(jupiter);
 
     // Position Jupiter VERY far away
-    group.position.set(20000, -5000, -40000);
+    // Jupiter is much further out!
+    group.position.set(-15000, -1000, -312000);
     group.userData = { 
         name: "JUPITER", 
         info: "Gas Giant. Great Red Spot detected. 2.5G Gravity.",
