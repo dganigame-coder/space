@@ -4,7 +4,7 @@ export function createMars() {
     const loader = new THREE.TextureLoader();
     const group = new THREE.Group();
 
-    const marsMaterial = new THREE.MeshStandardMaterial({
+    const mars = new THREE.MeshStandardMaterial({
     map: loader.load('https://www.solarsystemscope.com/textures/download/2k_mars.jpg'),
     bumpMap: loader.load('https://www.solarsystemscope.com/textures/download/8k_mars.jpg'),
     bumpScale: 0.35,
