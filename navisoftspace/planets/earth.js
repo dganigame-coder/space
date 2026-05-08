@@ -1,5 +1,10 @@
 import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
 
+// 1. Orbit State (Persistent variables)
+let orbitAngle = Math.random() * Math.PI * 2; // Random start position in circle
+const orbitDistance = 60000; // 1.0 AU
+const orbitSpeed = 0.0005;    // Adjust this to your liking (0.0005 is a slow, smooth orbit)
+
 export function createEarth() {
     const loader = new THREE.TextureLoader();
     const group = new THREE.Group();
@@ -25,16 +30,25 @@ export function createEarth() {
         })
     );
     group.add(clouds);
-    // Inside createEarth()
-    group.position.set(0, 0, -60000); // 1.0 AU
+
     group.userData = { 
-     name: "EARTH", 
-     info: "The Blue Marble. Only known planet with life. 1G Gravity.",
-     r: 500 
-   };
+        name: "EARTH", 
+        info: "The Blue Marble. Only known planet with life. 1G Gravity.",
+        r: 600 // Updated radius to match your Geometry
+    };
+
+    // 2. The Orbit Logic
     group.onUpdate = () => {
-        surface.rotation.y += 0.0005;
-        clouds.rotation.y += 0.0007; // Clouds move slightly faster for realism
+        // Increment Angle
+        orbitAngle += orbitSpeed;
+
+        // Apply Circular Math
+        group.position.x = Math.cos(orbitAngle) * orbitDistance;
+        group.position.z = Math.sin(orbitAngle) * orbitDistance;
+
+        // Self Rotation (Spinning on axis)
+        surface.rotation.y += 0.005;
+        clouds.rotation.y += 0.007; 
     };
 
     return group;
