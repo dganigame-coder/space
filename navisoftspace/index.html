@@ -192,25 +192,16 @@
             // 3. Initialize Control Module
             initPilot();
             
-            function frame() {
-                requestAnimationFrame(frame);
-                
-                // Flight Physics & Collision
-                updateFlight(engine.camera, bodies);
-                
-                // Trigger specific planet animations (clouds, lava, rotation)
-                bodies.forEach(b => { if(b.onUpdate) b.onUpdate(); });
+               
 
-                const nearestLabel = document.getElementById('target-display');
-
-function frame() {
+   function frame() {                        
     requestAnimationFrame(frame);
     updateFlight(engine.camera, bodies);
 
     // --- HUD LOGIC START ---
     let closestBody = null;
     let minDistance = Infinity;
-
+    bodies.forEach(b => { if(b.onUpdate) b.onUpdate(); });
     bodies.forEach(b => {
         // Calculate raw distance between ship and planet center
         const dist = engine.camera.position.distanceTo(b.position);
@@ -220,7 +211,7 @@ function frame() {
             closestBody = b;
         }
     });
-
+    const nearestLabel = document.getElementById('target-display');
     if (closestBody) {
         // 1 AU = 60,000 units. Let's convert it for the display.
         const auDist = (minDistance / 60000).toFixed(2);
