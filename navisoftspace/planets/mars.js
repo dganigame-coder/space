@@ -10,8 +10,8 @@ export function createMars() {
     // 2. Create the Material (The Skin)
     // NOTE: Use 'raw.githubusercontent.com' and remove '/tree/master/' 
     const marsMaterial = new THREE.MeshStandardMaterial({
-        map: loader.load('https://raw.githubusercontent.com/dganigame-coder/space/master/navisoftspace/planets/texture/2k_mars.jpg'),
-        bumpMap: loader.load('https://raw.githubusercontent.com/dganigame-coder/space/master/navisoftspace/planets/texture/8k_mars.jpg'),
+        map: loader.load('https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/planets/texture/2k_mars.jpg'),
+        bumpMap: loader.load('https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/planets/texture/8k_mars.jpg'),
         bumpScale: 0.35,
         roughness: 1,
         metalness: 0
