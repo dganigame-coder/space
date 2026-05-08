@@ -13,12 +13,14 @@ export function createNeptune() {
     );
     
     group.add(neptune);
-    group.position.set(15000, -1000, -95000); // Deep, deep space
+    // Correct Position: 30.0 AU
+    group.position.set(10000, 0, -1803600); 
+
     group.userData = { 
-        name: "NEPTUNE", 
-        info: "The Windy Planet. Azure blue world. Furthest from the Sun.", 
-        r: 1050 
-    };
+      name: "NEPTUNE", 
+      info: "The Windy Planet. Azure blue world. Furthest from the Sun.", 
+      r: 1050 
+     };
 
     group.onUpdate = () => {
         neptune.rotation.y += 0.0008;
