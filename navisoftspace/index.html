@@ -62,10 +62,24 @@
         height: 100vh;
         touch-action: none;
     }
+
+    #planet-hud {
+        position: fixed;
+        top: 20%;
+        left: 20px;
+        color: #00f2ff;
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 24px;
+        text-shadow: 0 0 10px #00f2ff;
+        pointer-events: none; /* So it doesn't block clicks */
+        display: none; /* Hidden by default */
+        z-index: 100;
+    }
+    
 </style>
 </head>
 <body>
-
+    <div id="planet-hud">APPROACHING: <span id="planet-name">NONE</span></div>
     <div id="hud">
         <div style="font-size: 10px; opacity: 0.7;">[ SYSTEM STATUS: ONLINE ]</div>
         <div id="loc-display">LOCATION: EARTH SURFACE</div>
@@ -94,16 +108,16 @@
         "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
         "engine": "https://cdn.jsdelivr.net/gh/dganigame-coder/space@85f1fbb/navisoftspace/engine.js",
         "pilot": "https://cdn.jsdelivr.net/gh/dganigame-coder/space@042ea34/navisoftspace/pilot.js",
-        "mars":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@7740586/navisoftspace/planets/mars.js",
-        "jupiter":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@a736b54/navisoftspace/planets/jupiter.js",
-        "earth": "https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/planets/earth.js",
+        "mars":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@a481985/navisoftspace/planets/mars.js",
+        "jupiter":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@5da66a6/navisoftspace/planets/jupiter.js",
+        "earth": "https://cdn.jsdelivr.net/gh/dganigame-coder/space@e2cac3c/navisoftspace/planets/earth.js",
         "moon": "https://cdn.jsdelivr.net/gh/dganigame-coder/space@c3d464b/navisoftspace/planets/moon.js",
-        "sun": "https://cdn.jsdelivr.net/gh/dganigame-coder/space@b6fe851/navisoftspace/planets/sun.js",
-        "venus":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@8201369/navisoftspace/planets/venus.js",
-        "mercury":"https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/planets/mercury.js",
-        "uranus":"https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/planets/uranus.js",
-        "neptune":"https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/planets/neptune.js",
-        "saturn":"https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/planets/saturn.js"
+        "sun": "https://cdn.jsdelivr.net/gh/dganigame-coder/space@f8d5c57/navisoftspace/planets/sun.js",
+        "venus":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@0db2a81/navisoftspace/planets/venus.js",
+        "mercury":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@18a6d7a/navisoftspace/planets/mercury.js",
+        "uranus":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@5602719/navisoftspace/planets/uranus.js",
+        "neptune":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@003faa5/navisoftspace/planets/neptune.js",
+        "saturn":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@ef589ae/navisoftspace/planets/saturn.js"
         }
     }
  
