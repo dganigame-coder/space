@@ -14,8 +14,8 @@ export function createMars() {
 
     // 2. Create the Material
     const marsMaterial = new THREE.MeshStandardMaterial({
-        map: loader.load('https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/planets/planets/texture/2k_mars.jpg'),
-        bumpMap: loader.load('https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/planets/planets/texture/8k_mars.jpg'),
+        map: loader.load('https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/planets/texture/2k_mars.jpg'),
+        bumpMap: loader.load('https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/planets/texture/8k_mars.jpg'),
         bumpScale: 0.35,
         roughness: 1,
         metalness: 0
