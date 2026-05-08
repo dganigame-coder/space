@@ -109,35 +109,45 @@
  
     </script>
     <script type="module">
-        import * as THREE from 'three';
-        import { initEngine } from 'engine';
-        import { initPilot, updateFlight } from 'pilot';
-        import { createEarth } from 'earth';
-        import { createMoon } from 'moon';
-        import { createSun } from 'sun';   
-        import { createMars } from 'mars';
-        import { createJupiter } from 'jupiter';
+    import { initEngine } from 'engine';
+    import { initPilot, updateFlight } from 'pilot';
+    import { createSun } from 'sun';   
+    import { createEarth } from 'earth';
+    import { createMoon } from 'moon';
+    import { createMars } from 'mars';
+    import { createJupiter } from 'jupiter';
+    
+    // ADD THESE REMAINING PLANETS
+    import { createMercury } from 'mercury';
+    import { createVenus } from 'venus';
+    import { createSaturn } from 'saturn';
+    import { createUranus } from 'uranus';
+    import { createNeptune } from 'neptune';
 
-        const overlay = document.getElementById('overlay');
+    const overlay = document.getElementById('overlay');
 
-        overlay.onclick = () => {
-            overlay.style.display = 'none';
-            
-            // 1. Setup Render Engine
-            const engine = initEngine();
-            
-            // 2. Load Planet Modules
-            const sun = createSun();
-            const earth = createEarth();
-            const moon = createMoon();
-            const mars = createMars();
-            const jupiter = createJupiter();
-            
-            //engine.scene.add(sun);
-            //engine.scene.add(earth);
-            //engine.scene.add(moon);
-            //engine.scene.add(sun, earth, moon, mars, jupiter);
-            const bodies = [sun, earth, moon, mars, jupiter];
+    overlay.onclick = () => {
+        overlay.style.display = 'none';
+        const engine = initEngine();
+        
+        // --- 1. INITIALIZE ALL BODIES ---
+        const sun = createSun();
+        const mercury = createMercury();
+        const venus = createVenus();
+        const earth = createEarth();
+        const moon = createMoon();
+        const mars = createMars();
+        const jupiter = createJupiter();
+        const saturn = createSaturn();
+        const uranus = createUranus();
+        const neptune = createNeptune();
+        
+        // --- 2. ADD EVERYTHING TO THE SCENE ---
+        engine.scene.add(sun, mercury, venus, earth, moon, mars, jupiter, saturn, uranus, neptune);
+        
+        // --- 3. ADD EVERYTHING TO THE COLLISION ARRAY ---
+        // This is what allows you to land on them and see their HUD data
+        const bodies = [sun, mercury, venus, earth, moon, mars, jupiter, saturn, uranus, neptune];
         
             // 3. Initialize Control Module
             initPilot();
