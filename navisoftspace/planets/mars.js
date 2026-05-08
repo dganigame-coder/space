@@ -46,5 +46,3 @@ export function createMars() {
 
     return group;
 }
-    return group;
-}
