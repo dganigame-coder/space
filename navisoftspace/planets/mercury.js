@@ -12,8 +12,14 @@ export function createMercury() {
         })
     );
     group.add(mercury);
-    group.position.set(-2000, 0, -10000); // Between Sun and Earth
-    group.userData = { name: "MERCURY", info: "Closest to the Sun. No atmosphere. Extreme temps.", r: 150 };
+
+    // Inside createMercury()
+    group.position.set(-5000, 0, -23400); // 0.39 AU
+    group.userData = { 
+        name: "MERCURY", 
+        info: "Smallest planet. Tidally locked-ish. No atmosphere.",
+        r: 150 
+    };
     group.onUpdate = () => { mercury.rotation.y += 0.0004; };
     return group;
 }
