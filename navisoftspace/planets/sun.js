@@ -54,7 +54,7 @@ export function createSun() {
     group.add(sunLight);
 
     // POSITIONING
-    group.position.set(0, 0, -60000);
+    group.position.set(0, 0, 0); // The center
     group.userData = { 
         name: "THE SUN", 
         info: "Class G2V Star. Providing heat and light to the system.",
