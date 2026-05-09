@@ -35,7 +35,8 @@ export function createSaturn() {
     group.userData = { 
         name: "SATURN", 
         info: "Ringed giant. Lowest density of any planet.",
-        r: 5000 // Total radius including rings for collision/HUD
+        r: 5000, // Total radius including rings for collision/HUD
+        type:"gas"
     };
 
     // 2. The Orbit Logic
