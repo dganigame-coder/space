@@ -68,12 +68,12 @@ export function initEngine() {
     return { scene, camera, renderer, stars };
 }
 
-/**
- * Call this in your main animate loop: 
- * checkCollisions(engine.camera, bodies);
- */
 let isColliding = false; 
+let monitorTimer;
 
+/**
+ * Main collision loop
+ */
 export function checkCollisions(camera, planets) {
     if (!planets) return;
 
@@ -83,22 +83,25 @@ export function checkCollisions(camera, planets) {
         const type = planet.userData.type;
 
         if (dist < radius) { 
-            // --- LOGGING THE HIT ---
             console.log(`Collision Detected: ${planet.userData.name} | Type: ${type}`);
 
+            // 1. Handle Gas Giants (Pass-through + Scanner)
             if (type === 'gas') {
-                // No cooldown needed for gas, it's a smooth "sinking" feeling
-                triggerAtmosphereEntry(camera, planet);
+                updateRightMonitor(planet); // Show info on the right
+                triggerAtmosphereEntry(camera, planet); // Handle physics/drag
             } 
+            // 2. Handle Stars (Radiation/Pushback)
             else if (type === 'star') {
-                console.log("ALERT: Solar radiation detected!");
+                updateRightMonitor(planet);
                 triggerSolarFlare(camera);
             } 
+            // 3. Handle Solids (Impact/Bounce)
             else {
-                // 'solid' logic - only trigger once to avoid "machine gun" logs
                 if (!isColliding) {
                     console.warn(`CRASH: Impact on ${planet.userData.name} surface!`);
+                    updateRightMonitor(planet); // Still show info, but triggers impact
                     triggerImpact(camera);
+                    
                     isColliding = true;
                     setTimeout(() => isColliding = false, 1000); 
                 }
@@ -107,40 +110,59 @@ export function checkCollisions(camera, planets) {
     });
 }
 
-export function triggerAtmosphereEntry(camera, planet) {
-    // 1. LOGGING (Confirms you are inside the sphere)
-    console.log(`Entering ${planet.userData.name} atmosphere...`);
-    
-    // 2. THE VIBRATION (Deep rumble)
-    if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
+/**
+ * Updates the sleek right-side monitor text
+ * Replaces the old "Close Log" dialog box
+ */
+function updateRightMonitor(planet) {
+    const monitor = document.getElementById('right-monitor');
+    const textTarget = document.getElementById('monitor-text');
 
-    // 3. APPLY DRAG
-    // We look for the speed variable. If it's on the window object or 
-    // passed in, we reduce it to create a "thick" feeling.
-    if (window.currentSpeed !== undefined) {
-        window.currentSpeed *= 0.98; // Gentler drag so you don't stop completely
-    }
+    if (!monitor || !textTarget) return;
 
-    // 4. VISUAL FEEDBACK
-    // You can use the planet.userData.color to tint the HUD
-    const display = document.getElementById('target-display');
-    if (display) {
-        display.style.color = "#aaa"; // Dim the HUD as you go deep
-        display.innerText = `ATMOSPHERE: ${planet.userData.name}`;
-    }
+    // Set the text content from the planet's mini-project data
+    textTarget.innerHTML = `
+        <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 4px;">> ${planet.userData.name}</div>
+        <div style="font-size: 0.85rem; line-height: 1.4; opacity: 0.9;">${planet.userData.info}</div>
+    `;
+
+    // Fade in the monitor
+    monitor.style.opacity = '1';
+
+    // Auto-hide after 5 seconds of no new collisions
+    clearTimeout(monitorTimer);
+    monitorTimer = setTimeout(() => {
+        monitor.style.opacity = '0';
+    }, 5000);
 }
 
-function triggerImpact(camera) {
-    // 1. Camera Shake
-    const shake = 25;
-    camera.position.x += (Math.random() - 0.5) * shake;
-    camera.position.y += (Math.random() - 0.5) * shake;
-
-    // 2. Mobile Vibration
-    if (typeof navigator !== "undefined" && navigator.vibrate) {
-        navigator.vibrate(150); 
+/**
+ * Physics for Gas Giants - No "Wall", just drag
+ */
+function triggerAtmosphereEntry(camera, planet) {
+    if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
+    
+    // Slow the ship down to simulate thick atmosphere
+    if (window.currentSpeed) {
+        window.currentSpeed *= 0.98; 
     }
     
-    // 3. Physics Bounce
-    camera.translateZ(600); 
+    // Note: No camera.translateZ here so you can pass through!
+}
+
+/**
+ * Physics for Solid Planets - Bounce and Shake
+ */
+function triggerImpact(camera) {
+    camera.translateZ(200); // Kick back
+    if (navigator.vibrate) navigator.vibrate(200);
+    // Add your shake logic here if desired
+}
+
+/**
+ * Physics for the Sun
+ */
+function triggerSolarFlare(camera) {
+    camera.translateZ(100); // Solar wind pushback
+    console.log("Radiation levels critical!");
 }
