@@ -3,7 +3,7 @@ import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
 /**
  * RESPONSIBILITY: 
  * 1. Initialize the WebGL Renderer
- * 2. Create the Star Background
+ * 2. Create the Star Background (Infinite feel)
  * 3. Set up the Sun's light source
  * 4. Handle Physics (Collisions & Shakes)
  */
@@ -15,11 +15,11 @@ export function initEngine() {
     const camera = new THREE.PerspectiveCamera(
         75, 
         window.innerWidth / window.innerHeight, 
-        0.1,       // FIX: Changed from 10 to 0.1 so planets don't disappear when close
-        10000000   // Far (10 Million covers Pluto and Stars)
+        0.1,       
+        10000000   
     );
 
-    // NEW STARTING POSITION: Next to Earth (-58,000 to see Earth clearly)
+    // STARTING POSITION: Earth Vicinity
     camera.position.set(0, 500, -58000); 
 
     const renderer = new THREE.WebGLRenderer({ 
@@ -33,8 +33,9 @@ export function initEngine() {
     // 2. The Starfield
     const starGeometry = new THREE.BufferGeometry();
     const starPositions = [];
+    // Spread stars in a massive 8-million unit cube
     for (let i = 0; i < 20000; i++) {
-        const x = (Math.random() - 0.5) * 8000000; // Expanded to 8M for better coverage
+        const x = (Math.random() - 0.5) * 8000000; 
         const y = (Math.random() - 0.5) * 8000000;
         const z = (Math.random() - 0.5) * 8000000;
         starPositions.push(x, y, z);
@@ -43,18 +44,18 @@ export function initEngine() {
     
     const starMaterial = new THREE.PointsMaterial({
         color: 0xffffff,
-        size: 800, // Large size works better with massive coordinate scales
+        size: 800, 
         sizeAttenuation: true
     });
     const stars = new THREE.Points(starGeometry, starMaterial);
     scene.add(stars);
 
     // 3. The Lighting
-    const sunLight = new THREE.PointLight(0xffffff, 3, 0, 0); // Intensity adjusted for Three.js 160+
+    const sunLight = new THREE.PointLight(0xffffff, 3, 0, 0); 
     sunLight.position.set(0, 0, 0); 
     scene.add(sunLight);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.2); // Lowered slightly to make night-sides darker
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.2); 
     scene.add(ambientLight);
 
     window.addEventListener('resize', () => {
@@ -63,19 +64,19 @@ export function initEngine() {
         renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
-    return { scene, camera, renderer };
+    // CRITICAL: We return 'stars' now so it can be updated in the main loop
+    return { scene, camera, renderer, stars };
 }
 
 /**
- * PLUG & PLAY COLLISION LOGIC
- * Call this in your main animate loop: checkCollisions(camera, bodies);
+ * Call this in your main animate loop: 
+ * checkCollisions(engine.camera, bodies);
  */
 export function checkCollisions(camera, planets) {
     if (!planets) return;
 
     planets.forEach(planet => {
         const dist = camera.position.distanceTo(planet.position);
-        // Use the radius stored in planet.userData.r
         const radius = planet.userData.r || 500; 
 
         if (dist < radius + 50) { 
@@ -95,6 +96,6 @@ function triggerImpact(camera) {
         navigator.vibrate(150); 
     }
     
-    // 3. Physics Bounce (Prevents getting stuck inside the mesh)
+    // 3. Physics Bounce
     camera.translateZ(600); 
 }
