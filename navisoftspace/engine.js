@@ -68,9 +68,6 @@ export function initEngine() {
     return { scene, camera, renderer, stars };
 }
 
-let isColliding = false; 
-let monitorTimer;
-
 /**
  * Updates the sleek right-side monitor text
  * Replaces the old "Close Log" dialog box
