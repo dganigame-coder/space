@@ -3,49 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <title>Audio System Test Bench</title>
+    <!-- ADD TONE.JS LIBRARY HERE -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <style>
         body { background: #111; color: #0f0; font-family: monospace; display: flex; flex-direction: column; align-items: center; padding: 50px; }
         .panel { border: 2px solid #0f0; padding: 20px; border-radius: 10px; box-shadow: 0 0 15px #0f0; }
-        button { background: #222; color: #0f0; border: 1px solid #0f0; padding: 10px 20px; margin: 10px; cursor: pointer; text-transform: uppercase; }
+        button { background: #222; color: #0f0; border: 1px solid #0f0; padding: 10px 20px; margin: 10px; cursor: pointer; text-transform: uppercase; width: 250px; }
         button:hover { background: #0f0; color: #000; }
         .status { margin-bottom: 20px; color: #ff0; }
+        hr { border: 0; border-top: 1px solid #333; margin: 20px 0; }
     </style>
 </head>
 <body>
 
-    <h1>Ship Audio Test Bench</h1>
+    <h1>Ship Audio Test Bench (Tone.js)</h1>
     <div class="status" id="status">Status: Waiting for User...</div>
 
     <div class="panel">
-        <button id="init-btn">1. Unlock Audio & Load Lib</button>
+        <button id="init-btn">1. Initialize Engine</button>
         <hr>
         <button id="impact-btn">Test Impact (Solid)</button>
         <button id="alarm-btn">Test Alarm (Caution)</button>
         <button id="gas-btn">Test Gas Rush (Tidal)</button>
+        <button id="stop-btn">Stop Ambient Sounds</button>
     </div>
 
     <script type="module">
-        import { loadSoundLibrary, playHighFi } from 'https://cdn.jsdelivr.net/gh/dganigame-coder/space@d90ceb7/navisoftspace/audio.js';
+        // Import your local audio.js
+        import { loadSoundLibrary, playHighFi } from './audio.js';
 
         const status = document.getElementById('status');
 
-        // 1. Initialize System
         document.getElementById('init-btn').onclick = async () => {
-            status.innerText = "Status: Loading Assets...";
+            status.innerText = "Status: Starting Engine...";
             try {
                 await loadSoundLibrary();
-                status.innerText = "Status: Online & Ready";
+                status.innerText = "Status: Engine Running (Generative)";
                 status.style.color = "#0f0";
             } catch (e) {
-                status.innerText = "Status: Error Loading Sounds";
+                status.innerText = "Status: Engine Failure";
                 status.style.color = "#f00";
             }
         };
 
-        // 2. Trigger Sounds
-        document.getElementById('impact-btn').onclick = () => playHighFi('HULL_IMPACT', 1.0);
-        document.getElementById('alarm-btn').onclick = () => playHighFi('COCKPIT_ALARM', 0.5);
-        document.getElementById('gas-btn').onclick = () => playHighFi('GAS_RUSH', 0.7, 0.8);
+        document.getElementById('impact-btn').onclick = () => playHighFi('HULL_IMPACT');
+        document.getElementById('alarm-btn').onclick = () => playHighFi('COCKPIT_ALARM');
+        
+        // In the real game, intensity will be 'penetration'
+        document.getElementById('gas-btn').onclick = () => playHighFi('GAS_RUSH', 0.8);
+        
+        document.getElementById('stop-btn').onclick = () => {
+            // Fade out the gas sounds
+            playHighFi('GAS_RUSH', 0);
+        };
     </script>
 </body>
 </html>
