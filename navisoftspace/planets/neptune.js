@@ -22,7 +22,8 @@ export function createNeptune() {
     group.userData = { 
       name: "NEPTUNE", 
       info: "The Windy Planet. Azure blue world. 30.0 AU from the Sun.", 
-      r: 1050 
+      r: 1050 ,
+      type:"gas"
     };
 
     // 2. The Orbit & Rotation Logic
