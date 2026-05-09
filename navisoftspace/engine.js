@@ -107,17 +107,27 @@ export function checkCollisions(camera, planets) {
     });
 }
 
+export function triggerAtmosphereEntry(camera, planet) {
+    // 1. LOGGING (Confirms you are inside the sphere)
+    console.log(`Entering ${planet.userData.name} atmosphere...`);
+    
+    // 2. THE VIBRATION (Deep rumble)
+    if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
 
-function triggerAtmosphereEntry(camera, planetColor) {
-    // 1. Slow the ship down to a crawl
-    // 2. You can trigger a 'Fog' effect in your scene here
-    console.log("Entering Gas Giant atmosphere...");
-    
-    // Add a deep vibration instead of a sharp shake
-    if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 500]);
-    
-    // Push the camera back slightly, but don't 'bounce' it
-    camera.translateZ(10); 
+    // 3. APPLY DRAG
+    // We look for the speed variable. If it's on the window object or 
+    // passed in, we reduce it to create a "thick" feeling.
+    if (window.currentSpeed !== undefined) {
+        window.currentSpeed *= 0.98; // Gentler drag so you don't stop completely
+    }
+
+    // 4. VISUAL FEEDBACK
+    // You can use the planet.userData.color to tint the HUD
+    const display = document.getElementById('target-display');
+    if (display) {
+        display.style.color = "#aaa"; // Dim the HUD as you go deep
+        display.innerText = `ATMOSPHERE: ${planet.userData.name}`;
+    }
 }
 
 function triggerImpact(camera) {
