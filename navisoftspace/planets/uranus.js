@@ -13,7 +13,8 @@ export function createUranus() {
         new THREE.SphereGeometry(1100, 64, 64),
         new THREE.MeshPhongMaterial({
             map: loader.load('https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/planets/texture/2k_uranus.jpg'),
-            shininess: 2
+            shininess: 2,
+            side: THREE.DoubleSide
         })
     );
     
