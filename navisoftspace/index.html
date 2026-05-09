@@ -125,6 +125,15 @@
  
     </script>
     <script type="module">
+
+        let autoPilotActive = false;
+
+        window.addEventListener('keydown', (e) => {
+        if (e.key.toLowerCase() === 'p') {
+            autoPilotActive = !autoPilotActive;
+            console.log("Auto-Pilot:", autoPilotActive ? "ON" : "OFF");
+         }
+         });  
     import { initEngine , checkCollisions } from 'engine';
     import { initPilot, updateFlight } from 'pilot';
     import { createStars } from 'stars';
@@ -207,56 +216,66 @@ function frame() {
     requestAnimationFrame(frame);
 
     // 1. INFINITE STARS
-    // Keep the starfield locked to the camera position so you never hit a "void"
+    // Centers the starfield on the pilot so the galaxy never ends
     if (engine.stars) {
         engine.stars.position.copy(engine.camera.position);
     }
 
-    // 2. PHYSICS & MOVEMENT
-    // Check if we hit a planet (vibrate/shake) and move the ship
-    checkCollisions(engine.camera, bodies);
-    updateFlight(engine.camera, bodies);
-
-    // 3. PLANET ANIMATIONS
-    // Runs rotation or orbital logic for each planet
-    bodies.forEach(b => { if(b.onUpdate) b.onUpdate(); });
-
-    // 4. HUD LOGIC (Nearest Planet Tracking)
+    // 2. HUD & TARGETING DATA
+    // We calculate this first so both the HUD and Auto-Pilot can use it
     let closestBody = null;
     let minDistance = Infinity;
 
     bodies.forEach(b => {
-        // Calculate raw distance between ship and planet center
+        if (b.onUpdate) b.onUpdate(); // Update planet rotations/orbits
         const dist = engine.camera.position.distanceTo(b.position);
-        
         if (dist < minDistance) {
             minDistance = dist;
             closestBody = b;
         }
     });
 
-    const nearestLabel = document.getElementById('target-display');
-    if (closestBody && nearestLabel) {
-        // 1 AU = 60,000 units.
-        const auDist = (minDistance / 60000).toFixed(2);
-        const name = closestBody.userData.name;
+    // 3. DEBUG AUTO-PILOT (HIDDEN P-KEY FEATURE)
+    // Moves towards the 'NEAREST' planet at warp speed
+    if (typeof autoPilotActive !== 'undefined' && autoPilotActive && closestBody) {
+        engine.camera.lookAt(closestBody.position);
+        engine.camera.translateZ(-2000); // Warp speed!
 
-        // Update the text
-        nearestLabel.innerText = `NEAREST: ${name} (${auDist} AU)`;
-        
-        // DANGER ALERT: Turn HUD red if within 1000 units of the surface
+        // Auto-stop when close to the surface
         const planetRadius = closestBody.userData.r || 500;
-        if (minDistance < planetRadius + 1000) {
-            nearestLabel.style.color = "#ff5555"; // Red for danger
-        } else {
-            nearestLabel.style.color = "#55ff55"; // Safe green
+        if (minDistance < planetRadius + 1200) {
+            autoPilotActive = false;
         }
     }
 
-    // 5. RENDER
+    // 4. PHYSICS & REGULAR MOVEMENT
+    checkCollisions(engine.camera, bodies);
+    updateFlight(engine.camera, bodies);
+
+    // 5. HUD VISUALS
+    const nearestLabel = document.getElementById('target-display');
+    if (closestBody && nearestLabel) {
+        const auDist = (minDistance / 60000).toFixed(2);
+        const name = closestBody.userData.name;
+        const planetRadius = closestBody.userData.r || 500;
+
+        // Base HUD Text
+        nearestLabel.innerText = `NEAREST: ${name} (${auDist} AU)`;
+        
+        // Color Logic: Warp (Cyan) > Danger (Red) > Safe (Green)
+        if (typeof autoPilotActive !== 'undefined' && autoPilotActive) {
+            nearestLabel.innerText += " [WARP ACTIVE]";
+            nearestLabel.style.color = "#00ffff"; 
+        } else if (minDistance < planetRadius + 1000) {
+            nearestLabel.style.color = "#ff5555"; 
+        } else {
+            nearestLabel.style.color = "#55ff55"; 
+        }
+    }
+
+    // 6. RENDER
     engine.renderer.render(engine.scene, engine.camera);
-}
-            frame();
+}            frame();
         };
     </script>
 </body>
