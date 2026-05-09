@@ -20,7 +20,8 @@ export function createVenus() {
     group.userData = { 
         name: "VENUS", 
         info: "Thick CO2 atmosphere. 460°C surface temps. Retrograde rotation.",
-        r: 450 
+        r: 450 ,
+        type:"gas"
     };
 
     // 2. The Orbit & Rotation Logic
