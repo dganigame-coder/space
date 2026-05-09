@@ -1,5 +1,5 @@
 // audio.js
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+export const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
 // Professional Sound Library URLs (High-Fidelity)
 const SOUND_LIB = {
@@ -11,22 +11,14 @@ const SOUND_LIB = {
 
 const audioBuffers = {};
 
-export const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
-export async function loadSoundLibrary() {
-    // Crucial: Resume the context in case it started suspended
-    if (audioCtx.state === 'suspended') {
-        await audioCtx.resume();
-    }
-    
-    // ... your existing fetch/decode logic here ...
-}
-
-
 /**
  * Preloads all professional sounds into memory
  */
 export async function loadSoundLibrary() {
+
+    if (audioCtx.state === 'suspended') {
+        await audioCtx.resume();
+    }
     for (const [key, url] of Object.entries(SOUND_LIB)) {
         try {
             const response = await fetch(url);
