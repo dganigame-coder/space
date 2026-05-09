@@ -1,5 +1,5 @@
 import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
-import { playHighFi } from 'https://cdn.jsdelivr.net/gh/dganigame-coder/space@68a3edb/navisoftspace/audio.js';
+import { playHighFi } from 'https://cdn.jsdelivr.net/gh/dganigame-coder/space@b977a4e/navisoftspace/audio.js';
 /**
  * RESPONSIBILITY: 
  * 1. Initialize the WebGL Renderer
