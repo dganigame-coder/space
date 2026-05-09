@@ -72,45 +72,6 @@ let isColliding = false;
 let monitorTimer;
 
 /**
- * Main collision loop
- */
-export function checkCollisions(camera, planets) {
-    if (!planets) return;
-
-    planets.forEach(planet => {
-        const dist = camera.position.distanceTo(planet.position);
-        const radius = planet.userData.r || 500; 
-        const type = planet.userData.type;
-
-        if (dist < radius) { 
-            console.log(`Collision Detected: ${planet.userData.name} | Type: ${type}`);
-
-            // 1. Handle Gas Giants (Pass-through + Scanner)
-            if (type === 'gas') {
-                updateRightMonitor(planet); // Show info on the right
-                triggerAtmosphereEntry(camera, planet); // Handle physics/drag
-            } 
-            // 2. Handle Stars (Radiation/Pushback)
-            else if (type === 'star') {
-                updateRightMonitor(planet);
-                triggerSolarFlare(camera);
-            } 
-            // 3. Handle Solids (Impact/Bounce)
-            else {
-                if (!isColliding) {
-                    console.warn(`CRASH: Impact on ${planet.userData.name} surface!`);
-                    updateRightMonitor(planet); // Still show info, but triggers impact
-                    triggerImpact(camera);
-                    
-                    isColliding = true;
-                    setTimeout(() => isColliding = false, 1000); 
-                }
-            }
-        }
-    });
-}
-
-/**
  * Updates the sleek right-side monitor text
  * Replaces the old "Close Log" dialog box
  */
