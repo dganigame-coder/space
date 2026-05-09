@@ -24,7 +24,9 @@ export function createJupiter() {
     group.userData = { 
         name: "JUPITER", 
         info: "Gas Giant. Great Red Spot detected. 2.5G Gravity.",
-        r: 3000 
+        r: 3000 ,
+        type:"gas"
+        
     };
 
     // 2. The Orbit Logic
