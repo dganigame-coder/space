@@ -22,7 +22,8 @@ export function createMercury() {
     group.userData = { 
         name: "MERCURY", 
         info: "Smallest planet. Iron core. No atmosphere.",
-        r: 150 
+        r: 150 ,
+        type:"solid"
     };
 
     // 2. The Orbit & Rotation Logic
