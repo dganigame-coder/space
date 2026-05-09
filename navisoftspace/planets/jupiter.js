@@ -15,31 +15,11 @@ export function createJupiter() {
         new THREE.MeshStandardMaterial({
             map: loader.load('https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/planets/texture/2k_jupiter.jpg'),
             roughness: 1.0,
-            metalness: 0.0
+            metalness: 0.0,
+            side: THREE.DoubleSide 
         })
     );
     group.add(jupiter);
-
-/**/
-const jupiter = new THREE.Mesh(
-    new THREE.SphereGeometry(3000, 128, 128),
-    new THREE.MeshStandardMaterial({
-        map: loader.load('https://cdn.jsdelivr.net/gh/*/planets/texture/2k_jupiter.jpg'),
-        roughness: 1.0,
-        metalness: 0.0,
-        // --- THIS IS THE KEY ---
-        side: THREE.DoubleSide 
-    })
-);
-
-// Don't forget to set the userData so the engine knows it's a gas giant!
-jupiter.userData = {
-    name: "Jupiter",
-    type: "gas",
-    r: 3000,
-    info: "Gas Giant. Great Red Spot detected. 2.5G Gravity."
-};
-    /**/
     
     // Position is now handled by onUpdate, so we remove the static .set()
     group.userData = { 
