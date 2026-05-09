@@ -14,23 +14,26 @@ export function createSaturn() {
     const saturn = new THREE.Mesh(
         new THREE.SphereGeometry(2500, 64, 64),
         new THREE.MeshPhongMaterial({ 
-            map: loader.load('https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/planets/texture/2k_saturn.jpg') 
+            map: loader.load('https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/planets/texture/2k_saturn.jpg'),
+            side: THREE.DoubleSide // Correct: Allows internal view for "gas" type
         })
     );
     group.add(saturn);
-
+    
     // The Rings
     const ringGeo = new THREE.RingGeometry(3000, 5000, 64);
     const ringMat = new THREE.MeshBasicMaterial({
         map: loader.load('https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/planets/texture/2k_saturn_ring_alpha.png'),
         side: THREE.DoubleSide,
         transparent: true,
-        opacity: 0.8
+        opacity: 0.8,
+        alphaTest: 0.5 // Ensures transparency doesn't "cut out" the planet behind it
     });
+    
     const rings = new THREE.Mesh(ringGeo, ringMat);
-    rings.rotation.x = Math.PI / 2.5; // Tilt the rings
+    rings.rotation.x = Math.PI / 2; // Flatten the rings to sit on the equator
     group.add(rings);
-
+    /**/
     // Removed the static group.position.set() so the orbit logic can control it
     group.userData = { 
         name: "SATURN", 
