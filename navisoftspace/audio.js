@@ -1,51 +1,46 @@
 // audio.js
-export const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+// 1. GAS_RUSH (Brown Noise for deep planetary rumble)
+const gasFilter = new Tone.AutoFilter("4n").start();
+const gasVolume = new Tone.Volume(-Infinity).toDestination();
+const gasWind = new Tone.Noise("brown").connect(gasFilter).connect(gasVolume);
 
-// Professional Sound Library URLs (High-Fidelity)
-const SOUND_LIB = {
-    COCKPIT_ALARM: 'https://cdn.pixabay.com/audio/2022/03/24/audio_77a9043233.mp3', // Sharp, digital warning
-    HULL_IMPACT: 'https://cdn.pixabay.com/audio/2022/03/10/audio_c9725f053d.mp3',   // Deep metallic crunch
-    GAS_RUSH: 'https://cdn.pixabay.com/audio/2022/01/26/audio_d0c6ff1bab.mp3',      // Low-frequency wind/roar
-    SOLAR_STATIC: 'https://cdn.pixabay.com/audio/2021/08/04/audio_12345678.mp3'    // Radiation static
-};
+// 2. SOLAR_STATIC (White Noise for high-frequency radiation)
+const solarFilter = new Tone.Filter(5000, "highpass").toDestination();
+const solarVolume = new Tone.Volume(-Infinity).connect(solarFilter);
+const solarSizzle = new Tone.Noise("white").connect(solarVolume);
 
-const audioBuffers = {};
+// 3. COCKPIT_ALARM (Two-tone digital synth)
+const alarmSynth = new Tone.PolySynth(Tone.Synth).toDestination();
 
-/**
- * Preloads all professional sounds into memory
- */
+// 4. HULL_IMPACT (Pink noise crunch + Membrane thud)
+const impactNoise = new Tone.Noise("pink").connect(new Tone.Filter(500, "lowpass").toDestination());
+const impactThump = new Tone.MembraneSynth().toDestination();
+
 export async function loadSoundLibrary() {
-
-    if (audioCtx.state === 'suspended') {
-        await audioCtx.resume();
-    }
-    for (const [key, url] of Object.entries(SOUND_LIB)) {
-        try {
-            const response = await fetch(url);
-            const arrayBuffer = await response.arrayBuffer();
-            audioBuffers[key] = await audioCtx.decodeAudioData(arrayBuffer);
-        } catch (e) {
-            console.error(`Failed to load high-fi sound: ${key}`, e);
-        }
-    }
+    // Tone.start() is the magic command that unlocks the browser audio
+    await Tone.start();
+    gasWind.start();
+    solarSizzle.start();
+    console.log("Hyper-realistic generative audio online.");
 }
 
-/**
- * Plays a high-fidelity sample with optional pitch/volume control
- */
-export function playHighFi(key, volume = 0.5, pitch = 1.0) {
-    if (!audioBuffers[key]) return;
+export function playHighFi(key, intensity = 0.5) {
+    const now = Tone.now();
 
-    const source = audioCtx.createBufferSource();
-    source.buffer = audioBuffers[key];
-
-    const gainNode = audioCtx.createGain();
-    gainNode.gain.setValueAtTime(volume, audioCtx.currentTime);
-
-    // Realistic variation: slightly randomize pitch so it doesn't sound repetitive
-    source.playbackRate.value = pitch + (Math.random() * 0.05);
-
-    source.connect(gainNode);
-    gainNode.connect(audioCtx.destination);
-    source.start(0);
+    switch(key) {
+        case 'GAS_RUSH':
+            // Ramps volume from silence to the intensity level
+            gasVolume.volume.setTargetAtTime(Tone.gainToDb(intensity), now, 0.2);
+            break;
+        case 'COCKPIT_ALARM':
+            alarmSynth.triggerAttackRelease(["C5", "E5"], "8n", now);
+            break;
+        case 'HULL_IMPACT':
+            impactNoise.start(now).stop(now + 0.1);
+            impactThump.triggerAttackRelease("G1", "4n", now);
+            break;
+        case 'SOLAR_STATIC':
+            solarVolume.volume.setTargetAtTime(Tone.gainToDb(intensity * 0.3), now, 0.1);
+            break;
+    }
 }
