@@ -169,6 +169,16 @@
     const overlay = document.getElementById('overlay');
 
     overlay.onclick = () => {
+
+     // Add 'async' here so 'await' works inside
+     overlay.onclick = async () => {
+     // 1. Initialize Audio First
+     try {
+        await loadSoundLibrary(); 
+        console.log("Audio systems initialized via User Gesture.");
+     } catch (e) {
+        console.error("Audio failed to start:", e);
+     }   
         overlay.style.display = 'none';
         const engine = initEngine();
         // Add the background
@@ -188,7 +198,6 @@
         const neptune = createNeptune();
         const pluto = createPluto();
 
-        await loadSoundLibrary(); 
         console.log("Audio systems initialized via User Gesture.");
         // --- 2. ADD EVERYTHING TO THE SCENE ---
         engine.scene.add(sun, mercury, venus, earth, moon, mars, jupiter, saturn, uranus, neptune, pluto);
