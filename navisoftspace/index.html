@@ -81,6 +81,14 @@
 </head>
 <body>
 
+    <div id="hud">
+        <div style="font-size: 10px; opacity: 0.7;">[ SYSTEM STATUS: ONLINE ]</div>
+        <div id="loc-display">LOCATION: EARTH SURFACE</div>
+        <div id="spd-display">VELOCITY: 0.0 AU/s</div>
+        <div id="target-display" style="color: #55ff55;">NEAREST: --</div>
+    </div>
+
+    
     <div id="right-monitor" style="
     position: absolute; 
     right: 30px; 
@@ -92,23 +100,9 @@
     letter-spacing: 1px;
     pointer-events: none; /* So it doesn't block mouse clicks */
     opacity: 0; 
-    transition: opacity 0.5s ease-in-out;
-">
+    transition: opacity 0.5s ease-in-out;">
     <!-- Just a div for the raw data stream -->
     <div id="monitor-text" style="line-height: 1.6;"></div>
-</div>
-
-    <div id="hud">
-        <div style="font-size: 10px; opacity: 0.7;">[ SYSTEM STATUS: ONLINE ]</div>
-        <div id="loc-display">LOCATION: EARTH SURFACE</div>
-        <div id="spd-display">VELOCITY: 0.0 AU/s</div>
-        <div id="target-display" style="color: #55ff55;">NEAREST: --</div>
-    </div>
-
-    <div id="surface-intel">
-        <h2 id="p-name">PLANET</h2>
-        <p id="p-data">Atmospheric conditions analyzed...</p>
-        <button class="btn-exit" onclick="document.getElementById('surface-intel').style.display='none'">CLOSE LOG</button>
     </div>
 
     <div id="left-stick" class="stick-base"><div class="knob" id="knob-l"></div></div>
