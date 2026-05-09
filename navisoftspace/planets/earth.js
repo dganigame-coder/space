@@ -34,7 +34,8 @@ export function createEarth() {
     group.userData = { 
         name: "EARTH", 
         info: "The Blue Marble. Only known planet with life. 1G Gravity.",
-        r: 600 // Updated radius to match your Geometry
+        r: 600, // Updated radius to match your Geometry
+        type:"solid"
     };
 
     // 2. The Orbit Logic
