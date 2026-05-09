@@ -136,33 +136,57 @@ function updateRightMonitor(planet) {
     }, 5000);
 }
 
-/**
- * Physics for Gas Giants - No "Wall", just drag
- */
+export function checkCollisions(camera, planets) {
+    if (!planets) return;
+
+    planets.forEach(planet => {
+        const dist = camera.position.distanceTo(planet.position);
+        const radius = planet.userData.r || 500; 
+        const type = planet.userData.type;
+
+        if (dist < radius) { 
+            // 1. GAS GIANTS (Pass-through / No pushback)
+            if (type === 'gas') {
+                updateRightMonitor(planet);
+                triggerAtmosphereEntry(camera, planet);
+            } 
+            // 2. STARS (Radiation / Hot pushback)
+            else if (type === 'star') {
+                updateRightMonitor(planet);
+                triggerSolarFlare(camera, planet);
+            } 
+            // 3. SOLID PLANETS (Hard Crash / Bounce)
+            else if (type === 'solid') {
+                if (!isColliding) {
+                    updateRightMonitor(planet);
+                    triggerImpact(camera);
+                    isColliding = true;
+                    setTimeout(() => isColliding = false, 1000); 
+                }
+            }
+        }
+    });
+}
+
+// --- BEHAVIOR DEFINITIONS ---
+
 function triggerAtmosphereEntry(camera, planet) {
-    if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
-    
-    // Slow the ship down to simulate thick atmosphere
+    // PHYSICS: No translateZ! This allows you to fly INSIDE.
     if (window.currentSpeed) {
-        window.currentSpeed *= 0.98; 
+        window.currentSpeed *= 0.96; // Thick atmosphere drag
     }
-    
-    // Note: No camera.translateZ here so you can pass through!
+    if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
 }
 
-/**
- * Physics for Solid Planets - Bounce and Shake
- */
+function triggerSolarFlare(camera, planet) {
+    // PHYSICS: Constant pushback from solar winds
+    // This is lighter than a crash (100 vs 200) but happens every frame
+    camera.translateZ(100); 
+    console.warn("WARNING: Solar Radiation Levels Critical");
+}
+
 function triggerImpact(camera) {
-    camera.translateZ(200); // Kick back
+    // PHYSICS: The "Wall" effect for solid ground
+    camera.translateZ(200); 
     if (navigator.vibrate) navigator.vibrate(200);
-    // Add your shake logic here if desired
-}
-
-/**
- * Physics for the Sun
- */
-function triggerSolarFlare(camera) {
-    camera.translateZ(100); // Solar wind pushback
-    console.log("Radiation levels critical!");
 }
