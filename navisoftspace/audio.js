@@ -17,11 +17,25 @@ const impactNoise = new Tone.Noise("pink").connect(new Tone.Filter(500, "lowpass
 const impactThump = new Tone.MembraneSynth().toDestination();
 
 export async function loadSoundLibrary() {
-    // Tone.start() is the magic command that unlocks the browser audio
+    // 1. The standard unlock
     await Tone.start();
+    
+    // 2. FORCE RESUME: Sometimes Tone.start() leaves the hardware "suspended"
+    if (Tone.context.state !== 'running') {
+        await Tone.context.resume();
+    }
+
+    // 3. START THE ENGINES: These stay silent (-Infinity dB) until playHighFi is called
     gasWind.start();
     solarSizzle.start();
+    
+    // 4. DIAGNOSTIC: Check your console for "running"
+    console.log("Audio System State:", Tone.context.state); 
     console.log("Hyper-realistic generative audio online.");
+
+    // 5. TEST BEEP (Optional: Remove after you hear it)
+    // const testOsc = new Tone.Oscillator(440, "sine").toDestination().start();
+    // setTimeout(() => testOsc.stop(), 200); 
 }
 
 export function playHighFi(key, intensity = 0.5) {
