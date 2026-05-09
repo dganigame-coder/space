@@ -1,53 +1,43 @@
 // audio.js
 
-// 1. Declare variables at the top (without initializing)
+// 1. IMPORTANT: We do not use global Tone nodes here.
 let gasFilter, gasVolume, gasWind;
 let solarFilter, solarVolume, solarSizzle;
 let alarmSynth, impactNoise, impactThump;
 
 export async function loadSoundLibrary() {
-    // 2. The standard unlock (Must happen inside the click event)
-    await Tone.start();
-    
-    // 3. Initialize nodes only IF they don't exist yet
+    // 2. Check if we need to set the context (Modern Tone.js fix)
+    if (Tone.getContext().state !== 'running') {
+        await Tone.start();
+    }
+
+    // 3. Initialize nodes ONLY inside this function
     if (!gasVolume) {
-        // GAS_RUSH
-        gasFilter = new Tone.AutoFilter("4n").start();
+        // We create the nodes here. Tone will now associate them 
+        // with the 'active' user-gestured context.
         gasVolume = new Tone.Volume(-Infinity).toDestination();
-        gasWind = new Tone.Noise("brown").connect(gasFilter).connect(gasVolume);
-
-        // SOLAR_STATIC
-        solarFilter = new Tone.Filter(5000, "highpass").toDestination();
-        solarVolume = new Tone.Volume(-Infinity).connect(solarFilter);
+        gasWind = new Tone.Noise("brown").connect(gasVolume);
+        
+        solarVolume = new Tone.Volume(-Infinity).toDestination();
         solarSizzle = new Tone.Noise("white").connect(solarVolume);
-
-        // COCKPIT_ALARM
+        
         alarmSynth = new Tone.PolySynth(Tone.Synth).toDestination();
-
-        // HULL_IMPACT
-        impactNoise = new Tone.Noise("pink").connect(new Tone.Filter(500, "lowpass").toDestination());
+        
+        impactNoise = new Tone.Noise("pink").toDestination();
         impactThump = new Tone.MembraneSynth().toDestination();
     }
 
-    // 4. Force Resume
-    if (Tone.context.state !== 'running') {
-        await Tone.context.resume();
-    }
-
-    // 5. Start generators
+    await Tone.context.resume();
     gasWind.start();
     solarSizzle.start();
     
     console.log("Audio System State:", Tone.context.state); 
-    console.log("Hyper-realistic generative audio online.");
 }
 
 export function playHighFi(key, intensity = 0.5) {
-    // Safety check: skip if library hasn't been initialized by a click
-    if (!gasVolume) return;
+    if (!gasVolume || Tone.context.state !== 'running') return;
 
     const now = Tone.now();
-
     switch(key) {
         case 'GAS_RUSH':
             gasVolume.volume.setTargetAtTime(Tone.gainToDb(intensity), now, 0.2);
@@ -61,10 +51,6 @@ export function playHighFi(key, intensity = 0.5) {
             break;
         case 'SOLAR_STATIC':
             solarVolume.volume.setTargetAtTime(Tone.gainToDb(intensity * 0.3), now, 0.1);
-            break;
-        case 'OFF':
-            gasVolume.volume.setTargetAtTime(-Infinity, now, 1);
-            solarVolume.volume.setTargetAtTime(-Infinity, now, 1);
             break;
     }
 }
