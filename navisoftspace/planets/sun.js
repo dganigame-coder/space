@@ -58,7 +58,8 @@ export function createSun() {
     group.userData = { 
         name: "THE SUN", 
         info: "Class G2V Star. Providing heat and light to the system.",
-        r: 4000 
+        r: 4000 ,
+        type:"star"
     };
 
     // ANIMATION
