@@ -72,6 +72,7 @@ export function initEngine() {
  * Call this in your main animate loop: 
  * checkCollisions(engine.camera, bodies);
  */
+let isColliding = false; 
 
 export function checkCollisions(camera, planets) {
     if (!planets) return;
@@ -79,13 +80,28 @@ export function checkCollisions(camera, planets) {
     planets.forEach(planet => {
         const dist = camera.position.distanceTo(planet.position);
         const radius = planet.userData.r || 500; 
-        const type = planet.userData.type; // 'solid' or 'gas'
+        const type = planet.userData.type;
 
         if (dist < radius) { 
+            // --- LOGGING THE HIT ---
+            console.log(`Collision Detected: ${planet.userData.name} | Type: ${type}`);
+
             if (type === 'gas') {
-                triggerAtmosphereEntry(camera, planet.userData.color);
-            } else {
-                triggerImpact(camera); // Your existing bounce logic
+                // No cooldown needed for gas, it's a smooth "sinking" feeling
+                triggerAtmosphereEntry(camera, planet);
+            } 
+            else if (type === 'star') {
+                console.log("ALERT: Solar radiation detected!");
+                triggerSolarFlare(camera);
+            } 
+            else {
+                // 'solid' logic - only trigger once to avoid "machine gun" logs
+                if (!isColliding) {
+                    console.warn(`CRASH: Impact on ${planet.userData.name} surface!`);
+                    triggerImpact(camera);
+                    isColliding = true;
+                    setTimeout(() => isColliding = false, 1000); 
+                }
             }
         }
     });
