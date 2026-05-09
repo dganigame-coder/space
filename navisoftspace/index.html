@@ -168,17 +168,15 @@
 
     const overlay = document.getElementById('overlay');
 
-    overlay.onclick = () => {
-
      // Add 'async' here so 'await' works inside
      overlay.onclick = async () => {
-     // 1. Initialize Audio First
-     try {
-        await loadSoundLibrary(); 
-        console.log("Audio systems initialized via User Gesture.");
-     } catch (e) {
-        console.error("Audio failed to start:", e);
-     }   
+         // 1. Initialize Audio First
+         try {
+            await loadSoundLibrary(); 
+            console.log("Audio systems initialized via User Gesture.");
+         } catch (e) {
+            console.error("Audio failed to start:", e);
+         }   
         overlay.style.display = 'none';
         const engine = initEngine();
         // Add the background
