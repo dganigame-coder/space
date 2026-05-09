@@ -115,6 +115,7 @@ export function checkCollisions(camera, planets) {
             else if (type === 'star') {
                 updateRightMonitor(planet);
                 triggerSolarFlare(camera, planet);
+               
             } 
             // 3. SOLID PLANETS (Hard Crash / Bounce)
             else if (type === 'solid') {
@@ -139,11 +140,33 @@ function triggerAtmosphereEntry(camera, planet) {
     if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
 }
 
-function triggerSolarFlare(camera, planet) {
-    // PHYSICS: Constant pushback from solar winds
-    // This is lighter than a crash (100 vs 200) but happens every frame
-    camera.translateZ(100); 
-    console.warn("WARNING: Solar Radiation Levels Critical");
+// In engine.js
+
+export function triggerSolarFlare(camera, planet) {
+    const dist = camera.position.distanceTo(planet.position);
+    const radius = planet.userData.r || 5000;
+    
+    // 1. Calculate Intensity: 0.0 at edge, 1.0 at center
+    const penetration = Math.max(0, (radius - dist) / radius);
+
+    // 2. Aggressive Exponential Pushback
+    // The deeper you go, the more the Sun "rejects" your ship
+    const basePush = 120;
+    const exponentialForce = penetration * 600; 
+    camera.translateZ(basePush + exponentialForce);
+
+    // 3. Visual "Heat Haze" Effect
+    // We apply the filter here so checkCollisions stays clean
+    document.body.style.filter = `contrast(${1.5 + penetration}) sepia(0.5) saturate(2)`;
+    
+    // Restore visual state quickly
+    setTimeout(() => { 
+        document.body.style.filter = "none"; 
+    }, 50); // Shorter time for a "strobe" heat effect
+
+    // 4. Physical Feedback
+    if (window.currentSpeed) window.currentSpeed *= 0.8; // Heavy plasma drag
+    if (navigator.vibrate) navigator.vibrate(penetration * 200);
 }
 
 function triggerImpact(camera) {
