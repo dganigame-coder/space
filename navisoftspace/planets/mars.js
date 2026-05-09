@@ -18,7 +18,7 @@ export function createMars() {
         bumpMap: loader.load('https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/planets/texture/8k_mars.jpg'),
         bumpScale: 0.35,
         roughness: 1,
-        metalness: 0
+        metalness: 0,
     });
 
     // 3. Create the Mesh
@@ -29,7 +29,7 @@ export function createMars() {
         name: "MARS", 
         info: "The Red Planet. Iron oxide surface. 0.38G Gravity.",
         r: 400 ,
-        type:"gas"
+        type:"solid"
     };
 
     // 4. The Orbit & Rotation Logic
