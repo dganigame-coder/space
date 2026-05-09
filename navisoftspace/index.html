@@ -87,7 +87,8 @@
         <div id="spd-display">VELOCITY: 0.0 AU/s</div>
         <div id="target-display" style="color: #55ff55;">NEAREST: --</div>
     </div>
-
+<!-- 1. Load Tone.js before your modules -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     
     <div id="right-monitor" style="
     position: absolute; 
@@ -136,7 +137,6 @@
  
     </script>
     <script type="module">
-
         let autoPilotActive = false;
 
         window.addEventListener('keydown', (e) => {
