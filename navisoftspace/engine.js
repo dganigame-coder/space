@@ -1,5 +1,5 @@
 import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
-import { playHighFi } from 'https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/audio.js';
+import { playHighFi } from 'https://cdn.jsdelivr.net/gh/dganigame-coder/space@68a3edb/navisoftspace/audio.js';
 /**
  * RESPONSIBILITY: 
  * 1. Initialize the WebGL Renderer
@@ -97,8 +97,14 @@ function updateRightMonitor(planet) {
     }, 5000);
 }
 
+let isColliding = false; 
+let monitorTimer;
+let activeAmbient = false; // Track if we are currently playing ambient noise
+
 export function checkCollisions(camera, planets) {
     if (!planets) return;
+
+    let inAmbientZone = false;
 
     planets.forEach(planet => {
         const dist = camera.position.distanceTo(planet.position);
@@ -106,25 +112,26 @@ export function checkCollisions(camera, planets) {
         const type = planet.userData.type;
 
         if (dist < radius) { 
-            // Calculate how deep we are (0.0 at edge, 1.0 at center)
             const penetration = Math.max(0, (radius - dist) / radius);
 
             // --- 1. GAS GIANTS (Pass-through + Wind Audio) ---
             if (type === 'gas') {
+                inAmbientZone = true;
                 updateRightMonitor(planet);
                 triggerAtmosphereEntry(camera, planet);
                 
-                // Play rushing wind: volume increases as you go deeper
-                playHighFi('GAS_RUSH', penetration * 0.4, 0.8);
+                // Tone.js Intensity: 0.0 to 1.0
+                playHighFi('GAS_RUSH', penetration); 
             } 
 
             // --- 2. STARS (Radiation + Static Audio) ---
             else if (type === 'star') {
+                inAmbientZone = true;
                 updateRightMonitor(planet);
                 triggerSolarFlare(camera, planet);
 
-                // Play solar static: higher pitch and volume when closer
-                playHighFi('SOLAR_STATIC', 0.2 + (penetration * 0.3), 1.2 + penetration);
+                // Tone.js Intensity: 0.0 to 1.0
+                playHighFi('SOLAR_STATIC', penetration);
             } 
 
             // --- 3. SOLID PLANETS (Hard Crash + Impact Audio) ---
@@ -133,9 +140,9 @@ export function checkCollisions(camera, planets) {
                     updateRightMonitor(planet);
                     triggerImpact(camera);
                     
-                    // Hyper-realistic crash sequence
-                    playHighFi('HULL_IMPACT', 1.0);
-                    playHighFi('COCKPIT_ALARM', 0.7);
+                    // Trigger instantaneous synths
+                    playHighFi('HULL_IMPACT');
+                    playHighFi('COCKPIT_ALARM');
                     
                     isColliding = true;
                     setTimeout(() => isColliding = false, 1000); 
@@ -143,49 +150,49 @@ export function checkCollisions(camera, planets) {
             }
         }
     });
+
+    // --- 4. AMBIENT RESET ---
+    // If we aren't near any gas/stars, fade the sounds to -Infinity
+    if (!inAmbientZone && activeAmbient) {
+        playHighFi('GAS_RUSH', 0);
+        playHighFi('SOLAR_STATIC', 0);
+        activeAmbient = false;
+    } else if (inAmbientZone) {
+        activeAmbient = true;
+    }
 }
 
 // --- BEHAVIOR DEFINITIONS ---
 
 function triggerAtmosphereEntry(camera, planet) {
-    // PHYSICS: No translateZ! This allows you to fly INSIDE.
+    // PHYSICS: Speed drag
     if (window.currentSpeed) {
-        window.currentSpeed *= 0.96; // Thick atmosphere drag
+        window.currentSpeed *= 0.96; 
     }
-    if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
+    if (navigator.vibrate) navigator.vibrate([20, 10, 20]);
 }
-
-// In engine.js
 
 export function triggerSolarFlare(camera, planet) {
     const dist = camera.position.distanceTo(planet.position);
     const radius = planet.userData.r || 5000;
-    
-    // 1. Calculate Intensity: 0.0 at edge, 1.0 at center
     const penetration = Math.max(0, (radius - dist) / radius);
 
-    // 2. Aggressive Exponential Pushback
-    // The deeper you go, the more the Sun "rejects" your ship
+    // Exponential Pushback
     const basePush = 120;
     const exponentialForce = penetration * 600; 
     camera.translateZ(basePush + exponentialForce);
 
-    // 3. Visual "Heat Haze" Effect
-    // We apply the filter here so checkCollisions stays clean
+    // Visual Heat Effect
     document.body.style.filter = `contrast(${1.5 + penetration}) sepia(0.5) saturate(2)`;
-    
-    // Restore visual state quickly
     setTimeout(() => { 
         document.body.style.filter = "none"; 
-    }, 50); // Shorter time for a "strobe" heat effect
+    }, 50);
 
-    // 4. Physical Feedback
-    if (window.currentSpeed) window.currentSpeed *= 0.8; // Heavy plasma drag
-    if (navigator.vibrate) navigator.vibrate(penetration * 200);
+    if (window.currentSpeed) window.currentSpeed *= 0.8;
+    if (navigator.vibrate) navigator.vibrate(penetration * 100);
 }
 
 function triggerImpact(camera) {
-    // PHYSICS: The "Wall" effect for solid ground
     camera.translateZ(200); 
     if (navigator.vibrate) navigator.vibrate(200);
 }
