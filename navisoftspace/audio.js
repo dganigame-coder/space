@@ -11,6 +11,18 @@ const SOUND_LIB = {
 
 const audioBuffers = {};
 
+export const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+export async function loadSoundLibrary() {
+    // Crucial: Resume the context in case it started suspended
+    if (audioCtx.state === 'suspended') {
+        await audioCtx.resume();
+    }
+    
+    // ... your existing fetch/decode logic here ...
+}
+
+
 /**
  * Preloads all professional sounds into memory
  */
