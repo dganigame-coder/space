@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Audio System Test Bench</title>
+    <style>
+        body { background: #111; color: #0f0; font-family: monospace; display: flex; flex-direction: column; align-items: center; padding: 50px; }
+        .panel { border: 2px solid #0f0; padding: 20px; border-radius: 10px; box-shadow: 0 0 15px #0f0; }
+        button { background: #222; color: #0f0; border: 1px solid #0f0; padding: 10px 20px; margin: 10px; cursor: pointer; text-transform: uppercase; }
+        button:hover { background: #0f0; color: #000; }
+        .status { margin-bottom: 20px; color: #ff0; }
+    </style>
+</head>
+<body>
+
+    <h1>Ship Audio Test Bench</h1>
+    <div class="status" id="status">Status: Waiting for User...</div>
+
+    <div class="panel">
+        <button id="init-btn">1. Unlock Audio & Load Lib</button>
+        <hr>
+        <button id="impact-btn">Test Impact (Solid)</button>
+        <button id="alarm-btn">Test Alarm (Caution)</button>
+        <button id="gas-btn">Test Gas Rush (Tidal)</button>
+    </div>
+
+    <script type="module">
+        import { loadSoundLibrary, playHighFi } from './audio.js';
+
+        const status = document.getElementById('status');
+
+        // 1. Initialize System
+        document.getElementById('init-btn').onclick = async () => {
+            status.innerText = "Status: Loading Assets...";
+            try {
+                await loadSoundLibrary();
+                status.innerText = "Status: Online & Ready";
+                status.style.color = "#0f0";
+            } catch (e) {
+                status.innerText = "Status: Error Loading Sounds";
+                status.style.color = "#f00";
+            }
+        };
+
+        // 2. Trigger Sounds
+        document.getElementById('impact-btn').onclick = () => playHighFi('HULL_IMPACT', 1.0);
+        document.getElementById('alarm-btn').onclick = () => playHighFi('COCKPIT_ALARM', 0.5);
+        document.getElementById('gas-btn').onclick = () => playHighFi('GAS_RUSH', 0.7, 0.8);
+    </script>
+</body>
+</html>
