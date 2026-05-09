@@ -106,7 +106,7 @@
     {
       "imports": {
         "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-        "engine": "https://cdn.jsdelivr.net/gh/dganigame-coder/space@6b08ead/navisoftspace/engine.js",
+        "engine": "https://cdn.jsdelivr.net/gh/dganigame-coder/space@bded350/navisoftspace/engine.js",
         "pilot": "https://cdn.jsdelivr.net/gh/dganigame-coder/space@10a63d6/navisoftspace/pilot.js",
         "stars":"https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/stars.js",
         "mars":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@75f7ce3/navisoftspace/planets/mars.js",
@@ -203,16 +203,28 @@
             
                
 
-   function frame() {                        
+function frame() {                        
     requestAnimationFrame(frame);
-    // Check collisions every frame
+
+    // 1. INFINITE STARS
+    // Keep the starfield locked to the camera position so you never hit a "void"
+    if (engine.stars) {
+        engine.stars.position.copy(engine.camera.position);
+    }
+
+    // 2. PHYSICS & MOVEMENT
+    // Check if we hit a planet (vibrate/shake) and move the ship
     checkCollisions(engine.camera, bodies);
     updateFlight(engine.camera, bodies);
 
-    // --- HUD LOGIC START ---
+    // 3. PLANET ANIMATIONS
+    // Runs rotation or orbital logic for each planet
+    bodies.forEach(b => { if(b.onUpdate) b.onUpdate(); });
+
+    // 4. HUD LOGIC (Nearest Planet Tracking)
     let closestBody = null;
     let minDistance = Infinity;
-    bodies.forEach(b => { if(b.onUpdate) b.onUpdate(); });
+
     bodies.forEach(b => {
         // Calculate raw distance between ship and planet center
         const dist = engine.camera.position.distanceTo(b.position);
@@ -222,24 +234,26 @@
             closestBody = b;
         }
     });
+
     const nearestLabel = document.getElementById('target-display');
-    if (closestBody) {
-        // 1 AU = 60,000 units. Let's convert it for the display.
+    if (closestBody && nearestLabel) {
+        // 1 AU = 60,000 units.
         const auDist = (minDistance / 60000).toFixed(2);
         const name = closestBody.userData.name;
 
         // Update the text
         nearestLabel.innerText = `NEAREST: ${name} (${auDist} AU)`;
         
-        // Bonus: Make it red if you're about to crash!
-        if (minDistance < closestBody.userData.r + 1000) {
+        // DANGER ALERT: Turn HUD red if within 1000 units of the surface
+        const planetRadius = closestBody.userData.r || 500;
+        if (minDistance < planetRadius + 1000) {
             nearestLabel.style.color = "#ff5555"; // Red for danger
         } else {
-            nearestLabel.style.color = "#55ff55"; // Your original green
+            nearestLabel.style.color = "#55ff55"; // Safe green
         }
     }
-    // --- HUD LOGIC END ---
 
+    // 5. RENDER
     engine.renderer.render(engine.scene, engine.camera);
 }
             frame();
