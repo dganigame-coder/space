@@ -125,7 +125,7 @@
  
     </script>
     <script type="module">
-    import { initEngine } from 'engine';
+    import { initEngine , checkCollisions } from 'engine';
     import { initPilot, updateFlight } from 'pilot';
     import { createStars } from 'stars';
 
@@ -205,6 +205,8 @@
 
    function frame() {                        
     requestAnimationFrame(frame);
+    // Check collisions every frame
+    checkCollisions(engine.camera, bodies);
     updateFlight(engine.camera, bodies);
 
     // --- HUD LOGIC START ---
