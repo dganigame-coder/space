@@ -22,7 +22,8 @@ export function createPluto() {
     group.userData = { 
         name: "PLUTO", 
         info: "Dwarf Planet. Icy mountains and nitrogen glaciers. 39.5 AU.",
-        r: 120 
+        r: 120 ,
+        type:"solid"
     };
 
     // 2. The Orbit Logic
