@@ -1,5 +1,5 @@
 import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
-
+import { playHighFi } from 'https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/audio.js';
 /**
  * RESPONSIBILITY: 
  * 1. Initialize the WebGL Renderer
@@ -106,22 +106,37 @@ export function checkCollisions(camera, planets) {
         const type = planet.userData.type;
 
         if (dist < radius) { 
-            // 1. GAS GIANTS (Pass-through / No pushback)
+            // Calculate how deep we are (0.0 at edge, 1.0 at center)
+            const penetration = Math.max(0, (radius - dist) / radius);
+
+            // --- 1. GAS GIANTS (Pass-through + Wind Audio) ---
             if (type === 'gas') {
                 updateRightMonitor(planet);
                 triggerAtmosphereEntry(camera, planet);
+                
+                // Play rushing wind: volume increases as you go deeper
+                playHighFi('GAS_RUSH', penetration * 0.4, 0.8);
             } 
-            // 2. STARS (Radiation / Hot pushback)
+
+            // --- 2. STARS (Radiation + Static Audio) ---
             else if (type === 'star') {
                 updateRightMonitor(planet);
                 triggerSolarFlare(camera, planet);
-               
+
+                // Play solar static: higher pitch and volume when closer
+                playHighFi('SOLAR_STATIC', 0.2 + (penetration * 0.3), 1.2 + penetration);
             } 
-            // 3. SOLID PLANETS (Hard Crash / Bounce)
+
+            // --- 3. SOLID PLANETS (Hard Crash + Impact Audio) ---
             else if (type === 'solid') {
                 if (!isColliding) {
                     updateRightMonitor(planet);
                     triggerImpact(camera);
+                    
+                    // Hyper-realistic crash sequence
+                    playHighFi('HULL_IMPACT', 1.0);
+                    playHighFi('COCKPIT_ALARM', 0.7);
+                    
                     isColliding = true;
                     setTimeout(() => isColliding = false, 1000); 
                 }
