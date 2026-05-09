@@ -28,7 +28,8 @@ export function createMars() {
     group.userData = { 
         name: "MARS", 
         info: "The Red Planet. Iron oxide surface. 0.38G Gravity.",
-        r: 400 
+        r: 400 ,
+        type:"gas"
     };
 
     // 4. The Orbit & Rotation Logic
