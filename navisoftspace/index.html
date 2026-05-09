@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <title>NaviSoft Space Simulator</title>
 <style>
     /* Deep Space UI Theme */
@@ -88,7 +89,6 @@
         <div id="target-display" style="color: #55ff55;">NEAREST: --</div>
     </div>
 <!-- 1. Load Tone.js before your modules -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     
     <div id="right-monitor" style="
     position: absolute; 
@@ -119,6 +119,7 @@
       "imports": {
         "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
         "engine": "https://cdn.jsdelivr.net/gh/dganigame-coder/space@68a3edb/navisoftspace/engine.js",
+        "audio":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@68a3edb/navisoftspace/audio.js",
         "pilot": "https://cdn.jsdelivr.net/gh/dganigame-coder/space@10a63d6/navisoftspace/pilot.js",
         "stars":"https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/stars.js",
         "mars":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@e20c044/navisoftspace/planets/mars.js",
@@ -145,7 +146,9 @@
             console.log("Auto-Pilot:", autoPilotActive ? "ON" : "OFF");
          }
          });  
+    
     import { initEngine , checkCollisions } from 'engine';
+    import { loadSoundLibrary } from 'audio.js';
     import { initPilot, updateFlight } from 'pilot';
     import { createStars } from 'stars';
 
@@ -184,7 +187,9 @@
         const uranus = createUranus();
         const neptune = createNeptune();
         const pluto = createPluto();
-        
+
+        await loadSoundLibrary(); 
+        console.log("Audio systems initialized via User Gesture.");
         // --- 2. ADD EVERYTHING TO THE SCENE ---
         engine.scene.add(sun, mercury, venus, earth, moon, mars, jupiter, saturn, uranus, neptune, pluto);
         
