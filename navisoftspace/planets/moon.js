@@ -24,7 +24,8 @@ export function createMoon(earth) {
     group.userData = { 
         name: "THE MOON", 
         info: "Lunar surface. 0.16G Gravity. Tidally locked to Earth.",
-        r: 160
+        r: 160,
+        type"solid"
     };
 
     // 2. The Lunar Orbit Logic
