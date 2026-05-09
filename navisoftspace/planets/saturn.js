@@ -8,56 +8,60 @@ export function createSaturn() {
     const loader = new THREE.TextureLoader();
     const group = new THREE.Group();
 
-    // --- 1. THE PLANET (High Detail) ---
+    // --- 1. THE PLANET ---
     const saturn = new THREE.Mesh(
-        new THREE.SphereGeometry(2500, 128, 128), // Increased segments for smoothness
-        new THREE.MeshStandardMaterial({ // StandardMaterial reacts better to light
+        new THREE.SphereGeometry(2500, 128, 128),
+        new THREE.MeshStandardMaterial({ 
             map: loader.load('https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/planets/texture/2k_saturn.jpg'),
-            roughness: 0.8,
+            roughness: 0.9,
             metalness: 0.1,
             side: THREE.DoubleSide 
         })
     );
     group.add(saturn);
     
-    // --- 2. THE RINGS (UV Corrected & High Quality) ---
+    // --- 2. THE RINGS ---
     const innerRadius = 3000;
     const outerRadius = 5500;
-    const ringGeo = new THREE.RingGeometry(innerRadius, outerRadius, 128); // 128 for perfect circle
+    const ringGeo = new THREE.RingGeometry(innerRadius, outerRadius, 128); 
     
-    // UV FIX: This ensures the texture "stripes" wrap around the planet
+    // UV FIX: Manual calculation to wrap texture radially
     const pos = ringGeo.attributes.position;
     const uv = ringGeo.attributes.uv;
+    
     for (let i = 0; i < pos.count; i++) {
         const x = pos.getX(i);
         const y = pos.getY(i);
         const distance = Math.sqrt(x * x + y * y);
-        // Map texture: inner radius = 0 (left of image), outer = 1 (right of image)
+        // Map distance to U (0 to 1)
         const u = (distance - innerRadius) / (outerRadius - innerRadius);
         uv.setXY(i, u, 0); 
     }
+    // CRITICAL FIX: Tell Three.js to send new UV data to the GPU
+    uv.needsUpdate = true;
 
     const ringTexture = loader.load('https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/planets/texture/2k_saturn_ring_alpha.png');
     
     const ringMat = new THREE.MeshStandardMaterial({
         map: ringTexture,
-        alphaMap: ringTexture, // Uses the texture's own data for transparency
+        alphaMap: ringTexture,
         transparent: true,
         side: THREE.DoubleSide,
-        roughness: 0.4,
+        roughness: 0.6,
         metalness: 0,
-        alphaTest: 0.02 // Allows for fine dust particles without "box" glitches
+        // alphaTest: 0 is safer if your rings are vanishing
+        alphaTest: 0.01 
     });
     
     const rings = new THREE.Mesh(ringGeo, ringMat);
-    rings.rotation.x = -Math.PI / 2; // Standard orientation
+    rings.rotation.x = -Math.PI / 2; 
     group.add(rings);
 
     // --- 3. METADATA & ORBIT ---
     group.userData = { 
         name: "SATURN", 
         info: "Ringed giant. Lowest density of any planet.",
-        r: outerRadius, // Use outer ring radius for collision/HUD
+        r: outerRadius, 
         type: "gas"
     };
 
