@@ -25,7 +25,8 @@ export function createUranus() {
     group.userData = { 
       name: "URANUS", 
       info: "The Sideways Planet. Ice giant with cold methane clouds. 19.2 AU from Sun.", 
-      r: 1100 
+      r: 1100 ,
+      type:"gas"
     };
 
     // 2. The Orbit & Rotation Logic
