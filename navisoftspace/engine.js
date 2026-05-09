@@ -72,17 +72,36 @@ export function initEngine() {
  * Call this in your main animate loop: 
  * checkCollisions(engine.camera, bodies);
  */
+
 export function checkCollisions(camera, planets) {
     if (!planets) return;
 
     planets.forEach(planet => {
         const dist = camera.position.distanceTo(planet.position);
         const radius = planet.userData.r || 500; 
+        const type = planet.userData.type; // 'solid' or 'gas'
 
-        if (dist < radius + 50) { 
-            triggerImpact(camera);
+        if (dist < radius) { 
+            if (type === 'gas') {
+                triggerAtmosphereEntry(camera, planet.userData.color);
+            } else {
+                triggerImpact(camera); // Your existing bounce logic
+            }
         }
     });
+}
+
+
+function triggerAtmosphereEntry(camera, planetColor) {
+    // 1. Slow the ship down to a crawl
+    // 2. You can trigger a 'Fog' effect in your scene here
+    console.log("Entering Gas Giant atmosphere...");
+    
+    // Add a deep vibration instead of a sharp shake
+    if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 500]);
+    
+    // Push the camera back slightly, but don't 'bounce' it
+    camera.translateZ(10); 
 }
 
 function triggerImpact(camera) {
