@@ -1,3 +1,4 @@
+/**10-05-26 22:41   **/
 import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
 import { playHighFi } from 'https://cdn.jsdelivr.net/gh/dganigame-coder/space@main/navisoftspace/audio.js';
 /**
@@ -58,6 +59,9 @@ export function initEngine() {
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.2); 
     scene.add(ambientLight);
 
+    // ADD THIS: Initial fog (starts as black/invisible)
+    scene.fog = new THREE.Fog(0x000000, 1, 10000000); 
+    
     window.addEventListener('resize', () => {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
@@ -102,6 +106,7 @@ export function checkCollisions(camera, planets) {
     if (!planets) return;
 
     let inAmbientZone = false;
+    let maxPenetration = 0; // Track how deep we are for fog
 
     planets.forEach(planet => {
         const dist = camera.position.distanceTo(planet.position);
@@ -112,6 +117,7 @@ export function checkCollisions(camera, planets) {
             const penetration = Math.max(0, (radius - dist) / radius);
 
             // --- 1. GAS GIANTS (Pass-through + Wind Audio) ---
+            /*
             if (type === 'gas') {
                 inAmbientZone = true;
                 updateRightMonitor(planet);
@@ -120,7 +126,15 @@ export function checkCollisions(camera, planets) {
                 // Tone.js Intensity: 0.0 to 1.0
                 playHighFi('GAS_RUSH', penetration); 
             } 
-
+*/
+                if (type === 'gas') {
+                inAmbientZone = true;
+                maxPenetration = Math.max(maxPenetration, penetration); // Store for fog
+                updateRightMonitor(planet);
+                triggerAtmosphereEntry(camera, planet, penetration); // Pass penetration
+                playHighFi('GAS_RUSH', penetration); 
+            }
+                
             // --- 2. STARS (Radiation + Static Audio) ---
             else if (type === 'star') {
                 inAmbientZone = true;
@@ -148,6 +162,16 @@ export function checkCollisions(camera, planets) {
         }
     });
 
+
+    // --- FOG / CLOUD LOGIC ---
+    if (inAmbientZone && maxPenetration > 0.05) {
+        // As you go deeper, the fog distance gets shorter (thicker clouds)
+        scene.fog.color.setHex(0x332211); // Dusty Saturn brown
+        scene.fog.near = 10;
+        scene.fog.far = 10000 - (maxPenetration * 9500); 
+    } else {
+        scene.fog.far = 10000000; // Reset to clear space
+    }
     // --- 4. AMBIENT RESET ---
     // If we aren't near any gas/stars, fade the sounds to -Infinity
     if (!inAmbientZone && activeAmbient) {
@@ -161,6 +185,25 @@ export function checkCollisions(camera, planets) {
 
 // --- BEHAVIOR DEFINITIONS ---
 
+function triggerAtmosphereEntry(camera, planet, penetration) {
+    // 1. PHYSICS: Drag (The deeper you are, the more you slow down)
+    if (window.currentSpeed) {
+        const dragFactor = 1 - (penetration * 0.08); // Max 8% reduction per frame
+        window.currentSpeed *= dragFactor; 
+    }
+
+    // 2. CAMERA SHAKE: Simulate turbulence
+    const shakeAmount = penetration * 5; // Adjust for more/less violence
+    camera.position.x += (Math.random() - 0.5) * shakeAmount;
+    camera.position.y += (Math.random() - 0.5) * shakeAmount;
+
+    // 3. VIBRATION (Mobile only)
+    if (navigator.vibrate) {
+        navigator.vibrate(penetration * 50);
+    }
+}
+
+/*
 function triggerAtmosphereEntry(camera, planet) {
     // PHYSICS: Speed drag
     if (window.currentSpeed) {
@@ -168,6 +211,8 @@ function triggerAtmosphereEntry(camera, planet) {
     }
     if (navigator.vibrate) navigator.vibrate([20, 10, 20]);
 }
+
+*/
 
 export function triggerSolarFlare(camera, planet) {
     const dist = camera.position.distanceTo(planet.position);
