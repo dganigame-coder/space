@@ -102,8 +102,8 @@ let isColliding = false;
 let monitorTimer;
 let activeAmbient = false; // Track if we are currently playing ambient noise
 
-export function checkCollisions(camera, planets) {
-    if (!planets) return;
+export function checkCollisions(camera, planets, scene) {
+    if (!planets || !scene || !scene.fog) return; // Safety guard
 
     let inAmbientZone = false;
     let maxPenetration = 0; // Track how deep we are for fog
