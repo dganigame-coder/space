@@ -238,12 +238,31 @@
 function frame() {                        
     requestAnimationFrame(frame);
 
+    /*
     // 1. INFINITE STARS
     // Centers the starfield on the pilot so the galaxy never ends
     if (engine.stars) {
         engine.stars.position.copy(engine.camera.position);
     }
 
+    */
+    // 1. INFINITE STARS & WARP STRETCH
+    if (engine.stars) {
+        // Keep stars centered on the pilot
+        engine.stars.position.copy(engine.camera.position);
+    
+        // Get current velocity length
+        const speed = velocity.length();
+    
+        // WARP EFFECT: Stretch the stars on the Z-axis based on speed
+        // 1.0 is normal, higher speed makes them longer streaks
+        engine.stars.scale.z = 1 + (speed * 0.02); 
+    
+        // ALIGNMENT: Rotate the starfield to match the camera's orientation
+        // This ensures the stars stretch "toward" or "away" from you correctly
+        engine.stars.quaternion.copy(engine.camera.quaternion);
+    }
+    
     // 2. HUD & TARGETING DATA
     // We calculate this first so both the HUD and Auto-Pilot can use it
     let closestBody = null;
