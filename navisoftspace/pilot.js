@@ -73,30 +73,37 @@ export function updateFlight(camera, planets) {
     velocity.multiplyScalar(0.99); 
     camera.position.add(velocity);
 
+
+
     planets.forEach(planet => {
-        const distance = camera.position.distanceTo(planet.position);
-        const radius = planet.userData.r;
+    const distance = camera.position.distanceTo(planet.position);
+    const radius = planet.userData.r;
+
+    // 1. Check if we are within the collision zone
+    if (distance <= radius + 50) {
         
-        // --- THE FIX IS HERE ---
-        // Only trigger the "Hard Stop" if the planet is NOT a gas giant
-        if (distance <= radius + 50 && planet.userData.type !== 'gas') { 
-            velocity.set(0, 0, 0); // Stops the ship
-            
+        // 2. PHYSICAL COLLISION: Only for solid planets
+        if (planet.userData.type === 'solid') {
+            velocity.set(0, 0, 0); // Kill speed
+
+            // Push camera back to surface so you don't clip inside
             const surfaceNormal = new THREE.Vector3().subVectors(camera.position, planet.position).normalize();
-            // Pushes the ship back to the surface
             camera.position.copy(planet.position).add(surfaceNormal.multiplyScalar(radius + 50));
             
-            // Show UI
-            const nameEl = document.getElementById('p-name');
-            const dataEl = document.getElementById('p-data');
+            // Show the Intel UI
             const intelEl = document.getElementById('surface-intel');
-            
-            if(nameEl) nameEl.innerText = planet.userData.name;
-            if(dataEl) dataEl.innerText = planet.userData.info;
             if(intelEl) intelEl.style.display = 'block';
         }
-    });
 
+        // 3. UI UPDATES: Update labels for ALL types (Solid, Gas, or Star)
+        // We do this outside the 'solid' check so you still see info for Saturn/Sun
+        const nameEl = document.getElementById('p-name');
+        const dataEl = document.getElementById('p-data');
+        
+        if(nameEl) nameEl.innerText = planet.userData.name;
+        if(dataEl) dataEl.innerText = planet.userData.info;
+            }
+        });
     const spdEl = document.getElementById('spd-display');
     if(spdEl) {
         const speed = (velocity.length()).toFixed(0);
