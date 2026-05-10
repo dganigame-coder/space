@@ -14,27 +14,28 @@ export function createAsteroidBelt(scene) {
     const mesh = new THREE.InstancedMesh(geometry, material, count);
     const dummy = new THREE.Object3D();
 
+    // Inside createAsteroidBelt()
     for (let i = 0; i < count; i++) {
         const angle = Math.random() * Math.PI * 2;
         
-        // --- THE "BEYOND PLUTO" RADIUS ---
-        // Start at 600,000 and go out to 900,000
-        const radius = 600000 + (Math.random() * 300000); 
+        // --- THE "PLUTO EXTERIOR" MATH ---
+        // Start at 3,000,000 (gives Pluto about 600k units of breathing room)
+        // Extend the belt out to 4,500,000 for a thick, vast border
+        const radius = 3000000 + (Math.random() * 1500000); 
         
-        // Massive vertical scatter to create a "bubble" effect
-        const y = (Math.random() - 0.5) * 100000; 
+        // Massive vertical scatter (3D cloud effect)
+        const y = (Math.random() - 0.5) * 500000; 
     
         const x = Math.cos(angle) * radius;
         const z = Math.sin(angle) * radius;
     
         dummy.position.set(x, y, z);
     
-        // Make them HUGE so they are visible from the star
-        // At 600k distance, small rocks disappear. We need "Mountain" size.
-        const scale = 200 + Math.random() * 800; 
+        // Make the asteroids "Continent Sized"
+        // At 3 million units away, small rocks are invisible pixels.
+        const scale = 1000 + Math.random() * 3000; 
         dummy.scale.set(scale, scale, scale);
         
-        dummy.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
         dummy.updateMatrix();
         mesh.setMatrixAt(i, dummy.matrix);
     }
