@@ -15,21 +15,26 @@ export function createAsteroidBelt(scene) {
     const dummy = new THREE.Object3D();
 
     for (let i = 0; i < count; i++) {
-        // Create a ring between Mars (approx 15k) and Jupiter (approx 35k)
         const angle = Math.random() * Math.PI * 2;
-        const radius = 20000 + (Math.random() * 10000); 
         
+        // --- THE "BEYOND PLUTO" RADIUS ---
+        // Start at 600,000 and go out to 900,000
+        const radius = 600000 + (Math.random() * 300000); 
+        
+        // Massive vertical scatter to create a "bubble" effect
+        const y = (Math.random() - 0.5) * 100000; 
+    
         const x = Math.cos(angle) * radius;
-        const y = (Math.random() - 0.5) * 800; // Vertical spread
         const z = Math.sin(angle) * radius;
-
+    
         dummy.position.set(x, y, z);
-
-        // Random rotation and scale (size of rocks)
-        const scale = 5 + Math.random() * 45;
+    
+        // Make them HUGE so they are visible from the star
+        // At 600k distance, small rocks disappear. We need "Mountain" size.
+        const scale = 200 + Math.random() * 800; 
         dummy.scale.set(scale, scale, scale);
+        
         dummy.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
-
         dummy.updateMatrix();
         mesh.setMatrixAt(i, dummy.matrix);
     }
