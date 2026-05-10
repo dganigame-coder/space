@@ -67,23 +67,26 @@ export function updateFlight(camera, planets) {
     const forwardDir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
     
     // APPLY THRUST
-    let multiplier = isWarping ? 10.0 : 1.0; // 10x speed if holding Shift
+    let multiplier = isWarping ? 10.0 : 1.0; 
     velocity.add(forwardDir.multiplyScalar(controls.thrust * 0.5 * multiplier));
     
-    // REDUCED DAMPING: 0.99 means you keep 99% of your speed every frame.
-    // This allows you to "coast" through space much better.
     velocity.multiplyScalar(0.99); 
-    
     camera.position.add(velocity);
 
     planets.forEach(planet => {
         const distance = camera.position.distanceTo(planet.position);
         const radius = planet.userData.r;
-        if (distance <= radius + 50) { // Slightly larger collision buffer
-            velocity.set(0, 0, 0);
+        
+        // --- THE FIX IS HERE ---
+        // Only trigger the "Hard Stop" if the planet is NOT a gas giant
+        if (distance <= radius + 50 && planet.userData.type !== 'gas') { 
+            velocity.set(0, 0, 0); // Stops the ship
+            
             const surfaceNormal = new THREE.Vector3().subVectors(camera.position, planet.position).normalize();
+            // Pushes the ship back to the surface
             camera.position.copy(planet.position).add(surfaceNormal.multiplyScalar(radius + 50));
             
+            // Show UI
             const nameEl = document.getElementById('p-name');
             const dataEl = document.getElementById('p-data');
             const intelEl = document.getElementById('surface-intel');
@@ -96,7 +99,6 @@ export function updateFlight(camera, planets) {
 
     const spdEl = document.getElementById('spd-display');
     if(spdEl) {
-        // Updated display logic to show relative speed
         const speed = (velocity.length()).toFixed(0);
         spdEl.innerText = isWarping ? "WARP SPEED: " + speed : "VELOCITY: " + speed;
     }
