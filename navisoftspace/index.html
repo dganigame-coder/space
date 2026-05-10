@@ -110,7 +110,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V1105260011</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-V1105260015</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -246,27 +246,25 @@ function frame() {
     }
 
     */
-    // 1. INFINITE STARS & DIRECTIONAL WARP
+    // 1. INFINITE STARS (Simplified & Non-Blocking)
     if (engine.stars) {
-        // Keep stars centered so you never leave the galaxy
+        // Keep stars centered on the pilot
         engine.stars.position.copy(engine.camera.position);
     
         const speed = velocity.length();
     
-        if (speed > 0.1) {
-            // 1. Make the stars stretch
-            engine.stars.scale.z = 1 + (speed * 0.02); 
-    
-            // 2. THE FIX: Make the star container "Look At" where you are going
-            // We create a point in front of the camera to point the stars toward
-            const movementDirection = new THREE.Vector3().copy(velocity).normalize();
-            const targetPoint = new THREE.Vector3().addVectors(engine.camera.position, movementDirection);
-            
-            engine.stars.lookAt(targetPoint);
+        // Only stretch if moving significantly
+        if (speed > 0.5) {
+            // Subtle stretch: 0.005 is much safer than 0.02
+            // This keeps the stars from becoming "walls"
+            engine.stars.scale.z = 1 + (speed * 0.005); 
         } else {
-            // Reset scale when stopped so stars are dots again
             engine.stars.scale.z = 1;
         }
+    
+        // DO NOT USE lookAt or quaternion.copy here.
+        // Leaving the stars at their default rotation allows you to turn 
+        // the camera freely without the "locking" or "snapping" bug.
     }
     
     // 2. HUD & TARGETING DATA
