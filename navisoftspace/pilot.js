@@ -1,6 +1,6 @@
 import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
 
-let velocity = new THREE.Vector3();
+export let velocity = new THREE.Vector3();
 let currentRotation = new THREE.Euler(0, 0, 0, 'YXZ');
 let controls = { yaw: 0, pitch: 0, thrust: 0 };
 let isWarping = false; // New state for Shift key
