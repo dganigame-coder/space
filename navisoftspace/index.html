@@ -120,7 +120,7 @@
         "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
         "engine": "https://cdn.jsdelivr.net/gh/dganigame-coder/space@eb26c47/navisoftspace/engine.js",
         "audio":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@main/navisoftspace/audio.js",
-        "pilot": "https://cdn.jsdelivr.net/gh/dganigame-coder/space@3a0a6df/navisoftspace/pilot.js",
+        "pilot": "https://cdn.jsdelivr.net/gh/dganigame-coder/space@241c45e/navisoftspace/pilot.js",
         "stars":"https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/stars.js",
         "mars":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@e20c044/navisoftspace/planets/mars.js",
         "jupiter":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@e7735dd/navisoftspace/planets/jupiter.js",
@@ -149,7 +149,7 @@
     
     import { initEngine , checkCollisions } from 'engine';
     import { loadSoundLibrary } from 'audio';
-    import { initPilot, updateFlight } from 'pilot';
+    import { initPilot, updateFlight , velocity} from 'pilot';
     import { createStars } from 'stars';
 
     import { createSun } from 'sun';   
