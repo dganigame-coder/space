@@ -118,7 +118,7 @@
     {
       "imports": {
         "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-        "engine": "https://cdn.jsdelivr.net/gh/dganigame-coder/space@5007baf/navisoftspace/engine.js",
+        "engine": "https://cdn.jsdelivr.net/gh/dganigame-coder/space@eb26c47/navisoftspace/engine.js",
         "audio":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@main/navisoftspace/audio.js",
         "pilot": "https://cdn.jsdelivr.net/gh/dganigame-coder/space@10a63d6/navisoftspace/pilot.js",
         "stars":"https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/stars.js",
@@ -272,7 +272,9 @@ function frame() {
     }
 
     // 4. PHYSICS & REGULAR MOVEMENT
-    checkCollisions(engine.camera, bodies);
+    // We added engine.scene so the function can control the fog/clouds
+    checkCollisions(engine.camera, bodies, engine.scene);
+    
     updateFlight(engine.camera, bodies);
 
     // 5. HUD VISUALS
