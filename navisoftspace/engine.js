@@ -54,7 +54,8 @@ export function initEngine() {
     scene.add(ambientLight);
 
     // ADD THIS: Initial fog (starts as black/invisible)
-    scene.fog = new THREE.Fog(0x000000, 1, 10000000); 
+    //scene.fog = new THREE.Fog(0x000000, 1, 10000000); 
+    scene.fog = new THREE.Fog(0x000000, 1000, 5000000);
     
     window.addEventListener('resize', () => {
         camera.aspect = window.innerWidth / window.innerHeight;
