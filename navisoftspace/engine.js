@@ -13,12 +13,7 @@ export function initEngine() {
     const scene = new THREE.Scene();
     
     // 1. Camera & Renderer
-    const camera = new THREE.PerspectiveCamera(
-        75, 
-        window.innerWidth / window.innerHeight, 
-        0.1,       
-        10000000   
-    );
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 5000000);
 
     // STARTING POSITION: Earth Vicinity
     camera.position.set(0, 500, -58000); 
