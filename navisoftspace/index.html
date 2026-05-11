@@ -389,7 +389,7 @@ function frame() {
     // 2. Reference Point (Sun at 0,0,0 is easiest, or Earth's specific position)
     if(sun && sun.position)
     {
-        const distanceUnits = shipPos.distanceTo(sun.postion);
+        const distanceUnits = engine.camera.position.distanceTo(sun.position);
         const distanceElement = document.getElementById('km-val');
         // 3. Conversion to Real World Metrics
         const distanceKM = distanceUnits * 2500;
