@@ -364,23 +364,23 @@ function frame() {
 
             // 1. Get the ship's distance from the Sun
             const shipDist = engine.camera.position.length();
-            const horizonobjElement = document.getElementById('horizon-object-display');
+            const horizonObjElement = document.getElementById('horizon-object-display');
         
             // 2. Logic Check based on your index.html values
             // Using your scale: Earth is 60k, Main Belt is 15k-30k (Inner), etc.
             
             if (shipDist >= 15000 && shipDist <= 30000) {
-                horizonobjElement.innerText = ">> PASSING: MAIN ASTEROID BELT";
+                horizonObjElement.innerText = ">> PASSING: MAIN ASTEROID BELT";
             } 
             else if (shipDist >= 2000000 && shipDist <= 3500000) {
-                horizonobjElement.innerText = ">> PASSING: KUIPER BELT";
+                horizonObjElement.innerText = ">> PASSING: KUIPER BELT";
             } 
             else if (shipDist >= 60000000 && shipDist <= 80000000) {
-                horizonobjElement.innerText = ">> PASSING: OORT CLOUD";
+                horizonObjElement.innerText = ">> PASSING: OORT CLOUD";
             } 
             else {
                 // Clear the text if we aren't in a belt
-                beltElement.innerText = ""; 
+                horizonObjElement.innerText = ""; 
             }
     
     // 6. RENDER
