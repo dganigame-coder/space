@@ -86,7 +86,10 @@
         <div style="font-size: 10px; opacity: 0.7;">[ SYSTEM STATUS: ONLINE ]</div>
         <div id="loc-display">LOCATION: EARTH SURFACE</div>
         <div id="spd-display">VELOCITY: 0.0 AU/s</div>
-        <div id="target-display" style="color: #55ff55;">NEAREST: --</div>
+        <div id="monitor" style="position: fixed; top: 20px; left: 20px; color: #00ff00; font-family: monospace;">
+            <div id="nearest-display">NEAREST: <span id="planet-name">NONE</span></div>
+            <div id="horizon-object-display" style="color: #ffaa00; height: 1.2em;"></div> 
+        </div>
     </div>
 <!-- 1. Load Tone.js before your modules -->
     
@@ -110,7 +113,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V1105262343</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-V1205260027</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -231,7 +234,7 @@
         const bodies = [sun, mercury, venus, earth, moon, mars, jupiter, saturn, titan, uranus, neptune , pluto];
 
         // --- ADD THE HUD CLICK LOGIC HERE ---
-        const nearestLabel = document.getElementById('target-display');
+        const nearestLabel = document.getElementById('nearest-display');
         nearestLabel.style.cursor = "pointer";
 
         nearestLabel.addEventListener('click', () => {
@@ -339,7 +342,7 @@ function frame() {
         oortCloud.rotation.y += 0.000005; 
     }
     // 5. HUD VISUALS
-    const nearestLabel = document.getElementById('target-display');
+    const nearestLabel = document.getElementById('nearest-display');
     if (closestBody && nearestLabel) {
         const auDist = (minDistance / 60000).toFixed(2);
         const name = closestBody.userData.name;
@@ -359,6 +362,30 @@ function frame() {
         }
     }
 
+            function updateMonitor() {
+            // 1. Get the ship's distance from the Sun
+            const shipDist = camera.position.length();
+            const horizonobjElement = document.getElementById('horizon-object-display');
+        
+            // 2. Logic Check based on your index.html values
+            // Using your scale: Earth is 60k, Main Belt is 15k-30k (Inner), etc.
+            
+            if (shipDist >= 15000 && shipDist <= 30000) {
+                horizonobjElement.innerText = ">> PASSING: MAIN ASTEROID BELT";
+            } 
+            else if (shipDist >= 2000000 && shipDist <= 3500000) {
+                horizonobjElement.innerText = ">> PASSING: KUIPER BELT";
+            } 
+            else if (shipDist >= 60000000 && shipDist <= 80000000) {
+                horizonobjElement.innerText = ">> PASSING: OORT CLOUD";
+            } 
+            else {
+                // Clear the text if we aren't in a belt
+                beltElement.innerText = ""; 
+            }
+        }
+
+    updateMonitor()
     // 6. RENDER
     engine.renderer.render(engine.scene, engine.camera);
 }            frame();
