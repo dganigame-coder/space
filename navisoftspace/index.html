@@ -88,7 +88,7 @@
         <div id="spd-display">VELOCITY: 0.0 AU/s</div>
         <div id="nearest-display">NEAREST: <span id="planet-name">NONE</span></div>
         <div id="distance-display" style="color: #00ccff; font-family: monospace; font-size: 0.9em; border-top: 1px solid #333; margin-top: 5px; padding-top: 5px;">
-            RANGE: 
+            DISTANCE FROM EARTH: 
             <span id="km-container"><span id="km-val">0</span> KM</span>
             <span id="lh-container" style="display: none;"><span id="lh-val">0</span> LIGHT HOURS</span>
         </div>
@@ -416,10 +416,10 @@ function frame() {
         
         // 5. Update the UI
         distanceElementKM.innerText = formattedKM;
-    
+       
         // 1 Light Second is roughly 300,000 km
         const lightSeconds = distanceKM / 300000;
-        
+        log.console("light seconds:"+lightSeconds);
         if (lightSeconds > 3600) {
             const lightHours = (lightSeconds / 3600).toFixed(2);
             distanceElementLH.innerText = `${lightHours} Light Hours`;
