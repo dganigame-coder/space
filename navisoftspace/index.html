@@ -88,7 +88,7 @@
         <div id="spd-display">VELOCITY: 0.0 AU/s</div>
         <div id="nearest-display">NEAREST: <span id="planet-name">NONE</span></div>
         <div id="distance-display" style="color: #00ccff; font-size: 0.9em; border-top: 1px solid #333; margin-top: 5px; padding-top: 5px;">
-        DIST FROM EARTH: <span id="km-val">0</span> km</div>
+        DIST FROM EARTH: <span id="km-val">0</span><span id="lm-val">0</span> km</div>
         <div id="horizon-object-display" style="color: #ffaa00; height: 1.2em;"></div> 
     </div>
 <!-- 1. Load Tone.js before your modules -->
@@ -402,7 +402,8 @@ function frame() {
     if(sun && sun.position)
     {
         const distanceUnits = engine.camera.position.distanceTo(sun.position);
-        const distanceElement = document.getElementById('km-val');
+        const distanceElementKM = document.getElementById('km-val');
+        const distanceElementLH = document.getElementById('lh-val');
         // 3. Conversion to Real World Metrics
         const distanceKM = distanceUnits * 2500;
         const distanceMiles = distanceUnits * 1550;
@@ -411,17 +412,17 @@ function frame() {
         const formattedKM = Math.floor(distanceKM).toLocaleString();
         
         // 5. Update the UI
-        distanceElement.innerText = formattedKM;
+        distanceElementKM.innerText = formattedKM;
     
         // 1 Light Second is roughly 300,000 km
         const lightSeconds = distanceKM / 300000;
         
         if (lightSeconds > 3600) {
             const lightHours = (lightSeconds / 3600).toFixed(2);
-            distanceElement.innerText = `${lightHours} Light Hours`;
+            distanceElementLH.innerText = `${lightHours} Light Hours`;
         } else if (lightSeconds > 60) {
             const lightMinutes = (lightSeconds / 60).toFixed(2);
-            distanceElement.innerText = `${lightMinutes} Light Minutes`;
+            distanceElementLH.innerText = `${lightMinutes} Light Minutes`;
         }
 
     }
