@@ -87,8 +87,11 @@
         <div id="loc-display">LOCATION: EARTH SURFACE</div>
         <div id="spd-display">VELOCITY: 0.0 AU/s</div>
         <div id="nearest-display">NEAREST: <span id="planet-name">NONE</span></div>
-        <div id="distance-display" style="color: #00ccff; font-size: 0.9em; border-top: 1px solid #333; margin-top: 5px; padding-top: 5px;">
-        DIST FROM EARTH: <span id="km-val">0</span><span id="lh-val">0</span> km</div>
+        <div id="distance-display" style="color: #00ccff; font-family: monospace; font-size: 0.9em; border-top: 1px solid #333; margin-top: 5px; padding-top: 5px;">
+            RANGE: 
+            <span id="km-container"><span id="km-val">0</span> KM</span>
+            <span id="lh-container" style="display: none;"><span id="lh-val">0</span> LIGHT HOURS</span>
+        </div>
         <div id="horizon-object-display" style="color: #ffaa00; height: 1.2em;"></div> 
     </div>
 <!-- 1. Load Tone.js before your modules -->
