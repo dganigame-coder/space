@@ -6,7 +6,7 @@ let localOrbitAngle = Math.random() * Math.PI * 2;
 const localOrbitDistance = 12000; // Far enough to clear Saturn's rings (OuterRadius was 5500)
 const localOrbitSpeed = 0.005;    // Moons orbit faster than planets move around the Sun
 
-export function createTitan(loader) {
+export function createTitan() {
     const loader = new THREE.TextureLoader();
     const group = new THREE.Group();
 
