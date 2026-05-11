@@ -15,7 +15,7 @@ export function createTitan(loader) {
     const titan = new THREE.Mesh(
         new THREE.SphereGeometry(350, 64, 64),
         new THREE.MeshStandardMaterial({ 
-            map: loader.load('https://'),
+            map: loader.load('https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/planets/texture/2k_titan.jpg'),
             roughness: 1,
             metalness: 0,
             emissive: 0x221100, // Subtle orange tint for atmospheric scattering
