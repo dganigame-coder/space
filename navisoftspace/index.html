@@ -113,7 +113,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V1205260058</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-V1205260103</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -387,29 +387,32 @@ function frame() {
 
        
     // 2. Reference Point (Sun at 0,0,0 is easiest, or Earth's specific position)
-    const distanceUnits = shipPos.distanceTo(sun.postion);
-    const distanceElement = document.getElementById('km-val');
-    // 3. Conversion to Real World Metrics
-    const distanceKM = distanceUnits * 2500;
-    const distanceMiles = distanceUnits * 1550;
-
-    // 4. Formatting numbers with commas (e.g., 1,000,000)
-    const formattedKM = Math.floor(distanceKM).toLocaleString();
+    if(sun && sun.position)
+    {
+        const distanceUnits = shipPos.distanceTo(sun.postion);
+        const distanceElement = document.getElementById('km-val');
+        // 3. Conversion to Real World Metrics
+        const distanceKM = distanceUnits * 2500;
+        const distanceMiles = distanceUnits * 1550;
     
-    // 5. Update the UI
-    distanceElement.innerText = formattedKM;
-
-    // 1 Light Second is roughly 300,000 km
-    const lightSeconds = distanceKM / 300000;
+        // 4. Formatting numbers with commas (e.g., 1,000,000)
+        const formattedKM = Math.floor(distanceKM).toLocaleString();
+        
+        // 5. Update the UI
+        distanceElement.innerText = formattedKM;
     
-    if (lightSeconds > 3600) {
-        const lightHours = (lightSeconds / 3600).toFixed(2);
-        distanceElement.innerText = `${lightHours} Light Hours`;
-    } else if (lightSeconds > 60) {
-        const lightMinutes = (lightSeconds / 60).toFixed(2);
-        distanceElement.innerText = `${lightMinutes} Light Minutes`;
+        // 1 Light Second is roughly 300,000 km
+        const lightSeconds = distanceKM / 300000;
+        
+        if (lightSeconds > 3600) {
+            const lightHours = (lightSeconds / 3600).toFixed(2);
+            distanceElement.innerText = `${lightHours} Light Hours`;
+        } else if (lightSeconds > 60) {
+            const lightMinutes = (lightSeconds / 60).toFixed(2);
+            distanceElement.innerText = `${lightMinutes} Light Minutes`;
+        }
+
     }
-    
     // 6. RENDER
     engine.renderer.render(engine.scene, engine.camera);
 }            frame();
