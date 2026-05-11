@@ -110,7 +110,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V1105261235</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-V1105261238</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -202,19 +202,19 @@
         //const asteroidBelt = createAsteroidBelt(engine.scene);
 
          // 1. The Main Belt (Inner)
-        const mainBelt = createBelt(scene, {
+        const mainBelt = createBelt(engine.scene, {
             count: 3000, innerRadius: 15000, outerRadius: 30000, 
             verticalScatter: 1000, color: 0x888888, size: {min: 5, max: 20}
         });
 
         // 2. The Kuiper Belt (Pluto)
-        const kuiperBelt = createBelt(scene, {
+        const kuiperBelt = createBelt(engine.scene, {
             count: 8000, innerRadius: 2000000, outerRadius: 3500000, 
             verticalScatter: 200000, color: 0x88ccff, size: {min: 300, max: 800}
         });
 
         // 3. The Oort Cloud (Boundary)
-        const oortCloud = createBelt(scene, {
+        const oortCloud = createBelt(engine.scene, {
             count: 10000, innerRadius: 60000000, outerRadius: 80000000, 
             verticalScatter: 10000000, color: 0x222222, size: {min: 5000, max: 15000}
         });
