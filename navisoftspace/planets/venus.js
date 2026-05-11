@@ -21,7 +21,7 @@ export function createVenus() {
         name: "VENUS", 
         info: "Thick CO2 atmosphere. 460°C surface temps. Retrograde rotation.",
         r: 450 ,
-        type:"gas"
+        type:"solid"
     };
 
     // 2. The Orbit & Rotation Logic
