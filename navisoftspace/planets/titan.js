@@ -7,6 +7,7 @@ const localOrbitDistance = 12000; // Far enough to clear Saturn's rings (OuterRa
 const localOrbitSpeed = 0.005;    // Moons orbit faster than planets move around the Sun
 
 export function createTitan(loader) {
+    const loader = new THREE.TextureLoader();
     const group = new THREE.Group();
 
     // --- 1. THE MOON BODY ---
