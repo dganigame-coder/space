@@ -132,6 +132,7 @@
         "uranus":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@e19b4c4/navisoftspace/planets/uranus.js",
         "neptune":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@4fd99fd/navisoftspace/planets/neptune.js",
         "saturn":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@main/navisoftspace/planets/saturn.js",
+        "titan":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@main/navisoftspace/planets/titan.js",
         "pluto":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@1611a65/navisoftspace/planets/pluto.js",
         "asteroidbelt":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@f30026f/navisoftspace/horizonObjects/asteroidbelt.js"
         }
@@ -164,6 +165,7 @@
     import { createMercury } from 'mercury';
     import { createVenus } from 'venus';
     import { createSaturn } from 'saturn';
+    import { createTitan } from 'titan';
     import { createUranus } from 'uranus';
     import { createNeptune } from 'neptune';
     import { createPluto } from 'pluto'    
@@ -194,6 +196,7 @@
         const mars = createMars();
         const jupiter = createJupiter();
         const saturn = createSaturn();
+        const titan = createTitan();
         const uranus = createUranus();
         const neptune = createNeptune();
         const pluto = createPluto();
@@ -221,11 +224,11 @@
          
         console.log("Audio systems initialized via User Gesture.");
         // --- 2. ADD EVERYTHING TO THE SCENE ---
-        engine.scene.add(sun, mercury, venus, earth, moon, mars, jupiter, saturn, uranus, neptune, pluto);
+        engine.scene.add(sun, mercury, venus, earth, moon, mars, jupiter, saturn, titan, uranus, neptune, pluto);
         
         // --- 3. ADD EVERYTHING TO THE COLLISION ARRAY ---
         // This is what allows you to land on them and see their HUD data
-        const bodies = [sun, mercury, venus, earth, moon, mars, jupiter, saturn, uranus, neptune , pluto];
+        const bodies = [sun, mercury, venus, earth, moon, mars, jupiter, saturn, titan, uranus, neptune , pluto];
 
         // --- ADD THE HUD CLICK LOGIC HERE ---
         const nearestLabel = document.getElementById('target-display');
