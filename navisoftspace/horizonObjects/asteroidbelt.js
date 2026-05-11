@@ -4,8 +4,15 @@ export function createBelt(scene, config) {
     const { count, innerRadius, outerRadius, verticalScatter, color, size } = config;
     
     const geometry = new THREE.DodecahedronGeometry(1, 0);
-    const material = new THREE.MeshStandardMaterial({ color: color });
+    
+    // We use BasicMaterial so we don't need light to see the rocks in deep space
+    const material = new THREE.MeshBasicMaterial({ color: color });
+    
     const mesh = new THREE.InstancedMesh(geometry, material, count);
+    
+    // CRITICAL: Tells Three.js not to hide the belt when looking away from the center
+    mesh.frustumCulled = false; 
+
     const dummy = new THREE.Object3D();
 
     for (let i = 0; i < count; i++) {
@@ -18,6 +25,7 @@ export function createBelt(scene, config) {
             Math.sin(angle) * radius
         );
 
+        // Corrected scale math
         const s = size.min + Math.random() * (size.max - size.min);
         dummy.scale.set(s, s, s);
         dummy.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
@@ -25,6 +33,7 @@ export function createBelt(scene, config) {
         dummy.updateMatrix();
         mesh.setMatrixAt(i, dummy.matrix);
     }
+    
     scene.add(mesh);
     return mesh;
 }
