@@ -116,7 +116,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V1205260142</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-V1205260157</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -419,7 +419,7 @@ function frame() {
        
         // 1 Light Second is roughly 300,000 km
         const lightSeconds = distanceKM / 300000;
-        log.console("light seconds:"+lightSeconds);
+        console.log("light seconds:"+lightSeconds);
         if (lightSeconds > 3600) {
             const lightHours = (lightSeconds / 3600).toFixed(2);
             distanceElementLH.innerText = `${lightHours} Light Hours`;
