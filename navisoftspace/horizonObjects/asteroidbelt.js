@@ -18,7 +18,7 @@ export function createBelt(scene, config) {
             Math.sin(angle) * radius
         );
 
-        const s = size.min + Math.random() * size.max;
+        const s = size.min + Math.random() * (size.max - size.min);
         dummy.scale.set(s, s, s);
         dummy.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
         
