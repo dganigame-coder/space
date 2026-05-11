@@ -113,7 +113,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V1205260103</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-V1205260125</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -137,7 +137,7 @@
         "saturn":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@main/navisoftspace/planets/saturn.js",
         "titan":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@f12e242/navisoftspace/planets/titan.js",
         "pluto":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@1611a65/navisoftspace/planets/pluto.js",
-        "asteroidbelt":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@23ac722/navisoftspace/horizonObjects/asteroidbelt.js"
+        "asteroidbelt":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@624e27f/navisoftspace/horizonObjects/asteroidbelt.js"
         }
     }
  
@@ -207,22 +207,34 @@
         // After you initialize the engine and planets
         //const asteroidBelt = createAsteroidBelt(engine.scene);
 
-         // 1. The Main Belt (Inner)
+        // 1. The Main Belt (Inner) - Classic Rock look
         const mainBelt = createBelt(engine.scene, {
-            count: 3000, innerRadius: 15000, outerRadius: 30000, 
-            verticalScatter: 1000, color: 0x888888, size: {min: 5, max: 20}
+            count: 3000, 
+            innerRadius: 15000, 
+            outerRadius: 30000, 
+            verticalScatter: 1000, 
+            color: 0x888888, 
+            size: {min: 10, max: 50} // Made slightly larger to see from Earth orbit
         });
-
-        // 2. The Kuiper Belt (Pluto)
+        
+        // 2. The Kuiper Belt (Pluto) - The "Ice" Belt
         const kuiperBelt = createBelt(engine.scene, {
-            count: 8000, innerRadius: 2000000, outerRadius: 3500000, 
-            verticalScatter: 200000, color: 0x88ccff, size: {min: 300, max: 800}
+            count: 8000, 
+            innerRadius: 2000000, 
+            outerRadius: 3500000, 
+            verticalScatter: 200000, 
+            color: 0xadd8e6, // Light blue "Icy" color
+            size: {min: 1000, max: 4000} // Increased size for visibility at high speeds
         });
-
-        // 3. The Oort Cloud (Boundary)
+        
+        // 3. The Oort Cloud (Boundary) - Massive Mountain-Sized Comets
         const oortCloud = createBelt(engine.scene, {
-            count: 10000, innerRadius: 60000000, outerRadius: 80000000, 
-            verticalScatter: 10000000, color: 0x222222, size: {min: 5000, max: 15000}
+            count: 15000, // Increased count to fill the massive volume
+            innerRadius: 60000000, 
+            outerRadius: 80000000, 
+            verticalScatter: 5000000, // Slightly more compressed for better density
+            color: 0xeeeeee, // Bright White/Grey to ensure visibility in deep space
+            size: {min: 8000, max: 20000} // Truly gargantuan objects
         });
          
         console.log("Audio systems initialized via User Gesture.");
