@@ -281,171 +281,130 @@
     });
             // 3. Initialize Control Module
             initPilot();
-            
-               
 
-function frame() {                        
-    requestAnimationFrame(frame);
+        // === SETUP AUTOPILOT CONTROLS (ONE TIME ONLY - OUTSIDE FRAME LOOP) ===
+        const apBtn = document.getElementById('autopilot-btn');
+        const apStatusText = document.getElementById('ap-status');
 
-    /*
-    // 1. INFINITE STARS
-    // Centers the starfield on the pilot so the galaxy never ends
-    if (engine.stars) {
-        engine.stars.position.copy(engine.camera.position);
-    }
+        function toggleAutoPilot() {
+            autoPilotActive = !autoPilotActive;
+            console.log("Auto-Pilot:", autoPilotActive ? "ON" : "OFF");
 
-    */
-    // 1. INFINITE STARS (Simplified & Non-Blocking)
-    if (engine.stars) {
-        // Keep stars centered on the pilot
-        engine.stars.position.copy(engine.camera.position);
-    
-        const speed = velocity.length();
-    
-        // Only stretch if moving significantly
-        if (speed > 0.5) {
-            // Subtle stretch: 0.005 is much safer than 0.02
-            // This keeps the stars from becoming "walls"
-            engine.stars.scale.z = 1 + (speed * 0.005); 
-        } else {
-            engine.stars.scale.z = 1;
+            // Visual Feedback
+            if (apBtn) {
+                apBtn.style.backgroundColor = autoPilotActive ? "rgba(0, 204, 255, 0.3)" : "rgba(0, 0, 0, 0.7)";
+                apBtn.style.borderColor = autoPilotActive ? "#ffcc00" : "#00ccff";
+                apBtn.style.color = autoPilotActive ? "#ffcc00" : "#00ccff";
+            }
+            if (apStatusText) {
+                apStatusText.innerText = autoPilotActive ? "ENGAGED" : "OFF";
+            }
         }
-    
-        // DO NOT USE lookAt or quaternion.copy here.
-        // Leaving the stars at their default rotation allows you to turn 
-        // the camera freely without the "locking" or "snapping" bug.
-    }
-    
-    // 2. HUD & TARGETING DATA
-    // We calculate this first so both the HUD and Auto-Pilot can use it
-    let closestBody = null;
-    let minDistance = Infinity;
 
-    bodies.forEach(b => {
-        if (b.onUpdate) b.onUpdate(); // Update planet rotations/orbits
-        const dist = engine.camera.position.distanceTo(b.position);
-        if (dist < minDistance) {
-            minDistance = dist;
-            closestBody = b;
-        }
-    });
-   
-
-    // First, grab the elements from your HTML
-    const apBtn = document.getElementById('autopilot-btn');
-    const apStatusText = document.getElementById('ap-status'); // If you added the span
-
-    // Create ONE function to handle the logic
-    function toggleAutoPilot() {
-    
-        autoPilotActive = !autoPilotActive;
-        
-        // Console log for debugging
-        console.log("Auto-Pilot:", autoPilotActive ? "ON" : "OFF");
-
-        // Visual Feedback (Crucial for Mobile!)
+        // Mobile Listener (pointerdown once)
         if (apBtn) {
-            apBtn.style.backgroundColor = autoPilotActive ? "rgba(0, 204, 255, 0.3)" : "rgba(0, 0, 0, 0.7)";
-            apBtn.style.borderColor = autoPilotActive ? "#ffcc00" : "#00ccff";
+            apBtn.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
+                toggleAutoPilot();
+            });
         }
-        if (apStatusText) {
-            apStatusText.innerText = autoPilotActive ? "ENGAGED" : "OFF";
-        }
-    }
 
-    // 2. Mobile Listener
-    if (apBtn) {
-        apBtn.addEventListener('pointerdown', (e) => { // 'pointerdown' is better than 'touchstart'
-            e.preventDefault();
-            toggleAutoPilot();
+        // Desktop Listener (P key once)
+        window.addEventListener('keydown', (e) => {
+            if (e.key.toLowerCase() === 'p') {
+                e.preventDefault();
+                toggleAutoPilot();
+            }
         });
-    }
 
-    // 3. Desktop Listener
-    window.addEventListener('keydown', (e) => {
-        if (e.key.toLowerCase() === 'p') {
-            toggleAutoPilot();
-        }
-    });
+        // Expose to engine loop
+        window.isAutoPilotOn = () => autoPilotActive;
 
-    // EXPOSE to your engine loop
-    window.isAutoPilotOn = () => autoPilotActive;
+            
+        function frame() {                        
+            requestAnimationFrame(frame);
 
-    
-        // Update visual UI
-        if (autoPilotActive) {
-            apBtn.style.borderColor = "#ffcc00"; // Caution Yellow
-            apBtn.style.color = "#ffcc00";
-            apStatusText.innerText = "ENGAGED";
-        } else {
-            apBtn.style.borderColor = "#00ccff"; // Standard Blue
-            apBtn.style.color = "#00ccff";
-            apStatusText.innerText = "OFF";
-        }
-        // 3. DEBUG AUTO-PILOT (HIDDEN P-KEY FEATURE)
-    // Moves towards the 'NEAREST' planet at warp speed
-    if (typeof autoPilotActive !== 'undefined' && autoPilotActive && closestBody) {
-        engine.camera.lookAt(closestBody.position);
-        engine.camera.translateZ(-2000); // Warp speed!
+            // 1. INFINITE STARS
+            if (engine.stars) {
+                engine.stars.position.copy(engine.camera.position);
+            
+                const speed = velocity.length();
+            
+                if (speed > 0.5) {
+                    engine.stars.scale.z = 1 + (speed * 0.005); 
+                } else {
+                    engine.stars.scale.z = 1;
+                }
+            }
+            
+            // 2. HUD & TARGETING DATA
+            let closestBody = null;
+            let minDistance = Infinity;
 
-        // Auto-stop when close to the surface
-        const planetRadius = closestBody.userData.r || 500;
-        if (minDistance < planetRadius + 1200) {
-            autoPilotActive = false;
-        }
-    }
-}
+            bodies.forEach(b => {
+                if (b.onUpdate) b.onUpdate();
+                const dist = engine.camera.position.distanceTo(b.position);
+                if (dist < minDistance) {
+                    minDistance = dist;
+                    closestBody = b;
+                }
+            });
+           
+            // 3. AUTO-PILOT LOGIC (RUNS EVERY FRAME)
+            if (autoPilotActive && closestBody) {
+                engine.camera.lookAt(closestBody.position);
+                engine.camera.translateZ(-2000);
 
+                const planetRadius = closestBody.userData.r || 500;
+                if (minDistance < planetRadius + 1200) {
+                    autoPilotActive = false;
+                    apBtn.style.borderColor = "#00ccff";
+                    apBtn.style.backgroundColor = "rgba(0, 0, 0, 0.7)";
+                    apBtn.style.color = "#00ccff";
+                    if (apStatusText) apStatusText.innerText = "OFF";
+                }
+            }
 
+            // 4. PHYSICS & MOVEMENT
+            checkCollisions(engine.camera, bodies, engine.scene);
+            updateFlight(engine.camera, bodies);
 
-    // 4. PHYSICS & REGULAR MOVEMENT
-    // We added engine.scene so the function can control the fog/clouds
-    checkCollisions(engine.camera, bodies, engine.scene);
-    
-    updateFlight(engine.camera, bodies);
+            // 5. BELT ROTATIONS
+            if (mainBelt) {
+                mainBelt.rotation.y += 0.0001;
+            }
+            
+            if (kuiperBelt) {
+                kuiperBelt.rotation.y += 0.00002;
+            }
+            
+            if (oortCloud) {
+                oortCloud.rotation.y += 0.000005; 
+            }
 
-    if (mainBelt) {
-        mainBelt.rotation.y += 0.0001; // Normal speed for inner belt
-    }
-    
-    if (kuiperBelt) {
-        kuiperBelt.rotation.y += 0.00002; // Much slower (Pluto's neighborhood)
-    }
-    
-    if (oortCloud) {
-        // The Oort cloud is so massive it should barely move
-        oortCloud.rotation.y += 0.000005; 
-    }
-    // 5. HUD VISUALS
-    const nearestLabel = document.getElementById('nearest-display');
-    if (closestBody && nearestLabel) {
-        const auDist = (minDistance / 60000).toFixed(2);
-        const name = closestBody.userData.name;
-        const planetRadius = closestBody.userData.r || 500;
+            // 6. HUD VISUALS - NEAREST BODY
+            if (closestBody && nearestLabel) {
+                const auDist = (minDistance / 60000).toFixed(2);
+                const name = closestBody.userData.name;
+                const planetRadius = closestBody.userData.r || 500;
 
-        // Base HUD Text
-        nearestLabel.innerText = `NEAREST: ${name} (${auDist} AU)`;
-        
-        // Color Logic: Warp (Cyan) > Danger (Red) > Safe (Green)
-        if (typeof autoPilotActive !== 'undefined' && autoPilotActive) {
-            nearestLabel.innerText += " [WARP ACTIVE]";
-            nearestLabel.style.color = "#00ffff"; 
-        } else if (minDistance < planetRadius + 1000) {
-            nearestLabel.style.color = "#ff5555"; 
-        } else {
-            nearestLabel.style.color = "#55ff55"; 
-        }
-    }
+                nearestLabel.innerText = `NEAREST: ${name} (${auDist} AU)`;
+                
+                if (autoPilotActive) {
+                    nearestLabel.innerText += " [WARP ACTIVE]";
+                    nearestLabel.style.color = "#00ffff"; 
+                } else if (minDistance < planetRadius + 1000) {
+                    nearestLabel.style.color = "#ff5555"; 
+                } else {
+                    nearestLabel.style.color = "#55ff55"; 
+                }
+            }
 
-    
-            // 1. Get the ship's distance from the Sun
+            // 7. HORIZON OBJECT DISPLAY
             const shipPos = engine.camera.position;
             const shipDist = shipPos.length();
             const horizonObjElement = document.getElementById('horizon-object-display');
         
-            // 2. Logic Check based on your index.html values
-            // Using your scale: Earth is 60k, Main Belt is 15k-30k (Inner), etc.
-            
             if (shipDist >= 15000 && shipDist <= 30000) {
                 horizonObjElement.innerText = ">> PASSING: MAIN ASTEROID BELT";
             } 
@@ -456,42 +415,36 @@ function frame() {
                 horizonObjElement.innerText = ">> PASSING: OORT CLOUD";
             } 
             else {
-                // Clear the text if we aren't in a belt
                 horizonObjElement.innerText = ""; 
             }
 
-       
-    // 2. Reference Point (Sun at 0,0,0 is easiest, or Earth's specific position)
-    if(sun && sun.position)
-    {
-        const distanceUnits = engine.camera.position.distanceTo(sun.position);
-        const distanceElementKM = document.getElementById('km-val');
-        const distanceElementLH = document.getElementById('lh-val');
-        // 3. Conversion to Real World Metrics
-        const distanceKM = distanceUnits * 2500;
-        const distanceMiles = distanceUnits * 1550;
-    
-        // 4. Formatting numbers with commas (e.g., 1,000,000)
-        const formattedKM = Math.floor(distanceKM).toLocaleString();
-        
-        // 5. Update the UI
-        distanceElementKM.innerText = formattedKM;
-       
-        // 1 Light Second is roughly 300,000 km
-        const lightSeconds = distanceKM / 300000;
-        console.log("light seconds:"+lightSeconds);
-        if (lightSeconds > 3600) {
-            const lightHours = (lightSeconds / 3600).toFixed(2);
-            distanceElementLH.innerText = `${lightHours} Light Hours`;
-        } else if (lightSeconds > 60) {
-            const lightMinutes = (lightSeconds / 60).toFixed(2);
-            distanceElementLH.innerText = `${lightMinutes} Light Minutes`;
-        }
+            // 8. DISTANCE CALCULATIONS
+            if(sun && sun.position)
+            {
+                const distanceUnits = engine.camera.position.distanceTo(sun.position);
+                const distanceElementKM = document.getElementById('km-val');
+                const distanceElementLH = document.getElementById('lh-val');
+                const distanceKM = distanceUnits * 2500;
+                const distanceMiles = distanceUnits * 1550;
+            
+                const formattedKM = Math.floor(distanceKM).toLocaleString();
+                distanceElementKM.innerText = formattedKM;
+               
+                const lightSeconds = distanceKM / 300000;
+                if (lightSeconds > 3600) {
+                    const lightHours = (lightSeconds / 3600).toFixed(2);
+                    distanceElementLH.innerText = `${lightHours} Light Hours`;
+                } else if (lightSeconds > 60) {
+                    const lightMinutes = (lightSeconds / 60).toFixed(2);
+                    distanceElementLH.innerText = `${lightMinutes} Light Minutes`;
+                }
+            }
 
-    }
-    // 6. RENDER
-    engine.renderer.render(engine.scene, engine.camera);
-}            frame();
+            // 9. RENDER
+            engine.renderer.render(engine.scene, engine.camera);
+        }            
+        
+        frame();
         };
     </script>
 </body>
