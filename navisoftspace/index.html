@@ -149,7 +149,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V1305260021</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-V1305260025</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -467,12 +467,12 @@
                     setInterval(() => {
                         if (distanceElementKM.style.display === 'none') {
                             // Show KM, Hide Light Hours
-                            distanceElementKM.style.display = 'inline';
+                            distanceElementKM.style.display = 'flex';
                             distanceElementLH.style.display = 'none';
                         } else {
                             // Show Light Hours, Hide KM
                             distanceElementKM.style.display = 'none';
-                            distanceElementLH.style.display = 'inline';
+                            distanceElementLH.style.display = 'flex';
                         }
                     }, SWITCH_INTERVAL);
                 }
