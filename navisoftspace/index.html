@@ -76,23 +76,25 @@
         display: none; /* Hidden by default */
         z-index: 100;
     }
-    #autopilot-btn{
-         position: absolute; 
-        left:0 ;
-        bottom:0;
-        height:50%;
-        transform: translateX(-50%); 
-        padding: 12px 24px; 
-        background: rgba(0, 0, 0, 0.7); 
+    #autopilot-btn {
+        position: fixed; /* 'fixed' keeps it in the same spot even if the page scrolls */
+        left: 0;
+        top: 50%; /* Moves the top edge to the middle of the screen */
+        transform: translateY(-50%); /* Pulls it back up by half its own height to perfectly center it */
+        
+        /* Small and Sleek Simulator Style */
+        padding: 10px 15px; 
+        background: rgba(0, 0, 0, 0.8); 
         border: 2px solid #00ccff; 
         color: #00ccff; 
         font-family: monospace; 
-        font-size: 1.2em; 
-        border-radius: 5px; 
+        font-size: 0.9em; /* Smaller font for a professional look */
+        border-radius: 0 5px 5px 0; /* Rounded only on the right side since it's on the left edge */
+        
         cursor: pointer;
         text-align: center;
         user-select: none;
-        z-index: 100;
+        z-index: 1000; /* Ensure it stays above all other HUD elements */
     }
   #right-monitor{
       position: absolute; 
@@ -129,7 +131,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V1305260010</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-V1305260016</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
