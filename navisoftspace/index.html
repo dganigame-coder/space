@@ -117,10 +117,10 @@
         <div id="nearest-display">NEAREST: <span id="planet-name">NONE</span></div>
         <div id="distance-display" style="color: #00ccff; font-family: monospace; font-size: 0.9em; border-top: 1px solid #333; margin-top: 5px; padding-top: 5px;">
             DISTANCE FROM EARTH: 
-            <span id="km-container" style="display: none;"><span id="km-val">0</span> KM</span>
+            <span id="km-container"><span id="km-val">0</span> KM</span>
             <span id="lh-container"><span id="lh-val">0</span> LIGHT HOURS</span>
         </div>
-            <div id="autopilot-btn">AUTOPILOT: <span id="ap-status">OFF</span></div>
+        <div id="autopilot-btn">AUTOPILOT: <span id="ap-status">OFF</span></div>
         <div id="horizon-object-display" style="color: #ffaa00; height: 1.2em;"></div> 
     </div>
     <div id="right-monitor" ><div id="monitor-text" style="line-height: 1.6;"></div></div>
@@ -438,7 +438,28 @@
                     const lightMinutes = (lightSeconds / 60).toFixed(2);
                     distanceElementLH.innerText = `${lightMinutes} Light Minutes`;
                 }
-            }
+
+                // Configuration: How often to switch (3000ms = 3 seconds)
+                const SWITCH_INTERVAL = 3000; 
+                
+                function startDistanceCycler() {
+                    setInterval(() => {
+                        if (distanceElementKM.style.display === 'none') {
+                            // Show KM, Hide Light Hours
+                            distanceElementKM.style.display = 'inline';
+                            distanceElementLH.style.display = 'none';
+                        } else {
+                            // Show Light Hours, Hide KM
+                            distanceElementKM.style.display = 'none';
+                            distanceElementLH.style.display = 'inline';
+                        }
+                    }, SWITCH_INTERVAL);
+                }
+                
+                // Initialize the cycler
+                startDistanceCycler();
+                                
+                 }
 
             // 9. RENDER
             engine.renderer.render(engine.scene, engine.camera);
