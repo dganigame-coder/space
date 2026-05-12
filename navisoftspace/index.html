@@ -128,7 +128,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V1205262127</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-V1205262135</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -159,36 +159,20 @@
     </script>
     <script type="module">
         let autoPilotActive = false;
-/*
-        window.addEventListener('keydown', (e) => {
-        if (e.key.toLowerCase() === 'p') {
-            autoPilotActive = !autoPilotActive;
-            console.log("Auto-Pilot:", autoPilotActive ? "ON" : "OFF");
-         }
-         });  
-*/
-        // Update visual UI
-        if (autoPilotActive) {
-            apBtn.style.borderColor = "#ffcc00"; // Caution Yellow
-            apBtn.style.color = "#ffcc00";
-            apStatusText.innerText = "ENGAGED";
-        } else {
-            apBtn.style.borderColor = "#00ccff"; // Standard Blue
-            apBtn.style.color = "#00ccff";
-            apStatusText.innerText = "OFF";
-        }
-    }
     
     // 2. Mobile Listener (Touch)
     apBtn.addEventListener('touchstart', (e) => {
         e.preventDefault(); // Prevents double-clicking/ghost clicks
-        toggleAutopilot();
+        autoPilotActive = !autoPilotActive;
+        console.log("Auto-Pilot:", autoPilotActive ? "ON" : "OFF");
+
     });
     
     // 3. Desktop Listener (P key)
     window.addEventListener('keydown', (e) => {
         if (e.key.toLowerCase() === 'p') {
-            toggleAutopilot();
+            autoPilotActive = !autoPilotActive;
+            console.log("Auto-Pilot:", autoPilotActive ? "ON" : "OFF");
         }
     });
     
@@ -364,6 +348,20 @@ function frame() {
 
     const apBtn = document.getElementById('autopilot-btn');
     const apStatusText = document.getElementById('ap-status');
+
+    
+        // Update visual UI
+        if (autoPilotActive) {
+            apBtn.style.borderColor = "#ffcc00"; // Caution Yellow
+            apBtn.style.color = "#ffcc00";
+            apStatusText.innerText = "ENGAGED";
+        } else {
+            apBtn.style.borderColor = "#00ccff"; // Standard Blue
+            apBtn.style.color = "#00ccff";
+            apStatusText.innerText = "OFF";
+        }
+    }
+
     // 3. DEBUG AUTO-PILOT (HIDDEN P-KEY FEATURE)
     // Moves towards the 'NEAREST' planet at warp speed
     if (typeof autoPilotActive !== 'undefined' && autoPilotActive && closestBody) {
