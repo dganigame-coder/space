@@ -173,7 +173,7 @@
         "saturn":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@main/navisoftspace/planets/saturn.js",
         "titan":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@f12e242/navisoftspace/planets/titan.js",
         "pluto":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@1611a65/navisoftspace/planets/pluto.js",
-        "asteroidbelt":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@624e27f/navisoftspace/horizonObjects/asteroidbelt.js"
+        "asteroidbelt":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@4dc7275/navisoftspace/horizonObjects/asteroidbelt.js"
         }
     }
  
@@ -236,34 +236,34 @@
         // After you initialize the engine and planets
         //const asteroidBelt = createAsteroidBelt(engine.scene);
 
-        // 1. The Main Belt (Inner) - Classic Rock look
+        // 1. The Main Belt
         const mainBelt = createBelt(engine.scene, {
             count: 3000, 
             innerRadius: 15000, 
             outerRadius: 30000, 
             verticalScatter: 1000, 
             color: 0x888888, 
-            size: {min: 10, max: 50} // Made slightly larger to see from Earth orbit
+            size: {min: 15, max: 60} // Bumped size slightly for better mobile visibility
         });
         
-        // 2. The Kuiper Belt (Pluto) - The "Ice" Belt
+        // 2. The Kuiper Belt
         const kuiperBelt = createBelt(engine.scene, {
             count: 8000, 
             innerRadius: 2000000, 
             outerRadius: 3500000, 
             verticalScatter: 200000, 
-            color: 0xadd8e6, // Light blue "Icy" color
-            size: {min: 1000, max: 4000} // Increased size for visibility at high speeds
+            color: 0xadd8e6, 
+            size: {min: 1200, max: 4500} 
         });
         
-        // 3. The Oort Cloud (Boundary) - Massive Mountain-Sized Comets
+        // 3. The Oort Cloud 
         const oortCloud = createBelt(engine.scene, {
-            count: 15000, // Increased count to fill the massive volume
+            count: 20000, // Increased count slightly
             innerRadius: 60000000, 
             outerRadius: 80000000, 
-            verticalScatter: 5000000, // Slightly more compressed for better density
-            color: 0xeeeeee, // Bright White/Grey to ensure visibility in deep space
-            size: {min: 8000, max: 20000} // Truly gargantuan objects
+            verticalScatter: 2000000, // Narrowed scatter to increase "encounter" probability
+            color: 0xffffff, // Pure white for maximum "glint"
+            size: {min: 12000, max: 35000} // Massive objects to ensure they don't vanish
         });
          
         console.log("Audio systems initialized via User Gesture.");
@@ -390,17 +390,19 @@
             checkCollisions(engine.camera, bodies, engine.scene);
             updateFlight(engine.camera, bodies);
 
-            // 5. BELT ROTATIONS
             if (mainBelt) {
                 mainBelt.rotation.y += 0.0001;
+                mainBelt.updateMatrix(); // Add this line!
             }
             
             if (kuiperBelt) {
                 kuiperBelt.rotation.y += 0.00002;
+                kuiperBelt.updateMatrix(); // Add this line!
             }
             
             if (oortCloud) {
                 oortCloud.rotation.y += 0.000005; 
+                oortCloud.updateMatrix(); // Add this line!
             }
 
             // 6. HUD VISUALS - NEAREST BODY
@@ -426,15 +428,19 @@
             const shipDist = shipPos.length();
             const horizonObjElement = document.getElementById('horizon-object-display');
         
+            // Optimized HUD update
             if (shipDist >= 15000 && shipDist <= 30000) {
                 horizonObjElement.innerText = ">> PASSING: MAIN ASTEROID BELT";
             } 
             else if (shipDist >= 2000000 && shipDist <= 3500000) {
                 horizonObjElement.innerText = ">> PASSING: KUIPER BELT";
             } 
-            else if (shipDist >= 60000000 && shipDist <= 80000000) {
+            else if (shipDist >= 60000000 && shipDist <= 85000000) {
                 horizonObjElement.innerText = ">> PASSING: OORT CLOUD";
             } 
+            else if (shipDist > 85000000) {
+                horizonObjElement.innerText = ">> STATUS: INTERSTELLAR SPACE";
+            }
             else {
                 horizonObjElement.innerText = ""; 
             }
