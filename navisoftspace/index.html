@@ -179,8 +179,8 @@
     import { createNeptune } from 'neptune';
     import { createPluto } from 'pluto'
 
-
-
+    let autoPilotActive = false; 
+        
     const overlay = document.getElementById('overlay');
 
      // Add 'async' here so 'await' works inside
@@ -337,8 +337,7 @@ function frame() {
 
     // Create ONE function to handle the logic
     function toggleAutoPilot() {
-    let autoPilotActive = false; 
-        
+    
         autoPilotActive = !autoPilotActive;
         
         // Console log for debugging
