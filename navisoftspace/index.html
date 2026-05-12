@@ -76,8 +76,36 @@
         display: none; /* Hidden by default */
         z-index: 100;
     }
-    
-  
+    #autopilot-btn{
+         position: absolute; 
+        bottom: 20px; 
+        left: 50%; 
+        transform: translateX(-50%); 
+        padding: 12px 24px; 
+        background: rgba(0, 0, 0, 0.7); 
+        border: 2px solid #00ccff; 
+        color: #00ccff; 
+        font-family: monospace; 
+        font-size: 1.2em; 
+        border-radius: 5px; 
+        cursor: pointer;
+        text-align: center;
+        user-select: none;
+        z-index: 100;
+    }
+  #right-monitor{
+      position: absolute; 
+    right: 30px; 
+    top: 30%; 
+    width: 250px;
+    color: #00ffff; 
+    font-family: 'Courier New', monospace; 
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    pointer-events: none; /* So it doesn't block mouse clicks */
+    opacity: 0; 
+    transition: opacity 0.5s ease-in-out;
+  }
 </style>
 </head>
 <body>
@@ -92,31 +120,15 @@
             <span id="km-container" style="display: none;"><span id="km-val">0</span> KM</span>
             <span id="lh-container"><span id="lh-val">0</span> LIGHT HOURS</span>
         </div>
+            <div id="autopilot-btn">AUTOPILOT: <span id="ap-status">OFF</span></div>
         <div id="horizon-object-display" style="color: #ffaa00; height: 1.2em;"></div> 
     </div>
-<!-- 1. Load Tone.js before your modules -->
-    
-    <div id="right-monitor" style="
-    position: absolute; 
-    right: 30px; 
-    top: 30%; 
-    width: 250px;
-    color: #00ffff; 
-    font-family: 'Courier New', monospace; 
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    pointer-events: none; /* So it doesn't block mouse clicks */
-    opacity: 0; 
-    transition: opacity 0.5s ease-in-out;">
-    <!-- Just a div for the raw data stream -->
-    <div id="monitor-text" style="line-height: 1.6;"></div>
-    </div>
-
+    <div id="right-monitor" ><div id="monitor-text" style="line-height: 1.6;"></div></div>
     <div id="left-stick" class="stick-base"><div class="knob" id="knob-l"></div></div>
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V1205260157</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-V1205262127</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -147,13 +159,38 @@
     </script>
     <script type="module">
         let autoPilotActive = false;
-
+/*
         window.addEventListener('keydown', (e) => {
         if (e.key.toLowerCase() === 'p') {
             autoPilotActive = !autoPilotActive;
             console.log("Auto-Pilot:", autoPilotActive ? "ON" : "OFF");
          }
          });  
+*/
+        // Update visual UI
+        if (autoPilotActive) {
+            apBtn.style.borderColor = "#ffcc00"; // Caution Yellow
+            apBtn.style.color = "#ffcc00";
+            apStatusText.innerText = "ENGAGED";
+        } else {
+            apBtn.style.borderColor = "#00ccff"; // Standard Blue
+            apBtn.style.color = "#00ccff";
+            apStatusText.innerText = "OFF";
+        }
+    }
+    
+    // 2. Mobile Listener (Touch)
+    apBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault(); // Prevents double-clicking/ghost clicks
+        toggleAutopilot();
+    });
+    
+    // 3. Desktop Listener (P key)
+    window.addEventListener('keydown', (e) => {
+        if (e.key.toLowerCase() === 'p') {
+            toggleAutopilot();
+        }
+    });
     
     import { initEngine , checkCollisions } from 'engine';
     import { loadSoundLibrary } from 'audio';
@@ -325,6 +362,8 @@ function frame() {
         }
     });
 
+    const apBtn = document.getElementById('autopilot-btn');
+    const apStatusText = document.getElementById('ap-status');
     // 3. DEBUG AUTO-PILOT (HIDDEN P-KEY FEATURE)
     // Moves towards the 'NEAREST' planet at warp speed
     if (typeof autoPilotActive !== 'undefined' && autoPilotActive && closestBody) {
