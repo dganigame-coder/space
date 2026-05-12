@@ -141,7 +141,7 @@
 
 /* This makes the value pop and keeps the suffix (KM/LH) styled slightly differently */
 #km-container, #lh-container {
-    display: inline-block;
+    /*display: inline-block;*/
     font-weight: bold;
     color: #ffffff; /* Bright white for the actual numbers */
 }
@@ -149,10 +149,6 @@
 /* Add a suffix via CSS to keep your HTML clean */
 #km-val::after { content: " KM"; font-size: 0.8em; color: #00ccff; font-weight: normal; }
 #lh-val::after { content: " LIGHT HOURS"; font-size: 0.8em; color: #00ccff; font-weight: normal; }
-
-    #distance-display {
-    min-width: 250px; /* Adjust based on your largest possible number */
-}
 </style>
 </head>
 <body>
@@ -162,14 +158,14 @@
         <div id="loc-display">LOCATION: EARTH SURFACE</div>
         <div id="spd-display">VELOCITY: 0.0 AU/s</div>
         <div id="nearest-display">NEAREST: <span id="planet-name">NONE</span></div>
-        <div id="horizon-object-display" style="color: #ffaa00; height: 1.2em;"></div> 
-    </div>
-    <div id="right-monitor" ><div id="monitor-text" style="line-height: 1.6;"></div></div>
-            <div id="distance-display">
+        <div id="distance-display">
             <span style="opacity: 0.7;">RANGE:</span> 
             <div id="km-container" style="display: inline;"><span id="km-val">0</span></div>
             <div id="lh-container" style="display: none;"><span id="lh-val">0</span></div>
         </div>
+        <div id="horizon-object-display" style="color: #ffaa00; height: 1.2em;"></div> 
+    </div>
+    <div id="right-monitor" ><div id="monitor-text" style="line-height: 1.6;"></div></div>
      <div id="autopilot-btn">AUTOPILOT: <span id="ap-status">OFF</span></div>
     <div id="left-stick" class="stick-base"><div class="knob" id="knob-l"></div></div>
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
