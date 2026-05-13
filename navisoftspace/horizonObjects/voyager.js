@@ -1,27 +1,34 @@
-function createVoyager() {
+import * as THREE from 'https://unpkg.com/three@0.157.0/build/three.module.js';
+
+export function createVoyager(scene, config) {
+    const { position, color } = config;
     const group = new THREE.Group();
 
-    // The Bus (Body)
+    // 1:1 Scale Body (approx 4 meters)
     const body = new THREE.Mesh(
         new THREE.CylinderGeometry(1, 1, 2, 8),
-        new THREE.MeshStandardMaterial({ color: 0xaaaaaa, metalness: 0.8 })
+        new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.9, roughness: 0.1 })
     );
     group.add(body);
 
-    // The High-Gain Antenna (The "Dish")
+    // The High-Gain Antenna (Dish)
     const dish = new THREE.Mesh(
         new THREE.SphereGeometry(3, 16, 8, 0, Math.PI * 2, 0, 0.5),
         new THREE.MeshStandardMaterial({ color: 0xeeeeee, side: THREE.DoubleSide })
     );
     dish.rotation.x = Math.PI / 2;
-    dish.position.y = 1.5;
+    dish.position.y = 1.2;
     group.add(dish);
 
-    // A subtle PointLight so it "glints" in the dark
-    const light = new THREE.PointLight(0xffffff, 1, 100);
-    group.add(light);
+    // The "Glint" - Essential for finding a small object in the dark
+    const glint = new THREE.PointLight(color, 2, 500); 
+    group.add(glint);
 
-    group.position.set(15000, 5000, 24000000); // 160 AU
+    group.position.set(position.x, position.y, position.z);
+    
+    // Critical for massive distances: prevents the probe from disappearing
+    group.traverse((obj) => { if(obj.isMesh) obj.frustumCulled = false; });
+
     scene.add(group);
     return group;
 }
