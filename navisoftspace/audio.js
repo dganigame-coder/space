@@ -30,6 +30,7 @@ export async function loadSoundLibrary() {
         impactNoise = new Tone.Noise("pink").toDestination();
         impactThump = new Tone.MembraneSynth().toDestination();
 
+        /*
         // 1. ASTEROID BELT: Gritty "Brown" noise for debris
         beltVolume = new Tone.Volume(-Infinity).toDestination();
         beltGranular = new Tone.Noise("brown").connect(beltVolume);
@@ -42,6 +43,7 @@ export async function loadSoundLibrary() {
         // 3. BLACK HOLE: A crushing sub-bass hum
         voidVolume = new Tone.Volume(-Infinity).toDestination();
         voidHum = new Tone.FatOscillator(40, "sine", 40).connect(voidVolume);
+        */
     }
 
     await Tone.context.resume();
@@ -49,9 +51,9 @@ export async function loadSoundLibrary() {
 
     gasWind.start();
     solarSizzle.start();
-    beltGranular.start();
-    anomalyDrone.start();
-    voidHum.start();
+    //beltGranular.start();
+    //anomalyDrone.start();
+    //voidHum.start();
     
     console.log("Audio System State:", Tone.context.state); 
 }
@@ -63,23 +65,25 @@ export function playHighFi(key, intensity = 0.5) {
     switch(key) {
         case 'ASTEROID_BELT':
             // Gritty rumble as asteroids pass by
-            beltVolume.volume.setTargetAtTime(Tone.gainToDb(intensity * 0.4), now, 0.5);
+            //beltVolume.volume.setTargetAtTime(Tone.gainToDb(intensity * 0.4), now, 0.5);
             break;
         case 'WORMHOLE_PULSE':
             // Resonant shimmering sound
-            anomalyVolume.volume.setTargetAtTime(Tone.gainToDb(intensity), now, 0.3);
+            //anomalyVolume.volume.setTargetAtTime(Tone.gainToDb(intensity), now, 0.3);
             break;
         case 'VOID_GRAVITY':
             // Heavy sub-bass that feels like pressure
-            voidVolume.volume.setTargetAtTime(Tone.gainToDb(intensity), now, 0.8);
+            //voidVolume.volume.setTargetAtTime(Tone.gainToDb(intensity), now, 0.8);
             break;
         case 'SILENCE':
             // Use a slightly longer ramp to prevent clicking
+            /*
             const fadeTime = 0.5;
             if(gasVolume) gasVolume.volume.rampTo(-Infinity, fadeTime);
             if(beltVolume) beltVolume.volume.rampTo(-Infinity, fadeTime);
             if(anomalyVolume) anomalyVolume.volume.rampTo(-Infinity, fadeTime);
             if(voidVolume) voidVolume.volume.rampTo(-Infinity, fadeTime);
+            */
             break;
         case 'GAS_RUSH':
             gasVolume.volume.setTargetAtTime(Tone.gainToDb(intensity), now, 0.2);
