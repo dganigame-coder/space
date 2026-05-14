@@ -47,14 +47,40 @@ export function createBlackHole(scene, config) {
     // We leave this one standing vertically or slightly tilted
     group.add(lensingRing);
 
+    // Add 3-4 rings of different sizes and opacities in blackhole.js
+    for (let i = 1; i <= 3; i++) {
+        const glowRingGeo = new THREE.RingGeometry(config.size * 1.2, config.size * (5 + i), 64);
+        const glowRingMat = new THREE.MeshBasicMaterial({
+            color: 0xff3300,
+            transparent: true,
+            opacity: 0.3 / i, // Outer rings are FADER
+            blending: THREE.AdditiveBlending,
+            side: THREE.DoubleSide
+        });
+        const ring = new THREE.Mesh(glowRingGeo, glowRingMat);
+        ring.rotation.x = Math.PI / 2;
+        group.add(ring);
+    }
+    
     // 4. THE VOID GLOW (Atmospheric fear)
     const glowGeo = new THREE.SphereGeometry(config.size * 1.05, 32, 32);
+
+    
     const glowMat = new THREE.MeshBasicMaterial({
+        color: 0xffaa00, // Change to a hot orange/yellow
+        transparent: true,
+        opacity: 0.3,    // Increased slightly for more "pop"
+        side: THREE.BackSide,
+        blending: THREE.AdditiveBlending // This makes it "glow" against the black
+    });
+    
+    /*const glowMat = new THREE.MeshBasicMaterial({
         color: 0xffffff,
         transparent: true,
         opacity: 0.15,
         side: THREE.BackSide
     });
+*/ 
     const glow = new THREE.Mesh(glowGeo, glowMat);
     group.add(glow);
 
