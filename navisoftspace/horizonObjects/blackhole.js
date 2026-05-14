@@ -32,6 +32,27 @@ export function createBlackHole(scene, config) {
     disk.name = "accretionDisk"; // For animation loop
     group.add(disk);
 
+    // THE LENSING RING (The Halo)
+    // Make this MUCH wider and tilt it toward the camera
+    const lensGeo = new THREE.RingGeometry(config.size * 1.5, config.size * 8, 128); // Increased outer radius to 8
+    const lensMat = new THREE.MeshBasicMaterial({ 
+        color: 0xff2200, 
+        side: THREE.DoubleSide, 
+        transparent: true, 
+        opacity: 0.6,
+        blending: THREE.AdditiveBlending 
+    });
+    const lensingRing = new THREE.Mesh(lensGeo, lensMat);
+    lensingRing.name = "lensingRing";
+    
+    // TILT IT: This creates the "spherical" wrapping effect
+    lensingRing.rotation.x = Math.PI / 4; 
+    lensingRing.rotation.y = Math.PI / 4; 
+    
+    group.add(lensingRing);
+
+    
+    /*
     // 3. THE LENSING RING (The Vertical "Halo")
     // This is the light bent by gravity over the top of the hole
     const lensGeo = new THREE.RingGeometry(config.size * 1.4, config.size * 4.8, 128);
@@ -46,7 +67,7 @@ export function createBlackHole(scene, config) {
     lensingRing.name = "lensingRing"; 
     // We leave this one standing vertically or slightly tilted
     group.add(lensingRing);
-
+*/
     // Add 3-4 rings of different sizes and opacities in blackhole.js
     for (let i = 1; i <= 3; i++) {
         const glowRingGeo = new THREE.RingGeometry(config.size * 1.2, config.size * (5 + i), 64);
