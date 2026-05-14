@@ -2,116 +2,81 @@ import * as THREE from 'https://unpkg.com/three@0.157.0/build/three.module.js';
 
 export function createBlackHole(scene, config) {
     const group = new THREE.Group();
+    const textureLoader = new THREE.TextureLoader();
 
-    // 1. THE SINGULARITY (Absolute Darkness)
+    // LOAD ASSETS
+    // Using a noise/lava texture is essential for the "swirl" look
+    const diskTexture = textureLoader.load('https://threejs.org/examples/textures/lava/lavatile.jpg');
+    diskTexture.wrapS = diskTexture.wrapT = THREE.RepeatWrapping;
+
+    // 1. THE SINGULARITY
     const coreGeo = new THREE.SphereGeometry(config.size, 64, 64);
     const coreMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
     const core = new THREE.Mesh(coreGeo, coreMat);
     group.add(core);
 
-    // 2. THE MAIN ACCRETION DISK (The "Saturn" approach)
-    // We use RingGeometry for a flatter, more granular look
-    const diskGeo = new THREE.RingGeometry(config.size * 1.4, config.size * 5, 128);
-
-    // Inside createBlackHole.js - replace the disk material
-    const textureLoader = new THREE.TextureLoader();
-    // A simple lava or noise texture makes a huge difference
-    const diskTexture = textureLoader.load('https://threejs.org/examples/textures/lava/lavatile.jpg');
-    diskTexture.wrapS = diskTexture.wrapT = THREE.RepeatWrapping;
-    
-    const diskMat = new THREE.MeshBasicMaterial({ 
-        map: diskTexture,
-        side: THREE.DoubleSide,
-        transparent: true,
-        blending: THREE.AdditiveBlending,
-        color: 0xff6600 // Tints the texture orange/red
-    });
-    
-    const disk = new THREE.Mesh(diskGeo, diskMat);
-    disk.rotation.x = Math.PI / 2; // Lay it flat
-    disk.name = "accretionDisk"; // For animation loop
-    group.add(disk);
-
-    // THE LENSING RING (The Halo)
-    // Make this MUCH wider and tilt it toward the camera
-    const lensGeo = new THREE.RingGeometry(config.size * 1.5, config.size * 8, 128); // Increased outer radius to 8
-    const lensMat = new THREE.MeshBasicMaterial({ 
-        color: 0xff2200, 
-        side: THREE.DoubleSide, 
-        transparent: true, 
-        opacity: 0.6,
-        blending: THREE.AdditiveBlending 
-    });
-    const lensingRing = new THREE.Mesh(lensGeo, lensMat);
-    lensingRing.name = "lensingRing";
-    
-    // TILT IT: This creates the "spherical" wrapping effect
-    lensingRing.rotation.x = Math.PI / 4; 
-    lensingRing.rotation.y = Math.PI / 4; 
-    
-    group.add(lensingRing);
-
-    
-    /*
-    // 3. THE LENSING RING (The Vertical "Halo")
-    // This is the light bent by gravity over the top of the hole
-    const lensGeo = new THREE.RingGeometry(config.size * 1.4, config.size * 4.8, 128);
-    const lensMat = new THREE.MeshBasicMaterial({ 
-        color: 0xff2200, 
-        side: THREE.DoubleSide,
-        transparent: true,
-        opacity: 0.5,
-        blending: THREE.AdditiveBlending 
-    });
-    const lensingRing = new THREE.Mesh(lensGeo, lensMat);
-    lensingRing.name = "lensingRing"; 
-    // We leave this one standing vertically or slightly tilted
-    group.add(lensingRing);
-*/
-    // Add 3-4 rings of different sizes and opacities in blackhole.js
-    for (let i = 1; i <= 3; i++) {
-        const glowRingGeo = new THREE.RingGeometry(config.size * 1.2, config.size * (5 + i), 64);
-        const glowRingMat = new THREE.MeshBasicMaterial({
-            color: 0xff3300,
-            transparent: true,
-            opacity: 0.3 / i, // Outer rings are FADER
-            blending: THREE.AdditiveBlending,
-            side: THREE.DoubleSide
-        });
-        const ring = new THREE.Mesh(glowRingGeo, glowRingMat);
-        ring.rotation.x = Math.PI / 2;
-        group.add(ring);
-    }
-    
-    // 4. THE VOID GLOW (Atmospheric fear)
-    const glowGeo = new THREE.SphereGeometry(config.size * 1.05, 32, 32);
-
-    
-    const glowMat = new THREE.MeshBasicMaterial({
-        color: 0xffaa00, // Change to a hot orange/yellow
-        transparent: true,
-        opacity: 0.3,    // Increased slightly for more "pop"
-        side: THREE.BackSide,
-        blending: THREE.AdditiveBlending // This makes it "glow" against the black
-    });
-    
-    /*const glowMat = new THREE.MeshBasicMaterial({
+    // 2. THE EVENT HORIZON EDGE (The bright white/yellow "Tear")
+    const edgeGeo = new THREE.SphereGeometry(config.size * 1.01, 64, 64);
+    const edgeMat = new THREE.MeshBasicMaterial({
         color: 0xffffff,
         transparent: true,
-        opacity: 0.15,
-        side: THREE.BackSide
+        opacity: 0.8,
+        side: THREE.BackSide,
+        blending: THREE.AdditiveBlending
     });
-*/ 
-    const glow = new THREE.Mesh(glowGeo, glowMat);
-    group.add(glow);
+    group.add(new THREE.Mesh(edgeGeo, edgeMat));
 
-    // 5. THE GRAVITY LIGHT (Lights up your ship as you get close)
-    const pointLight = new THREE.PointLight(0xff6600, 5, config.size * 50);
-    group.add(pointLight);
+    // 3. THE ACCRETION DISK LAYERS (Creating volume)
+    // We create multiple disks with slightly different rotations and speeds
+    const createDiskLayer = (inner, outer, opacity, name, tiltX = Math.PI / 2) => {
+        const geo = new THREE.RingGeometry(config.size * inner, config.size * outer, 128);
+        const mat = new THREE.MeshBasicMaterial({
+            map: diskTexture,
+            color: 0xffaa00,
+            transparent: true,
+            opacity: opacity,
+            blending: THREE.AdditiveBlending,
+            side: THREE.DoubleSide,
+            depthWrite: false
+        });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.rotation.x = tiltX;
+        mesh.name = name;
+        return mesh;
+    };
+
+    // Layer 1: The Main Flat Disk
+    group.add(createDiskLayer(1.2, 10, 0.6, "mainDisk"));
+    
+    // Layer 2: The Gravitational Lensing (The "Wrap Around" Halo)
+    // This creates the top/bottom curve seen in image_799fd0.jpg
+    const halo = createDiskLayer(1.2, 9, 0.4, "halo", 0); 
+    halo.rotation.y = 0.1; // Slight tilt
+    group.add(halo);
+
+    // 4. VOLUMETRIC GLOW (The "Atmosphere")
+    for (let i = 1; i <= 5; i++) {
+        const glowGeo = new THREE.RingGeometry(config.size * 1.1, config.size * (10 + i * 2), 128);
+        const glowMat = new THREE.MeshBasicMaterial({
+            color: 0xff4400,
+            transparent: true,
+            opacity: 0.2 / i,
+            blending: THREE.AdditiveBlending,
+            side: THREE.DoubleSide,
+            depthWrite: false
+        });
+        const glowRing = new THREE.Mesh(glowGeo, glowMat);
+        glowRing.rotation.x = Math.PI / 2 + (Math.random() - 0.5) * 0.1;
+        glowRing.name = `glowLayer${i}`;
+        group.add(glowRing);
+    }
+
+    // 5. LIGHTING THE SCENE
+    const light = new THREE.PointLight(0xffaa00, 10, config.size * 100);
+    group.add(light);
 
     group.position.set(config.position.x, config.position.y, config.position.z);
     scene.add(group);
 
-    // RETURN ONLY THE GROUP to fix the "position undefined" error
-    return group; 
+    return group;
 }
