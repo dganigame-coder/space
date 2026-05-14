@@ -3,37 +3,60 @@ import * as THREE from 'https://unpkg.com/three@0.157.0/build/three.module.js';
 export function createBlackHole(scene, config) {
     const group = new THREE.Group();
 
-    // 1. THE SINGULARITY (The pitch black center)
-    const coreGeo = new THREE.SphereGeometry(config.size, 32, 32);
+    // 1. THE SINGULARITY (Absolute Darkness)
+    const coreGeo = new THREE.SphereGeometry(config.size, 64, 64);
     const coreMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
     const core = new THREE.Mesh(coreGeo, coreMat);
     group.add(core);
 
-    // 2. THE ACCRETION DISK (The glowing ring of trapped light)
-    const diskGeo = new THREE.TorusGeometry(config.size * 2.5, config.size * 0.4, 2, 100);
+    // 2. THE MAIN ACCRETION DISK (The "Saturn" approach)
+    // We use RingGeometry for a flatter, more granular look
+    const diskGeo = new THREE.RingGeometry(config.size * 1.4, config.size * 5, 128);
     const diskMat = new THREE.MeshBasicMaterial({ 
-        color: 0xff6600, 
-        transparent: true, 
-        opacity: 0.8,
+        color: 0xff4400, 
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.9,
         blending: THREE.AdditiveBlending 
     });
     const disk = new THREE.Mesh(diskGeo, diskMat);
-    disk.rotation.x = Math.PI / 2.2; // Tilt it slightly
+    disk.rotation.x = Math.PI / 2; // Lay it flat
+    disk.name = "accretionDisk"; // For animation loop
     group.add(disk);
 
-    // 3. THE EVENT HORIZON GLOW
-    const glowGeo = new THREE.SphereGeometry(config.size * 1.1, 32, 32);
+    // 3. THE LENSING RING (The Vertical "Halo")
+    // This is the light bent by gravity over the top of the hole
+    const lensGeo = new THREE.RingGeometry(config.size * 1.4, config.size * 4.8, 128);
+    const lensMat = new THREE.MeshBasicMaterial({ 
+        color: 0xff2200, 
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.5,
+        blending: THREE.AdditiveBlending 
+    });
+    const lensingRing = new THREE.Mesh(lensGeo, lensMat);
+    lensingRing.name = "lensingRing"; 
+    // We leave this one standing vertically or slightly tilted
+    group.add(lensingRing);
+
+    // 4. THE VOID GLOW (Atmospheric fear)
+    const glowGeo = new THREE.SphereGeometry(config.size * 1.05, 32, 32);
     const glowMat = new THREE.MeshBasicMaterial({
         color: 0xffffff,
         transparent: true,
-        opacity: 0.2,
-        side: THREE.BackSide // Glow from inside out
+        opacity: 0.15,
+        side: THREE.BackSide
     });
     const glow = new THREE.Mesh(glowGeo, glowMat);
     group.add(glow);
 
+    // 5. THE GRAVITY LIGHT (Lights up your ship as you get close)
+    const pointLight = new THREE.PointLight(0xff6600, 5, config.size * 50);
+    group.add(pointLight);
+
     group.position.set(config.position.x, config.position.y, config.position.z);
     scene.add(group);
 
-    return { group, disk };
+    // RETURN ONLY THE GROUP to fix the "position undefined" error
+    return group; 
 }
