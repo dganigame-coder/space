@@ -309,10 +309,9 @@
             opacity: 0.1
         });
 
-         // --- Outside animate() ---
-        const blackHole = createBlackHole(engine.scene, { 
-            size: 5000, 
-            position: { x: 0, y: 0, z: 500000000 } 
+         blackHole = createBlackHole(engine.scene, {
+            size: 25000, // Increase this! Make it 5x larger than your planets
+            position: { x: 0, y: 0, z: 500000000 }
         });
         console.log("Audio systems initialized via User Gesture.");
         // --- 2. ADD EVERYTHING TO THE SCENE ---
