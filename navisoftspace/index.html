@@ -466,42 +466,47 @@
                 oortCloud.updateMatrix(); // Add this line!
             }
 
-            // --- AUDIO NAVIGATION LOGIC ---
 
-            // 1. MAIN ASTEROID BELT (Roughly at 100M units)
-            const distToMainBelt = Math.abs(engine.ship.position.z - 100000000);
-            if (distToMainBelt < 5000000) {
-                const intensity = 1 - (distToMainBelt / 5000000);
-                playHighFi('ASTEROID_BELT', intensity); // Gritty rumble
-            }
+
+              // --- AUDIO NAVIGATION LOGIC ---
             
-            // 2. KUIPER BELT (Further out, roughly 4.5B units - adjust Z to your map)
-            const distToKuiper = Math.abs(engine.ship.position.z - 4500000000); 
-            if (distToKuiper < 10000000) {
-                const intensity = 1 - (distToKuiper / 10000000);
-                playHighFi('GAS_RUSH', intensity * 0.5); // Use a cold, windy sound for the outer rim
-            }
+            // 1. Safety Check: Ensure the camera exists
+            if (engine.camera && engine.camera.position) {
+                
+                // 2. MAIN ASTEROID BELT (100M Units)
+                // We use the absolute difference on the Z-axis
+                const distToMainBelt = Math.abs(engine.camera.position.z - 100000000);
+                if (distToMainBelt < 5000000) {
+                    const intensity = 1 - (distToMainBelt / 5000000);
+                    playHighFi('ASTEROID_BELT', intensity);
+                }
             
-            // 3. THE WORMHOLE (At your 450M coordinate)
-            const distToWormhole = engine.ship.position.distanceTo(myWormhole.position);
-            if (distToWormhole < 50000) {
-                // Pulse the audio volume with the wormhole's scale
-                const intensity = (1 - (distToWormhole / 50000)) * myWormhole.scale.x;
-                playHighFi('WORMHOLE_PULSE', intensity);
-            }
+                // 3. THE WORMHOLE (450M)
+                if (typeof wormhole !== 'undefined' && wormhole) {
+                    const distToWormhole = engine.camera.position.distanceTo(wormhole.position);
+                    if (distToWormhole < 50000) {
+                        // Mix distance intensity with the wormhole's pulse scale
+                        const intensity = (1 - (distToWormhole / 50000)) * wormhole.scale.x;
+                        playHighFi('WORMHOLE_PULSE', intensity);
+                    }
+                }
             
-            // 4. THE BLACK HOLE / SINGULARITY (At your 500M coordinate)
-            const distToBlackHole = engine.ship.position.distanceTo(blackHole.position);
-            if (distToBlackHole < 100000) {
-                if (distToBlackHole > 1000) {
-                    const intensity = 1 - (distToBlackHole / 100000);
-                    playHighFi('VOID_GRAVITY', intensity);
-                } else {
-                    // THE SINGULARITY: Cut all sound when distance is almost zero
-                    playHighFi('SILENCE');
+                // 4. THE BLACK HOLE / SINGULARITY (500M)
+                if (typeof blackHole !== 'undefined' && blackHole) {
+                    const distToBlackHole = engine.camera.position.distanceTo(blackHole.position);
+                    
+                    if (distToBlackHole < 100000) {
+                        if (distToBlackHole > 1000) {
+                            // Approaching: Heavy gravity hum
+                            const intensity = 1 - (distToBlackHole / 100000);
+                            playHighFi('VOID_GRAVITY', intensity);
+                        } else {
+                            // Inside Singularity: Sudden Silence
+                            playHighFi('SILENCE');
+                        }
+                    }
                 }
             }
-
             // 6. HUD VISUALS - NEAREST BODY
             if (closestBody && nearestLabel) {
                 const auDist = (minDistance / 60000).toFixed(2);
