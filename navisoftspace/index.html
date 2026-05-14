@@ -171,7 +171,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V1505260050</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-V1505260056</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -246,8 +246,37 @@
             console.log("Audio systems initialized via User Gesture.");
          } catch (e) {
             console.error("Audio failed to start:", e);
-         }   
-        overlay.style.display = 'none';
+         }
+
+        // The unified Supreme Click Handler
+        overlay.onclick = async () => {
+            console.log("User gesture detected. Awakening systems...");
+        
+            try {
+                // 1. Force the GLOBAL Tone instance (from your <head>) to start
+                await Tone.start(); 
+                
+                // 2. Extra safety: Ensure the context is actually running
+                if (Tone.context.state !== 'running') {
+                    await Tone.context.resume();
+                }
+        
+                // 3. Initialize your nodes (Gas, Solar, Asteroids, etc.)
+                await loadSoundLibrary(); 
+                
+                console.log("Audio systems initialized. State:", Tone.context.state);
+        
+                // 4. Hide the overlay to reveal the universe
+                overlay.style.display = 'none';
+                console.log("Universe Audio: ONLINE");
+        
+            } catch (error) {
+                console.error("Critical Failure in Audio Start:", error);
+                // Even if audio fails, we hide overlay so the user can still fly
+                overlay.style.display = 'none';
+            }
+        };
+         
         const engine = initEngine();
         // Add the background
        const starfield = createStars();
