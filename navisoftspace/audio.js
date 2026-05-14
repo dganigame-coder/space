@@ -74,10 +74,12 @@ export function playHighFi(key, intensity = 0.5) {
             voidVolume.volume.setTargetAtTime(Tone.gainToDb(intensity), now, 0.8);
             break;
         case 'SILENCE':
-            // Instant cut for the singularity
-            [gasVolume, beltVolume, anomalyVolume, voidVolume].forEach(v => {
-                v.volume.rampTo(-Infinity, 0.1);
-            });
+            // Use a slightly longer ramp to prevent clicking
+            const fadeTime = 0.5;
+            if(gasVolume) gasVolume.volume.rampTo(-Infinity, fadeTime);
+            if(beltVolume) beltVolume.volume.rampTo(-Infinity, fadeTime);
+            if(anomalyVolume) anomalyVolume.volume.rampTo(-Infinity, fadeTime);
+            if(voidVolume) voidVolume.volume.rampTo(-Infinity, fadeTime);
             break;
         case 'GAS_RUSH':
             gasVolume.volume.setTargetAtTime(Tone.gainToDb(intensity), now, 0.2);
