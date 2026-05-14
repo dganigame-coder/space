@@ -12,13 +12,21 @@ export function createBlackHole(scene, config) {
     // 2. THE MAIN ACCRETION DISK (The "Saturn" approach)
     // We use RingGeometry for a flatter, more granular look
     const diskGeo = new THREE.RingGeometry(config.size * 1.4, config.size * 5, 128);
+
+    // Inside createBlackHole.js - replace the disk material
+    const textureLoader = new THREE.TextureLoader();
+    // A simple lava or noise texture makes a huge difference
+    const diskTexture = textureLoader.load('https://threejs.org/examples/textures/lava/lavatile.jpg');
+    diskTexture.wrapS = diskTexture.wrapT = THREE.RepeatWrapping;
+    
     const diskMat = new THREE.MeshBasicMaterial({ 
-        color: 0xff4400, 
+        map: diskTexture,
         side: THREE.DoubleSide,
         transparent: true,
-        opacity: 0.9,
-        blending: THREE.AdditiveBlending 
+        blending: THREE.AdditiveBlending,
+        color: 0xff6600 // Tints the texture orange/red
     });
+    
     const disk = new THREE.Mesh(diskGeo, diskMat);
     disk.rotation.x = Math.PI / 2; // Lay it flat
     disk.name = "accretionDisk"; // For animation loop
