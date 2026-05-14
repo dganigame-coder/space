@@ -171,7 +171,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V1405262016</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-V1405262031</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -525,7 +525,15 @@
             
                 // --- 2. DISTANCE & PHYSICS ---
                 const dist = engine.camera.position.distanceTo(blackHole.position);
-            
+
+
+                if (dist < 5000000) { // Start reacting much earlier (at 5 Million units)
+                    // Slowly narrow the FOV as you approach to make the hole look "Zoomed in" and huge
+                    const zoomFactor = (5000000 / dist); 
+                    engine.camera.fov = Math.max(30, 75 - zoomFactor); 
+                    engine.camera.updateProjectionMatrix();
+                }
+                  
                 // --- 3. THE TERROR REACTION (Inside 1,000,000 units) ---
                 if (dist < 1000000) {
                     // A. HUD Warning
