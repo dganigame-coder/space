@@ -171,7 +171,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V1505260121</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-V1505260134</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -238,44 +238,35 @@
         
     const overlay = document.getElementById('overlay');
 
-     // Add 'async' here so 'await' works inside
-     overlay.onclick = async () => {
-         // 1. Initialize Audio First
-         try {
-            await loadSoundLibrary(); 
-            console.log("Audio systems initialized via User Gesture.");
-         } catch (e) {
-            console.error("Audio failed to start:", e);
-         }
-
-        // The unified Supreme Click Handler
-        overlay.onclick = async () => {
-            console.log("User gesture detected. Awakening systems...");
-        
-            try {
-                // 1. Force the GLOBAL Tone instance (from your <head>) to start
-                await Tone.start(); 
-                
-                // 2. Extra safety: Ensure the context is actually running
-                if (Tone.context.state !== 'running') {
-                    await Tone.context.resume();
-                }
-        
-                // 3. Initialize your nodes (Gas, Solar, Asteroids, etc.)
-                await loadSoundLibrary(); 
-                
-                console.log("Audio systems initialized. State:", Tone.context.state);
-        
-                // 4. Hide the overlay to reveal the universe
-                overlay.style.display = 'none';
-                console.log("Universe Audio: ONLINE");
-        
-            } catch (error) {
-                console.error("Critical Failure in Audio Start:", error);
-                // Even if audio fails, we hide overlay so the user can still fly
-                overlay.style.display = 'none';
+    overlay.onclick = async () => {
+        console.log("Gesture detected. Initializing Universe...");
+    
+        try {
+            // 1. Force the GLOBAL Tone instance to start (Permission)
+            await Tone.start(); 
+            
+            // 2. Resume native context to clear those console warnings
+            if (Tone.context.rawContext && Tone.context.rawContext.state === 'suspended') {
+                await Tone.context.rawContext.resume();
             }
-        };
+    
+            // 3. NOW load the library (Creation)
+            // This sets gasVolume, voidVolume, etc.
+            await loadSoundLibrary(); 
+            
+            console.log("Audio systems initialized. gasVolume is now defined.");
+    
+            // 4. Hide the overlay
+            overlay.style.display = 'none';
+            
+            // 5. Kick off the simulation logic (if you have an init function)
+            // if (typeof startSimulation === "function") startSimulation();
+    
+        } catch (error) {
+            console.error("Critical Failure in Audio Start:", error);
+            overlay.style.display = 'none'; // Don't block the user
+        }
+    };
          
         const engine = initEngine();
         // Add the background
