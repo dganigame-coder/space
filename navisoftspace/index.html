@@ -197,6 +197,7 @@
         "pluto":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@1611a65/navisoftspace/planets/pluto.js",
         "asteroidbelt":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@4dc7275/navisoftspace/horizonObjects/asteroidbelt.js",
         "blackhole":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@6ccd9ed/navisoftspace/horizonObjects/blackhole.js",
+        "wormhole":"https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/horizonObjects/wormhole.js",
         "voyager":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@968de99/navisoftspace/horizonObjects/voyager.js",
         "heliopause":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@17bb77e/navisoftspace/horizonObjects/heliopause.js",
         "exoplanet":"https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/horizonObjects/exoplanet.js"
@@ -211,6 +212,7 @@
     import { initPilot, updateFlight , velocity} from 'pilot';
     import { createBelt } from 'asteroidbelt'; 
     import { createBlackHole } from 'blackhole';
+    import { createWormhole, updateWormhole } from 'wormhole.js';
     import { createStars } from 'stars';
     import { createVoyager } from 'voyager';
     import { createHeliopause } from 'heliopause';
@@ -322,6 +324,9 @@
             y: 0, 
             z: 250000000 
         });
+
+        const wormhole = createWormhole(scene, { x: 0, y: 0, z: 450000000 });
+
         console.log("Audio systems initialized via User Gesture.");
         // --- 2. ADD EVERYTHING TO THE SCENE ---
         engine.scene.add(sun, mercury, venus, earth, moon, mars, jupiter, saturn, titan, uranus, neptune, pluto);
@@ -709,6 +714,11 @@
                         clouds.rotation.z += 0.0002; // Adds a slight tilt to the cloud movement
                     }
                 }
+
+            const time = Date.now();
+        
+            // Update the wormhole's pulse and rotation
+            updateWormhole(wormhole, time);
 
             // 9. RENDER
             engine.renderer.render(engine.scene, engine.camera);
