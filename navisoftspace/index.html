@@ -171,7 +171,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V1405261918</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-V1405261940</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -196,7 +196,7 @@
         "titan":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@f12e242/navisoftspace/planets/titan.js",
         "pluto":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@1611a65/navisoftspace/planets/pluto.js",
         "asteroidbelt":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@4dc7275/navisoftspace/horizonObjects/asteroidbelt.js",
-        "blackhole":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@870a10c/navisoftspace/horizonObjects/blackhole.js",
+        "blackhole":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@beb86d5/navisoftspace/horizonObjects/blackhole.js",
         "voyager":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@968de99/navisoftspace/horizonObjects/voyager.js",
         "heliopause":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@17bb77e/navisoftspace/horizonObjects/heliopause.js"
         }
@@ -508,24 +508,55 @@
                 horizonObjElement.innerText = ""; 
             }
 
-            // 1. Logic for the "Reaction"
-            const distToBlackHole = engine.camera.position.distanceTo(blackHole.position);
-        
-            if (distToBlackHole < 500000) {
-                // Gravitational Pull
-                const pullStrength = (500000 - distToBlackHole) * 0.0001;
-                engine.camera.position.lerp(blackHole.position, pullStrength);
-                
-                horizonObjElement.innerText = ">> WARNING: GRAVITATIONAL WELL";
-                horizonObjElement.style.color = "#ff0000";
-        
-                // FOV Distortion
-                if (distToBlackHole < 100000) {
-                    engine.camera.fov = 75 + (100000 / distToBlackHole);
+            // Inside your animate() or frame() function
+            if (blackHole) {
+                // 1. VISUAL ANIMATION (Always runs)
+                // Find the rings by the names we gave them in blackhole.js
+                const disk = blackHole.getObjectByName("accretionDisk");
+                const lens = blackHole.getObjectByName("lensingRing");
+            
+                if (disk) disk.rotation.z += 0.15; // High-speed gas spin
+                if (lens) lens.rotation.y += 0.02; // Ghostly vertical lensing shift
+            
+                // 2. DISTANCE CALCULATION
+                const dist = engine.camera.position.distanceTo(blackHole.position);
+            
+                // 3. THE TERROR REACTION (Starts at 1,000,000 units)
+                if (dist < 1000000) {
+                    // A. HUD WARNING
+                    horizonObjElement.innerText = ">> WARNING: GRAVITATIONAL WELL DETECTED";
+                    horizonObjElement.style.color = "#ff0000";
+            
+                    // B. GRAVITATIONAL PULL (Lerp)
+                    // Strength increases as you get closer
+                    const pullStrength = (1000000 - dist) * 0.0000001; 
+                    engine.camera.position.lerp(blackHole.position, pullStrength);
+            
+                    // C. HULL SHAKE (The camera vibrates)
+                    // Shake intensity increases as you approach the center
+                    const shakePower = (1000000 / dist) * 5; 
+                    engine.camera.position.x += (Math.random() - 0.5) * shakePower;
+                    engine.camera.position.y += (Math.random() - 0.5) * shakePower;
+            
+                    // D. SPAGHETTIFICATION (FOV Warp)
+                    // Stretches the stars into lines
+                    engine.camera.fov = 75 + (1000000 / dist) * 5;
                     engine.camera.updateProjectionMatrix();
+            
+                    // E. THE "POINT OF NO RETURN"
+                    if (dist < 50000) {
+                        horizonObjElement.innerText = ">> CRITICAL: CROSSING EVENT HORIZON";
+                        // Optional: You could trigger a screen fade to black here
+                    }
+                } else {
+                    // Reset FOV if you manage to fly away
+                    if (engine.camera.fov !== 75) {
+                        engine.camera.fov = 75;
+                        engine.camera.updateProjectionMatrix();
+                    }
                 }
             }
-            // 8. DISTANCE CALCULATIONS
+                        // 8. DISTANCE CALCULATIONS
             if(sun && sun.position)
             {
                 const distanceUnits = engine.camera.position.distanceTo(sun.position);
