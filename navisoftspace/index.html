@@ -238,36 +238,37 @@
         
     const overlay = document.getElementById('overlay');
 
-    overlay.onclick = async () => {
-        console.log("Gesture detected. Initializing Universe...");
-    
-        try {
-            // 1. Force the GLOBAL Tone instance to start (Permission)
-            await Tone.start(); 
-            
-            // 2. Resume native context to clear those console warnings
-            if (Tone.context.rawContext && Tone.context.rawContext.state === 'suspended') {
-                await Tone.context.rawContext.resume();
+        overlay.onclick = async () => {
+            console.log("Gesture detected. Initializing Universe...");
+        
+            try {
+                // 1. Force the GLOBAL Tone instance to start (Permission)
+                await Tone.start(); 
+                
+                // 2. Resume native context to clear those console warnings
+                if (Tone.context.rawContext && Tone.context.rawContext.state === 'suspended') {
+                    await Tone.context.rawContext.resume();
+                }
+        
+                // 3. NOW load the library (Creation)
+                // This sets gasVolume, voidVolume, etc.
+                await loadSoundLibrary(); 
+                
+                console.log("Audio systems initialized. gasVolume is now defined.");
+        
+                // 4. Hide the overlay
+                overlay.style.display = 'none';
+                
+                // 5. Kick off the simulation logic (if you have an init function)
+                // if (typeof startSimulation === "function") startSimulation();
+        
+            } catch (error) {
+                console.error("Critical Failure in Audio Start:", error);
+                overlay.style.display = 'none'; // Don't block the user
             }
-    
-            // 3. NOW load the library (Creation)
-            // This sets gasVolume, voidVolume, etc.
-            await loadSoundLibrary(); 
-            
-            console.log("Audio systems initialized. gasVolume is now defined.");
-    
-            // 4. Hide the overlay
-            overlay.style.display = 'none';
-            
-            // 5. Kick off the simulation logic (if you have an init function)
-            // if (typeof startSimulation === "function") startSimulation();
-    
-        } catch (error) {
-            console.error("Critical Failure in Audio Start:", error);
-            overlay.style.display = 'none'; // Don't block the user
-        }
-    };
-         
+        };
+
+
         const engine = initEngine();
         // Add the background
        const starfield = createStars();
