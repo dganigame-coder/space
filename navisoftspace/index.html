@@ -171,7 +171,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V1405262034</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-V1405262050</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -507,6 +507,7 @@
                 horizonObjElement.innerText = ""; 
             }
 
+            /*
               if (blackHole) {
                 // --- 1. VISUAL ANIMATION (Always runs) ---
                 
@@ -568,7 +569,82 @@
                         engine.camera.updateProjectionMatrix();
                     }
                 }
-            }                        // 8. DISTANCE CALCULATIONS
+            }  
+            
+            */
+            if (blackHole) {
+                const time = Date.now();
+                const dist = engine.camera.position.distanceTo(blackHole.position);
+            
+                // --- 1. HYPER-REALISTIC VISUAL ANIMATION ---
+                blackHole.children.forEach((child, index) => {
+                    // A. Mesh Rotation (The physical movement of the rings)
+                    if (child.name === "mainDisk") child.rotation.z += 0.02;
+                    if (child.name === "halo") child.rotation.z -= 0.01;
+                    
+                    // Handle both "glowLayer" and "glowRing" naming conventions
+                    if (child.name && (child.name.includes("glowLayer") || child.name.includes("glowRing"))) {
+                        child.rotation.z += 0.005 + (index * 0.002);
+                        
+                        // B. Subtle Pulsing (Atmospheric shimmer)
+                        if (child.material) {
+                            child.material.opacity = (0.1 + Math.sin(time * 0.001 + index) * 0.1);
+                        }
+                    }
+            
+                    // C. THE SECRET SAUCE: Texture Flow
+                    // This makes the lava texture look like it's being sucked into the void
+                    if (child.material && child.material.map) {
+                        child.material.map.offset.x -= 0.005; 
+                        child.material.map.offset.y += 0.002;
+                    }
+                });
+            
+                // --- 2. DISTANCE & CAMERA ZOOM (The "Cinematic" Perspective) ---
+                if (dist < 5000000) { 
+                    // Slowly narrow the FOV as you approach to make the hole look massive
+                    const zoomFactor = (5000000 / dist); 
+                    // As you get closer, FOV drops to 30 (Zoomed in) before the Spaghettification kicks in
+                    engine.camera.fov = Math.max(30, 75 - zoomFactor); 
+                }
+            
+                // --- 3. THE TERROR REACTION (Inside 1,000,000 units) ---
+                if (dist < 1000000) {
+                    // A. HUD Warning
+                    horizonObjElement.innerText = ">> WARNING: GRAVITATIONAL WELL DETECTED";
+                    horizonObjElement.style.color = "#ff0000";
+            
+                    // B. Gravitational Pull (Lerp)
+                    const pullStrength = (1000000 - dist) * 0.0000001; 
+                    engine.camera.position.lerp(blackHole.position, pullStrength);
+            
+                    // C. Hull Shake (The "Interstellar" Vibration)
+                    const shakePower = (1000000 / dist) * 15; 
+                    engine.camera.position.x += Math.sin(time * 0.1) * (shakePower / 2);
+                    engine.camera.position.y += Math.cos(time * 0.11) * (shakePower / 2);
+            
+                    // D. Spaghettification (Warping reality)
+                    // This overrides the zoom-FOV once you are in the danger zone
+                    engine.camera.fov += (1000000 / dist) * 5;
+            
+                    // E. The Event Horizon
+                    if (dist < 100000) {
+                        horizonObjElement.innerText = ">> CRITICAL: EVENT HORIZON BREACH";
+                        horizonObjElement.style.opacity = (Math.sin(time * 0.02) > 0) ? 1 : 0.3;
+                    }
+                } else {
+                    // Reset FOV smoothly if the player manages to escape the pull
+                    if (engine.camera.fov > 75) {
+                        engine.camera.fov -= 0.5;
+                    } else if (engine.camera.fov < 75) {
+                        engine.camera.fov += 0.1;
+                    }
+                }
+                
+                // Final check to update the matrix after all FOV changes
+                engine.camera.updateProjectionMatrix();
+            }
+            // 8. DISTANCE CALCULATIONS
             if(sun && sun.position)
             {
                 const distanceUnits = engine.camera.position.distanceTo(sun.position);
