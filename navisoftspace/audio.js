@@ -1,6 +1,5 @@
-// audio.js
+import * as Tone from 'https://esm.sh/tone@latest';
 
-/*   10-05-2026 22:17         */
 // 1. IMPORTANT: We do not use global Tone nodes here.
 let gasFilter, gasVolume, gasWind;
 let solarFilter, solarVolume, solarSizzle;
