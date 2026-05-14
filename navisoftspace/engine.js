@@ -111,51 +111,51 @@ export function checkCollisions(camera, planets, scene) {
         if (dist < radius) { 
             const penetration = Math.max(0, (radius - dist) / radius);
 
-            // --- 1. GAS GIANTS (Pass-through + Wind Audio) ---
-            /*
-            if (type === 'gas') {
-                inAmbientZone = true;
-                updateRightMonitor(planet);
-                triggerAtmosphereEntry(camera, planet);
-                
-                // Tone.js Intensity: 0.0 to 1.0
-                playHighFi('GAS_RUSH', penetration); 
-            } 
-*/
-                if (type === 'gas') {
-                inAmbientZone = true;
-                maxPenetration = Math.max(maxPenetration, penetration); // Store for fog
-                updateRightMonitor(planet);
-                triggerAtmosphereEntry(camera, planet, penetration); // Pass penetration
-                playHighFi('GAS_RUSH', penetration); 
-            }
-                
-            // --- 2. STARS (Radiation + Static Audio) ---
-            else if (type === 'star') {
-                inAmbientZone = true;
-                updateRightMonitor(planet);
-                triggerSolarFlare(camera, planet);
-
-                // Tone.js Intensity: 0.0 to 1.0
-                playHighFi('SOLAR_STATIC', penetration);
-            } 
-
-            // --- 3. SOLID PLANETS (Hard Crash + Impact Audio) ---
-            else if (type === 'solid') {
-                if (!isColliding) {
-                    updateRightMonitor(planet);
-                    triggerImpact(camera);
-                    
-                    // Trigger instantaneous synths
-                    playHighFi('HULL_IMPACT');
-                    playHighFi('COCKPIT_ALARM');
-                    
-                    isColliding = true;
-                    setTimeout(() => isColliding = false, 1000); 
-                }
-            }
-        }
-    });
+            // --- 1. GAS GIANTS & STARS (Existing Logic) ---
+                        if (type === 'gas') {
+                            maxPenetration = Math.max(maxPenetration, penetration);
+                            updateRightMonitor(planet);
+                            triggerAtmosphereEntry(camera, planet, penetration);
+                            playHighFi('GAS_RUSH', penetration); 
+                        } 
+                        else if (type === 'star') {
+                            updateRightMonitor(planet);
+                            triggerSolarFlare(camera, planet);
+                            playHighFi('SOLAR_STATIC', penetration);
+                        } 
+            
+                        // --- 2. NEW SPECIAL OBJECTS (Integrated) ---
+                        else if (type === 'blackhole') {
+                            updateRightMonitor(planet);
+                            // Heavy gravity pull/distortion
+                            playHighFi('VOID_GRAVITY', penetration);
+                            // Visual distort: increase contrast as you fall in
+                            document.body.style.filter = `brightness(${1 - penetration}) contrast(${1 + penetration})`;
+                        }
+                        else if (type === 'wormhole') {
+                            updateRightMonitor(planet);
+                            playHighFi('WORMHOLE_PULSE', penetration);
+                            // Wobble effect
+                            camera.rotation.z += Math.sin(Date.now() * 0.01) * penetration * 0.1;
+                        }
+                        else if (type === 'asteroid_belt') {
+                            // No monitor text for general debris, just rumble
+                            playHighFi('ASTEROID_BELT', penetration);
+                        }
+            
+                        // --- 3. SOLID PLANETS (Hard Crash) ---
+                        else if (type === 'solid') {
+                            if (!isColliding) {
+                                updateRightMonitor(planet);
+                                triggerImpact(camera);
+                                playHighFi('HULL_IMPACT');
+                                playHighFi('COCKPIT_ALARM');
+                                isColliding = true;
+                                setTimeout(() => isColliding = false, 1000); 
+                            }
+                        }
+                    }
+                });
 
 
     // --- FOG / CLOUD LOGIC ---
