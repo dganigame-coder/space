@@ -5,6 +5,9 @@
 let gasFilter, gasVolume, gasWind;
 let solarFilter, solarVolume, solarSizzle;
 let alarmSynth, impactNoise, impactThump;
+let anomalyVolume, anomalyDrone; // For Wormhole
+let voidVolume, voidHum;         // For Black Hole
+let beltVolume, beltGranular;    // For Asteroids
 
 export async function loadSoundLibrary() {
     // 2. Check if we need to set the context (Modern Tone.js fix)
