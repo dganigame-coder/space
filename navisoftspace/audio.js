@@ -58,7 +58,6 @@ export function playHighFi(key, intensity = 0.5) {
 
     const now = Tone.now();
     switch(key) {
-switch(key) {
         case 'ASTEROID_BELT':
             // Gritty rumble as asteroids pass by
             beltVolume.volume.setTargetAtTime(Tone.gainToDb(intensity * 0.4), now, 0.5);
