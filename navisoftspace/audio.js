@@ -1,4 +1,3 @@
-import * as Tone from 'https://esm.sh/tone@latest';
 
 // 1. IMPORTANT: We do not use global Tone nodes here.
 let gasFilter, gasVolume, gasWind;
