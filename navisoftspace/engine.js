@@ -8,13 +8,27 @@ import { playHighFi, loadSoundLibrary  } from 'audio';
  * 3. Set up the Sun's light source
  * 4. Handle Physics (Collisions & Shakes)
  */
+
+/**
+ * THIS IS THE ACTIVATOR
+ * Call this from index.html inside the 'pointerdown' event
+ */
+export async function bootSystems() {
+    console.log("Master Boot Sequence Initiated...");
+
+    // A. Unlock Tone.js (Using the safe handle)
+    const T = Tone.default || Tone;
+    await T.start();
+
+    // B. Initialize audio nodes in audio.js
+    await loadSoundLibrary();
+
+    console.log("All Systems Green. Audio State:", T.context.state);
+}
+
 // Add 'async' here!
 export async function initEngine() {
     const scene = new THREE.Scene();
-
-    // WARNING: If this is called before a user click, audio will be silent/undefined.
-    // It is safer to call this in your index.html overlay listener instead.
-    await loadSoundLibrary(); 
 
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 10, 1000000000);
     camera.position.set(0, 500, -58000); 
