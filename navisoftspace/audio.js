@@ -1,23 +1,11 @@
 import * as Tone from 'tone';
 
-// 1. EXPORT these so your engine.js and index.html can see them!
-// This fixes the "ReferenceError: gasVolume is not defined"
-/*
-export let gasVolume, voidVolume, beltVolume, solarVolume, anomalyVolume; 
-
-let gasFilter, gasWind;
-let solarFilter, solarSizzle;
-let alarmSynth, impactNoise, impactThump;
-let anomalyDrone; 
-let voidHum;         
-let beltGranular;
-*/
-// 1. Must be EXPORTED and LET (not const)
 export let gasVolume, voidVolume, beltVolume, solarVolume, anomalyVolume;
 let gasWind, solarSizzle, beltGranular, anomalyDrone, voidHum;
+let alarmSynth, impactNoise, impactThump;
 
 export async function loadSoundLibrary() {
-    // Handle the 'default' export quirk for safety
+    // 3. The "Safe" Tone handle
     const T = Tone.default || Tone;
 
     if (T.getContext().state !== 'running') {
@@ -25,64 +13,52 @@ export async function loadSoundLibrary() {
     }
     
     if (!gasVolume) {
+        // Use T for all constructor calls
+        gasVolume = new T.Volume(-40).toDestination();
+        gasWind = new T.Noise("brown").connect(gasVolume);
 
-         // Use -40 instead of -Infinity for the 'base' level
-         gasVolume = new Tone.Volume(-40).toDestination();
-         gasWind = new Tone.Noise("brown").connect(gasVolume);
-
-        /*
-        // 3. FIX: Start at -100 (silent) instead of -Infinity. 
-        // Some browsers refuse to "ramp" up from a mathematical Infinity.
-        gasVolume = new Tone.Volume(-100).toDestination();
-        gasWind = new Tone.Noise("brown").connect(gasVolume);
-        */
-        solarVolume = new Tone.Volume(-100).toDestination();
-        solarSizzle = new Tone.Noise("white").connect(solarVolume);
+        solarVolume = new T.Volume(-100).toDestination();
+        solarSizzle = new T.Noise("white").connect(solarVolume);
         
-        alarmSynth = new Tone.PolySynth(Tone.Synth).toDestination();
+        alarmSynth = new T.PolySynth(T.Synth).toDestination();
         
-        // Connect these to a volume or Destination so they can be heard
-        impactNoise = new Tone.Noise("pink").toDestination();
-        impactThump = new Tone.MembraneSynth().toDestination();
+        impactNoise = new T.Noise("pink").toDestination();
+        impactThump = new T.MembraneSynth().toDestination();
 
-        beltVolume = new Tone.Volume(-100).toDestination();
-        beltGranular = new Tone.Noise("brown").connect(beltVolume);
+        beltVolume = new T.Volume(-100).toDestination();
+        beltGranular = new T.Noise("brown").connect(beltVolume);
         
-        anomalyVolume = new Tone.Volume(-100).toDestination();
-        const phaser = new Tone.Phaser({ frequency: 0.5, octaves: 5 }).connect(anomalyVolume);
-        anomalyDrone = new Tone.Oscillator(110, "sawtooth").connect(phaser);
+        anomalyVolume = new T.Volume(-100).toDestination();
+        const phaser = new T.Phaser({ frequency: 0.5, octaves: 5 }).connect(anomalyVolume);
+        anomalyDrone = new T.Oscillator(110, "sawtooth").connect(phaser);
 
-        voidVolume = new Tone.Volume(-100).toDestination();
-        voidHum = new Tone.FatOscillator(40, "sine", 40).connect(voidVolume);
+        voidVolume = new T.Volume(-100).toDestination();
+        voidHum = new T.FatOscillator(40, "sine", 40).connect(voidVolume);
     }
 
-    await Tone.context.resume();
+    await T.context.resume();
 
-    // 4. IMPORTANT: Start the sound engines
+    // 4. Start sound generators
     gasWind.start();
     solarSizzle.start();
     beltGranular.start(); 
     anomalyDrone.start(); 
     voidHum.start();      
     
-    console.log("Audio System State:", Tone.context.state);
-    // Change this:
-    gasVolume.volume.value = -60; 
-    
-    // To this (Immediate Ramp):
-    gasVolume.volume.setValueAtTime(-60, Tone.now()); 
-    // And add this to ensure the "Master" isn't muted
-    Tone.Destination.mute = false;
-    Tone.Destination.volume.value = 0;
+    console.log("Audio System State:", T.context.state);
+
+    // 5. Wake up the master output
+    gasVolume.volume.setValueAtTime(-60, T.now()); 
+    T.Destination.mute = false;
+    T.Destination.volume.value = 0;
 }
 
 export function playHighFi(key, intensity = 0.5) {
-    // Safety check: if system isn't ready, don't try to play
-    if (!gasVolume || Tone.context.state !== 'running') return;
+    const T = Tone.default || Tone; // Keep T accessible here too
+    if (!gasVolume || T.context.state !== 'running') return;
 
-    const now = Tone.now();
-    // Convert 0-1 intensity to Decibels (0 intensity = -100dB, 1 intensity = 0dB)
-    const db = Tone.gainToDb(Math.max(intensity, 0.0001));
+    const now = T.now();
+    const db = T.gainToDb(Math.max(intensity, 0.0001));
 
     switch(key) {
         case 'ASTEROID_BELT':
