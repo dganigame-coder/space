@@ -56,7 +56,12 @@ export function createBelt(scene, config) {
     mesh.instanceMatrix.needsUpdate = true;
     mesh.matrixAutoUpdate = false;
     mesh.updateMatrix();
-    
+    mesh.userData = {
+        type: config.type || 'asteroid_belt', // Uses config type or defaults
+        innerRadius: config.innerRadius,
+        outerRadius: config.outerRadius,
+        name: config.name || 'Asteroid Field'
+    };
     scene.add(mesh);
     return mesh;
 }
