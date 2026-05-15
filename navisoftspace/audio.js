@@ -1,53 +1,49 @@
+// 1. EXPORT these so your engine.js and index.html can see them!
+// This fixes the "ReferenceError: gasVolume is not defined"
+export let gasVolume, voidVolume, beltVolume, solarVolume, anomalyVolume; 
 
-// 1. IMPORTANT: We do not use global Tone nodes here.
-let gasFilter, gasVolume, gasWind;
-let solarFilter, solarVolume, solarSizzle;
+let gasFilter, gasWind;
+let solarFilter, solarSizzle;
 let alarmSynth, impactNoise, impactThump;
-let anomalyVolume, anomalyDrone; // For Wormhole
-let voidVolume, voidHum;         // For Black Hole
-let beltVolume, beltGranular;    // For Asteroids
+let anomalyDrone; 
+let voidHum;         
+let beltGranular;
 
 export async function loadSoundLibrary() {
-    // 2. Check if we need to set the context (Modern Tone.js fix)
+    // 2. Ensure Context is active
     if (Tone.getContext().state !== 'running') {
         await Tone.start();
     }
 
-    // 3. Initialize nodes ONLY inside this function
     if (!gasVolume) {
-        // We create the nodes here. Tone will now associate them 
-        // with the 'active' user-gestured context.
-        gasVolume = new Tone.Volume(-Infinity).toDestination();
+        // 3. FIX: Start at -100 (silent) instead of -Infinity. 
+        // Some browsers refuse to "ramp" up from a mathematical Infinity.
+        gasVolume = new Tone.Volume(-100).toDestination();
         gasWind = new Tone.Noise("brown").connect(gasVolume);
         
-        solarVolume = new Tone.Volume(-Infinity).toDestination();
+        solarVolume = new Tone.Volume(-100).toDestination();
         solarSizzle = new Tone.Noise("white").connect(solarVolume);
         
         alarmSynth = new Tone.PolySynth(Tone.Synth).toDestination();
         
+        // Connect these to a volume or Destination so they can be heard
         impactNoise = new Tone.Noise("pink").toDestination();
         impactThump = new Tone.MembraneSynth().toDestination();
 
-        // 1. ASTEROID BELT: Gritty "Brown" noise for debris
-        beltVolume = new Tone.Volume(-Infinity).toDestination();
+        beltVolume = new Tone.Volume(-100).toDestination();
         beltGranular = new Tone.Noise("brown").connect(beltVolume);
         
-        // 2. WORMHOLE: A "Metal" drone with a pulsing filter
-        anomalyVolume = new Tone.Volume(-Infinity).toDestination();
+        anomalyVolume = new Tone.Volume(-100).toDestination();
         const phaser = new Tone.Phaser({ frequency: 0.5, octaves: 5 }).connect(anomalyVolume);
         anomalyDrone = new Tone.Oscillator(110, "sawtooth").connect(phaser);
 
-        // 3. BLACK HOLE: A crushing sub-bass hum
-        voidVolume = new Tone.Volume(-Infinity).toDestination();
+        voidVolume = new Tone.Volume(-100).toDestination();
         voidHum = new Tone.FatOscillator(40, "sine", 40).connect(voidVolume);
-        
     }
 
     await Tone.context.resume();
-    // Start oscillators but keep volume at -Infinity
-    // Force a tiny volume bump to wake up the speakers
-    gasVolume.volume.value = -60; 
-    
+
+    // 4. IMPORTANT: Start the sound engines
     gasWind.start();
     solarSizzle.start();
     beltGranular.start(); 
@@ -55,35 +51,31 @@ export async function loadSoundLibrary() {
     voidHum.start();      
     
     console.log("Audio System State:", Tone.context.state);
-    
 }
 
 export function playHighFi(key, intensity = 0.5) {
+    // Safety check: if system isn't ready, don't try to play
     if (!gasVolume || Tone.context.state !== 'running') return;
 
     const now = Tone.now();
+    // Convert 0-1 intensity to Decibels (0 intensity = -100dB, 1 intensity = 0dB)
+    const db = Tone.gainToDb(Math.max(intensity, 0.0001));
+
     switch(key) {
         case 'ASTEROID_BELT':
-            // Gritty rumble as asteroids pass by
-            beltVolume.volume.setTargetAtTime(Tone.gainToDb(intensity * 0.4), now, 0.5);
+            beltVolume.volume.setTargetAtTime(db - 10, now, 0.5);
             break;
         case 'WORMHOLE_PULSE':
-            // Resonant shimmering sound
-            anomalyVolume.volume.setTargetAtTime(Tone.gainToDb(intensity), now, 0.3);
+            anomalyVolume.volume.setTargetAtTime(db, now, 0.3);
             break;
         case 'VOID_GRAVITY':
-            // Heavy sub-bass that feels like pressure
-            voidVolume.volume.setTargetAtTime(Tone.gainToDb(intensity), now, 0.8);
-            break;
-        case 'SILENCE':
-            const fadeTime = 0.5;
-            // Use a loop to fade everything out safely
-            [gasVolume, beltVolume, anomalyVolume, voidVolume, solarVolume].forEach(v => {
-                if(v) v.volume.rampTo(-Infinity, fadeTime);
-            });
+            voidVolume.volume.setTargetAtTime(db, now, 0.8);
             break;
         case 'GAS_RUSH':
-            gasVolume.volume.setTargetAtTime(Tone.gainToDb(intensity), now, 0.2);
+            gasVolume.volume.setTargetAtTime(db, now, 0.2);
+            break;
+        case 'SOLAR_STATIC':
+            solarVolume.volume.setTargetAtTime(db - 15, now, 0.1);
             break;
         case 'COCKPIT_ALARM':
             alarmSynth.triggerAttackRelease(["C5", "E5"], "8n", now);
@@ -92,8 +84,10 @@ export function playHighFi(key, intensity = 0.5) {
             impactNoise.start(now).stop(now + 0.1);
             impactThump.triggerAttackRelease("G1", "4n", now);
             break;
-        case 'SOLAR_STATIC':
-            solarVolume.volume.setTargetAtTime(Tone.gainToDb(intensity * 0.3), now, 0.1);
+        case 'SILENCE':
+            [gasVolume, beltVolume, anomalyVolume, voidVolume, solarVolume].forEach(v => {
+                if(v) v.volume.rampTo(-100, 0.5);
+            });
             break;
     }
 }
