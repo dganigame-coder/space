@@ -8,54 +8,51 @@ import { playHighFi, loadSoundLibrary  } from 'audio';
  * 3. Set up the Sun's light source
  * 4. Handle Physics (Collisions & Shakes)
  */
-/*   10-05-2026 22:17         */
-export function initEngine() {
+// Add 'async' here!
+export async function initEngine() {
     const scene = new THREE.Scene();
-    
-    // 1. Camera & Renderer
-    const camera = new THREE.PerspectiveCamera( 75,  window.innerWidth / window.innerHeight, 0.1, 10000000);
-    // STARTING POSITION: Earth Vicinity
+
+    // WARNING: If this is called before a user click, audio will be silent/undefined.
+    // It is safer to call this in your index.html overlay listener instead.
+    await loadSoundLibrary(); 
+
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 10, 1000000000);
     camera.position.set(0, 500, -58000); 
 
     const renderer = new THREE.WebGLRenderer({ 
         antialias: true, 
-        logarithmicDepthBuffer: true 
+        logarithmicDepthBuffer: true // Vital for Pluto's moons!
     });
+    
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     document.body.appendChild(renderer.domElement);
 
-    // 2. The Starfield
+    // Starfield
     const starGeometry = new THREE.BufferGeometry();
     const starPositions = [];
-    // Spread stars in a massive 8-million unit cube
     for (let i = 0; i < 20000; i++) {
-        const x = (Math.random() - 0.5) * 8000000; 
-        const y = (Math.random() - 0.5) * 8000000;
-        const z = (Math.random() - 0.5) * 8000000;
+        const x = (Math.random() - 0.5) * 80000000; // Expanded for Pluto scale
+        const y = (Math.random() - 0.5) * 80000000;
+        const z = (Math.random() - 0.5) * 80000000;
         starPositions.push(x, y, z);
     }
     starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starPositions, 3));
     
     const starMaterial = new THREE.PointsMaterial({
         color: 0xffffff,
-        size: 800, 
+        size: 5000, // Larger stars for larger scale
         sizeAttenuation: true
     });
     const stars = new THREE.Points(starGeometry, starMaterial);
     scene.add(stars);
 
-    // 3. The Lighting
+    // Lighting
     const sunLight = new THREE.PointLight(0xffffff, 3, 0, 0); 
-    sunLight.position.set(0, 0, 0); 
     scene.add(sunLight);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.2));
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.2); 
-    scene.add(ambientLight);
-
-    // ADD THIS: Initial fog (starts as black/invisible)
-    //scene.fog = new THREE.Fog(0x000000, 1, 10000000); 
-    scene.fog = new THREE.Fog(0x000000, 1000, 5000000);
+    scene.fog = new THREE.Fog(0x000000, 1000, 500000000);
     
     window.addEventListener('resize', () => {
         camera.aspect = window.innerWidth / window.innerHeight;
@@ -63,7 +60,6 @@ export function initEngine() {
         renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
-    // CRITICAL: We return 'stars' now so it can be updated in the main loop
     return { scene, camera, renderer, stars };
 }
 
