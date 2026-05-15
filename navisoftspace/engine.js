@@ -192,9 +192,7 @@ export function checkCollisions(camera, planets, scene) {
 // --- BEHAVIOR DEFINITIONS ---
 
 function triggerAtmosphereEntry(camera, planet, penetration) {
-    // 1. PHYSICS: Dr
-    
-    ag (The deeper you are, the more you slow down)
+    // 1. PHYSICS: Drag (The deeper you are, the more you slow down)
     if (window.currentSpeed) {
         const dragFactor = 1 - (penetration * 0.08); // Max 8% reduction per frame
         window.currentSpeed *= dragFactor; 
