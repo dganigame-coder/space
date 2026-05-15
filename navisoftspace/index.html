@@ -148,35 +148,100 @@
 /* Add a suffix via CSS to keep your HTML clean */
 #km-val::after { content: " KM"; font-size: 0.8em; color: #00ccff; font-weight: normal; }
 #lh-val::after { content: " LIGHT HOURS"; font-size: 0.8em; color: #00ccff; font-weight: normal; }
+
+    /* Ensure the debug box exists and looks good */
+    #mobile-debug {
+        display: none; /* Hidden by default */
+        position: fixed;
+        bottom: 10px;
+        left: 10px;
+        width: 90%;
+        height: 30vh;
+        background: rgba(0, 0, 0, 0.85);
+        color: lime;
+        border: 1px solid lime;
+        padding: 10px;
+        overflow-y: auto;
+        font-family: monospace;
+        font-size: 11px;
+        z-index: 10000;
+        pointer-events: auto; /* Allows scrolling */
+        border-radius: 5px;
+    }
+
+    #debug-toggle {
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        z-index: 10001;
+        background: rgba(34, 34, 34, 0.9);
+        color: lime;
+        border: 1px solid lime;
+        padding: 8px 12px;
+        cursor: pointer;
+        font-family: monospace;
+        border-radius: 4px;
+        font-weight: bold;
+    }
+</style>
 </style>
 </head>
 <body>
-<div id="mobile-debug" style="position:fixed; top:0; left:0; width:100%; height:100px; background:rgba(0,0,0,0.8); color:lime; font-family:monospace; font-size:10px; overflow-y:auto; z-index:10000; pointer-events:none; border-bottom:1px solid lime;">
+<div id="mobile-debug">
     Debug Log Initialized...
 </div>
 
-    <script>
+<script>
     const debugBox = document.getElementById('mobile-debug');
+
+    // 1. Toggle Logic (Mobile Button + Desktop 'D' Key)
+    function toggleDebug() {
+        const isHidden = debugBox.style.display === 'none' || debugBox.style.display === '';
+        debugBox.style.display = isHidden ? 'block' : 'none';
+        console.log(`Debug visibility: ${debugBox.style.display}`);
+    }
+
+    // Create the button for Mobile
+    const btn = document.createElement('button');
+    btn.id = 'debug-toggle';
+    btn.innerText = '🛠️ LOGS';
+    btn.onclick = toggleDebug;
+    document.body.appendChild(btn);
+
+    // Add 'D' key listener for Desktop
+    window.addEventListener('keydown', (e) => {
+        if (e.key.toLowerCase() === 'd') toggleDebug();
+    });
+
+    // 2. Logging Engine
     function logToScreen(msg, isError = false) {
         const line = document.createElement('div');
-        line.style.color = isError ? "red" : "lime";
+        line.style.color = isError ? "#ff4444" : "#00ff00";
+        line.style.borderBottom = "1px solid #222";
+        line.style.padding = "2px 0";
         line.innerText = `> ${msg}`;
         debugBox.appendChild(line);
+        
+        // Auto-scroll to bottom
         debugBox.scrollTop = debugBox.scrollHeight;
     }
 
-    // Catch all global errors
+    // 3. Error Catching
     window.onerror = (msg, url, line) => logToScreen(`${msg} (Line: ${line})`, true);
-    
-    // Catch Tone.js / Promise errors (common on mobile)
     window.onunhandledrejection = (event) => logToScreen(`Promise Error: ${event.reason}`, true);
 
-    // Overwrite console.log so it shows on screen
+    // 4. Console Override
     const oldLog = console.log;
     console.log = function(...args) {
-        logToScreen(args.join(' '));
+        const message = args.map(arg => 
+            typeof arg === 'object' ? JSON.stringify(arg) : arg
+        ).join(' ');
+        
+        logToScreen(message);
         oldLog.apply(console, args);
     };
+
+    console.log("Debug system integrated. Press 'D' or tap 'LOGS'.");
 </script>
 
     <div id="hud">
@@ -197,7 +262,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V1505262230</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-V1505262239</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
