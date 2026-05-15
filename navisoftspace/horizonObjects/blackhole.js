@@ -75,6 +75,12 @@ export function createBlackHole(scene, config) {
     const light = new THREE.PointLight(0xffaa00, 10, config.size * 100);
     group.add(light);
 
+    group.userData = {
+        type: 'blackhole',
+        r: config.size * 20, // This sets the "Sound Horizon" (how far the noise reaches)
+        name: 'The Great Singularity'
+    };
+    
     group.position.set(config.position.x, config.position.y, config.position.z);
     scene.add(group);
 
