@@ -17,7 +17,13 @@ export let gasVolume, voidVolume, beltVolume, solarVolume, anomalyVolume;
 let gasWind, solarSizzle, beltGranular, anomalyDrone, voidHum;
 
 export async function loadSoundLibrary() {
-    await Tone.start();
+    // Handle the 'default' export quirk for safety
+    const T = Tone.default || Tone;
+
+    if (T.getContext().state !== 'running') {
+        await T.start();
+    }
+    
     if (!gasVolume) {
 
          // Use -40 instead of -Infinity for the 'base' level
