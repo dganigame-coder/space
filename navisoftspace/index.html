@@ -234,7 +234,8 @@
  
     </script>
     <script type="module"> 
-    import { initEngine , checkCollisions } from 'engine';
+    import { initEngine , checkCollisions, bootSystems } from 'engine';
+    //import { loadSoundLibrary } from 'audio'
     import { initPilot, updateFlight , velocity} from 'pilot';
     import { createBelt } from 'asteroidbelt'; 
     import { createBlackHole } from 'blackhole';
@@ -262,68 +263,8 @@
 
     let autoPilotActive = false; 
         
-    const overlay = document.getElementById('overlay');
 
-    // --- UPDATED FOR MOBILE + DESKTOP ---
-        /*
-    overlay.addEventListener('pointerdown', async () => {
-        console.log("Gesture detected via PointerDown. Initializing Universe...");
-    
-        try {
-            // 1. Force the GLOBAL Tone instance to start
-            await Tone.start(); 
-            
-            // 2. Clear mobile-specific suspension
-            if (Tone.context.rawContext && Tone.context.rawContext.state === 'suspended') {
-                await Tone.context.rawContext.resume();
-            }
-    
-            // 3. Initialize nodes (gasVolume, etc.)
-            await loadSoundLibrary(); 
-            
-            console.log("Audio systems initialized. gasVolume is now defined.");
-    
-            // 4. Hide the overlay
-            overlay.style.display = 'none';
-    
-        } catch (error) {
-            console.error("Critical Failure in Audio Start:", error);
-            overlay.style.display = 'none'; 
-        }
-    }, { once: true }); // 'once: true' is a clean way to ensure this only runs on the first tap
-
-*/
-
-        overlay.addEventListener('pointerdown', async () => {
-        console.log("Gesture detected. Force-starting...");
-    
-        // 1. IMMEDIATE FEEDBACK: Hide overlay now so the user knows it worked
-        overlay.style.display = 'none';
-    
-        try {
-            // 2. Wake up Tone.js
-            //await Tone.start();
-            //console.log("Tone.js state:", Tone.context.state);
-    
-            // 3. Load the library (The part that usually hangs)
-            //await loadSoundLibrary();
-            
-            // 4. Final verification
-            //if (typeof gasVolume !== 'undefined') {
-           //     console.log("Audio online.");
-           // }
-    
-        } catch (e) {
-            // Log the error to your console/debug box
-            console.error("Audio failed but game continuing:", e);
-        }
-    }, { once: true });
-        
-        const engine = await initEngine();
-        // Add the background
-       const starfield = createStars();
-       engine.scene.add(starfield); 
-
+        const enginePromise = initEngine();
         // --- 1. INITIALIZE ALL BODIES ---
         const sun = createSun();
         const mercury = createMercury();
@@ -337,6 +278,7 @@
         const uranus = createUranus();
         const neptune = createNeptune();
         const pluto = createPluto();
+         const starfield = createStars();
          
         // After you initialize the engine and planets
         //const asteroidBelt = createAsteroidBelt(engine.scene);
@@ -397,6 +339,26 @@
         });
 
         const wormhole = createWormhole(engine.scene, { x: 0, y: 0, z: 450000000 });
+
+        
+    // 1. Kick off the Engine loading immediately in the background
+    // This ensures the 3D scene is prepping while the user looks at the overlay
+    
+    overlay.addEventListener('pointerdown', async () => {
+            // 1. Ensure 3D is ready
+            const engine = await enginePromise;
+            
+            // 2. Activate Audio via engine.js
+            await bootSystems(); 
+            
+            // 3. Start your animation/gameplay
+            // startLoop(engine); 
+            
+            overlay.style.display = 'none';
+        }, { once: true });
+        // Add the background
+      
+       engine.scene.add(starfield); 
 
         console.log("Audio systems initialized via User Gesture.");
         // --- 2. ADD EVERYTHING TO THE SCENE ---
