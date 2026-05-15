@@ -1,5 +1,8 @@
+import * as Tone from 'tone';
+
 // 1. EXPORT these so your engine.js and index.html can see them!
 // This fixes the "ReferenceError: gasVolume is not defined"
+/*
 export let gasVolume, voidVolume, beltVolume, solarVolume, anomalyVolume; 
 
 let gasFilter, gasWind;
@@ -8,19 +11,25 @@ let alarmSynth, impactNoise, impactThump;
 let anomalyDrone; 
 let voidHum;         
 let beltGranular;
+*/
+// 1. Must be EXPORTED and LET (not const)
+export let gasVolume, voidVolume, beltVolume, solarVolume, anomalyVolume;
+let gasWind, solarSizzle, beltGranular, anomalyDrone, voidHum;
 
 export async function loadSoundLibrary() {
-    // 2. Ensure Context is active
-    if (Tone.getContext().state !== 'running') {
-        await Tone.start();
-    }
-
+    await Tone.start();
     if (!gasVolume) {
+
+         // Use -40 instead of -Infinity for the 'base' level
+         gasVolume = new Tone.Volume(-40).toDestination();
+         gasWind = new Tone.Noise("brown").connect(gasVolume);
+
+        /*
         // 3. FIX: Start at -100 (silent) instead of -Infinity. 
         // Some browsers refuse to "ramp" up from a mathematical Infinity.
         gasVolume = new Tone.Volume(-100).toDestination();
         gasWind = new Tone.Noise("brown").connect(gasVolume);
-        
+        */
         solarVolume = new Tone.Volume(-100).toDestination();
         solarSizzle = new Tone.Noise("white").connect(solarVolume);
         
