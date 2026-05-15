@@ -121,7 +121,7 @@ export function checkCollisions(camera, planets, scene) {
 
         if (dist < radius) { 
             const penetration = Math.max(0, (radius - dist) / radius);
-
+            inAmbientZone = true;
             // --- 1. GAS GIANTS & STARS (Existing Logic) ---
                         if (type === 'gas') {
                             maxPenetration = Math.max(maxPenetration, penetration);
@@ -192,7 +192,9 @@ export function checkCollisions(camera, planets, scene) {
 // --- BEHAVIOR DEFINITIONS ---
 
 function triggerAtmosphereEntry(camera, planet, penetration) {
-    // 1. PHYSICS: Drag (The deeper you are, the more you slow down)
+    // 1. PHYSICS: Dr
+    
+    ag (The deeper you are, the more you slow down)
     if (window.currentSpeed) {
         const dragFactor = 1 - (penetration * 0.08); // Max 8% reduction per frame
         window.currentSpeed *= dragFactor; 
