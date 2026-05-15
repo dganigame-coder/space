@@ -51,6 +51,14 @@ export async function loadSoundLibrary() {
     voidHum.start();      
     
     console.log("Audio System State:", Tone.context.state);
+    // Change this:
+    gasVolume.volume.value = -60; 
+    
+    // To this (Immediate Ramp):
+    gasVolume.volume.setValueAtTime(-60, Tone.now()); 
+    // And add this to ensure the "Master" isn't muted
+    Tone.Destination.mute = false;
+    Tone.Destination.volume.value = 0;
 }
 
 export function playHighFi(key, intensity = 0.5) {
