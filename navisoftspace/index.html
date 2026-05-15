@@ -198,7 +198,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V1505261812</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-V1505261818</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -266,6 +266,7 @@
     const overlay = document.getElementById('overlay');
 
     // --- UPDATED FOR MOBILE + DESKTOP ---
+        /*
     overlay.addEventListener('pointerdown', async () => {
         console.log("Gesture detected via PointerDown. Initializing Universe...");
     
@@ -292,7 +293,33 @@
         }
     }, { once: true }); // 'once: true' is a clean way to ensure this only runs on the first tap
 
+*/
 
+        overlay.addEventListener('pointerdown', async () => {
+        console.log("Gesture detected. Force-starting...");
+    
+        // 1. IMMEDIATE FEEDBACK: Hide overlay now so the user knows it worked
+        overlay.style.display = 'none';
+    
+        try {
+            // 2. Wake up Tone.js
+            await Tone.start();
+            console.log("Tone.js state:", Tone.context.state);
+    
+            // 3. Load the library (The part that usually hangs)
+            await loadSoundLibrary();
+            
+            // 4. Final verification
+            if (typeof gasVolume !== 'undefined') {
+                console.log("Audio online.");
+            }
+    
+        } catch (e) {
+            // Log the error to your console/debug box
+            console.error("Audio failed but game continuing:", e);
+        }
+    }, { once: true });
+        
         const engine = initEngine();
         // Add the background
        const starfield = createStars();
