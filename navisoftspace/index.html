@@ -152,6 +152,33 @@
 </style>
 </head>
 <body>
+<div id="mobile-debug" style="position:fixed; top:0; left:0; width:100%; height:100px; background:rgba(0,0,0,0.8); color:lime; font-family:monospace; font-size:10px; overflow-y:auto; z-index:10000; pointer-events:none; border-bottom:1px solid lime;">
+    Debug Log Initialized...
+</div>
+
+    <script>
+    const debugBox = document.getElementById('mobile-debug');
+    function logToScreen(msg, isError = false) {
+        const line = document.createElement('div');
+        line.style.color = isError ? "red" : "lime";
+        line.innerText = `> ${msg}`;
+        debugBox.appendChild(line);
+        debugBox.scrollTop = debugBox.scrollHeight;
+    }
+
+    // Catch all global errors
+    window.onerror = (msg, url, line) => logToScreen(`${msg} (Line: ${line})`, true);
+    
+    // Catch Tone.js / Promise errors (common on mobile)
+    window.onunhandledrejection = (event) => logToScreen(`Promise Error: ${event.reason}`, true);
+
+    // Overwrite console.log so it shows on screen
+    const oldLog = console.log;
+    console.log = function(...args) {
+        logToScreen(args.join(' '));
+        oldLog.apply(console, args);
+    };
+</script>
 
     <div id="hud">
         <div style="font-size: 10px; opacity: 0.7;">[ SYSTEM STATUS: ONLINE ]</div>
@@ -171,7 +198,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V1505260156</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-V1505261802</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
