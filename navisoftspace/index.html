@@ -263,7 +263,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V1605260032</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-V1605260059</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -387,6 +387,7 @@
             size: {min: 1200, max: 4500} 
         });
         
+        
         // 3. The Oort Cloud 
         const oortCloud = createBelt(engine.scene, {
             count: 20000, // Increased count slightly
@@ -396,7 +397,7 @@
             color: 0xffffff, // Pure white for maximum "glint"
             size: {min: 12000, max: 35000} // Massive objects to ensure they don't vanish
         });
-
+        
          // 150 AU = ~22,500,000 units
         const voyager = createVoyager(engine.scene, {
             position: { x: 10000, y: 2000, z: 22500000 },
@@ -414,7 +415,8 @@
             size: 25000, // Increase this! Make it 5x larger than your planets
             position: { x: 0, y: 0, z: 500000000 }
         });
-
+       
+        
          // Create the Supreme Exoplanet System
         const exoSystem = createExoplanetSystem(engine.scene, {
             x: 10000000, 
@@ -423,7 +425,7 @@
         });
 
         const wormhole = createWormhole(engine.scene, { x: 0, y: 0, z: 450000000 });
-
+        
         
           // Add the background
       
@@ -436,7 +438,11 @@
         // --- 3. ADD EVERYTHING TO THE COLLISION ARRAY ---
         // This is what allows you to land on them and see their HUD data
         const bodies = [sun, mercury, venus, earth, moon, mars, jupiter, saturn, titan, uranus, neptune , pluto];
-
+        bodies.push(blackHole);
+        bodies.push(wormhole);
+        bodies.push(mainBelt);
+        bodies.push(kuiperBelt);
+        bodies.push(oortCloud);
         // --- ADD THE HUD CLICK LOGIC HERE ---
         const nearestLabel = document.getElementById('nearest-display');
         nearestLabel.style.cursor = "pointer";
