@@ -1,6 +1,6 @@
 /**10-05-26 22:41   **/
 import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
-import { playHighFi } from 'audio';
+import { playHighFi, loadSoundLibrary  } from 'audio';
 /**
  * RESPONSIBILITY: 
  * 1. Initialize the WebGL Renderer
