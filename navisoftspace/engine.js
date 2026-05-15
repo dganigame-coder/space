@@ -141,10 +141,10 @@ export function checkCollisions(camera, planets, scene) {
                             // Heavy gravity pull/distortion
                             playHighFi('VOID_GRAVITY', penetration);
                             // Visual distort: increase contrast as you fall in
-                            document.body.style.filter = `brightness(${1 - penetration}) contrast(${1 + penetration})`;
+                            //document.body.style.filter = `brightness(${1 - penetration}) contrast(${1 + penetration})`;
                         }
                         else if (type === 'wormhole') {
-                            updateRightMonitor(planet);
+                            //updateRightMonitor(planet);
                             playHighFi('WORMHOLE_PULSE', penetration);
                             // Wobble effect
                             camera.rotation.z += Math.sin(Date.now() * 0.01) * penetration * 0.1;
