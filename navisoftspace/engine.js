@@ -1,6 +1,6 @@
 /**10-05-26 22:41   **/
 import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
-import Tone from 'https://cdn.skypack.dev/tone@14.8.49';
+import * as Tone from 'https://cdn.skypack.dev/tone@14.8.49';
 import { playHighFi, loadSoundLibrary  } from 'audio';
 /**
  * RESPONSIBILITY: 
