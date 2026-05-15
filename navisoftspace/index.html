@@ -198,7 +198,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V1505261802</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-V1505261812</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -265,35 +265,32 @@
         
     const overlay = document.getElementById('overlay');
 
-        overlay.onclick = async () => {
-            console.log("Gesture detected. Initializing Universe...");
-        
-            try {
-                // 1. Force the GLOBAL Tone instance to start (Permission)
-                await Tone.start(); 
-                
-                // 2. Resume native context to clear those console warnings
-                if (Tone.context.rawContext && Tone.context.rawContext.state === 'suspended') {
-                    await Tone.context.rawContext.resume();
-                }
-        
-                // 3. NOW load the library (Creation)
-                // This sets gasVolume, voidVolume, etc.
-                await loadSoundLibrary(); 
-                
-                console.log("Audio systems initialized. gasVolume is now defined.");
-        
-                // 4. Hide the overlay
-                overlay.style.display = 'none';
-                
-                // 5. Kick off the simulation logic (if you have an init function)
-                // if (typeof startSimulation === "function") startSimulation();
-        
-            } catch (error) {
-                console.error("Critical Failure in Audio Start:", error);
-                overlay.style.display = 'none'; // Don't block the user
+    // --- UPDATED FOR MOBILE + DESKTOP ---
+    overlay.addEventListener('pointerdown', async () => {
+        console.log("Gesture detected via PointerDown. Initializing Universe...");
+    
+        try {
+            // 1. Force the GLOBAL Tone instance to start
+            await Tone.start(); 
+            
+            // 2. Clear mobile-specific suspension
+            if (Tone.context.rawContext && Tone.context.rawContext.state === 'suspended') {
+                await Tone.context.rawContext.resume();
             }
-        };
+    
+            // 3. Initialize nodes (gasVolume, etc.)
+            await loadSoundLibrary(); 
+            
+            console.log("Audio systems initialized. gasVolume is now defined.");
+    
+            // 4. Hide the overlay
+            overlay.style.display = 'none';
+    
+        } catch (error) {
+            console.error("Critical Failure in Audio Start:", error);
+            overlay.style.display = 'none'; 
+        }
+    }, { once: true }); // 'once: true' is a clean way to ensure this only runs on the first tap
 
 
         const engine = initEngine();
