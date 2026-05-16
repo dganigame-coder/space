@@ -136,7 +136,8 @@ export function checkCollisions(camera, bodies, scene) {
             }
         }
         else if (type === 'wormhole') {
-            //updateRightMonitor(spaceObject);
+            const penetration = Math.max(0, (radius - dist) / radius);
+            updateRightMonitor(spaceObject);
             playHighFi('WORMHOLE_PULSE', penetration);
             // Wobble effect
             camera.rotation.z += Math.sin(Date.now() * 0.01) * penetration * 0.1;
