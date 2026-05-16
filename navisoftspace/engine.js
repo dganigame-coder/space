@@ -132,7 +132,7 @@ export function checkCollisions(camera, planets, scene) {
                 const halfWidth = (outerRadius - innerRadius) / 2;
                 const penetration = 1 - (Math.abs(distFromCenter - mid) / halfWidth);
     
-                playHighFi(data.sound || 'ASTEROID_BELT', penetration);
+                playHighFi('ASTEROID_BELT', penetration);
             }
         }
         if (dist < radius) { 
