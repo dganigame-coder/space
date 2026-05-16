@@ -266,7 +266,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V1605262331</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-V1605262338</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -356,27 +356,30 @@
        const engine = await enginePromise;
 
         overlay.addEventListener('pointerdown', async () => {
-            // 1. Give immediate visual feedback
-            overlay.style.opacity = '0.5';
-            overlay.style.pointerEvents = 'none'; // Prevent double-taps
+            // 1. IMMEDIATE VISUAL FEEDBACK
+            // Make the overlay non-interactive and invisible immediately
+            overlay.style.pointerEvents = 'none'; 
+            overlay.style.opacity = '0';
+            overlay.style.transition = 'opacity 0.5s ease'; // Smooth fade out
         
             try {
-                // 2. Start audio/systems
-                // On mobile, this MUST happen inside the user-gesture block
+                // 2. BOOT SYSTEMS
+                // We do this AFTER triggering the fade so the user feels the "Ignition"
                 await bootSystems(); 
                 
-                // 3. Hide the overlay
-                overlay.style.display = 'none';
-                
-                console.log("Systems Booted Successfully");
-            } catch (err) {
-                console.error("Boot failed:", err);
-                // If it fails, bring the overlay back so they can try again
-                overlay.style.opacity = '1';
-                overlay.style.pointerEvents = 'all';
-            }
-        }, { once: true });
+                // 3. COMPLETE REMOVAL
+                // Remove from DOM after fade finishes so it doesn't eat performance
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                }, 500);
         
+                console.log("Ignition Successful. Controls Active.");
+            } catch (e) {
+                // Fallback: If boot fails, we still want the user to see the game
+                overlay.style.display = 'none';
+                console.warn("Boot failed, but forcing overlay hide.", e);
+            }
+        }, { once: true });        
  /*
     
     overlay.addEventListener('pointerdown', async () => {
