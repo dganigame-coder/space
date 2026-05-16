@@ -119,7 +119,7 @@ export function checkCollisions(camera, planets, scene) {
         const radius = planet.userData.r || 500; 
         const type = planet.userData.type;
 
-        if (body.userData.type === 'asteroid_belt') {
+        if (body && body.userData && && body.userData.type && body.userData.type === 'asteroid_belt') {
             const data = body.userData;
             const distFromCenter = camera.position.length(); // Distance from (0,0,0)
         
