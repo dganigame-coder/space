@@ -33,7 +33,16 @@ export function createWormhole(scene, config) {
     });
     const aura = new THREE.Mesh(auraGeo, auraMat);
     group.add(aura);
-
+    
+    group.userData = {
+            type: 'wormhole',
+            // How far the "distortion" sound reaches. 
+            // config.size * 15 usually gives a nice gradual fade-in.
+            r: config.size * 15, 
+            name: config.name || 'Einstein-Rosen Bridge',
+            sound: 'WORMHOLE_WARP' // The key for your audio.js switch
+        };
+    
     group.position.set(config.x, config.y, config.z);
     scene.add(group);
     
