@@ -134,20 +134,7 @@ export function checkCollisions(camera, planets, scene) {
     
                 playHighFi(data.sound || 'ASTEROID_BELT', penetration);
             }
-    
-        // --- 2. SPHERE LOGIC (Planets / Black Holes) ---
-        else {
-            const distToCenter = camera.position.distanceTo(body.position);
-            const effectRadius = data.r || 50000;
-    
-            if (distToCenter < effectRadius) {
-                inAmbientZone = true;
-                const penetration = (effectRadius - distToCenter) / effectRadius;
-                playHighFi(data.type === 'blackhole' ? 'VOID_GRAVITY' : 'PLANET_AMBIENT', penetration);
-            }
         }
-    });
-
         if (dist < radius) { 
             const penetration = Math.max(0, (radius - dist) / radius);
             inAmbientZone = true;
