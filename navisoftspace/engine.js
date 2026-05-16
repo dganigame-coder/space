@@ -119,6 +119,25 @@ export function checkCollisions(camera, planets, scene) {
         const radius = planet.userData.r || 500; 
         const type = planet.userData.type;
 
+        if (body.userData.type === 'asteroid_belt') {
+            const data = body.userData;
+            const distFromCenter = camera.position.length(); // Distance from (0,0,0)
+        
+            // Check if player is between the two radii
+            if (distFromCenter >= data.innerRadius && distFromCenter <= data.outerRadius) {
+                inAmbientZone = true;
+        
+                // Calculate how "deep" you are in the belt for volume (0 to 1)
+                const midPoint = (data.innerRadius + data.outerRadius) / 2;
+                const thickness = (data.outerRadius - data.innerRadius) / 2;
+                const penetration = 1 - (Math.abs(distFromCenter - midPoint) / thickness);
+        
+                // Use the sound name from the config ('ICY_WHISPER', etc.)
+                // Or fallback to 'ASTEROID_BELT' if sound isn't defined
+                playHighFi(data.sound || 'ASTEROID_BELT', penetration);
+            }
+          }
+
         if (dist < radius) { 
             const penetration = Math.max(0, (radius - dist) / radius);
             inAmbientZone = true;
@@ -155,24 +174,6 @@ export function checkCollisions(camera, planets, scene) {
                             playHighFi('ASTEROID_BELT', penetration);
                         }
                           */
-                            else if (body.userData.type === 'asteroid_belt') {
-                                    const data = body.userData;
-                                    const distFromCenter = camera.position.length(); // Distance from (0,0,0)
-                                
-                                    // Check if player is between the two radii
-                                    if (distFromCenter >= data.innerRadius && distFromCenter <= data.outerRadius) {
-                                        inAmbientZone = true;
-                                
-                                        // Calculate how "deep" you are in the belt for volume (0 to 1)
-                                        const midPoint = (data.innerRadius + data.outerRadius) / 2;
-                                        const thickness = (data.outerRadius - data.innerRadius) / 2;
-                                        const penetration = 1 - (Math.abs(distFromCenter - midPoint) / thickness);
-                                
-                                        // Use the sound name from the config ('ICY_WHISPER', etc.)
-                                        // Or fallback to 'ASTEROID_BELT' if sound isn't defined
-                                        playHighFi(data.sound || 'ASTEROID_BELT', penetration);
-                                    }
-                                }
                             
                         // --- 3. SOLID PLANETS (Hard Crash) ---
                         else if (type === 'solid') {
