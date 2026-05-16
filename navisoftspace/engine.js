@@ -135,56 +135,62 @@ export function checkCollisions(camera, bodies, scene) {
                 playHighFi('ASTEROID_BELT', penetration);
             }
         }
+        else if (type === 'wormhole') {
+            //updateRightMonitor(spaceObject);
+            playHighFi('WORMHOLE_PULSE', penetration);
+            // Wobble effect
+            camera.rotation.z += Math.sin(Date.now() * 0.01) * penetration * 0.1;
+        }
         if (dist < radius) { 
             const penetration = Math.max(0, (radius - dist) / radius);
             inAmbientZone = true;
             // --- 1. GAS GIANTS & STARS (Existing Logic) ---
-                        if (type === 'gas') {
-                            maxPenetration = Math.max(maxPenetration, penetration);
-                            updateRightMonitor(spaceObject);
-                            triggerAtmosphereEntry(camera, spaceObject, penetration);
-                            playHighFi('GAS_RUSH', penetration); 
-                        } 
-                        else if (type === 'star') {
-                            updateRightMonitor(spaceObject);
-                            triggerSolarFlare(camera, spaceObject);
-                            playHighFi('SOLAR_STATIC', penetration);
-                        } 
-            
-                        // --- 2. NEW SPECIAL OBJECTS (Integrated) ---
-                        else if (type === 'blackhole') {
-                            updateRightMonitor(spaceObject);
-                            // Heavy gravity pull/distortion
-                            playHighFi('VOID_GRAVITY', penetration);
-                            // Visual distort: increase contrast as you fall in
-                            //document.body.style.filter = `brightness(${1 - penetration}) contrast(${1 + penetration})`;
-                        }
-                        else if (type === 'wormhole') {
-                            //updateRightMonitor(spaceObject);
-                            playHighFi('WORMHOLE_PULSE', penetration);
-                            // Wobble effect
-                            camera.rotation.z += Math.sin(Date.now() * 0.01) * penetration * 0.1;
-                        }
-                            /*
-                        else if (type === 'asteroid_belt') {
-                            // No monitor text for general debris, just rumble
-                            playHighFi('ASTEROID_BELT', penetration);
-                        }
-                          */
-                            
-                        // --- 3. SOLID bodies (Hard Crash) ---
-                        else if (type === 'solid') {
-                            if (!isColliding) {
-                                updateRightMonitor(spaceObject);
-                                triggerImpact(camera);
-                                playHighFi('HULL_IMPACT');
-                                playHighFi('COCKPIT_ALARM');
-                                isColliding = true;
-                                setTimeout(() => isColliding = false, 1000); 
-                            }
-                        }
-                    }
-                });
+            if (type === 'gas') {
+                maxPenetration = Math.max(maxPenetration, penetration);
+                updateRightMonitor(spaceObject);
+                triggerAtmosphereEntry(camera, spaceObject, penetration);
+                playHighFi('GAS_RUSH', penetration); 
+            } 
+            else if (type === 'star') {
+                updateRightMonitor(spaceObject);
+                triggerSolarFlare(camera, spaceObject);
+                playHighFi('SOLAR_STATIC', penetration);
+            } 
+
+            // --- 2. NEW SPECIAL OBJECTS (Integrated) ---
+            else if (type === 'blackhole') {
+                updateRightMonitor(spaceObject);
+                // Heavy gravity pull/distortion
+                playHighFi('VOID_GRAVITY', penetration);
+                // Visual distort: increase contrast as you fall in
+                //document.body.style.filter = `brightness(${1 - penetration}) contrast(${1 + penetration})`;
+            }
+            else if (type === 'wormhole') {
+                //updateRightMonitor(spaceObject);
+                playHighFi('WORMHOLE_PULSE', penetration);
+                // Wobble effect
+                camera.rotation.z += Math.sin(Date.now() * 0.01) * penetration * 0.1;
+            }
+                /*
+            else if (type === 'asteroid_belt') {
+                // No monitor text for general debris, just rumble
+                playHighFi('ASTEROID_BELT', penetration);
+            }
+              */
+                
+            // --- 3. SOLID bodies (Hard Crash) ---
+            else if (type === 'solid') {
+                if (!isColliding) {
+                    updateRightMonitor(spaceObject);
+                    triggerImpact(camera);
+                    playHighFi('HULL_IMPACT');
+                    playHighFi('COCKPIT_ALARM');
+                    isColliding = true;
+                    setTimeout(() => isColliding = false, 1000); 
+                }
+            }
+        }
+    });
 
 
     // --- FOG / CLOUD LOGIC ---
