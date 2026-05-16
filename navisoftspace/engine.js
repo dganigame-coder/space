@@ -82,16 +82,16 @@ export async function initEngine() {
  * Updates the sleek right-side monitor text
  * Replaces the old "Close Log" dialog box
  */
-function updateRightMonitor(planet) {
+function updateRightMonitor(spaceObject) {
     const monitor = document.getElementById('right-monitor');
     const textTarget = document.getElementById('monitor-text');
 
     if (!monitor || !textTarget) return;
 
-    // Set the text content from the planet's mini-project data
+    // Set the text content from the spaceObject's mini-project data
     textTarget.innerHTML = `
-        <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 4px;">> ${planet.userData.name}</div>
-        <div style="font-size: 0.85rem; line-height: 1.4; opacity: 0.9;">${planet.userData.info}</div>
+        <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 4px;">> ${spaceObject.userData.name}</div>
+        <div style="font-size: 0.85rem; line-height: 1.4; opacity: 0.9;">${spaceObject.userData.info}</div>
     `;
 
     // Fade in the monitor
@@ -108,20 +108,20 @@ let isColliding = false;
 let monitorTimer;
 let activeAmbient = false; // Track if we are currently playing ambient noise
 
-export function checkCollisions(camera, planets, scene) {
-    if (!planets || !scene || !scene.fog) return; // Safety guard
+export function checkCollisions(camera, bodies, scene) {
+    if (!bodies || !scene || !scene.fog) return; // Safety guard
 
     let inAmbientZone = false;
     let maxPenetration = 0; // Track how deep we are for fog
 
-    planets.forEach(planet => {
-        const dist = camera.position.distanceTo(planet.position);
-        const radius = planet.userData.r || 500; 
-        const type = planet.userData.type;
+    bodies.forEach(spaceObject => {
+        const dist = camera.position.distanceTo(spaceObject.position);
+        const radius = spaceObject.userData.r || 500; 
+        const type = spaceObject.userData.type;
         // --- 1. BELT LOGIC (The Donut) ---
         if (type === 'asteroid_belt') {
-            const innerRadius = planet.userData.innerRadius;
-            const outerRadius = planet.userData.outerRadius;
+            const innerRadius = spaceObject.userData.innerRadius;
+            const outerRadius = spaceObject.userData.outerRadius;
             const distFromCenter = camera.position.length(); // Your 3,271,064 value
     
             if (distFromCenter >= innerRadius && distFromCenter <= outerRadius) {
@@ -141,26 +141,26 @@ export function checkCollisions(camera, planets, scene) {
             // --- 1. GAS GIANTS & STARS (Existing Logic) ---
                         if (type === 'gas') {
                             maxPenetration = Math.max(maxPenetration, penetration);
-                            updateRightMonitor(planet);
-                            triggerAtmosphereEntry(camera, planet, penetration);
+                            updateRightMonitor(spaceObject);
+                            triggerAtmosphereEntry(camera, spaceObject, penetration);
                             playHighFi('GAS_RUSH', penetration); 
                         } 
                         else if (type === 'star') {
-                            updateRightMonitor(planet);
-                            triggerSolarFlare(camera, planet);
+                            updateRightMonitor(spaceObject);
+                            triggerSolarFlare(camera, spaceObject);
                             playHighFi('SOLAR_STATIC', penetration);
                         } 
             
                         // --- 2. NEW SPECIAL OBJECTS (Integrated) ---
                         else if (type === 'blackhole') {
-                            updateRightMonitor(planet);
+                            updateRightMonitor(spaceObject);
                             // Heavy gravity pull/distortion
                             playHighFi('VOID_GRAVITY', penetration);
                             // Visual distort: increase contrast as you fall in
                             //document.body.style.filter = `brightness(${1 - penetration}) contrast(${1 + penetration})`;
                         }
                         else if (type === 'wormhole') {
-                            //updateRightMonitor(planet);
+                            //updateRightMonitor(spaceObject);
                             playHighFi('WORMHOLE_PULSE', penetration);
                             // Wobble effect
                             camera.rotation.z += Math.sin(Date.now() * 0.01) * penetration * 0.1;
@@ -172,10 +172,10 @@ export function checkCollisions(camera, planets, scene) {
                         }
                           */
                             
-                        // --- 3. SOLID PLANETS (Hard Crash) ---
+                        // --- 3. SOLID bodies (Hard Crash) ---
                         else if (type === 'solid') {
                             if (!isColliding) {
-                                updateRightMonitor(planet);
+                                updateRightMonitor(spaceObject);
                                 triggerImpact(camera);
                                 playHighFi('HULL_IMPACT');
                                 playHighFi('COCKPIT_ALARM');
@@ -209,7 +209,7 @@ export function checkCollisions(camera, planets, scene) {
 
 // --- BEHAVIOR DEFINITIONS ---
 
-function triggerAtmosphereEntry(camera, planet, penetration) {
+function triggerAtmosphereEntry(camera, spaceObject, penetration) {
     // 1. PHYSICS: Drag (The deeper you are, the more you slow down)
     if (window.currentSpeed) {
         const dragFactor = 1 - (penetration * 0.08); // Max 8% reduction per frame
@@ -228,7 +228,7 @@ function triggerAtmosphereEntry(camera, planet, penetration) {
 }
 
 /*
-function triggerAtmosphereEntry(camera, planet) {
+function triggerAtmosphereEntry(camera, spaceObject) {
     // PHYSICS: Speed drag
     if (window.currentSpeed) {
         window.currentSpeed *= 0.96; 
@@ -238,9 +238,9 @@ function triggerAtmosphereEntry(camera, planet) {
 
 */
 
-export function triggerSolarFlare(camera, planet) {
-    const dist = camera.position.distanceTo(planet.position);
-    const radius = planet.userData.r || 5000;
+export function triggerSolarFlare(camera, spaceObject) {
+    const dist = camera.position.distanceTo(spaceObject.position);
+    const radius = spaceObject.userData.r || 5000;
     const penetration = Math.max(0, (radius - dist) / radius);
 
     // Exponential Pushback
