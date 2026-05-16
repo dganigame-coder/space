@@ -118,11 +118,35 @@ export function checkCollisions(camera, planets, scene) {
         const dist = camera.position.distanceTo(planet.position);
         const radius = planet.userData.r || 500; 
         const type = planet.userData.type;
-
+        // --- 1. BELT LOGIC (The Donut) ---
         if (type === 'asteroid_belt') {
-            // No monitor text for general debris, just rumble
-            playHighFi('ASTEROID_BELT', penetration);
+            const innerRadius: planet.userData.innerRadius,
+            const outerRadius: planet.userData.outerRadius,
+            const distFromCenter = camera.position.length(); // Your 3,271,064 value
+    
+            if (distFromCenter >= innerRadius && distFromCenter <= outerRadius) {
+                inAmbientZone = true;
+                
+                // Calculate volume based on how deep you are in the ring
+                const mid = (innerRadius + outerRadius) / 2;
+                const halfWidth = (outerRadius - innerRadius) / 2;
+                const penetration = 1 - (Math.abs(distFromCenter - mid) / halfWidth);
+    
+                playHighFi(data.sound || 'ASTEROID_BELT', penetration);
+            }
+    
+        // --- 2. SPHERE LOGIC (Planets / Black Holes) ---
+        else {
+            const distToCenter = camera.position.distanceTo(body.position);
+            const effectRadius = data.r || 50000;
+    
+            if (distToCenter < effectRadius) {
+                inAmbientZone = true;
+                const penetration = (effectRadius - distToCenter) / effectRadius;
+                playHighFi(data.type === 'blackhole' ? 'VOID_GRAVITY' : 'PLANET_AMBIENT', penetration);
+            }
         }
+    });
 
         if (dist < radius) { 
             const penetration = Math.max(0, (radius - dist) / radius);
