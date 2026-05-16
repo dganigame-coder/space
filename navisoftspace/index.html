@@ -266,7 +266,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V1605262315</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-V1605262331</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -354,7 +354,30 @@
         // This ensures the 3D scene is prepping while the user looks at the overlay
         // 1. Ensure 3D is ready
        const engine = await enginePromise;
- 
+
+        overlay.addEventListener('pointerdown', async () => {
+            // 1. Give immediate visual feedback
+            overlay.style.opacity = '0.5';
+            overlay.style.pointerEvents = 'none'; // Prevent double-taps
+        
+            try {
+                // 2. Start audio/systems
+                // On mobile, this MUST happen inside the user-gesture block
+                await bootSystems(); 
+                
+                // 3. Hide the overlay
+                overlay.style.display = 'none';
+                
+                console.log("Systems Booted Successfully");
+            } catch (err) {
+                console.error("Boot failed:", err);
+                // If it fails, bring the overlay back so they can try again
+                overlay.style.opacity = '1';
+                overlay.style.pointerEvents = 'all';
+            }
+        }, { once: true });
+        
+ /*
     
     overlay.addEventListener('pointerdown', async () => {
            
@@ -366,7 +389,7 @@
             
             overlay.style.display = 'none';
         }, { once: true });
-
+*/
         // After you initialize the engine and planets
         //const asteroidBelt = createAsteroidBelt(engine.scene);
 /*
