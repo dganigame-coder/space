@@ -120,8 +120,8 @@ export function checkCollisions(camera, planets, scene) {
         const type = planet.userData.type;
         // --- 1. BELT LOGIC (The Donut) ---
         if (type === 'asteroid_belt') {
-            const innerRadius = planet.userData.innerRadius,
-            const outerRadius = planet.userData.outerRadius,
+            const innerRadius = planet.userData.innerRadius;
+            const outerRadius = planet.userData.outerRadius;
             const distFromCenter = camera.position.length(); // Your 3,271,064 value
     
             if (distFromCenter >= innerRadius && distFromCenter <= outerRadius) {
