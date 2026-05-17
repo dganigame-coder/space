@@ -119,7 +119,7 @@ export function checkCollisions(camera, bodies, scene) {
         const radius = spaceObject.userData.r || 500; 
         const type = spaceObject.userData.type;
 
-        if (spaceObject.userData.isBreathing) {
+        if (spaceObject.userData.type == nebula && spaceObject.userData.isBreathing) {
             spaceObject.children.forEach(child => {
                 if (child instanceof THREE.Sprite) {
                     // The "Breath": Subtle pulsing of opacity
@@ -154,7 +154,7 @@ export function checkCollisions(camera, bodies, scene) {
             updateRightMonitor(spaceObject);
             playHighFi('WORMHOLE_PULSE', penetration);
             // Wobble effect
-            camera.rotation.z += Math.sin(Date.now() * 0.01) * penetration * 0.1;
+            //camera.rotation.z += Math.sin(Date.now() * 0.01) * penetration * 0.1;
         }
         if (dist < radius) { 
             const penetration = Math.max(0, (radius - dist) / radius);
