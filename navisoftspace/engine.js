@@ -131,7 +131,7 @@ export function checkCollisions(camera, bodies, scene) {
                     }
         
                     // 2. WOW EFFECT: Pulsing Supernova Light
-                    if (child instanceof THREE.PointLight && body.userData.type === 'supernova') {
+                    if (child instanceof THREE.PointLight && spaceObject.userData.type === 'supernova') {
                         // Creates a "high-energy" flicker effect
                         const noise = Math.random() * 2; 
                         child.intensity = 15 + noise; 
