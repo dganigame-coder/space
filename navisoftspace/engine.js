@@ -118,6 +118,20 @@ export function checkCollisions(camera, bodies, scene) {
         const dist = camera.position.distanceTo(spaceObject.position);
         const radius = spaceObject.userData.r || 500; 
         const type = spaceObject.userData.type;
+
+        if (spaceObject.userData.isBreathing) {
+            spaceObject.children.forEach(child => {
+                if (child instanceof THREE.Sprite) {
+                    // The "Breath": Subtle pulsing of opacity
+                    child.userData.phase += child.userData.speed;
+                    const pulse = Math.sin(child.userData.phase) * 0.05;
+                    child.material.opacity = child.userData.baseOpacity + pulse;
+                    
+                    // Optional: Tiny slow rotation for "wildness"
+                    child.rotation += 0.0001;
+                }
+            });
+        }
         // --- 1. BELT LOGIC (The Donut) ---
         if (type === 'asteroid_belt') {
             const innerRadius = spaceObject.userData.innerRadius;
