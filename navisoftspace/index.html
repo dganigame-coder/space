@@ -296,7 +296,9 @@
         "wormhole":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@7112e2f/navisoftspace/horizonObjects/wormhole.js",
         "voyager":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@02ca7eb/navisoftspace/horizonObjects/voyager.js",
         "heliopause":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@e46bc44/navisoftspace/horizonObjects/heliopause.js",
-        "exoplanet":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@01f1f82/navisoftspace/horizonObjects/exoplanet.js"
+        "exoplanet":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@01f1f82/navisoftspace/horizonObjects/exoplanet.js",
+        "nebula":"https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/horizonObjects/nebula.js"
+
         }
     }
  
@@ -492,6 +494,45 @@
             z: 250000000 
         });
 
+        // --- 1. The Orion Nursery (Massive, Purple/Cyan) ---
+        const orionNebula = createNebula(engine.scene, {
+            x: 20000000, 
+            y: 5000000, 
+            z: -80000000,
+            count: 400,
+            spread: 8000000, 
+            size: 3000000,   
+            colors: [0x4400ff, 0x00ffff],
+            name: "Orion Nursery",
+            sound: 'NEBULA_HUM'
+        });
+        
+        // --- 2. The Supernova Remnant (Violent Orange/Red) ---
+        const remnant = createNebula(engine.scene, {
+            x: -50000000, 
+            y: -20000000, 
+            z: 40000000,
+            count: 600,
+            spread: 5000000, 
+            size: 1500000,   
+            colors: [0xff4500, 0xffd700],
+            name: "Vela Remnant",
+            sound: 'ELECTRO_STATIC'
+        });
+        
+        // --- 3. Distant Andromeda Galaxy (Extremely Far, White/Blue) ---
+        const andromeda = createNebula(engine.scene, {
+            x: 150000000, 
+            y: 80000000, 
+            z: -300000000, // Deep Deep Space
+            count: 1000,
+            spread: 15000000, 
+            size: 800000,   
+            colors: [0xffffff, 0xaaaaff],
+            name: "Andromeda Galaxy",
+            sound: 'DEEP_SPACE_STATIC'
+        });
+        
         const wormhole = createWormhole(engine.scene, { x: 0, y: 0, z: 450000000 });
         
         
@@ -506,8 +547,9 @@
         // --- 3. ADD EVERYTHING TO THE COLLISION ARRAY ---
         // This is what allows you to land on them and see their HUD data
         const bodies = [sun, mercury, venus, earth, moon, mars, jupiter, saturn, titan, uranus, neptune , pluto];
-        const horizonObj = [blackHole,wormhole,mainBelt,kuiperBelt,oortCloud];
+        const horizonObj = [blackHole,wormhole,mainBelt,kuiperBelt,oortCloud,orionNebula, remnant, andromeda];
         bodies.push(...horizonObj);
+
         // --- ADD THE HUD CLICK LOGIC HERE ---
         const nearestLabel = document.getElementById('nearest-display');
         nearestLabel.style.cursor = "pointer";
