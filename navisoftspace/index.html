@@ -297,7 +297,9 @@
         "voyager":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@02ca7eb/navisoftspace/horizonObjects/voyager.js",
         "heliopause":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@e46bc44/navisoftspace/horizonObjects/heliopause.js",
         "exoplanet":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@01f1f82/navisoftspace/horizonObjects/exoplanet.js",
-        "nebula":"https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/horizonObjects/nebula.js"
+        "nebula":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@5b6299b/navisoftspace/horizonObjects/nebula.js",
+         "supernova":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@5b6299b/navisoftspace/horizonObjects/supernova.js"
+
 
         }
     }
@@ -316,6 +318,7 @@
     import { createHeliopause } from 'heliopause';
     import { createExoplanetSystem } from 'exoplanet';
     import {createNebula } from 'nebula';
+    import {createSupernova } from 'supernova';
     
         
     import { createSun } from 'sun';   
@@ -533,7 +536,18 @@
             name: "Andromeda Galaxy",
             sound: 'DEEP_SPACE_STATIC'
         });
-        
+
+        // The "Phoenix Remnant" - A massive, violent explosion
+        const supernova = createSupernova(engine.scene, {
+            x: -80000000, 
+            y: 30000000, 
+            z: -150000000, // Very deep space
+            count: 800,    // Higher count for "filaments"
+            spread: 10000000, 
+            size: 2000000,   
+            colors: [0xff4500, 0x00ffff], // Orange fire vs Cyan shockwave
+            name: "Phoenix Remnant"
+        });
         const wormhole = createWormhole(engine.scene, { x: 0, y: 0, z: 450000000 });
         
         
@@ -548,7 +562,7 @@
         // --- 3. ADD EVERYTHING TO THE COLLISION ARRAY ---
         // This is what allows you to land on them and see their HUD data
         const bodies = [sun, mercury, venus, earth, moon, mars, jupiter, saturn, titan, uranus, neptune , pluto];
-        const horizonObj = [blackHole,wormhole,mainBelt,kuiperBelt,oortCloud,orionNebula, remnant, andromeda];
+        const horizonObj = [blackHole,wormhole,mainBelt,kuiperBelt,oortCloud,orionNebula, remnant, andromeda,supernova];
         bodies.push(...horizonObj);
 
         // --- ADD THE HUD CLICK LOGIC HERE ---
