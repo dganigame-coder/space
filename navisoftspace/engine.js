@@ -122,13 +122,18 @@ export function checkCollisions(camera, bodies, scene) {
         if (spaceObject.userData.type == "nebula" && spaceObject.userData.isBreathing) {
             spaceObject.children.forEach(child => {
                 if (child instanceof THREE.Sprite) {
-                    // The "Breath": Subtle pulsing of opacity
-                    child.userData.phase += child.userData.speed;
-                    const pulse = Math.sin(child.userData.phase) * 0.05;
-                    child.material.opacity = child.userData.baseOpacity + pulse;
+                    // 1. Update Phase
+                    // If speed is undefined, default to a tiny increment
+                    child.userData.phase += (child.userData.speed || 0.002);
                     
-                    // Optional: Tiny slow rotation for "wildness"
-                    child.rotation += 0.0001;
+                    // 2. The "Breath" logic
+                    const pulse = Math.sin(child.userData.phase) * 0.05;
+                    const base = child.userData.baseOpacity || 0.15;
+                    child.material.opacity = base + pulse;
+                    
+                    // 3. The Rotation Fix
+                    // In Three.js, Sprites rotate via their material
+                    child.material.rotation += 0.0001; 
                 }
             });
         }
