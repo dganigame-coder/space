@@ -118,24 +118,31 @@ export function checkCollisions(camera, bodies, scene) {
         const radius = spaceObject.userData.r || 500; 
         const type = spaceObject.userData.type;
 
-        if (spaceObject.userData.type == "nebula" && spaceObject.userData.isBreathing) {
-            spaceObject.children.forEach(child => {
-                if (child instanceof THREE.Sprite) {
-                    // 1. Update Phase
-                    // If speed is undefined, default to a tiny increment
-                    child.userData.phase += (child.userData.speed || 0.002);
+            // Handling BOTH Nebulae and Supernovas
+            if (spaceObject.userData.isBreathing) {
+                spaceObject.children.forEach((child, index) => {
                     
-                    // 2. The "Breath" logic
-                    const pulse = Math.sin(child.userData.phase) * 0.05;
-                    const base = child.userData.baseOpacity || 0.15;
-                    child.material.opacity = base + pulse;
-                    
-                    // 3. The Rotation Fix
-                    // In Three.js, Sprites rotate via their material
-                    child.material.rotation += 0.0001; 
-                }
-            });
-        }
+                    // 1. Animate the Gas Sprites
+                    if (child instanceof THREE.Sprite) {
+                        child.userData.phase += child.userData.speed;
+                        const pulse = Math.sin(child.userData.phase) * 0.05;
+                        child.material.opacity = (child.userData.baseOpacity || 0.1) + pulse;
+                        child.material.rotation += 0.0002; // Churning gas
+                    }
+        
+                    // 2. WOW EFFECT: Pulsing Supernova Light
+                    if (child instanceof THREE.PointLight && body.userData.type === 'supernova') {
+                        // Creates a "high-energy" flicker effect
+                        const noise = Math.random() * 2; 
+                        child.intensity = 15 + noise; 
+                        
+                        // Make the light "heat up" and "cool down"
+                        const heat = Math.sin(Date.now() * 0.001) * 5;
+                        child.intensity += heat;
+                    }
+                });
+            }
+
         // --- 1. BELT LOGIC (The Donut) ---
         if (type === 'asteroid_belt') {
             const innerRadius = spaceObject.userData.innerRadius;
