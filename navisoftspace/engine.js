@@ -153,13 +153,6 @@ export function checkCollisions(camera, bodies, scene) {
                 playHighFi('ASTEROID_BELT', penetration);
             }
         }
-        /*else if (type === 'wormhole') {
-            const penetration = Math.max(0, (radius - dist) / radius);
-            updateRightMonitor(spaceObject);
-            playHighFi('WORMHOLE_PULSE', penetration);
-            // Wobble effect
-            //camera.rotation.z += Math.sin(Date.now() * 0.01) * penetration * 0.1;
-        }*/
         if (dist < radius) { 
             const penetration = Math.max(0, (radius - dist) / radius);
             inAmbientZone = true;
@@ -190,6 +183,13 @@ export function checkCollisions(camera, bodies, scene) {
                 // Wobble effect
                 camera.rotation.z += Math.sin(Date.now() * 0.01) * penetration * 0.1;
             }
+            /*else if (type === 'wormhole') {
+            const penetration = Math.max(0, (radius - dist) / radius);
+            updateRightMonitor(spaceObject);
+            playHighFi('WORMHOLE_PULSE', penetration);
+            // Wobble effect
+            //camera.rotation.z += Math.sin(Date.now() * 0.01) * penetration * 0.1;
+        }*/
                 /*
             else if (type === 'asteroid_belt') {
                 // No monitor text for general debris, just rumble
