@@ -119,7 +119,7 @@ export function checkCollisions(camera, bodies, scene) {
         const radius = spaceObject.userData.r || 500; 
         const type = spaceObject.userData.type;
 
-        if (spaceObject.userData.type == nebula && spaceObject.userData.isBreathing) {
+        if (spaceObject.userData.type == "nebula" && spaceObject.userData.isBreathing) {
             spaceObject.children.forEach(child => {
                 if (child instanceof THREE.Sprite) {
                     // The "Breath": Subtle pulsing of opacity
