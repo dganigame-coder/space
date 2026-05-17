@@ -1,4 +1,3 @@
-/**10-05-26 22:41   **/
 import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
 import * as Tone from 'https://cdn.skypack.dev/tone@14.8.49';
 import { playHighFi, loadSoundLibrary  } from 'audio';
@@ -154,13 +153,13 @@ export function checkCollisions(camera, bodies, scene) {
                 playHighFi('ASTEROID_BELT', penetration);
             }
         }
-        else if (type === 'wormhole') {
+        /*else if (type === 'wormhole') {
             const penetration = Math.max(0, (radius - dist) / radius);
             updateRightMonitor(spaceObject);
             playHighFi('WORMHOLE_PULSE', penetration);
             // Wobble effect
             //camera.rotation.z += Math.sin(Date.now() * 0.01) * penetration * 0.1;
-        }
+        }*/
         if (dist < radius) { 
             const penetration = Math.max(0, (radius - dist) / radius);
             inAmbientZone = true;
