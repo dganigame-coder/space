@@ -120,11 +120,11 @@ export function checkCollisions(camera, bodies, scene) {
     if (now - window.lastLogTime > 5000) { // Log every 5 seconds
         bodies.forEach(spaceObject => {
             if (spaceObject.userData.type === 'nebula' || spaceObject.userData.type === 'supernova') {
-                const dist = engine.camera.position.distanceTo(spaceObject.position);
+                const dist = camera.position.distanceTo(spaceObject.position);
                 
                 console.group(`📡 Long-Range Scanner: ${spaceObject.userData.name}`);
                 console.log(`Distance: ${Math.round(dist)} units`);
-                console.log(`In Camera View: ${dist < engine.camera.far ? "✅ YES" : "❌ TOO FAR (Clipped)"}`);
+                console.log(`In Camera View: ${dist < camera.far ? "✅ YES" : "❌ TOO FAR (Clipped)"}`);
                 console.groupEnd();
             }
         });
