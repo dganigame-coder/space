@@ -50,7 +50,9 @@ export function createSupernova(scene, config) {
         isBreathing: true,
         name: config.name 
     };
-
+    // At the very bottom of createNebula AND createSupernova, before "return group"
+    console.log(`🚀 [System] ${config.name} initialized at:`, group.position);
+    console.log(`✨ [Details] Sprites: ${config.count}, Type: ${group.userData.type}`);
     scene.add(group);
     return group;
 }
