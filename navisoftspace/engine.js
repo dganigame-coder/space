@@ -109,9 +109,27 @@ let activeAmbient = false; // Track if we are currently playing ambient noise
 
 export function checkCollisions(camera, bodies, scene) {
     if (!bodies || !scene || !scene.fog) return; // Safety guard
-
+    
     let inAmbientZone = false;
     let maxPenetration = 0; // Track how deep we are for fog
+
+    // Add this near your camera update logic
+    if (!window.lastLogTime) window.lastLogTime = 0;
+    const now = Date.now();
+    
+    if (now - window.lastLogTime > 5000) { // Log every 5 seconds
+        bodies.forEach(spaceObject => {
+            if (spaceObject.userData.type === 'nebula' || spaceObject.userData.type === 'supernova') {
+                const dist = engine.camera.position.distanceTo(spaceObject.position);
+                
+                console.group(`📡 Long-Range Scanner: ${spaceObject.userData.name}`);
+                console.log(`Distance: ${Math.round(dist)} units`);
+                console.log(`In Camera View: ${dist < engine.camera.far ? "✅ YES" : "❌ TOO FAR (Clipped)"}`);
+                console.groupEnd();
+            }
+        });
+        window.lastLogTime = now;
+    }
 
     bodies.forEach(spaceObject => {
         const dist = camera.position.distanceTo(spaceObject.position);
