@@ -205,27 +205,21 @@
 <script>
     const debugBox = document.getElementById('mobile-debug');
 
-    // 1. Toggle Logic (Mobile Button + Desktop 'D' Key)
     function toggleDebug() {
         const isHidden = debugBox.style.display === 'none' || debugBox.style.display === '';
         debugBox.style.display = isHidden ? 'block' : 'none';
-        console.log(`Debug visibility: ${debugBox.style.display}`);
     }
 
-    // Create the button for Mobile
     const btn = document.createElement('button');
     btn.id = 'debug-toggle';
     btn.innerText = '🛠️ LOGS';
-    btn.visible = false;
     btn.onclick = toggleDebug;
     document.body.appendChild(btn);
 
-    // Add 'D' key listener for Desktop
     window.addEventListener('keydown', (e) => {
         if (e.key.toLowerCase() === 'l') toggleDebug();
     });
 
-    // 2. Logging Engine
     function logToScreen(msg, isError = false) {
         const line = document.createElement('div');
         line.style.color = isError ? "#ff4444" : "#00ff00";
@@ -233,29 +227,80 @@
         line.style.padding = "2px 0";
         line.innerText = `> ${msg}`;
         debugBox.appendChild(line);
-        
-        // Auto-scroll to bottom
         debugBox.scrollTop = debugBox.scrollHeight;
     }
 
-    // 3. Error Catching
     window.onerror = (msg, url, line) => logToScreen(`${msg} (Line: ${line})`, true);
     window.onunhandledrejection = (event) => logToScreen(`Promise Error: ${event.reason}`, true);
 
-    // 4. Console Override
     const oldLog = console.log;
     console.log = function(...args) {
         const message = args.map(arg => 
             typeof arg === 'object' ? JSON.stringify(arg) : arg
         ).join(' ');
-        
         logToScreen(message);
         oldLog.apply(console, args);
     };
-
-    console.log("Debug system integrated. Press 'D' or tap 'LOGS'.");
 </script>
 
+<script type="module">
+
+    window.blockShipControls = false;
+
+    function setupCockpitButton(id, callback) {
+        const targetBtn = document.getElementById(id);
+        if (!targetBtn) return;
+
+        targetBtn.addEventListener('touchstart', (e) => {
+            window.blockShipControls = true; 
+            e.stopPropagation(); 
+            
+            if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                navigator.vibrate(12); 
+            }
+        }, { passive: true });
+
+        targetBtn.addEventListener('touchend', (e) => {
+            e.stopPropagation();
+            e.preventDefault(); 
+            
+            callback(targetBtn);
+            
+            setTimeout(() => {
+                window.blockShipControls = false; 
+            }, 120);
+        }, { passive: false });
+
+        targetBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            callback(targetBtn);
+        });
+    }
+
+    // Bind Log Position
+    setupCockpitButton('saveBtn', (buttonEl) => {
+        if (typeof engine !== 'undefined' && engine.camera) {
+            SaveSystem.save(engine.camera, velocity || 0); 
+        } else {
+            console.log("Cannot log position: Engine instance not ready yet.");
+        }
+        
+        buttonEl.innerText = "LOCKED";
+        buttonEl.style.color = "#00ff00";
+        buttonEl.style.borderColor = "#00ff00";
+        
+        setTimeout(() => {
+            buttonEl.innerText = "LOG POSITION";
+            buttonEl.style.color = "#00ffff";
+            buttonEl.style.borderColor = "#00ffff";
+        }, 2000);
+    });
+
+    // Bind Abort Mission
+    setupCockpitButton('resetBtn', () => {
+        SaveSystem.clear();
+    });
+</script>
     <div id="hud">
         <div style="font-size: 10px; opacity: 0.7;">[ SYSTEM STATUS: ONLINE ]</div>
         <div id="loc-display">LOCATION: EARTH SURFACE</div>
@@ -274,7 +319,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V1905262106</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-V1905262206</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -283,9 +328,9 @@
       "imports": {
         "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
         "tone":"https://cdn.skypack.dev/tone@14.8.49",
-        "engine": "https://cdn.jsdelivr.net/gh/dganigame-coder/space@65907be/navisoftspace/engine.js",
+        "engine": "https://cdn.jsdelivr.net/gh/dganigame-coder/space@9bcca31/navisoftspace/engine.js",
         "audio":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@b08265d/navisoftspace/audio.js",
-        "pilot": "https://cdn.jsdelivr.net/gh/dganigame-coder/space@1c3484f/navisoftspace/pilot.js",
+        "pilot": "https://cdn.jsdelivr.net/gh/dganigame-coder/space@237567d/navisoftspace/pilot.js",
         "save": "https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/save.js",
         "stars":"https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/stars.js",
         "mars":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@9e33d64/navisoftspace/planets/mars.js",
