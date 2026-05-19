@@ -131,6 +131,7 @@ export function checkCollisions(camera, bodies, scene) {
         window.lastLogTime = now;
     }
 
+    /*
     bodies.forEach(spaceObject => {
         const dist = camera.position.distanceTo(spaceObject.position);
         const radius = spaceObject.userData.r || 500; 
@@ -238,7 +239,6 @@ export function checkCollisions(camera, bodies, scene) {
                 // No monitor text for general debris, just rumble
                 playHighFi('ASTEROID_BELT', penetration);
             }
-              */
                 
             // --- 3. SOLID bodies (Hard Crash) ---
             else if (type === 'solid') {
@@ -254,7 +254,113 @@ export function checkCollisions(camera, bodies, scene) {
         }
     });
 
+*/
 
+
+    bodies.forEach(spaceObject => {
+        const dist = camera.position.distanceTo(spaceObject.position);
+        const radius = spaceObject.userData.r || 500; 
+        const type = spaceObject.userData.type;
+
+        // --- 1. VISUAL ANIMATION LOGIC (Nebulae & Supernovas) ---
+        if (spaceObject.userData.isBreathing) {
+            spaceObject.children.forEach((child, index) => {
+                
+                // Animate the Gas Sprites
+                if (child instanceof THREE.Sprite) {
+                    child.userData.phase += child.userData.speed;
+                    const pulse = Math.sin(child.userData.phase) * 0.05;
+                    child.material.opacity = (child.userData.baseOpacity || 0.1) + pulse;
+                    child.material.rotation += 0.0002; // Churning gas
+                }
+    
+                // Pulsing Supernova Light
+                if (child instanceof THREE.PointLight && spaceObject.userData.type === 'supernova') {
+                    const noise = Math.random() * 2; 
+                    child.intensity = 15 + noise; 
+                    
+                    const heat = Math.sin(Date.now() * 0.001) * 5;
+                    child.intensity += heat;
+                }
+            });
+        }
+
+        // --- 2. UNIQUE GEOMETRY LOGIC (The Donut Asteroid Belt) ---
+        if (type === 'asteroid_belt') {
+            const innerRadius = spaceObject.userData.innerRadius;
+            const outerRadius = spaceObject.userData.outerRadius;
+            const distFromCenter = camera.position.length(); 
+        
+            if (distFromCenter >= innerRadius && distFromCenter <= outerRadius) {
+                inAmbientZone = true;
+                
+                // Calculate volume based on how deep you are in the ring
+                const mid = (innerRadius + outerRadius) / 2;
+                const halfWidth = (outerRadius - innerRadius) / 2;
+                const penetration = 1 - (Math.abs(distFromCenter - mid) / halfWidth);
+        
+                playHighFi('ASTEROID_BELT', penetration);
+        
+                // SAFE CHECK: Ensure velocity exists before testing it
+                let currentSpeed = 0;
+                if (engine.velocity) {
+                    currentSpeed = typeof engine.velocity.length === 'function' 
+                        ? engine.velocity.length() 
+                        : engine.velocity;
+                }
+        
+                // Only trigger impacts if the ship is actually moving
+                if (currentSpeed > 0) {
+                    const crunchChance = 0.05 * penetration; 
+                    
+                    if (Math.random() < crunchChance) {
+                        playHighFi('HULL_IMPACT', penetration); 
+                    }
+                }
+            }
+        }
+
+        // --- 3. STANDARD SPHERICAL PROXIMITY LOGIC ---
+        if (dist < radius) { 
+            const penetration = Math.max(0, (radius - dist) / radius);
+            inAmbientZone = true;
+
+            // Gas Giants & Atmospheric entry
+            if (type === 'gas') {
+                maxPenetration = Math.max(maxPenetration, penetration);
+                updateRightMonitor(spaceObject);
+                triggerAtmosphereEntry(camera, spaceObject, penetration);
+                playHighFi('GAS_RUSH', penetration); 
+            } 
+            // Radiant Stars
+            else if (type === 'star') {
+                updateRightMonitor(spaceObject);
+                triggerSolarFlare(camera, spaceObject);
+                playHighFi('SOLAR_STATIC', penetration);
+            } 
+            // Singularity Objects
+            else if (type === 'blackhole') {
+                updateRightMonitor(spaceObject);
+                playHighFi('VOID_GRAVITY', penetration);
+            }
+            // Hyperspace Wormholes
+            else if (type === 'wormhole') {
+                playHighFi('WORMHOLE_PULSE', penetration);
+                camera.rotation.z += Math.sin(Date.now() * 0.01) * penetration * 0.1;
+            }
+            // Rigid Bodies (Hard Collisions)
+            else if (type === 'solid') {
+                if (!isColliding) {
+                    updateRightMonitor(spaceObject);
+                    triggerImpact(camera);
+                    playHighFi('HULL_IMPACT');
+                    playHighFi('COCKPIT_ALARM');
+                    isColliding = true;
+                    setTimeout(() => isColliding = false, 1000); 
+                }
+            }
+        }
+    });
     // --- FOG / CLOUD LOGIC ---
     if (inAmbientZone && maxPenetration > 0.05) {
         // As you go deeper, the fog distance gets shorter (thicker clouds)
