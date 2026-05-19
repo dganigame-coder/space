@@ -319,7 +319,7 @@ export function checkCollisions(camera, bodies, scene) {
                     const crunchChance = 0.05 * penetration; 
                     
                     if (Math.random() < crunchChance) {
-                        playHighFi('HULL_IMPACT', penetration); 
+                         playHighFi('BELT_ROCK', penetration); 
                     }
                 }
             }
