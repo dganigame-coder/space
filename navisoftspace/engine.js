@@ -301,12 +301,17 @@ export function checkCollisions(camera, bodies, scene) {
         
                 playHighFi('ASTEROID_BELT', penetration);
         
-                // SAFE CHECK: Ensure velocity exists before testing it
+                // 👇 FIXED CHECK: Removed the 'engine.' prefix to prevent the ReferenceError
                 let currentSpeed = 0;
-                if (engine.velocity) {
-                    currentSpeed = typeof engine.velocity.length === 'function' 
-                        ? engine.velocity.length() 
-                        : engine.velocity;
+                if (typeof velocity !== 'undefined' && velocity) {
+                    currentSpeed = typeof velocity.length === 'function' 
+                        ? velocity.length() 
+                        : velocity;
+                } else if (typeof this !== 'undefined' && this.velocity) { 
+                    // Backup check if your file uses class properties
+                    currentSpeed = typeof this.velocity.length === 'function' 
+                        ? this.velocity.length() 
+                        : this.velocity;
                 }
         
                 // Only trigger impacts if the ship is actually moving
