@@ -2,186 +2,143 @@ import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
 
 export function createSupernova(scene, config) {
     const group = new THREE.Group();
-    const loader = new THREE.TextureLoader();
-    
-    // Lens flare map for bright star cores & hot gas filaments
-    const flareTex = loader.load('https://threejs.org/examples/textures/lensflare/lensflare0.png');
 
-    // 1. THE STELLAR COMPACT CORE (The Star / Black Hole visual)
-    const coreGeo = new THREE.SphereGeometry(config.size * 0.5, 32, 32);
-    const coreMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 1.0 });
+    // ============================================================
+    // 🎨 PURE MATHEMATICAL LENS FLARE GENERATOR (No Image Files Needed!)
+    // ============================================================
+    const canvas = document.createElement('canvas');
+    canvas.width = 128;
+    canvas.height = 128;
+    const ctx = canvas.getContext('2d');
+    
+    // Create a smooth radial gradient fading out to pure transparency at the edges
+    const gradient = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+    gradient.addColorStop(0, 'rgba(255,255,255,1)');     // Blinding hot center
+    gradient.addColorStop(0.2, 'rgba(255,100,0,0.8)');   // Vibrant orange corona
+    gradient.addColorStop(0.5, 'rgba(255,0,0,0.2)');     // Fading red edge
+    gradient.addColorStop(1, 'rgba(0,0,0,0)');           // Pure vacuum alpha cut
+    
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 128, 128);
+
+    // Convert the canvas directly into a hardware-accelerated WebGL texture
+    const dynamicTexture = new THREE.CanvasTexture(canvas);
+
+    // ============================================================
+    // 1. THE CENTRAL STAR MESH
+    // ============================================================
+    const coreGeo = new THREE.SphereGeometry(config.size * 0.5, 16, 16);
+    const coreMat = new THREE.MeshBasicMaterial({ 
+        color: 0xffffff, 
+        transparent: true, 
+        opacity: 1.0 
+    });
     const coreMesh = new THREE.Mesh(coreGeo, coreMat);
     group.add(coreMesh);
 
-    // 2. THE MULTI-FILAMENT SHOCKWAVE SHELL (The Sprite Cloud)
+    // ============================================================
+    // 2. THE HIGH-VISIBILITY GAS FILAMENTS
+    // ============================================================
     const spritesArray = [];
     for (let i = 0; i < config.count; i++) {
         const material = new THREE.SpriteMaterial({
-            map: flareTex,
+            map: dynamicTexture, // Feeds our local canvas texture straight to the GPU
             color: config.colors[Math.floor(Math.random() * config.colors.length)],
             transparent: true,
-            opacity: 0.0, // Starts invisible, births dynamically during explosion
+            opacity: 0.0, 
             blending: THREE.AdditiveBlending 
         });
 
         const sprite = new THREE.Sprite(material);
         
-        // Sphere surface distribution vectors
+        // Calculate outer sphere coordinate distribution vectors
         const phi = Math.random() * Math.PI * 2;
         const theta = Math.random() * Math.PI;
         
-        // Store vector direction for expansion over time
         const direction = new THREE.Vector3(
             Math.sin(theta) * Math.cos(phi),
             Math.sin(theta) * Math.sin(phi),
             Math.cos(theta)
         );
 
-        sprite.scale.set(config.size * 3, config.size * 3, 1);
+        sprite.scale.set(config.size * 4, config.size * 4, 1);
         
-        // Custom physics variables for the state engine
         sprite.userData = {
             direction: direction,
             baseSpread: config.spread,
-            randomFactor: 0.8 + Math.random() * 0.4,
-            speed: 0.005 + Math.random() * 0.01
+            randomFactor: 0.8 + Math.random() * 0.4
         };
 
         group.add(sprite);
         spritesArray.push(sprite);
     }
 
-    // 3. THE DISTANT BEACON (Dynamic illumination controller)
-    const coreLight = new THREE.PointLight(0xffffff, 2, config.spread * 15);
-    group.add(coreLight);
-
-    // Position and initialize state tracking parameters
+    // ============================================================
+    // 3. ENGINE ANCHORING & LIFECYCLE STATE VARIABLES
+    // ============================================================
     group.position.set(config.x, config.y, config.z);
     
     group.userData = { 
         type: 'supernova', 
         name: config.name,
-        // TIMELINE VARIABLES
-        age: 0.0,             // Progresses from 0.0 upwards
-        state: 'MAIN_SEQUENCE' // States: MAIN_SEQUENCE -> DETONATION -> SHOCKWAVE -> COLLAPSE -> SINGULARITY
+        age: 0.0,
+        state: 'MAIN_SEQUENCE'
     };
 
-    /**
-     * 🔄 THE REAL-TIME STATE MACHINE LOOP
-     * Hook this method directly into your main requestAnimationFrame update cycle
-     */
+    // The real-time frame engine updater
     group.onUpdate = () => {
-        // Increment global time factor
-        group.userData.age += 0.005; 
+        group.userData.age += 0.01; // Advance timeline ticker
         const age = group.userData.age;
 
-        // ============================================================
-        // STATE 1: MAIN SEQUENCE STAR (Age: 0.0 to 2.0)
-        // Normal glowing star, shell is hidden, core is standard size
-        // ============================================================
+        // --- STATE 1: ALIVE STAR ---
         if (age < 2.0) {
-            group.userData.state = 'MAIN_SEQUENCE';
-            coreMat.color.setHex(0xffaa00); // Yellow/Orange star
-            coreLight.intensity = 5;
-            
-            // Keep sprites nested flat inside the core awaiting blast
+            coreMat.color.setHex(0xffaa00);
             spritesArray.forEach(sprite => {
                 sprite.position.set(0, 0, 0);
                 sprite.material.opacity = 0;
             });
         }
-        // ============================================================
-        // STATE 2: SUPERNOVA DETONATION (Age: 2.0 to 3.0)
-        // Star flashes violently, blinding light, shockwave unleashes
-        // ============================================================
+        // --- STATE 2: BLINDING BLAST DETONATION ---
         else if (age >= 2.0 && age < 3.0) {
-            group.userData.state = 'DETONATION';
-            
-            // Blinding visual flash progression
             coreMat.color.setHex(0xffffff);
-            coreMesh.scale.setScalar(2.5); // Core swells violently
-            coreLight.intensity = 150;     // Pierces across the space grid
-            
-            // Rapidly fade in the cloud sprites
+            coreMesh.scale.setScalar(3.0);
             spritesArray.forEach(sprite => {
-                sprite.material.opacity = 0.4;
+                sprite.material.opacity = 0.6;
             });
         }
-        // ============================================================
-        // STATE 3: EXPANDING SHOCKWAVE NEBULA (Age: 3.0 to 7.0)
-        // Core begins dimming, gas shell blasts outwards to maximum spread
-        // ============================================================
+        // --- STATE 3: EXPANDING PLASMA SHOCKWAVE ---
         else if (age >= 3.0 && age < 7.0) {
-            group.userData.state = 'SHOCKWAVE';
-            
-            // Smooth transition mapping from 0.0 to 1.0 across the lifecycle duration
             const progression = (age - 3.0) / 4.0; 
-            
-            coreLight.intensity = 50 * (1.0 - progression); // Fade down the star flash
-            coreMat.color.setHex(0xff3300); // Fades into an unstable red core remnant
+            coreMat.color.setHex(0xff3300);
+            coreMesh.scale.setScalar(3.0 * (1.0 - progression));
 
-            // Expand each individual filament particle outwards dynamically
             spritesArray.forEach(sprite => {
                 const maxDistance = sprite.userData.baseSpread * sprite.userData.randomFactor;
                 const currentDistance = maxDistance * progression;
                 
                 sprite.position.copy(sprite.userData.direction).multiplyScalar(currentDistance);
-                
-                // Dissolve gas thickness gracefully as it moves farther away
-                sprite.material.opacity = 0.3 * (1.0 - progression);
+                sprite.material.opacity = 0.5 * (1.0 - progression);
             });
         }
-        // ============================================================
-        // STATE 4: GRAVITATIONAL COLLAPSE (Age: 7.0 to 9.0)
-        // The core implodes rapidly, pulling gas components back into center
-        // ============================================================
-        else if (age >= 7.0 && age < 9.0) {
-            group.userData.state = 'COLLAPSE';
-            
-            const collapseFactor = (age - 7.0) / 2.0; // Implosion linear modifier
-            const reverseFactor = 1.0 - collapseFactor;
-
-            coreMesh.scale.setScalar(2.5 * reverseFactor); // Core rapidly shrinks to zero
-            coreMat.color.setHex(0x330099); // Shifts to ultra-hot violet before vanishing
-            coreLight.intensity = 10 * reverseFactor;
-
-            // Pull leftover particles back to central zero point rapidly
-            spritesArray.forEach(sprite => {
-                const currentPos = sprite.position.clone();
-                sprite.position.copy(currentPos.multiplyScalar(reverseFactor));
-                sprite.material.opacity = 0.05 * reverseFactor;
-            });
-        }
-        // ============================================================
-        // STATE 5: CLASS-G SINGULARITY BLACK HOLE (Age: 9.0+)
-        // Star is completely dead. Replaced by a pitch black event horizon
-        // ============================================================
+        // --- STATE 4: DEAD HOLE SINGULARITY ---
         else {
             group.userData.state = 'SINGULARITY';
+            coreMesh.scale.setScalar(1.0);
+            coreMat.color.setHex(0x000000); // Pure dark void core
             
-            coreMesh.scale.setScalar(1.2); 
-            coreMat.color.setHex(0x000000); // 🕳️ PURE BLACK HOLE EXTINCTION
-            coreMat.opacity = 1.0;
-            
-            coreLight.intensity = 0; // Black holes emit zero visible light channels
-
-            // Repurpose some sprites to look like a subtle, spinning purple accretion disk
             spritesArray.forEach((sprite, idx) => {
-                sprite.material.color.setHex(0x6600ff); // Gravitational radiation purple
-                sprite.material.opacity = 0.06;
+                sprite.material.color.setHex(0xaa00ff); // Gravitational purple radiation edge
+                sprite.material.opacity = 0.15;
                 
-                // Arrange flat into an orbiting disk ring layout structure around center
-                const ringRadius = (config.size * 2) + (idx * 5);
-                const speed = 0.05;
-                const angle = (idx * 0.1) + (performance.now() * 0.002);
-                
+                // Spin into a flat disk structure around the event horizon
+                const ringRadius = (config.size * 1.5) + (idx * 8);
+                const angle = (idx * 0.15) + (performance.now() * 0.003);
                 sprite.position.set(Math.cos(angle) * ringRadius, 0, Math.sin(angle) * ringRadius);
-                sprite.scale.set(config.size, config.size, 1);
+                sprite.scale.set(config.size * 2, config.size * 2, 1);
             });
         }
     };
 
-    console.log(`🚀 [Dynamic State System] ${config.name} initialized active.`);
     scene.add(group);
     return group;
 }
