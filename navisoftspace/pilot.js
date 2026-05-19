@@ -80,7 +80,7 @@ const handleTouch = (e) => {
         if (['a', 'd'].includes(key)) controls.yaw = 0;
         if (['arrowup', 'arrowdown'].includes(e.key.toLowerCase())) controls.pitch = 0;
     });
-    
+}
 export function updateFlight(camera, planets) {
     currentRotation.y += controls.yaw;
     currentRotation.x += controls.pitch;
