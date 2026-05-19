@@ -319,7 +319,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V1905262253</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-V1905262351</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -333,6 +333,7 @@
         "pilot": "https://cdn.jsdelivr.net/gh/dganigame-coder/space@25daaf/navisoftspace/pilot.js",
         "save": "https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/save.js",
         "stars":"https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/stars.js",
+        "universe":"https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/universe.js",
         "mars":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@9e33d64/navisoftspace/planets/mars.js",
         "jupiter":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@e7735dd/navisoftspace/planets/jupiter.js",
         "earth": "https://cdn.jsdelivr.net/gh/dganigame-coder/space@b148479/navisoftspace/planets/earth.js",
@@ -369,6 +370,7 @@
     import { createBlackHole } from 'blackhole';
     import { createWormhole, updateWormhole } from 'wormhole';
     import { createStars } from 'stars';
+    import { UniverseGenerator } from 'universe';
     import { createVoyager } from 'voyager';
     import { createHeliopause } from 'heliopause';
     import { createExoplanetSystem } from 'exoplanet';
@@ -408,14 +410,15 @@
         const uranus = createUranus();
         const neptune = createNeptune();
         const pluto = createPluto();
-         const starfield = createStars();
+        const starfield = createStars();       
 
 
         // 1. Kick off the Engine loading immediately in the background
         // This ensures the 3D scene is prepping while the user looks at the overlay
         // 1. Ensure 3D is ready
        const engine = await enginePromise;
-
+        const universe = new UniverseGenerator(engine.scene);
+        const cosmic = universe.cosmicBodies;
         overlay.addEventListener('pointerdown', async () => {
             // 1. IMMEDIATE VISUAL FEEDBACK
             // Make the overlay non-interactive and invisible immediately
@@ -441,53 +444,7 @@
                 console.warn("Boot failed, but forcing overlay hide.", e);
             }
         }, { once: true });        
- /*
-    
-    overlay.addEventListener('pointerdown', async () => {
-           
-            // 2. Activate Audio via engine.js
-            await bootSystems(); 
-            
-            // 3. Start your animation/gameplay
-            // startLoop(engine); 
-            
-            overlay.style.display = 'none';
-        }, { once: true });
-*/
-        // After you initialize the engine and planets
-        //const asteroidBelt = createAsteroidBelt(engine.scene);
-/*
-        // 1. The Main Belt
-        const mainBelt = createBelt(engine.scene, {
-            count: 3000, 
-            innerRadius: 15000, 
-            outerRadius: 30000, 
-            verticalScatter: 1000, 
-            color: 0x888888, 
-            size: {min: 15, max: 60} // Bumped size slightly for better mobile visibility
-        });
-        
-        // 2. The Kuiper Belt
-        const kuiperBelt = createBelt(engine.scene, {
-            count: 8000, 
-            innerRadius: 2000000, 
-            outerRadius: 3500000, 
-            verticalScatter: 200000, 
-            color: 0xadd8e6, 
-            size: {min: 1200, max: 4500} 
-        });
-        
-        
-        // 3. The Oort Cloud 
-        const oortCloud = createBelt(engine.scene, {
-            count: 20000, // Increased count slightly
-            innerRadius: 60000000, 
-            outerRadius: 80000000, 
-            verticalScatter: 2000000, // Narrowed scatter to increase "encounter" probability
-            color: 0xffffff, // Pure white for maximum "glint"
-            size: {min: 12000, max: 35000} // Massive objects to ensure they don't vanish
-        });
-*/
+
         // 1. The Main Belt (Rocky/Inner System)
         const mainBelt = createBelt(engine.scene, {
             count: 3000, 
@@ -608,46 +565,46 @@
         
           // Add the background
       
-       engine.scene.add(starfield); 
-
-        console.log("Audio systems initialized via User Gesture.");
-        // --- 2. ADD EVERYTHING TO THE SCENE ---
-        engine.scene.add(sun, mercury, venus, earth, moon, mars, jupiter, saturn, titan, uranus, neptune, pluto);
-        
-        // --- 3. ADD EVERYTHING TO THE COLLISION ARRAY ---
-        // This is what allows you to land on them and see their HUD data
-        const bodies = [sun, mercury, venus, earth, moon, mars, jupiter, saturn, titan, uranus, neptune , pluto];
-        const horizonObj = [blackHole,wormhole,mainBelt,kuiperBelt,oortCloud,orionNebula, remnant, andromeda,supernova];
-        bodies.push(...horizonObj);
-
-        // --- ADD THE HUD CLICK LOGIC HERE ---
-        const nearestLabel = document.getElementById('nearest-display');
-        nearestLabel.style.cursor = "pointer";
-
-        nearestLabel.addEventListener('click', () => {
-        let closest = null;
-        let minDist = Infinity;
+           engine.scene.add(starfield); 
     
-       bodies.forEach(b => {
-        const d = engine.camera.position.distanceTo(b.position);
-        if (d < minDist) { 
-            minDist = d; 
-            closest = b; 
+            console.log("Audio systems initialized via User Gesture.");
+            // --- 2. ADD EVERYTHING TO THE SCENE ---
+            engine.scene.add(sun, mercury, venus, earth, moon, mars, jupiter, saturn, titan, uranus, neptune, pluto);
+            
+            // --- 3. ADD EVERYTHING TO THE COLLISION ARRAY ---
+            // This is what allows you to land on them and see their HUD data
+            const bodies = [sun, mercury, venus, earth, moon, mars, jupiter, saturn, titan, uranus, neptune , pluto];
+            const horizonObj = [blackHole,wormhole,mainBelt,kuiperBelt,oortCloud,orionNebula, remnant, andromeda,supernova,cosmic;];
+            bodies.push(...horizonObj);
+    
+            // --- ADD THE HUD CLICK LOGIC HERE ---
+            const nearestLabel = document.getElementById('nearest-display');
+            nearestLabel.style.cursor = "pointer";
+    
+            nearestLabel.addEventListener('click', () => {
+            let closest = null;
+            let minDist = Infinity;
+        
+           bodies.forEach(b => {
+            const d = engine.camera.position.distanceTo(b.position);
+            if (d < minDist) { 
+                minDist = d; 
+                closest = b; 
+            }
+           });
+    
+           if (closest) {
+            // Point the ship directly at the nearest planet
+            engine.camera.lookAt(closest.position);
+            
+            // Peer Tip: If you want to stop the ship so you don't fly past it:
+            // velocity.set(0,0,0); 
+            
+            console.log("Locked on to " + closest.userData.name);
         }
-       });
-
-       if (closest) {
-        // Point the ship directly at the nearest planet
-        engine.camera.lookAt(closest.position);
-        
-        // Peer Tip: If you want to stop the ship so you don't fly past it:
-        // velocity.set(0,0,0); 
-        
-        console.log("Locked on to " + closest.userData.name);
-    }
-    });
-            // 3. Initialize Control Module
-            initPilot();
+        });
+        // 3. Initialize Control Module
+        initPilot();
 
         // === SETUP AUTOPILOT CONTROLS (ONE TIME ONLY - OUTSIDE FRAME LOOP) ===
         const apBtn = document.getElementById('autopilot-btn');
@@ -947,6 +904,16 @@
         
             // Update the wormhole's pulse and rotation
             updateWormhole(wormhole, time);
+
+            // 1. Tell the universe to check if the pilot entered a new sector chunk
+            universe.update(engine.camera.position);
+        
+            // 2. Process your newly generated physics list dynamically
+            checkCollisions(cosmic); 
+            
+            // 3. Render next frame
+            updateFlight(camera, cosmic);
+            
 
             // 9. RENDER
             engine.renderer.render(engine.scene, engine.camera);
