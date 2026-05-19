@@ -9,7 +9,10 @@ export function initPilot() {
     const knobL = document.getElementById('knob-l');
     const knobR = document.getElementById('knob-r');
 
-    const handleTouch = (e) => {
+const handleTouch = (e) => {
+        // 👇 ADD THIS CHECK TO THE TOP OF HANDLETOUCH
+        if (window.blockShipControls) return;
+
         e.preventDefault(); 
         for (let touch of e.touches) {
             if (touch.clientX < window.innerWidth / 2) {
@@ -20,7 +23,6 @@ export function initPilot() {
                 if(knobL) knobL.style.transform = `translate(${controls.yaw * 500}%, ${controls.pitch * 500}%)`;
             } else {
                 const centerY = window.innerHeight - 100;
-                // INCREASED MOBILE THRUST: Multiplied by 0.5 instead of 0.08
                 controls.thrust = (centerY - touch.clientY) * 0.5;
                 if(knobR) knobR.style.transform = `translateY(${-controls.thrust * 0.5}px)`;
             }
@@ -29,7 +31,11 @@ export function initPilot() {
 
     window.addEventListener('touchstart', handleTouch, { passive: false });
     window.addEventListener('touchmove', handleTouch, { passive: false });
+    
     window.addEventListener('touchend', () => {
+        // 👇 ADD THIS TO THE TOP OF TOUCHEND
+        if (window.blockShipControls) return;
+
         controls.yaw = 0; controls.pitch = 0; controls.thrust = 0;
         if(knobL) knobL.style.transform = `translate(0, 0)`;
         if(knobR) knobR.style.transform = `translate(0, 0)`;
