@@ -319,7 +319,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V2005260006</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-V2005260008</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -576,7 +576,7 @@
             const bodies = [sun, mercury, venus, earth, moon, mars, jupiter, saturn, titan, uranus, neptune , pluto];
             const horizonObj = [blackHole,wormhole,mainBelt,kuiperBelt,oortCloud,orionNebula, remnant, andromeda,supernova];
             bodies.push(...horizonObj);
-            if(cosmic.length() > 0)
+            if(cosmic.length > 0)
                 bodies.push(...cosmic);
     
             // --- ADD THE HUD CLICK LOGIC HERE ---
