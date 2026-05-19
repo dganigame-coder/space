@@ -22,23 +22,23 @@ export class UniverseGenerator {
     }
 
     generateSector(sX, sZ) {
+        // 👇 PROTECTION GATE: If the pilot is in or right next to Sector 0,0, 
+        // abort the random generator to save your handcrafted home planets!
+        if (Math.abs(sX) <= 1 && Math.abs(sZ) <= 1) {
+            return; 
+        }
+
         const originX = sX * this.sectorSize;
         const originZ = sZ * this.sectorSize;
-
-        // Roll a random dice to see what populates this sector
         const sectorRoll = Math.random();
 
         if (sectorRoll < 0.4) {
-            // 🌟 40% Chance: A Unique Solar System (Single, Binary, or Trinary)
             this.spawnSolarSystem(originX, originZ);
         } else if (sectorRoll < 0.65) {
-            // 🌌 25% Chance: Deep Space Nebula Cluster
             this.spawnNebulaCluster(originX, originZ);
         } else if (sectorRoll < 0.85) {
-            // 💥 20% Chance: Cosmic Graveyard (Black Holes / Supernovas)
             this.spawnCosmicAnomaly(originX, originZ);
         }
-        // 15% Chance: Empty Deep Space Void
     }
 
     // --- SYSTEM GENERATORS ---
