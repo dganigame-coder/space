@@ -48,23 +48,39 @@ const handleTouch = (e) => {
         // CHECK FOR WARP DRIVE
         if (e.shiftKey) isWarping = true;
 
-        if (key === 'w') controls.thrust = 50.0; // Increased from 5.0
-        if (key === 's') controls.thrust = -20.0; // Increased from -2.0
+        // 👇 ACCUMULATOR: Holds down 'W' to ramp up thrust instead of keeping it flat
+        if (key === 'w') {
+            controls.thrust = Math.min(controls.thrust + 5.0, 150.0); // Smoothly scales up to a max of 150
+        }
+        if (key === 's') {
+            controls.thrust = Math.max(controls.thrust - 4.0, -50.0); // Smooth braking/reverse
+        }
+        
         if (key === 'a') controls.yaw = 0.02;
         if (key === 'd') controls.yaw = -0.02;
         if (e.key === 'ArrowUp') controls.pitch = 0.02;
         if (e.key === 'ArrowDown') controls.pitch = -0.02;
+
+        // 👇 SPACEBAR NITRO: Injects a heavy acceleration spike while held
+        if (e.key === ' ' || key === 'spacebar') {
+            e.preventDefault(); // Keeps the web browser window from scrolling down
+            controls.thrust = Math.min(controls.thrust + 25.0, 250.0); // Aggressive jump up to 250 max
+        }
     });
 
     window.addEventListener('keyup', (e) => {
         const key = e.key.toLowerCase();
         if (key === 'shift') isWarping = false;
-        if (['w', 's'].includes(key)) controls.thrust = 0;
+        
+        // 👇 UPDATED: Drop thrust safely back to 0 when engine inputs are released
+        if (['w', 's', ' '].includes(key) || e.key === ' ') {
+            controls.thrust = 0;
+        }
+        
         if (['a', 'd'].includes(key)) controls.yaw = 0;
         if (['arrowup', 'arrowdown'].includes(e.key.toLowerCase())) controls.pitch = 0;
     });
-}
-
+    
 export function updateFlight(camera, planets) {
     currentRotation.y += controls.yaw;
     currentRotation.x += controls.pitch;
