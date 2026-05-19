@@ -5,7 +5,6 @@ let gasWind, solarSizzle, beltGranular, anomalyDrone, voidHum;
 let alarmSynth, impactNoise, impactThump;
 
 export async function loadSoundLibrary() {
-    // 3. The "Safe" Tone handle
     const T = Tone.default || Tone;
 
     if (T.getContext().state !== 'running') {
@@ -13,7 +12,6 @@ export async function loadSoundLibrary() {
     }
     
     if (!gasVolume) {
-        // Use T for all constructor calls
         gasVolume = new T.Volume(-40).toDestination();
         gasWind = new T.Noise("brown").connect(gasVolume);
 
@@ -38,7 +36,6 @@ export async function loadSoundLibrary() {
 
     await T.context.resume();
 
-    // 4. Start sound generators
     gasWind.start();
     solarSizzle.start();
     beltGranular.start(); 
@@ -47,14 +44,13 @@ export async function loadSoundLibrary() {
     
     console.log("Audio System State:", T.context.state);
 
-    // 5. Wake up the master output
     gasVolume.volume.setValueAtTime(-60, T.now()); 
     T.Destination.mute = false;
     T.Destination.volume.value = 0;
 }
 
 export function playHighFi(key, intensity = 0.5) {
-    const T = Tone.default || Tone; // Keep T accessible here too
+    const T = Tone.default || Tone; 
     if (!gasVolume || T.context.state !== 'running') return;
 
     const now = T.now();
@@ -80,8 +76,16 @@ export function playHighFi(key, intensity = 0.5) {
             alarmSynth.triggerAttackRelease(["C5", "E5"], "8n", now);
             break;
         case 'HULL_IMPACT':
+            // 🔊 Audio Synth Triggers
             impactNoise.start(now).stop(now + 0.1);
             impactThump.triggerAttackRelease("G1", "4n", now);
+
+            // 📱 Mobile Vibration Trigger
+            if ('vibrate' in navigator) {
+                // Short, jagged crunching feedback profile (millisecond pulses)
+                const impactLength = Math.floor(Math.random() * 30) + 15;
+                navigator.vibrate([impactLength, 10, Math.floor(Math.random() * 15)]);
+            }
             break;
         case 'SILENCE':
             [gasVolume, beltVolume, anomalyVolume, voidVolume, solarVolume].forEach(v => {
