@@ -910,13 +910,6 @@
             // 1. Tell the universe to check if the pilot entered a new sector chunk
             universe.update(engine.camera.position);
         
-            // 2. Process your newly generated physics list dynamically
-            checkCollisions(cosmic); 
-            
-            // 3. Render next frame
-            updateFlight(camera, cosmic);
-            
-
             // 9. RENDER
             engine.renderer.render(engine.scene, engine.camera);
         }            
