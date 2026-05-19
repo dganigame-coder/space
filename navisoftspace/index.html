@@ -319,7 +319,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V2005260058</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-V2005260112</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -353,7 +353,7 @@
         "heliopause":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@e46bc44/navisoftspace/horizonObjects/heliopause.js",
         "exoplanet":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@01f1f82/navisoftspace/horizonObjects/exoplanet.js",
         "nebula":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@a3ee151/navisoftspace/horizonObjects/nebula.js",
-         "supernova":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@90a8d12/navisoftspace/horizonObjects/supernova.js"
+         "supernova":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@b96201d/navisoftspace/horizonObjects/supernova.js"
 
 
         }
@@ -560,6 +560,25 @@
             colors: [0xff4500, 0x00ffff], // Orange fire vs Cyan shockwave
             name: "Phoenix Remnant"
         });
+
+        // 1. Spawning the code-only target anomaly
+        const dynamicSupernova = createSupernova(engine.scene, {
+            x: 15000, 
+            y: 0, 
+            z: -20000,
+            name: "Stellar Collapse Matrix",
+            size: 400,
+            spread: 6000,
+            count: 80,
+            colors: [0xff3300, 0xffaa00, 0xff00ff]
+        });
+
+// 2. Attach it to your engine updates tracker array so your render loop hits it
+activeObjectsArray.push(mySupernova);
+
+// 3. Teleport your pilot viewpoint to our verified coordinate position
+engine.camera.position.set(15000, 2000, -5000); 
+engine.camera.lookAt(15000, 0, -20000);
         const wormhole = createWormhole(engine.scene, { x: 0, y: 0, z: 450000000 });
         
         
@@ -574,7 +593,7 @@
             // --- 3. ADD EVERYTHING TO THE COLLISION ARRAY ---
             // This is what allows you to land on them and see their HUD data
             const bodies = [sun, mercury, venus, earth, moon, mars, jupiter, saturn, titan, uranus, neptune , pluto];
-            const horizonObj = [blackHole,wormhole,mainBelt,kuiperBelt,oortCloud,orionNebula, remnant, andromeda,supernova];
+            const horizonObj = [blackHole,wormhole,mainBelt,kuiperBelt,oortCloud,orionNebula, remnant, andromeda,supernova,dynamicSupernova];
             bodies.push(...horizonObj);
             //if(cosmic.length > 0)
            //     bodies.push(...cosmic);
