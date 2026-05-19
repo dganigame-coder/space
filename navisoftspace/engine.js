@@ -161,23 +161,35 @@ export function checkCollisions(camera, bodies, scene) {
                 });
             }
 
-        // --- 1. BELT LOGIC (The Donut) ---
-        if (type === 'asteroid_belt') {
-            const innerRadius = spaceObject.userData.innerRadius;
-            const outerRadius = spaceObject.userData.outerRadius;
-            const distFromCenter = camera.position.length(); // Your 3,271,064 value
-    
-            if (distFromCenter >= innerRadius && distFromCenter <= outerRadius) {
-                inAmbientZone = true;
-                
-                // Calculate volume based on how deep you are in the ring
-                const mid = (innerRadius + outerRadius) / 2;
-                const halfWidth = (outerRadius - innerRadius) / 2;
-                const penetration = 1 - (Math.abs(distFromCenter - mid) / halfWidth);
-    
-                playHighFi('ASTEROID_BELT', penetration);
+            // --- 1. BELT LOGIC (The Donut) ---
+            if (type === 'asteroid_belt') {
+                const innerRadius = spaceObject.userData.innerRadius;
+                const outerRadius = spaceObject.userData.outerRadius;
+                const distFromCenter = camera.position.length(); // Your 3,271,064 value
+            
+                if (distFromCenter >= innerRadius && distFromCenter <= outerRadius) {
+                    inAmbientZone = true;
+                    
+                    // Calculate volume based on how deep you are in the ring
+                    const mid = (innerRadius + outerRadius) / 2;
+                    const halfWidth = (outerRadius - innerRadius) / 2;
+                    const penetration = 1 - (Math.abs(distFromCenter - mid) / halfWidth);
+            
+                    playHighFi('ASTEROID_BELT', penetration);
+            
+                    // 👇 NEW: HULL IMPACT & VIBRATION LOGIC
+                    // Only hit rocks if the ship has velocity (moving)
+                    if (engine.velocity && engine.velocity > 0) {
+                        // Chance increases the deeper you go into the belt (max 8% chance per frame at dead center)
+                        const crunchChance = 0.08 * penetration; 
+                        
+                        if (Math.random() < crunchChance) {
+                            // This triggers the audio synth AND your new mobile haptics together!
+                            playHighFi('HULL_IMPACT', penetration); 
+                        }
+                    }
+                }
             }
-        }
         if (dist < radius) { 
             const penetration = Math.max(0, (radius - dist) / radius);
             inAmbientZone = true;
