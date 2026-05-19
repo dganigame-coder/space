@@ -76,15 +76,20 @@ export function playHighFi(key, intensity = 0.5) {
             alarmSynth.triggerAttackRelease(["C5", "E5"], "8n", now);
             break;
         case 'HULL_IMPACT':
-            // 🔊 Audio Synth Triggers
-            impactNoise.start(now).stop(now + 0.1);
-            impactThump.triggerAttackRelease("G1", "4n", now);
+            // Plain audio crash sound for crashing into planets (NO VIBRATION)
+            try {
+                impactThump.triggerAttackRelease("G1", "4n", now, intensity);
+            } catch (e) { console.warn(e); }
+            break;
+        case 'BELT_ROCK':
+            // 👇 EXCLUSIVE TO ASTEROID BELT: Plays a lighter gravel sound + physical vibration
+            try {
+                impactThump.triggerAttackRelease("A1", "8n", now, intensity * 0.5);
+            } catch (e) { console.warn(e); }
 
-            // 📱 Mobile Vibration Trigger
-            if ('vibrate' in navigator) {
-                // Short, jagged crunching feedback profile (millisecond pulses)
-                const impactLength = Math.floor(Math.random() * 30) + 15;
-                navigator.vibrate([impactLength, 10, Math.floor(Math.random() * 15)]);
+            if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                const vibrationDuration = Math.floor(Math.random() * 25) + 15; 
+                navigator.vibrate(vibrationDuration);
             }
             break;
         case 'SILENCE':
