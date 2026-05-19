@@ -285,45 +285,41 @@ export function checkCollisions(camera, bodies, scene) {
             });
         }
 
-        // --- 2. UNIQUE GEOMETRY LOGIC (The Donut Asteroid Belt) ---
         if (type === 'asteroid_belt') {
-            const innerRadius = spaceObject.userData.innerRadius;
-            const outerRadius = spaceObject.userData.outerRadius;
-            const distFromCenter = camera.position.length(); 
-        
-            if (distFromCenter >= innerRadius && distFromCenter <= outerRadius) {
-                inAmbientZone = true;
+                    const innerRadius = spaceObject.userData.innerRadius;
+                    const outerRadius = spaceObject.userData.outerRadius;
+                    const distFromCenter = camera.position.length(); 
                 
-                // Calculate volume based on how deep you are in the ring
-                const mid = (innerRadius + outerRadius) / 2;
-                const halfWidth = (outerRadius - innerRadius) / 2;
-                const penetration = 1 - (Math.abs(distFromCenter - mid) / halfWidth);
-        
-                playHighFi('ASTEROID_BELT', penetration);
-        
-                // 👇 FIXED CHECK: Removed the 'engine.' prefix to prevent the ReferenceError
-                let currentSpeed = 0;
-                if (typeof velocity !== 'undefined' && velocity) {
-                    currentSpeed = typeof velocity.length === 'function' 
-                        ? velocity.length() 
-                        : velocity;
-                } else if (typeof this !== 'undefined' && this.velocity) { 
-                    // Backup check if your file uses class properties
-                    currentSpeed = typeof this.velocity.length === 'function' 
-                        ? this.velocity.length() 
-                        : this.velocity;
-                }
-        
-                // Only trigger impacts if the ship is actually moving
-                if (currentSpeed > 0) {
-                    const crunchChance = 0.05 * penetration; 
-                    
-                    if (Math.random() < crunchChance) {
-                         playHighFi('BELT_ROCK', penetration); 
+                    if (distFromCenter >= innerRadius && distFromCenter <= outerRadius) {
+                        inAmbientZone = true;
+                        
+                        const mid = (innerRadius + outerRadius) / 2;
+                        const halfWidth = (outerRadius - innerRadius) / 2;
+                        const penetration = 1 - (Math.abs(distFromCenter - mid) / halfWidth);
+                
+                        playHighFi('ASTEROID_BELT', penetration);
+                
+                        // 👇 READ VELOCITY LENGTH FROM THE PILOT MODULE IMPORT DIRECTLY
+                        let currentSpeed = 0;
+                        if (typeof velocity !== 'undefined' && velocity) {
+                            currentSpeed = velocity.length();
+                        }
+                
+                        if (currentSpeed > 0) {
+                            const currentTime = performance.now();
+                            
+                            // Create a global window variable for the impact timer to bypass scope blocks
+                            if (typeof window.lastImpactTime === 'undefined') window.lastImpactTime = 0;
+                            
+                            if (currentTime - window.lastImpactTime > 300) {
+                                if (Math.random() < 0.06 * penetration) {
+                                    playHighFi('BELT_ROCK', penetration); 
+                                    window.lastImpactTime = currentTime;
+                                }
+                            }
+                        }
                     }
                 }
-            }
-        }
 
         // --- 3. STANDARD SPHERICAL PROXIMITY LOGIC ---
         if (dist < radius) { 
