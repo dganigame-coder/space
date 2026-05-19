@@ -416,9 +416,9 @@
         // 1. Kick off the Engine loading immediately in the background
         // This ensures the 3D scene is prepping while the user looks at the overlay
         // 1. Ensure 3D is ready
-       const engine = await enginePromise;
-        const universe = new UniverseGenerator(engine.scene);
-        const cosmic = universe.cosmicBodies;
+        const engine = await enginePromise;
+        //const universe = new UniverseGenerator(engine.scene);
+        //const cosmic = universe.cosmicBodies;
         overlay.addEventListener('pointerdown', async () => {
             // 1. IMMEDIATE VISUAL FEEDBACK
             // Make the overlay non-interactive and invisible immediately
@@ -576,8 +576,8 @@
             const bodies = [sun, mercury, venus, earth, moon, mars, jupiter, saturn, titan, uranus, neptune , pluto];
             const horizonObj = [blackHole,wormhole,mainBelt,kuiperBelt,oortCloud,orionNebula, remnant, andromeda,supernova];
             bodies.push(...horizonObj);
-            if(cosmic.length > 0)
-                bodies.push(...cosmic);
+            //if(cosmic.length > 0)
+           //     bodies.push(...cosmic);
     
             // --- ADD THE HUD CLICK LOGIC HERE ---
             const nearestLabel = document.getElementById('nearest-display');
