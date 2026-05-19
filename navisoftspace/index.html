@@ -319,7 +319,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V2005260112</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-V2005260114</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -573,12 +573,6 @@
             colors: [0xff3300, 0xffaa00, 0xff00ff]
         });
 
-// 2. Attach it to your engine updates tracker array so your render loop hits it
-activeObjectsArray.push(mySupernova);
-
-// 3. Teleport your pilot viewpoint to our verified coordinate position
-engine.camera.position.set(15000, 2000, -5000); 
-engine.camera.lookAt(15000, 0, -20000);
         const wormhole = createWormhole(engine.scene, { x: 0, y: 0, z: 450000000 });
         
         
