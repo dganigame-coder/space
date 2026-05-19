@@ -165,7 +165,7 @@ export function checkCollisions(camera, bodies, scene) {
             if (type === 'asteroid_belt') {
                 const innerRadius = spaceObject.userData.innerRadius;
                 const outerRadius = spaceObject.userData.outerRadius;
-                const distFromCenter = camera.position.length(); // Your 3,271,064 value
+                const distFromCenter = camera.position.length(); 
             
                 if (distFromCenter >= innerRadius && distFromCenter <= outerRadius) {
                     inAmbientZone = true;
@@ -177,14 +177,20 @@ export function checkCollisions(camera, bodies, scene) {
             
                     playHighFi('ASTEROID_BELT', penetration);
             
-                    // 👇 NEW: HULL IMPACT & VIBRATION LOGIC
-                    // Only hit rocks if the ship has velocity (moving)
-                    if (engine.velocity && engine.velocity > 0) {
-                        // Chance increases the deeper you go into the belt (max 8% chance per frame at dead center)
-                        const crunchChance = 0.08 * penetration; 
+                    // 👇 SAFE CHECK: Ensure velocity exists before testing it
+                    let currentSpeed = 0;
+                    if (engine.velocity) {
+                        // If it's a Vector3, get its length. If it's a number, use it directly.
+                        currentSpeed = typeof engine.velocity.length === 'function' 
+                            ? engine.velocity.length() 
+                            : engine.velocity;
+                    }
+            
+                    // Only trigger impacts if the ship is actually moving through the space rocks
+                    if (currentSpeed > 0) {
+                        const crunchChance = 0.05 * penetration; // Kept at a safe 5% max chance per frame
                         
                         if (Math.random() < crunchChance) {
-                            // This triggers the audio synth AND your new mobile haptics together!
                             playHighFi('HULL_IMPACT', penetration); 
                         }
                     }
