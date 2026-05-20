@@ -57,7 +57,7 @@ export function createBlackHole(scene, config) {
     for (let i = 0; i < posAttr.count; i++) {
         v.fromBufferAttribute(posAttr, i);
         // Apply Einsteinian gravitational space bending falloff math curve
-        const radiusFactor = Math.sqrt(v.x * v.x + _v.z * _v.z);
+        const radiusFactor = Math.sqrt(v.x * v.x + v.z * v.z);
         const curve = Math.pow(config.size / radiusFactor, 1.8) * (config.size * 2.5);
         v.y -= curve; 
         posAttr.setXYZ(i, v.x, v.y, v.z);
