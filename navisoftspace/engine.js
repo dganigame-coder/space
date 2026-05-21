@@ -110,278 +110,166 @@ let activeAmbient = false; // Track if we are currently playing ambient noise
 export function checkCollisions(camera, bodies, scene) {
     if (!bodies || !scene || !scene.fog) return; // Safety guard
     
-    let inAmbientZone = false;
-    let maxPenetration = 0; // Track how deep we are for fog
+    // Core tracking accumulators across the current frame execution matrix
+    let globalInAmbientZone = false;
+    let absoluteMaxPenetration = 0; 
 
-    // Add this near your camera update logic
+    // --- 1. LONG RANGE LOGGING SYSTEM ---
     if (!window.lastLogTime) window.lastLogTime = 0;
     const now = Date.now();
     
     if (now - window.lastLogTime > 5000) { // Log every 5 seconds
         bodies.forEach(spaceObject => {
-            if (spaceObject.userData.type === 'nebula' || spaceObject.userData.type === 'supernova') {
+            if (!spaceObject || !spaceObject.userData) return;
+            const t = spaceObject.userData.type;
+            if (t === 'nebula' || t === 'supernova' || t === 'blackhole') {
                 const dist = camera.position.distanceTo(spaceObject.position);
-                
-                console.group(`📡 Long-Range Scanner: ${spaceObject.userData.name}`);
+                console.group(`📡 Long-Range Scanner: ${spaceObject.userData.name || 'Unknown Anomaly'}`);
                 console.log(`Distance: ${Math.round(dist)} units`);
-                console.log(`In Camera View: ${dist < camera.far ? "✅ YES" : "❌ TOO FAR (Clipped)"}`);
+                console.log(`In View Window: ${dist < camera.far ? "✅ YES" : "❌ TOO FAR (Clipped)"}`);
                 console.groupEnd();
             }
         });
         window.lastLogTime = now;
     }
 
-    /*
+    // --- 2. MASTER UNIFIED PROCESSING LOOP ---
     bodies.forEach(spaceObject => {
+        if (!spaceObject || !spaceObject.userData) return;
+
         const dist = camera.position.distanceTo(spaceObject.position);
         const radius = spaceObject.userData.r || 500; 
         const type = spaceObject.userData.type;
 
-            // Handling BOTH Nebulae and Supernovas
-            if (spaceObject.userData.isBreathing) {
-                spaceObject.children.forEach((child, index) => {
-                    
-                    // 1. Animate the Gas Sprites
-                    if (child instanceof THREE.Sprite) {
-                        child.userData.phase += child.userData.speed;
-                        const pulse = Math.sin(child.userData.phase) * 0.05;
-                        child.material.opacity = (child.userData.baseOpacity || 0.1) + pulse;
-                        child.material.rotation += 0.0002; // Churning gas
-                    }
-        
-                    // 2. WOW EFFECT: Pulsing Supernova Light
-                    if (child instanceof THREE.PointLight && spaceObject.userData.type === 'supernova') {
-                        // Creates a "high-energy" flicker effect
-                        const noise = Math.random() * 2; 
-                        child.intensity = 15 + noise; 
-                        
-                        // Make the light "heat up" and "cool down"
-                        const heat = Math.sin(Date.now() * 0.001) * 5;
-                        child.intensity += heat;
-                    }
-                });
-            }
-
-            // --- 1. BELT LOGIC (The Donut) ---
-            if (type === 'asteroid_belt') {
-                const innerRadius = spaceObject.userData.innerRadius;
-                const outerRadius = spaceObject.userData.outerRadius;
-                const distFromCenter = camera.position.length(); 
-            
-                if (distFromCenter >= innerRadius && distFromCenter <= outerRadius) {
-                    inAmbientZone = true;
-                    
-                    // Calculate volume based on how deep you are in the ring
-                    const mid = (innerRadius + outerRadius) / 2;
-                    const halfWidth = (outerRadius - innerRadius) / 2;
-                    const penetration = 1 - (Math.abs(distFromCenter - mid) / halfWidth);
-            
-                    playHighFi('ASTEROID_BELT', penetration);
-            
-                    // 👇 SAFE CHECK: Ensure velocity exists before testing it
-                    let currentSpeed = 0;
-                    if (engine.velocity) {
-                        // If it's a Vector3, get its length. If it's a number, use it directly.
-                        currentSpeed = typeof engine.velocity.length === 'function' 
-                            ? engine.velocity.length() 
-                            : engine.velocity;
-                    }
-            
-                    // Only trigger impacts if the ship is actually moving through the space rocks
-                    if (currentSpeed > 0) {
-                        const crunchChance = 0.05 * penetration; // Kept at a safe 5% max chance per frame
-                        
-                        if (Math.random() < crunchChance) {
-                            playHighFi('HULL_IMPACT', penetration); 
-                        }
-                    }
-                }
-            }
-        if (dist < radius) { 
-            const penetration = Math.max(0, (radius - dist) / radius);
-            inAmbientZone = true;
-            // --- 1. GAS GIANTS & STARS (Existing Logic) ---
-            if (type === 'gas') {
-                maxPenetration = Math.max(maxPenetration, penetration);
-                updateRightMonitor(spaceObject);
-                triggerAtmosphereEntry(camera, spaceObject, penetration);
-                playHighFi('GAS_RUSH', penetration); 
-            } 
-            else if (type === 'star') {
-                updateRightMonitor(spaceObject);
-                triggerSolarFlare(camera, spaceObject);
-                playHighFi('SOLAR_STATIC', penetration);
-            } 
-
-            // --- 2. NEW SPECIAL OBJECTS (Integrated) ---
-            else if (type === 'blackhole') {
-                updateRightMonitor(spaceObject);
-                // Heavy gravity pull/distortion
-                playHighFi('VOID_GRAVITY', penetration);
-                // Visual distort: increase contrast as you fall in
-                //document.body.style.filter = `brightness(${1 - penetration}) contrast(${1 + penetration})`;
-            }
-            else if (type === 'wormhole') {
-                //updateRightMonitor(spaceObject);
-                playHighFi('WORMHOLE_PULSE', penetration);
-                // Wobble effect
-                camera.rotation.z += Math.sin(Date.now() * 0.01) * penetration * 0.1;
-            }
-            /*else if (type === 'wormhole') {
-            const penetration = Math.max(0, (radius - dist) / radius);
-            updateRightMonitor(spaceObject);
-            playHighFi('WORMHOLE_PULSE', penetration);
-            // Wobble effect
-            //camera.rotation.z += Math.sin(Date.now() * 0.01) * penetration * 0.1;
-        }*/
-                /*
-            else if (type === 'asteroid_belt') {
-                // No monitor text for general debris, just rumble
-                playHighFi('ASTEROID_BELT', penetration);
-            }
-                
-            // --- 3. SOLID bodies (Hard Crash) ---
-            else if (type === 'solid') {
-                if (!isColliding) {
-                    updateRightMonitor(spaceObject);
-                    triggerImpact(camera);
-                    playHighFi('HULL_IMPACT');
-                    playHighFi('COCKPIT_ALARM');
-                    isColliding = true;
-                    setTimeout(() => isColliding = false, 1000); 
-                }
-            }
-        }
-    });
-
-*/
-
-
-    bodies.forEach(spaceObject => {
-        const dist = camera.position.distanceTo(spaceObject.position);
-        const radius = spaceObject.userData.r || 500; 
-        const type = spaceObject.userData.type;
-
-        // --- 1. VISUAL ANIMATION LOGIC (Nebulae & Supernovas) ---
-        if (spaceObject.userData.isBreathing) {
-            spaceObject.children.forEach((child, index) => {
-                
+        // A. Visual Animation Processing Loops (Nebulae & Supernovas)
+        if (spaceObject.userData.isBreathing && spaceObject.children) {
+            spaceObject.children.forEach((child) => {
                 // Animate the Gas Sprites
                 if (child instanceof THREE.Sprite) {
-                    child.userData.phase += child.userData.speed;
+                    child.userData.phase = (child.userData.phase || 0) + (child.userData.speed || 0.005);
                     const pulse = Math.sin(child.userData.phase) * 0.05;
                     child.material.opacity = (child.userData.baseOpacity || 0.1) + pulse;
-                    child.material.rotation += 0.0002; // Churning gas
+                    child.material.rotation += 0.0002; 
                 }
     
-                // Pulsing Supernova Light
-                if (child instanceof THREE.PointLight && spaceObject.userData.type === 'supernova') {
+                // Pulsing Supernova Light Flicker
+                if (child instanceof THREE.PointLight && type === 'supernova') {
                     const noise = Math.random() * 2; 
-                    child.intensity = 15 + noise; 
-                    
                     const heat = Math.sin(Date.now() * 0.001) * 5;
-                    child.intensity += heat;
+                    child.intensity = 15 + noise + heat; 
                 }
             });
         }
 
+        // B. Anomaly Internal Custom Engine Updates (Ex: Spinning 4K Accretion Disks)
+        if (typeof spaceObject.onUpdate === 'function') {
+            spaceObject.onUpdate();
+        }
+
+        // C. Asteroid Belt Geometric Donut Matrix Math
         if (type === 'asteroid_belt') {
-                    const innerRadius = spaceObject.userData.innerRadius;
-                    const outerRadius = spaceObject.userData.outerRadius;
-                    const distFromCenter = camera.position.length(); 
-                
-                    if (distFromCenter >= innerRadius && distFromCenter <= outerRadius) {
-                        inAmbientZone = true;
-                        
-                        const mid = (innerRadius + outerRadius) / 2;
-                        const halfWidth = (outerRadius - innerRadius) / 2;
-                        const penetration = 1 - (Math.abs(distFromCenter - mid) / halfWidth);
-                
-                        playHighFi('ASTEROID_BELT', penetration);
-                
-                        // 👇 READ VELOCITY LENGTH FROM THE PILOT MODULE IMPORT DIRECTLY
-                        let currentSpeed = 0;
-                        if (typeof velocity !== 'undefined' && velocity) {
-                            currentSpeed = velocity.length();
-                        }
-                
-                        if (currentSpeed > 0) {
-                            const currentTime = performance.now();
-                            
-                            // Create a global window variable for the impact timer to bypass scope blocks
-                            if (typeof window.lastImpactTime === 'undefined') window.lastImpactTime = 0;
-                            
-                            if (currentTime - window.lastImpactTime > 300) {
-                                if (Math.random() < 0.06 * penetration) {
-                                    playHighFi('BELT_ROCK', penetration); 
-                                    window.lastImpactTime = currentTime;
-                                }
-                            }
+            const innerRadius = spaceObject.userData.innerRadius || 0;
+            const outerRadius = spaceObject.userData.outerRadius || 0;
+            const distFromCenter = camera.position.length(); 
+        
+            if (distFromCenter >= innerRadius && distFromCenter <= outerRadius) {
+                globalInAmbientZone = true;
+            
+                const mid = (innerRadius + outerRadius) / 2;
+                const halfWidth = (outerRadius - innerRadius) / 2;
+                const penetration = 1 - (Math.abs(distFromCenter - mid) / halfWidth);
+                const safePenetration = Math.max(0, Math.min(1, penetration)); // Clamp 0-1
+        
+                playHighFi('ASTEROID_BELT', safePenetration);
+        
+                let currentSpeed = 0;
+                // Safe Engine Variable Tracking Accessor
+                if (typeof engine !== 'undefined' && engine.velocity) {
+                    currentSpeed = typeof engine.velocity.length === 'function' 
+                        ? engine.velocity.length() 
+                        : engine.velocity;
+                } else if (typeof velocity !== 'undefined' && velocity) {
+                    currentSpeed = typeof velocity.length === 'function' ? velocity.length() : velocity;
+                }
+        
+                if (currentSpeed > 0) {
+                    const currentTime = performance.now();
+                    if (typeof window.lastImpactTime === 'undefined') window.lastImpactTime = 0;
+                    
+                    if (currentTime - window.lastImpactTime > 300) {
+                        if (Math.random() < 0.06 * safePenetration) {
+                            playHighFi('BELT_ROCK', safePenetration); 
+                            window.lastImpactTime = currentTime;
                         }
                     }
                 }
+            }
+        }
 
-        // --- 3. STANDARD SPHERICAL PROXIMITY LOGIC ---
+        // D. Spherical Spatial Boundary Trigger Matrix
         if (dist < radius) { 
             const penetration = Math.max(0, (radius - dist) / radius);
-            inAmbientZone = true;
+            globalInAmbientZone = true;
 
-            // Gas Giants & Atmospheric entry
+            // Gas Giants Environmental Entry Tracking
             if (type === 'gas') {
-                maxPenetration = Math.max(maxPenetration, penetration);
+                absoluteMaxPenetration = Math.max(absoluteMaxPenetration, penetration);
                 updateRightMonitor(spaceObject);
                 triggerAtmosphereEntry(camera, spaceObject, penetration);
                 playHighFi('GAS_RUSH', penetration); 
             } 
-            // Radiant Stars
+            // Radiant Energy Stars
             else if (type === 'star') {
                 updateRightMonitor(spaceObject);
                 triggerSolarFlare(camera, spaceObject);
                 playHighFi('SOLAR_STATIC', penetration);
             } 
-            // Singularity Objects
+            // Gravitational Singularities (Black Holes)
             else if (type === 'blackhole') {
                 updateRightMonitor(spaceObject);
                 playHighFi('VOID_GRAVITY', penetration);
             }
-            // Hyperspace Wormholes
+            // Spatial Rifts / Wormholes
             else if (type === 'wormhole') {
+                updateRightMonitor(spaceObject);
                 playHighFi('WORMHOLE_PULSE', penetration);
                 camera.rotation.z += Math.sin(Date.now() * 0.01) * penetration * 0.1;
             }
-            // Rigid Bodies (Hard Collisions)
+            // Rigid Mesh Collisions (Asteroids / Planets Surfaces)
             else if (type === 'solid') {
-                if (!isColliding) {
+                if (typeof window.isColliding === 'undefined') window.isColliding = false;
+                if (!window.isColliding) {
                     updateRightMonitor(spaceObject);
                     triggerImpact(camera);
                     playHighFi('HULL_IMPACT');
                     playHighFi('COCKPIT_ALARM');
-                    isColliding = true;
-                    setTimeout(() => isColliding = false, 1000); 
+                    window.isColliding = true;
+                    setTimeout(() => window.isColliding = false, 1000); 
                 }
             }
         }
     });
-    // --- FOG / CLOUD LOGIC ---
-    if (inAmbientZone && maxPenetration > 0.05) {
-        // As you go deeper, the fog distance gets shorter (thicker clouds)
-        scene.fog.color.setHex(0x332211); // Dusty Saturn brown
+
+    // --- 3. VOLUMETRIC SPACE FOG PIPELINE CONTROLLER ---
+    if (globalInAmbientZone && absoluteMaxPenetration > 0.05) {
+        scene.fog.color.setHex(0x332211); // Dense Jovian/Saturnian dusty cloud hue
         scene.fog.near = 10;
-        scene.fog.far = 10000 - (maxPenetration * 9500); 
+        scene.fog.far = 10000 - (absoluteMaxPenetration * 9500); 
     } else {
-        scene.fog.far = 10000000; // Reset to clear space
+        scene.fog.far = 10000000; // Instantly restore deep clear vacuum range
     }
-    // --- 4. AMBIENT RESET ---
-    // If we aren't near any gas/stars, fade the sounds to -Infinity
-    if (!inAmbientZone && activeAmbient) {
+
+    // --- 4. HIGH-FI AUDIO CYCLE GARBAGE COLLECTION ---
+    if (!globalInAmbientZone) {
         playHighFi('GAS_RUSH', 0);
         playHighFi('SOLAR_STATIC', 0);
-        activeAmbient = false;
-    } else if (inAmbientZone) {
-        activeAmbient = true;
+        playHighFi('VOID_GRAVITY', 0);
+        playHighFi('WORMHOLE_PULSE', 0);
+        if (typeof activeAmbient !== 'undefined') activeAmbient = false;
+    } else {
+        if (typeof activeAmbient !== 'undefined') activeAmbient = true;
     }
 }
-
 // --- BEHAVIOR DEFINITIONS ---
 
 function triggerAtmosphereEntry(camera, spaceObject, penetration) {
