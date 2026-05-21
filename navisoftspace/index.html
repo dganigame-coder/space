@@ -319,7 +319,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V2105260117</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-V2105262202</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -567,12 +567,14 @@
         // 💥 THE RANDOM FIELD EVENTS (Supernovas anywhere in space)
         // ============================================================
         // Event A: Happening close by in your local sector
+        /*
         const localExplosion = createSupernova(engine.scene, {
             x: 15000, y: 0, z: -20000,
             name: "Stellar Collapse Matrix",
             size: 400, spread: 6000, count: 80,
             colors: [0xff3300, 0xffaa00]
         });
+        */
         // Leave age at 0.0 so the player can watch it actually detonate!
         
         // Event B: A rare hypergiant dying out in deep interstellar space
@@ -599,12 +601,9 @@
             const bodies = [sun, mercury, venus, earth, moon, mars, jupiter, saturn, titan, uranus, neptune , pluto];
             const horizonObj = [mainBelt,kuiperBelt,oortCloud,orionNebula, remnant, andromeda];
             const spaceholes = [blackHole,wormhole]
-            const supernovas = [
-                galaxyCenter,
-                //localExplosion,
-                deepSpaceExplosion]
+            const supernovas = [galaxyCenter,deepSpaceExplosion]
             bodies.push(...horizonObj);
-            bodies.push(...spaceholes);
+            //bodies.push(...spaceholes);
             //bodies.push(...supernovas);
             //if(cosmic.length > 0)
            //     bodies.push(...cosmic);
