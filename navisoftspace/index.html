@@ -319,7 +319,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V2205260000</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-V2205260018</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -550,31 +550,37 @@
             sound: 'DEEP_SPACE_STATIC'
         });
 
-        /*
-        // The "Phoenix Remnant" - A massive, violent explosion
-        const supernova = createSupernova(engine.scene, {
+        // ============================================================================
+        // ☄️ EXTRA GALACTIC DEEP-SPACE REMNANTS
+        // ============================================================================
+        
+        // 1. The Phoenix Filament Field (Massive shockwave boundary)
+        const phoenixRemnant = createSupernova(engine.scene, {
             x: -80000000, 
             y: 30000000, 
-            z: -150000000, // Very deep space
-            count: 800,    // Higher count for "filaments"
+            z: -150000000, // Deep intergalactic space
+            count: 800,    
             spread: 10000000, 
             size: 2000000,   
             colors: [0xff4500, 0x00ffff], // Orange fire vs Cyan shockwave
-            name: "Phoenix Remnant"
+            name: "SNR G106.3+2.7 / The Phoenix Shroud"
         });
-
-        // 1. Spawning the code-only target anomaly
-        const dynamicSupernova = createSupernova(engine.scene, {
-            x: 15000, 
-            y: 0, 
-            z: -20000,
-            name: "Stellar Collapse Matrix",
-            size: 400,
-            spread: 6000,
-            count: 80,
-            colors: [0xff3300, 0xffaa00, 0xff00ff]
+        
+        // 2. The Rescaled Stellar Collapse Matrix (Now safely out in deep space)
+        const matrixCollapse = createSupernova(engine.scene, {
+            // 🌌 Pushed far out past your solar system plane!
+            x: 95000000,  
+            y: -20000000, 
+            z: -110000000, 
+            
+            // 🌟 Boosted scales so it holds up visually in deep space
+            size: 900000,       // Boosted from 400
+            spread: 3000000,    // Boosted from 6,000
+            count: 500,         // Boosted from 80 for dense, beautiful matrix clouds
+            
+            colors: [0xff3300, 0xffaa00, 0xff00ff], // Hot plasma matrix spectrum
+            name: "Henize 2-428 / Toroidal Core Collapse"
         });
-        */
         // ============================================================================
         // 🌌 THE ANOMALOUS DEEP-SPACE CATALOGUE (Hyper-Realistic Configuration Matrix)
         // ============================================================================
@@ -647,7 +653,7 @@
             const horizonObj = [mainBelt,kuiperBelt,oortCloud,orionNebula, remnant, andromeda
                                 //,supernova,dynamicSupernova
                                ];
-            const supernovas = [ngc6302Remnant ,messier16Nursery,  psrB1509Core ,ic434Grave];
+            const supernovas = [ngc6302Remnant ,messier16Nursery,  psrB1509Core ,ic434Grave,matrixCollapse,phoenixRemnant];
             const spaceholes=[blackHole,wormhole];
             bodies.push(...horizonObj);
             bodies.push(...spaceholes);
