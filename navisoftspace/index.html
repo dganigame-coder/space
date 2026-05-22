@@ -693,16 +693,19 @@
         const systemA = createDetailedSystem(engine.scene, {
             x: alphaCentauriX,
             y: 0,
-            z: alphaCentauriZ
-        });
+            z: alphaCentauriZ,
+            name:"Alpha Centauri A"
+        } );
         
         // 🪐 2. ALPHA CENTAURI B (Using your 4K Detailed Exoplanet file)
         // Shifted by +800,000 units so it doesn't collide with System A.
         const systemB = createDetailedSystem(engine.scene, {
             x: alphaCentauriX + 800000,
             y: 0,
-            z: alphaCentauriZ + 800000
-        });
+            z: alphaCentauriZ + 800000,
+            name:"Alpha Centauri B
+        }
+         );
         
         // 🔴 3. PROXIMA CENTAURI (Using your Lightweight file)
         // Pushed much further out to match deep interstellar space.
@@ -710,7 +713,8 @@
         const proximaPosition = {
             x: alphaCentauriX + 5000000,
             y: 0,
-            z: alphaCentauriZ + 5000000
+            z: alphaCentauriZ + 5000000,
+            name:"Proxima Centauri"
         };
         const proximaSystem = createLightweightSystem(engine.scene, proximaPosition);
         
