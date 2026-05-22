@@ -1,10 +1,6 @@
 import * as Tone from 'tone';
 
 export let gasVolume, voidVolume, beltVolume, solarVolume, anomalyVolume;
-// Change this line:
-let gasWind, solarSizzle, beltGranular, anomalyDrone, voidHum;
-
-// To this (added the 4 hullRain trackers):
 let gasWind, solarSizzle, beltGranular, anomalyDrone, voidHum, hullRainVolume, hullRainFilter, hullRainNoise, hullRainModulator;
 
 export async function loadSoundLibrary() {
