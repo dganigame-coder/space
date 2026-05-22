@@ -319,7 +319,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V2205262211</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-V2205262251</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -352,6 +352,7 @@
         "voyager":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@02ca7eb/navisoftspace/horizonObjects/voyager.js",
         "heliopause":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@e46bc44/navisoftspace/horizonObjects/heliopause.js",
         "exoplanet":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@01f1f82/navisoftspace/horizonObjects/exoplanet.js",
+        "exoplanetsystem":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@01f1f82/navisoftspace/horizonObjects/exoplanetsystem.js",
         "nebula":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@b1685f5/navisoftspace/horizonObjects/nebula.js",
          "supernova":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@b96201d/navisoftspace/horizonObjects/supernova.js"
 
@@ -376,7 +377,8 @@
     import { createExoplanetSystem } from 'exoplanet';
     import {createNebula } from 'nebula';
     import {createSupernova } from 'supernova';
-    
+    import { createExoplanetSystem as createDetailedSystem } from 'exoplanet';
+    import { createExoplanetSystem as createLightweightSystem } from 'exoplanetsystem';
         
     import { createSun } from 'sun';   
     import { createEarth } from 'earth';
@@ -679,6 +681,49 @@
             
             colors: [0x00ffcc, 0xff3300, 0xffff00] // Cyan, Red, and Yellow
         });
+        // ============================================================================
+        // 🌌 NEIGHBOR SYSTEM: ALPHA CENTAURI TRIPLE STAR CLUSTER (ADJUSTED)
+        // ============================================================================        
+        // The Main Core Coordinates
+        const alphaCentauriX = 50000000;
+        const alphaCentauriZ = 50000000;
+        
+        // 🪐 1. ALPHA CENTAURI A (Using your 4K Detailed Exoplanet file)
+        // This will spawn a massive star at the core and its 4K textured planet 30,000 units away.
+        const systemA = createDetailedSystem(engine.scene, {
+            x: alphaCentauriX,
+            y: 0,
+            z: alphaCentauriZ
+        });
+        
+        // 🪐 2. ALPHA CENTAURI B (Using your 4K Detailed Exoplanet file)
+        // Shifted by +800,000 units so it doesn't collide with System A.
+        const systemB = createDetailedSystem(engine.scene, {
+            x: alphaCentauriX + 800000,
+            y: 0,
+            z: alphaCentauriZ + 800000
+        });
+        
+        // 🔴 3. PROXIMA CENTAURI (Using your Lightweight file)
+        // Pushed much further out to match deep interstellar space.
+        // Note: This file takes a flat position object vector instead of a config wrapper.
+        const proximaPosition = {
+            x: alphaCentauriX + 5000000,
+            y: 0,
+            z: alphaCentauriZ + 5000000
+        };
+        const proximaSystem = createLightweightSystem(engine.scene, proximaPosition);
+        
+        // 🪨 4. DEBRIS FIELDS (Keep this if your engine has an asteroid builder script)
+        if (typeof createAsteroidBelt === 'function') {
+            const sharedBelt = createAsteroidBelt(engine.scene, {
+                x: alphaCentauriX,
+                z: alphaCentauriZ,
+                radius: 3000000,
+                count: 1000,
+                name: "Centauri Debris Ring"
+            });
+        }
           
         const wormhole = createWormhole(engine.scene, { x: 0, y: 0, z: 450000000 });
         
@@ -694,7 +739,7 @@
             // --- 3. ADD EVERYTHING TO THE COLLISION ARRAY ---
             // This is what allows you to land on them and see their HUD data
             const bodies = [sun, mercury, venus, earth, moon, mars, jupiter, saturn, titan, uranus, neptune , pluto];
-            const horizonObj = [mainBelt,kuiperBelt,oortCloud,orionNebula, remnant, andromeda,molecularCloud
+            const horizonObj = [mainBelt,kuiperBelt,oortCloud,orionNebula, remnant, andromeda,molecularCloud, systemA,systemB,proximaPosition,proximaSystem,sharedBelt
                                 //,supernova,dynamicSupernova
                                ];
             const supernovas = [ngc6302Remnant ,messier16Nursery,  psrB1509Core ,ic434Grave,matrixCollapse,phoenixRemnant,crabPulsar,wolfRayet];
