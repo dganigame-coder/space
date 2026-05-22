@@ -319,7 +319,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V2205262311</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-V2205262317</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -714,17 +714,24 @@
         };
         const proximaSystem = createLightweightSystem(engine.scene, proximaPosition);
         
-        // 🪨 4. DEBRIS FIELDS (Keep this if your engine has an asteroid builder script)
-        if (typeof createAsteroidBelt === 'function') {
-            const sharedBelt = createAsteroidBelt(engine.scene, {
-                x: alphaCentauriX,
-                z: alphaCentauriZ,
-                radius: 3000000,
-                count: 1000,
-                name: "Centauri Debris Ring"
-            });
-        }
-          
+        // ============================================================================
+        // 🪨 4. DEBRIS FIELDS (Updated to use your native createBelt factory)
+        // ============================================================================
+        const sharedBelt = createBelt(engine.scene, {
+            x: alphaCentauriX,            // Pass position if the function reads it
+            z: alphaCentauriZ,
+            count: 2500,                  // Dense but performance-friendly
+            innerRadius: 2800000,         // Forms a tight band around 3,000,000 units
+            outerRadius: 3200000,         
+            verticalScatter: 50000,       // Adds 3D thickness to the debris field
+            color: 0x998877,              // Dusty brown/grey rocky debris
+            size: { min: 200, max: 1500 }, // Medium sized interstellar chunks
+            type: 'asteroid_belt',
+            name: 'Centauri Debris Ring',
+            sound: 'ROCKY_DEBRIS'
+        });
+
+        
         const wormhole = createWormhole(engine.scene, { x: 0, y: 0, z: 450000000 });
         
         
@@ -900,6 +907,12 @@
                 oortCloud.rotation.y += 0.000005; 
                 oortCloud.updateMatrix(); // Add this line!
             }
+
+            // in case createBelt defaults it to the solar system center (0,0,0)
+            if (sharedBelt) {
+                sharedBelt.position.set(alphaCentauriX, 0, alphaCentauriZ);
+            }
+  
 
             // 6. HUD VISUALS - NEAREST BODY
             if (closestBody && nearestLabel) {
