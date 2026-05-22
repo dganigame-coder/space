@@ -48,7 +48,6 @@ export async function loadSoundLibrary() {
         hullRainGain = new T.Gain(1).connect(hullRainFilter);
         hullRainNoise = new T.Noise("pink").connect(hullRainGain);
 
-        /*
         // Modulator safely controls the intermediate Gain node now
         hullRainModulator = new T.LFO({
             type: "random",
@@ -56,9 +55,8 @@ export async function loadSoundLibrary() {
             max: 0.6,  // Peak burst of the gravel hits
             frequency: 4 
         }).connect(hullRainGain.gain);
-        */
         
-        
+
         /*   */
         
         anomalyVolume = new T.Volume(-100).toDestination();
