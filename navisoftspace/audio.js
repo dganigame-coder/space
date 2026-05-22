@@ -10,7 +10,7 @@ export async function loadSoundLibrary() {
     if (T.getContext().state !== 'running') {
         await T.start();
     }
-    
+
     if (!gasVolume) {
         gasVolume = new T.Volume(-40).toDestination();
         gasWind = new T.Noise("brown").connect(gasVolume);
@@ -69,7 +69,10 @@ export async function loadSoundLibrary() {
 
 export function playHighFi(key, intensity = 0.5) {
     const T = Tone.default || Tone; 
-    if (!gasVolume || T.context.state !== 'running') return;
+    //if (!gasVolume || T.context.state !== 'running') return;
+
+    // 🛡️ CRITICAL SAFETY GUARD: If the library isn't fully loaded yet, exit immediately!
+    if (!gasVolume || !beltVolume || !hullRainVolume || T.context.state !== 'running') return;
 
     const now = T.now();
     const db = T.gainToDb(Math.max(intensity, 0.0001));
