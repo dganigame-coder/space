@@ -1,8 +1,11 @@
 import * as Tone from 'tone';
 
 export let gasVolume, voidVolume, beltVolume, solarVolume, anomalyVolume;
+// Change this line:
 let gasWind, solarSizzle, beltGranular, anomalyDrone, voidHum;
-let alarmSynth, impactNoise, impactThump;
+
+// To this (added the 4 hullRain trackers):
+let gasWind, solarSizzle, beltGranular, anomalyDrone, voidHum, hullRainVolume, hullRainFilter, hullRainNoise, hullRainModulator;
 
 export async function loadSoundLibrary() {
     const T = Tone.default || Tone;
@@ -23,8 +26,21 @@ export async function loadSoundLibrary() {
         impactNoise = new T.Noise("pink").toDestination();
         impactThump = new T.MembraneSynth().toDestination();
 
+        // Find this existing block:
         beltVolume = new T.Volume(-100).toDestination();
         beltGranular = new T.Noise("brown").connect(beltVolume);
+        
+        // Add this EXACTLY right beneath it:
+        hullRainVolume = new T.Volume(-100).toDestination();
+        hullRainFilter = new T.Filter(800, "lowpass").connect(hullRainVolume); 
+        hullRainNoise = new T.Noise("pink").connect(hullRainFilter);
+        
+        hullRainModulator = new T.LFO({
+            type: "random",
+            min: -25, 
+            max: -5,  
+            frequency: 4 
+        }).connect(hullRainVolume.volume);
         
         anomalyVolume = new T.Volume(-100).toDestination();
         const phaser = new T.Phaser({ frequency: 0.5, octaves: 5 }).connect(anomalyVolume);
@@ -38,10 +54,15 @@ export async function loadSoundLibrary() {
 
     gasWind.start();
     solarSizzle.start();
+    // Find these existing start triggers:
     beltGranular.start(); 
     anomalyDrone.start(); 
     voidHum.start();      
     
+    // Add these right below them:
+    hullRainNoise.start();
+    hullRainModulator.start();
+         
     console.log("Audio System State:", T.context.state);
 
     gasVolume.volume.setValueAtTime(-60, T.now()); 
@@ -57,8 +78,15 @@ export function playHighFi(key, intensity = 0.5) {
     const db = T.gainToDb(Math.max(intensity, 0.0001));
 
     switch(key) {
+        // Replace it completely with these two cases:
         case 'ASTEROID_BELT':
-            beltVolume.volume.setTargetAtTime(db - 10, now, 0.5);
+            beltVolume.volume.setTargetAtTime(db - 10, now, 0.5); // Deep rumble
+            hullRainVolume.volume.setTargetAtTime(0, now, 0.3);    // Automatic rock pitting
+            break;
+        
+        case 'LEAVE_ASTEROID_BELT':
+            beltVolume.volume.setTargetAtTime(-100, now, 0.4); 
+            hullRainVolume.volume.setTargetAtTime(-100, now, 0.4);
             break;
         case 'WORMHOLE_PULSE':
             anomalyVolume.volume.setTargetAtTime(db, now, 0.3);
@@ -93,7 +121,7 @@ export function playHighFi(key, intensity = 0.5) {
             }
             break;
         case 'SILENCE':
-            [gasVolume, beltVolume, anomalyVolume, voidVolume, solarVolume].forEach(v => {
+            [gasVolume, beltVolume, anomalyVolume, voidVolume, solarVolume, hullRainVolume].forEach(v => {
                 if(v) v.volume.rampTo(-100, 0.5);
             });
             break;
