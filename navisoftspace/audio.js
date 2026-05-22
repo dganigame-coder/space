@@ -1,7 +1,7 @@
 import * as Tone from 'tone';
 
 export let gasVolume, voidVolume, beltVolume, solarVolume, anomalyVolume, hullRainVolume;
-let gasWind, solarSizzle, beltGranular, anomalyDrone, voidHum, hullRainVolume, hullRainFilter, hullRainNoise, hullRainModulator;
+let gasWind, solarSizzle, beltGranular, anomalyDrone, voidHum, hullRainFilter, hullRainNoise, hullRainModulator;
 
 
 export async function loadSoundLibrary() {
