@@ -319,7 +319,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V2205262317</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-V2205262319</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -909,8 +909,10 @@
             }
 
             // in case createBelt defaults it to the solar system center (0,0,0)
+            // Add this alongside your other belt rotation if statements!
             if (sharedBelt) {
-                sharedBelt.position.set(alphaCentauriX, 0, alphaCentauriZ);
+                sharedBelt.rotation.y += 0.00001; // Nice slow cosmic drift
+                sharedBelt.updateMatrix(); 
             }
   
 
