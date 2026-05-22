@@ -319,7 +319,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V2205262319</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-V2205262329</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -864,7 +864,7 @@
             // 2. HUD & TARGETING DATA
             let closestBody = null;
             let minDistance = Infinity;
-
+            /*
             bodies.forEach(b => {
                 if (b.onUpdate) b.onUpdate();
                 const dist = engine.camera.position.distanceTo(b.position);
@@ -873,7 +873,43 @@
                     closestBody = b;
                 }
             });
-           
+            */      
+            bodies.forEach((b, index) => {
+                // 🔍 LOG 1: Check if the object itself is completely empty/null
+                if (!b) {
+                    console.error(`🚨 [CRASH CAUSE] Object at index ${index} inside the bodies array is NULL or UNDEFINED!`);
+                    return; 
+                }
+            
+                // 🔍 LOG 2: Identify the name and type of the current object being processed
+                console.log(`📡 [Processing Body] Index: ${index} | Name: "${b.name || 'Unnamed'}" | Type: ${b.type || 'Unknown'}`);
+            
+                // Safety wrapper around the update call
+                try {
+                    if (b.onUpdate) b.onUpdate();
+                } catch (err) {
+                    console.error(`💥 [Update Error] "${b.name || 'Unnamed'}" failed inside its onUpdate function:`, err);
+                }
+            
+                // 🔍 LOG 3: Check if the position object exists before running distanceTo
+                if (!b.position) {
+                    console.error(`❌ [POSITION ERROR] "${b.name || 'Unnamed'}" (Index ${index}) has NO .position property! This will crash distanceTo.`);
+                    return; // Stops this specific item from throwing a hard crash
+                }
+            
+                // Run the distance calculation safely now
+                const dist = engine.camera.position.distanceTo(b.position);
+                
+                if (dist < minDistance) {
+                    minDistance = dist;
+                    closestBody = b;
+                }
+            });
+            
+            // 🔍 LOG 4: Output the final winner of the closest calculation loop
+            if (closestBody) {
+                console.log(`🎯 [Result] Closest body is officially: "${closestBody.name || 'Unnamed'}" at distance: ${Math.round(minDistance)}`);
+            }
             // 3. AUTO-PILOT LOGIC (RUNS EVERY FRAME)
             if (autoPilotActive && closestBody) {
                 engine.camera.lookAt(closestBody.position);
