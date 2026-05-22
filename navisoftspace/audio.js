@@ -1,10 +1,7 @@
 import * as Tone from 'tone';
 
-// 1. Clear, non-duplicated global exports
-export let gasVolume, voidVolume, beltVolume, solarVolume, anomalyVolume, hullRainVolume;
-
+export let gasVolume, voidVolume, beltVolume, solarVolume, anomalyVolume;
 let gasWind, solarSizzle, beltGranular, anomalyDrone, voidHum;
-let hullRainNoise, hullRainFilter, hullRainModulator, hullRainGain; // Added dedicated Gain node tracking
 let alarmSynth, impactNoise, impactThump;
 
 export async function loadSoundLibrary() {
@@ -26,24 +23,8 @@ export async function loadSoundLibrary() {
         impactNoise = new T.Noise("pink").toDestination();
         impactThump = new T.MembraneSynth().toDestination();
 
-        // ☄️ FIXED ASTEROID BELT AUDIO CHAIN
         beltVolume = new T.Volume(-100).toDestination();
         beltGranular = new T.Noise("brown").connect(beltVolume);
-        
-        hullRainVolume = new T.Volume(-100).toDestination();
-        hullRainFilter = new T.Filter(800, "lowpass").connect(hullRainVolume); 
-        
-        // Fix: Connect noise to an independent Gain node, NOT directly to the Volume param
-        hullRainGain = new T.Gain(1).connect(hullRainFilter);
-        hullRainNoise = new T.Noise("pink").connect(hullRainGain);
-        
-        // Modulator safely controls the intermediate Gain node now
-        hullRainModulator = new T.LFO({
-            type: "random",
-            min: 0.05, // Lower limit of the rock scratching intensity
-            max: 0.6,  // Peak burst of the gravel hits
-            frequency: 4 
-        }).connect(hullRainGain.gain);
         
         anomalyVolume = new T.Volume(-100).toDestination();
         const phaser = new T.Phaser({ frequency: 0.5, octaves: 5 }).connect(anomalyVolume);
@@ -55,66 +36,53 @@ export async function loadSoundLibrary() {
 
     await T.context.resume();
 
-    const currentNow = T.now();
-
     gasWind.start();
     solarSizzle.start();
-    beltGranular.start();
-    hullRainNoise.start();
-    hullRainModulator.start();
+    beltGranular.start(); 
     anomalyDrone.start(); 
     voidHum.start();      
     
     console.log("Audio System State:", T.context.state);
 
-    gasVolume.volume.setValueAtTime(-60, currentNow); 
+    gasVolume.volume.setValueAtTime(-60, T.now()); 
     T.Destination.mute = false;
     T.Destination.volume.value = 0;
 }
 
 export function playHighFi(key, intensity = 0.5) {
     const T = Tone.default || Tone; 
-    
-    // 🛡️ Safe check: Only gates if the foundations are missing entirely
-    if (!gasVolume || !beltVolume || !hullRainVolume) return;
+    if (!gasVolume || T.context.state !== 'running') return;
 
     const now = T.now();
     const db = T.gainToDb(Math.max(intensity, 0.0001));
 
     switch(key) {
         case 'ASTEROID_BELT':
-            // Both channels smoothly activate without signal blocking!
             beltVolume.volume.setTargetAtTime(db - 10, now, 0.5);
-            hullRainVolume.volume.setTargetAtTime(0, now, 0.3);
             break;
-            
         case 'WORMHOLE_PULSE':
             anomalyVolume.volume.setTargetAtTime(db, now, 0.3);
             break;
-            
         case 'VOID_GRAVITY':
             voidVolume.volume.setTargetAtTime(db, now, 0.8);
             break;
-            
         case 'GAS_RUSH':
             gasVolume.volume.setTargetAtTime(db, now, 0.2);
             break;
-            
         case 'SOLAR_STATIC':
             solarVolume.volume.setTargetAtTime(db - 15, now, 0.1);
             break;
-            
         case 'COCKPIT_ALARM':
             alarmSynth.triggerAttackRelease(["C5", "E5"], "8n", now);
             break;
-            
         case 'HULL_IMPACT':
+            // Plain audio crash sound for crashing into planets (NO VIBRATION)
             try {
                 impactThump.triggerAttackRelease("G1", "4n", now, intensity);
             } catch (e) { console.warn(e); }
             break;
-            
         case 'BELT_ROCK':
+            // 👇 EXCLUSIVE TO ASTEROID BELT: Plays a lighter gravel sound + physical vibration
             try {
                 impactThump.triggerAttackRelease("A1", "8n", now, intensity * 0.5);
             } catch (e) { console.warn(e); }
@@ -124,13 +92,9 @@ export function playHighFi(key, intensity = 0.5) {
                 navigator.vibrate(vibrationDuration);
             }
             break;
-            
         case 'SILENCE':
-            // Clean, non-crashing mute execution using Tone.js standards
-            [gasVolume, beltVolume, anomalyVolume, voidVolume, solarVolume, hullRainVolume].forEach(v => {
-                if (v && v.volume) {
-                    v.volume.setValueAtTime(-100, now);
-                }
+            [gasVolume, beltVolume, anomalyVolume, voidVolume, solarVolume].forEach(v => {
+                if(v) v.volume.rampTo(-100, 0.5);
             });
             break;
     }
