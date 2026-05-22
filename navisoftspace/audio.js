@@ -121,10 +121,14 @@ export function playHighFi(key, intensity = 0.5) {
             }
             break;
          case 'SILENCE':
+            case 'SILENCE':
             [gasVolume, beltVolume, anomalyVolume, voidVolume, solarVolume, hullRainVolume].forEach(v => {
-                // This safety check prevents the "Cannot read properties of undefined" error!
                 if (v && v.volume) {
-                    v.volume.rampTo(-100, 0.5);
+                    // Option A: Use -Infinity which Tone.js safely understands as absolute silence
+                    v.volume.rampTo(-Infinity, 0.5);
+                    
+                    // Option B (Alternative fallback if rampTo still hangs):
+                    // v.volume.value = -100;
                 }
             });
             break;
