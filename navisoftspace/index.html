@@ -319,7 +319,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V2205262131</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-V2205262211</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -352,7 +352,7 @@
         "voyager":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@02ca7eb/navisoftspace/horizonObjects/voyager.js",
         "heliopause":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@e46bc44/navisoftspace/horizonObjects/heliopause.js",
         "exoplanet":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@01f1f82/navisoftspace/horizonObjects/exoplanet.js",
-        "nebula":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@a3ee151/navisoftspace/horizonObjects/nebula.js",
+        "nebula":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@b1685f5/navisoftspace/horizonObjects/nebula.js",
          "supernova":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@b96201d/navisoftspace/horizonObjects/supernova.js"
 
 
@@ -655,6 +655,7 @@
             colors: [0xffffff, 0x00ffff, 0xff00ff] // White core to purple/blue edge
         });
 
+        /*
         const wolfRayet = createSupernova(engine.scene, {
             x: 80000000, y: -40000000, z: 50000000,
             name: "WR 124 / Nebula M1-67",
@@ -663,7 +664,22 @@
             count: 400,
             colors: [0x00ffcc, 0xff3300, 0xffff00] // Cyan, Red, and Yellow to match the image
         });
-        
+       */
+        // 🌌 Changed from createSupernova to createNebula
+        const wolfRayet = createNebula(engine.scene, {
+            x: 80000000, 
+            y: -40000000, 
+            z: 50000000,
+            name: "WR 124 / Nebula M1-67",
+            
+            // 📏 Scaled down to reasonable, dense cloud proportions:
+            size: 15000,       // Large enough to be majestic, small enough to show detail
+            spread: 120000,    // Creates a massive, beautiful stellar neighborhood
+            count: 250,        // Stacks 250 puffs smoothly
+            
+            colors: [0x00ffcc, 0xff3300, 0xffff00] // Cyan, Red, and Yellow
+        });
+          
         const wormhole = createWormhole(engine.scene, { x: 0, y: 0, z: 450000000 });
         
         
