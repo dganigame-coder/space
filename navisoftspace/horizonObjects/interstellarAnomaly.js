@@ -23,10 +23,11 @@ export function createInterstellarAnomaly(scene, config) {
     
     anomalyGroup.name = targetName;
     anomalyGroup.userData = {
-        type: 'interstellar_anomaly',
+        type: 'solid',                          // 🪨 Matches your physical classification pipeline
         name: targetName,
-        state: 'solid',          // 🪨 It's solid interstellar crust
-        composition: 'Carbon-rich rock and metals'
+        state: 'solid',                         // Confirms it is solid interstellar crust
+        innerRadius: config.innerRadius || 0,    // Fixes HUD 'undefined' zone checking errors
+        outerRadius: config.outerRadius || 5000  // Sets radar tracking boundary zone size
     };
 
     // Keep child mesh properties synced
