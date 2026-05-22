@@ -46,6 +46,11 @@ export function createNebula(scene, config) {
         );
 
         sprite.scale.set(individualSize, individualSize, 1);
+        // Add this line right below where you set sprite.scale.set(...)
+        sprite.scale.set(individualSize, individualSize, 1);
+        
+        // 🌪️ ADD THIS: Rotates each smoke puff randomly so they blend like chaotic clouds instead of a pattern
+        sprite.material.rotation = Math.random() * Math.PI * 2;
         
         sprite.userData = {
             baseOpacity: material.opacity,
