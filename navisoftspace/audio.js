@@ -23,8 +23,28 @@ export async function loadSoundLibrary() {
         impactNoise = new T.Noise("pink").toDestination();
         impactThump = new T.MembraneSynth().toDestination();
 
+        /*
+        beltVolume.volume.setTargetAtTime(-100, now, 0.4); // Smooth 0.4s fade out
+        hullRainVolume.volume.setTargetAtTime(-100, now, 0.4);
         beltVolume = new T.Volume(-100).toDestination();
         beltGranular = new T.Noise("brown").connect(beltVolume);
+        beltVolume.volume.setTargetAtTime(-100, now, 0.4); // Smooth 0.4s fade out
+        hullRainVolume.volume.setTargetAtTime(-100, now, 0.4);
+        */
+        // --- INITIALIZATION (Put this with your other global variables/setup) ---
+        beltVolume = new T.Volume(-100).toDestination();
+        beltGranular = new T.Noise("brown").connect(beltVolume);
+        
+        hullRainVolume = new T.Volume(-100).toDestination();
+        hullRainFilter = new T.Filter(800, "lowpass").connect(hullRainVolume); 
+        hullRainNoise = new T.Noise("pink").connect(hullRainFilter);
+        
+        hullRainModulator = new T.LFO({
+            type: "random",
+            min: -25, 
+            max: -5,  
+            frequency: 4 
+        }).connect(hullRainVolume.volume);
         
         anomalyVolume = new T.Volume(-100).toDestination();
         const phaser = new T.Phaser({ frequency: 0.5, octaves: 5 }).connect(anomalyVolume);
@@ -38,11 +58,17 @@ export async function loadSoundLibrary() {
 
     gasWind.start();
     solarSizzle.start();
-    beltGranular.start(); 
+    // Start the generators right away
+    beltGranular.start();
+    hullRainNoise.start();
+    hullRainModulator.start();
     anomalyDrone.start(); 
     voidHum.start();      
     
     console.log("Audio System State:", T.context.state);
+
+    beltVolume.volume.setTargetAtTime(-100, now, 0.4); 
+    hullRainVolume.volume.setTargetAtTime(-100, now, 0.4);
 
     gasVolume.volume.setValueAtTime(-60, T.now()); 
     T.Destination.mute = false;
@@ -58,7 +84,9 @@ export function playHighFi(key, intensity = 0.5) {
 
     switch(key) {
         case 'ASTEROID_BELT':
+            // If we are actually in the belt, override the fade out and turn them up!
             beltVolume.volume.setTargetAtTime(db - 10, now, 0.5);
+            hullRainVolume.volume.setTargetAtTime(0, now, 0.3);
             break;
         case 'WORMHOLE_PULSE':
             anomalyVolume.volume.setTargetAtTime(db, now, 0.3);
