@@ -96,7 +96,8 @@ export function playHighFi(key, intensity = 0.5) {
     switch(key) {
         case 'ASTEROID_BELT':
             beltVolume.volume.setTargetAtTime(db - 10, now, 0.5);
-            hullRainVolume.volume.setTargetAtTime(0, now, 0.3);
+            //hullRainVolume.volume.setTargetAtTime(0, now, 0.3);
+            hullRainVolume.volume.setTargetAtTime(db, now, 0.3);
             break;
         case 'WORMHOLE_PULSE':
             anomalyVolume.volume.setTargetAtTime(db, now, 0.3);
