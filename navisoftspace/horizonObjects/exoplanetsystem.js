@@ -1,3 +1,6 @@
+// 📦 ADD THIS IMPORT LINE AT THE VERY TOP:
+import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
+
 // Add this to your star creation logic
 export function createExoplanetSystem(scene, starPosition) {
     const system = new THREE.Group();
@@ -17,4 +20,6 @@ export function createExoplanetSystem(scene, starPosition) {
 
     system.position.set(starPosition.x, starPosition.y, starPosition.z);
     scene.add(system);
+    
+    return system; // Added return statement so you can interact with it later!
 }
