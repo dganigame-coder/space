@@ -1,7 +1,8 @@
 import * as Tone from 'tone';
 
-export let gasVolume, voidVolume, beltVolume, solarVolume, anomalyVolume;
+export let gasVolume, voidVolume, beltVolume, solarVolume, anomalyVolume, hullRainVolume;
 let gasWind, solarSizzle, beltGranular, anomalyDrone, voidHum, hullRainVolume, hullRainFilter, hullRainNoise, hullRainModulator;
+
 
 export async function loadSoundLibrary() {
     const T = Tone.default || Tone;
@@ -116,9 +117,12 @@ export function playHighFi(key, intensity = 0.5) {
                 navigator.vibrate(vibrationDuration);
             }
             break;
-        case 'SILENCE':
+         case 'SILENCE':
             [gasVolume, beltVolume, anomalyVolume, voidVolume, solarVolume, hullRainVolume].forEach(v => {
-                if(v) v.volume.rampTo(-100, 0.5);
+                // This safety check prevents the "Cannot read properties of undefined" error!
+                if (v && v.volume) {
+                    v.volume.rampTo(-100, 0.5);
+                }
             });
             break;
     }
