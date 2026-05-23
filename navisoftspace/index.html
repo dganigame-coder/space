@@ -331,7 +331,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V2305262051</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-V2305262326</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -479,7 +479,22 @@
                     const btn = document.createElement('button');
                     btn.innerText = dest.name;
                     btn.style.cssText = "padding: 10px; cursor: pointer; background: #1a1a1a; color: #00ffcc; border: 1px solid #00ffcc; width: 100%; text-align: left;";
+
+                    // Change this line in your initNavHub function:
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation(); // Stops it from bubbling to your 3D engine
+                        jumpTo(dest);
+                        modal.style.display = 'none';
+                    });
                     
+                    // Add this line to ensure mobile responsiveness
+                    btn.addEventListener('touchstart', (e) => {
+                        e.stopPropagation();
+                        jumpTo(dest);
+                        modal.style.display = 'none';
+                    }, {passive: false});
+
+                    /*
                     btn.onclick = (e) => {
                         e.stopPropagation();
                         jumpTo(dest);
@@ -487,7 +502,7 @@
                     };
                     container.appendChild(btn);
                 });
-        
+                */
                 // Setup Trigger
                 trigger.onclick = () => modal.style.display = 'block';
             }
