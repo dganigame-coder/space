@@ -40,14 +40,15 @@ export function createSupernova(scene, config) {
     geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
     const material = new THREE.PointsMaterial({
-        size: config.size * 0.15,
-        map: texture,
-        alphaMap: texture,
-        vertexColors: true,
-        transparent: true,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false
-    });
+            size: config.size * 0.15,
+            map: texture,
+            alphaMap: texture,
+            vertexColors: true,
+            transparent: true,
+            premultipliedAlpha: true, // <--- This helps clean up edges
+            blending: THREE.AdditiveBlending,
+            depthWrite: false
+        });
 
     const particles = new THREE.Points(geometry, material);
     group.add(particles);
