@@ -190,13 +190,13 @@
 </style>
 </head>
 <body>
-<div id="flight-deck-ui" style="position: absolute; top: 20px; right: 20px; z-index: 1000; display: flex; gap: 10px;">
-<button id="saveBtn" style="background: rgba(0, 255, 255, 0.1); color: #00ffff; border: 1px solid #00ffff; padding: 10px 15px; font-family: monospace; cursor: pointer; text-transform: uppercase;">
-    Log Position
-</button>
-<button id="resetBtn" style="background: rgba(255, 0, 0, 0.1); color: #ff4444; border: 1px solid #ff4444; padding: 10px 15px; font-family: monospace; cursor: pointer;">
-    Abort Mission
-</button>
+<div id="flight-deck-ui" style="position: absolute; top: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 10px;">
+    <button id="saveBtn" style="background: rgba(0, 255, 255, 0.1); color: #00ffff; border: 1px solid #00ffff; padding: 10px 15px; font-family: monospace; cursor: pointer; text-transform: uppercase;">
+        Log Position
+    </button>
+    <button id="resetBtn" style="background: rgba(255, 0, 0, 0.1); color: #ff4444; border: 1px solid #00ffff; padding: 10px 15px; font-family: monospace; cursor: pointer;">
+        Abort Mission
+    </button>
 </div>
 <button id="nav-trigger" style="position: absolute; top: 20px; right: 265px; z-index: 1000; padding: 10px; background: #000; color: #00ffcc; border: 1px solid #00ffcc; cursor: pointer;">
     NAVIGATION HUB
@@ -331,7 +331,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V2305262326</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-V2305262328</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
