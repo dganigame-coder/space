@@ -319,7 +319,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V2305260207</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-V2305261708</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -355,7 +355,7 @@
         "exoplanet":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@fb87615/navisoftspace/horizonObjects/exoplanet.js",
         "exoplanetsystem":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@8c0ffb8/navisoftspace/horizonObjects/exoplanetsystem.js",
         "nebula":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@b1685f5/navisoftspace/horizonObjects/nebula.js",
-         "supernova":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@b96201d/navisoftspace/horizonObjects/supernova.js"
+         "supernova":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@d4afd07/navisoftspace/horizonObjects/supernova.js"
 
 
         }
@@ -567,16 +567,18 @@
         // ============================================================================
         
         // 1. The Phoenix Filament Field (Massive shockwave boundary)
+        // 1. Initialize with the Remnant-Ready factory
         const phoenixRemnant = createSupernova(engine.scene, {
             x: -80000000, 
             y: 30000000, 
-            z: -150000000, // Deep intergalactic space
-            count: 800,    
-            spread: 10000000, 
-            size: 2000000,   
-            colors: [0xff4500, 0x00ffff], // Orange fire vs Cyan shockwave
+            z: -150000000,
+            count: 1200,        // Slightly denser for a better lingering remnant
+            spread: 12000000,  
+            size: 500000,       // Smaller individual grains for the static cloud
+            colors: [0xff4500, 0x00ffff],
             name: "SNR G106.3+2.7 / The Phoenix Shroud"
         });
+        
         
         // 2. The Rescaled Stellar Collapse Matrix (Now safely out in deep space)
         const matrixCollapse = createSupernova(engine.scene, {
@@ -883,7 +885,21 @@
         document.getElementById('resetBtn').addEventListener('click', () => {
             SaveSystem.clear();
         });
+
+        // 🔍 Helper: Check if an Object3D is inside the Camera Frustum
+        function isObjectInView(object, camera) {
+            const frustum = new THREE.Frustum();
+            const projScreenMatrix = new THREE.Matrix4();
             
+            // Update the camera's projection matrix
+            camera.updateMatrixWorld();
+            projScreenMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+            frustum.setFromProjectionMatrix(projScreenMatrix);
+            
+            // Check if the object's bounding sphere intersects the frustum
+            return frustum.intersectsObject(object);
+        }
+        
         function frame() {                        
             requestAnimationFrame(frame);
 
@@ -1167,6 +1183,11 @@
         
             // Update the wormhole's pulse and rotation
             updateWormhole(wormhole, time);
+
+            // Call it using your scene's camera
+            if (isObjectInView(phoenixRemnant, engine.camera)) {
+                phoenixRemnant.userData.onUpdate(); 
+            }
 
             // 1. Tell the universe to check if the pilot entered a new sector chunk
             //universe.update(engine.camera.position);
