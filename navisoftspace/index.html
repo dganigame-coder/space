@@ -319,7 +319,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V2305261708</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-V2305261716</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -886,19 +886,6 @@
             SaveSystem.clear();
         });
 
-        // 🔍 Helper: Check if an Object3D is inside the Camera Frustum
-        function isObjectInView(object, camera) {
-            const frustum = new THREE.Frustum();
-            const projScreenMatrix = new THREE.Matrix4();
-            
-            // Update the camera's projection matrix
-            camera.updateMatrixWorld();
-            projScreenMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
-            frustum.setFromProjectionMatrix(projScreenMatrix);
-            
-            // Check if the object's bounding sphere intersects the frustum
-            return frustum.intersectsObject(object);
-        }
         
         function frame() {                        
             requestAnimationFrame(frame);
@@ -1184,8 +1171,10 @@
             // Update the wormhole's pulse and rotation
             updateWormhole(wormhole, time);
 
-            // Call it using your scene's camera
-            if (isObjectInView(phoenixRemnant, engine.camera)) {
+            const distToRemnant = phoenixRemnant.position.distanceTo(engine.camera.position);
+            const range = 50000000; // 50 million units
+            
+            if (distToRemnant < range) {
                 phoenixRemnant.userData.onUpdate(); 
             }
 
