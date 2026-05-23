@@ -666,7 +666,7 @@
             });
         }
 
-        /*
+        
         const crabPulsar = createSupernova(engine.scene, {
             x: -30000000, y: 10000000, z: 200000000,
             name: "PSR B0531+21 / Crab Pulsar",
@@ -675,7 +675,7 @@
             count: 1000,       // High density for the "rings"
             colors: [0xffffff, 0x00ffff, 0xff00ff] // White core to purple/blue edge
         });
-        */
+        
         const crabNebula = createSupernova(engine.scene, {
             x: -30000000, y: 10000000, z: 200000000,
             name: "M1 / Crab Nebula",
@@ -793,7 +793,8 @@
             const bodies = [sun, mercury, venus, earth, moon, mars, jupiter, saturn, titan, uranus, neptune , pluto];
             const horizonObj = [mainBelt,kuiperBelt,oortCloud,orionNebula, 
                                 remnant, andromeda,molecularCloud, 
-                                systemA,systemB,proximaSystem,sharedBelt,oumuamua
+                                systemA,systemB,proximaSystem,sharedBelt,oumuamua,
+                                crabNebula
                                 //,supernova,dynamicSupernova
                                ];
             const supernovas = [ngc6302Remnant ,messier16Nursery,  psrB1509Core ,ic434Grave,matrixCollapse,phoenixRemnant,crabPulsar,wolfRayet];
