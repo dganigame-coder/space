@@ -167,6 +167,7 @@ export function createSupernova(scene, config) {
                 sprite.material.color.setHSL(hue, 1.0, 0.5 + (distFactor * 0.4));
                 sprite.material.opacity = 0.3 + (distFactor * 0.6);
             });
+        }
     };
     
     scene.add(group);
