@@ -573,17 +573,19 @@
             sound: 'ICY_WHISPER'
         });
 
+        // FIXED: Oort Cloud pushed far beyond the Kuiper Belt
         const oortCloud = createBelt(engine.scene, {
-            count: 20000,
-            innerRadius: 500000,   // Much closer!
-            outerRadius: 2000000,  // Stays within a small area
-            verticalScatter: 200000, 
-            color: 0xffffff, 
-            size: {min: 12000, max: 35000},
-            type: 'asteroid_belt',
-            name: 'Oort Cloud',
-            sound: 'DEEP_SPACE_STATIC'
-        });
+    count: 20000,
+    innerRadius: 50000000,   // 50 Million
+    outerRadius: 80000000,   // 80 Million
+    verticalScatter: 2000000, 
+    color: 0xffffff, 
+    size: {min: 12000, max: 35000},
+    type: 'asteroid_belt',
+    name: 'Oort Cloud',
+    sound: 'DEEP_SPACE_STATIC'
+      });
+
         /*
         // 3. The Oort Cloud (Massive/Edge of Solar System)
         const oortCloud = createBelt(engine.scene, {
