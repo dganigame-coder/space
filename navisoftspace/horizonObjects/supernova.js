@@ -134,26 +134,39 @@ export function createSupernova(scene, config) {
             coreMat.color.setHex(0x000000); 
             
             spritesArray.forEach((sprite, idx) => {
-                const distFactor = idx / spritesArray.length;
-                const hue = 0.55 - (distFactor * 0.45); 
-                const lightness = 0.6 - (distFactor * 0.3);
-                sprite.material.color.setHSL(hue, 1.0, lightness);
-                sprite.material.opacity = 0.8 - (distFactor * 0.6);
+                // 1. DATA INITIALIZATION
+                if (!sprite.userData.radius) sprite.userData.radius = (config.size * 1.2) + (idx * 0.2);
                 
-                const ringRadius = (config.size * 1.2) + (idx * 0.2); 
-                const orbitalSpeed = 0.02 / Math.sqrt(ringRadius); 
-                const angle = (idx * 0.05) + (performance.now() * orbitalSpeed);
+                // 2. RADIAL PULL: Slowly shrink the orbit radius over time (The "Fall")
+                sprite.userData.radius -= 0.05; 
+                if (sprite.userData.radius < 0.5) sprite.userData.radius = (config.size * 1.2); // Reset if it hits center
+                
+                const r = sprite.userData.radius;
+                const distFactor = 1 - (r / (config.size * 2)); // 0 = far, 1 = near center
+                
+                // 3. KEPLERIAN MOTION
+                const orbitalSpeed = 0.05 / Math.sqrt(r);
+                const angle = (idx * 0.1) + (performance.now() * orbitalSpeed);
+                
+                // 4. TIDAL STRETCH (Spaghettification)
+                // Stretch X (movement direction) and shrink Y (vertical)
+                const stretchFactor = 1.0 + (distFactor * 2.0); 
                 
                 sprite.position.set(
-                    Math.cos(angle) * ringRadius, 
-                    (Math.random() - 0.5) * (config.size * 0.05), 
-                    Math.sin(angle) * ringRadius
+                    Math.cos(angle) * r, 
+                    (Math.random() - 0.5) * (config.size * 0.02), 
+                    Math.sin(angle) * r
                 );
                 
-                const scale = (1.2 - distFactor) * config.size;
-                sprite.scale.set(scale, scale, 1);
+                // 5. DYNAMIC SCALING
+                const baseScale = (1.2 - distFactor) * config.size;
+                sprite.scale.set(baseScale * stretchFactor, baseScale / stretchFactor, 1);
+                
+                // 6. THERMAL FADE (Hotter/brighter as it nears the center)
+                const hue = 0.6 - (distFactor * 0.5); // Blue to White
+                sprite.material.color.setHSL(hue, 1.0, 0.5 + (distFactor * 0.4));
+                sprite.material.opacity = 0.3 + (distFactor * 0.6);
             });
-        }
     };
     
     scene.add(group);
