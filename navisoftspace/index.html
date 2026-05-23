@@ -558,7 +558,8 @@
             name: 'Main Asteroid Belt',
             sound: 'ROCKY_DEBRIS' 
         });
-        
+
+    
         // 2. The Kuiper Belt (Icy/Deep Space)
         const kuiperBelt = createBelt(engine.scene, {
             count: 8000, 
@@ -571,7 +572,19 @@
             name: 'Kuiper Belt',
             sound: 'ICY_WHISPER'
         });
-        
+
+        const oortCloud = createBelt(engine.scene, {
+            count: 20000,
+            innerRadius: 500000,   // Much closer!
+            outerRadius: 2000000,  // Stays within a small area
+            verticalScatter: 200000, 
+            color: 0xffffff, 
+            size: {min: 12000, max: 35000},
+            type: 'asteroid_belt',
+            name: 'Oort Cloud',
+            sound: 'DEEP_SPACE_STATIC'
+        });
+        /*
         // 3. The Oort Cloud (Massive/Edge of Solar System)
         const oortCloud = createBelt(engine.scene, {
             count: 20000,
@@ -583,7 +596,7 @@
             type: 'asteroid_belt',
             name: 'Oort Cloud',
             sound: 'DEEP_SPACE_STATIC'
-        });
+        });*/
 
         const oumuamua = createInterstellarAnomaly(engine.scene, {
                 x: 48000000, // Positioned near the Alpha Centauri sector boundaries
@@ -623,20 +636,33 @@
             name: "Orion Nursery",
             sound: 'NEBULA_HUM'
         });
-        
+
+        /*
         // --- 2. The Supernova Remnant (Violent Orange/Red) ---
         const remnant = createNebula(engine.scene, {
             x: -50000000, 
             y: -20000000, 
             z: 40000000,
-            count: 600,
+               count: 600,
             spread: 5000000, 
             size: 1500000,   
             colors: [0xff4500, 0xffd700],
             name: "Vela Remnant",
             sound: 'ELECTRO_STATIC'
+        });*/
+
+        const remnant = createNebula(engine.scene, {
+            x: -300000000, // Increased to 300 Million
+             y: -100000000, // Increased to 100 Million
+             z: 250000000,  // Increased to 250 Million
+             count:600,
+            spread: 5000000, 
+             size: 1500000,   
+              name: "Vela Remnant",
+            colors: [0xff4500, 0xffd700],
+            name: "Vela Remnant",
+            sound: 'ELECTRO_STATIC'
         });
-        
         // --- 3. Distant Andromeda Galaxy (Extremely Far, White/Blue) ---
         const andromeda = createNebula(engine.scene, {
             x: 150000000, 
