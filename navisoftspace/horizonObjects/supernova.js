@@ -9,7 +9,19 @@ export function createSupernova(scene, config) {
     const coreMesh = new THREE.Mesh(new THREE.SphereGeometry(config.size * 0.5, 32, 32), coreMat);
     group.add(coreMesh);
 
-    // 2. FILAMENTS: Using Points instead of Sprites for better 4K performance
+    // 2. SOFT GLOW TEXTURE: Generator for realistic particle plasma
+    const canvas = document.createElement('canvas');
+    canvas.width = 64;
+    canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+    const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+    grad.addColorStop(0, 'rgba(255,255,255,1)');
+    grad.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 64, 64);
+    const texture = new THREE.CanvasTexture(canvas);
+
+    // 3. FILAMENTS: High-performance 4K points
     const count = 5000;
     const geometry = new THREE.BufferGeometry();
     const positions = new Float32Array(count * 3);
@@ -28,7 +40,9 @@ export function createSupernova(scene, config) {
     geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
     const material = new THREE.PointsMaterial({
-        size: 0.5,
+        size: config.size * 0.15,
+        map: texture,
+        alphaMap: texture,
         vertexColors: true,
         transparent: true,
         blending: THREE.AdditiveBlending,
@@ -38,10 +52,10 @@ export function createSupernova(scene, config) {
     const particles = new THREE.Points(geometry, material);
     group.add(particles);
 
-    // 3. LIFECYCLE (State Machine & Identification)
+    // 4. LIFECYCLE (State Machine & Identification)
     group.userData = {
-        type: 'supernova',  // Required for HUD lookup
-        name: config.name,  // Required for HUD labeling
+        type: 'supernova',
+        name: config.name,
         age: 0,
         onUpdate: function() {
             this.age += 0.005;
@@ -49,7 +63,7 @@ export function createSupernova(scene, config) {
 
             // Explosion expansion
             if (t < 5.0) {
-                const scale = 1 + t * 2;
+                const scale = 1 + t * 5;
                 particles.scale.setScalar(scale);
                 material.opacity = Math.max(0, 1 - t / 5);
             }
