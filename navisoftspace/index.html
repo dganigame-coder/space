@@ -331,7 +331,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V2305262333</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-V2305262339</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -487,11 +487,18 @@
                         modal.style.display = 'none';
                     });
                     
-                    // Add this line to ensure mobile responsiveness
+                    // Update your button event listeners in initNavHub like this:
                     btn.addEventListener('touchstart', (e) => {
                         e.stopPropagation();
+                        e.preventDefault(); // <-- ADD THIS: Stops the browser from triggering other events
                         jumpTo(dest);
                         modal.style.display = 'none';
+                    }, {passive: false});
+                    
+                    // Also stop the 'touchend' event to be extra safe
+                    btn.addEventListener('touchend', (e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
                     }, {passive: false});
 
                     /*
@@ -501,7 +508,7 @@
                         modal.style.display = 'none';
                     };
                     */
-                    container.appendChild(btn);
+                    //container.appendChild(btn);
                 });
                 // Setup Trigger
                 trigger.onclick = () => modal.style.display = 'block';
