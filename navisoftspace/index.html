@@ -333,7 +333,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V2305262357</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-V2405260905</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -435,17 +435,23 @@
 
             // --- 1. CONFIGURATION & LOGIC ---
             const destinations = [
+                // --- Inner System (Local) ---
                 { name: "Main Asteroid Belt", x: 0, y: 0, z: 20000 },
-                { name: "Voyager Probe", x: 10000, y: 2000, z: 22500000 },
-                { name: "Heliopause", x: 0, y: 0, z: 18000000 },
                 { name: "Kuiper Belt", x: 0, y: 0, z: 2500000 },
-                { name: "Oort Cloud", x: 0, y: 0, z: 70000000 },
+                { name: "Heliopause", x: 0, y: 0, z: 18000000 },
+                { name: "Voyager Probe", x: 10000, y: 2000, z: 22500000 },
+                { name: "Oort Cloud", x: 0, y: 0, z: 65000000 },
+            
+                // --- Local Stellar Neighborhood ---
                 { name: "Alpha Centauri A", x: 50000000, y: 0, z: 50000000 },
+                { name: "Alpha Centauri B", x: 50800000, y: 0, z: 50800000 },
                 { name: "Proxima Centauri", x: 55000000, y: 0, z: 55000000 },
                 { name: "Centauri Debris Ring", x: 50000000, y: 0, z: 50000000 },
                 { name: "'Oumuamua", x: 48000000, y: 20000, z: 49000000 },
+            
+                // --- Deep Space / Interstellar ---
                 { name: "Orion Nursery", x: 20000000, y: 5000000, z: -80000000 },
-                { name: "Vela Remnant", x: -50000000, y: -20000000, z: 40000000 },
+                { name: "Vela Remnant", x: -300000000, y: -100000000, z: 250000000 },
                 { name: "Crab Pulsar/Nebula", x: -30000000, y: 10000000, z: 200000000 },
                 { name: "NGC 6302 Outflow", x: 60000000, y: 15000000, z: -95000000 },
                 { name: "Messier 16 / Carina", x: -120000000, y: -45000000, z: -60000000 },
@@ -453,22 +459,47 @@
                 { name: "IC 434 / Ghost Filament", x: -90000000, y: 90000000, z: 85000000 },
                 { name: "Andromeda Galaxy", x: 150000000, y: 80000000, z: -300000000 },
                 { name: "Molecular Void", x: -150000000, y: -20000000, z: -150000000 },
+            
+                // --- Extreme Deep Space ---
                 { name: "Supreme Exoplanet System", x: 10000000, y: 0, z: 250000000 },
                 { name: "Black Hole Singularity", x: 0, y: 0, z: 500000000 }
             ];
         
-            function jumpTo(dest) {
-                const offset = 5000000;
-                engine.camera.position.set(dest.x + offset, dest.y + offset, dest.z + offset);
-                engine.camera.lookAt(dest.x, dest.y, dest.z);
-        
-                const distanceToTarget = Math.abs(dest.z) + offset + 10000000;
-                if (engine.camera.far < distanceToTarget) {
-                    engine.camera.far = distanceToTarget;
-                    engine.camera.updateProjectionMatrix();
+                function jumpTo(dest) {
+                    const offset = 5000000;
+                
+                    // 1. Reset Joystick State (Prevents input locking on mobile)
+                    if (window.joystick) {
+                        window.joystick.velocity.set(0, 0);
+                        window.joystick.active = false;
+                    }
+                
+                    // 2. Perform Jump & Camera Positioning
+                    engine.camera.position.set(dest.x + offset, dest.y + offset, dest.z + offset);
+                    engine.camera.lookAt(dest.x, dest.y, dest.z);
+                
+                    // 3. Dynamic Far Plane Adjustment (Ensures the destination is visible)
+                    const distanceToTarget = Math.abs(dest.z) + offset + 10000000;
+                    if (engine.camera.far < distanceToTarget) {
+                        engine.camera.far = distanceToTarget;
+                        engine.camera.updateProjectionMatrix();
+                    }
+                
+                    // 4. Clear Modal & Reset Pointer Events
+                    const modal = document.getElementById('nav-modal');
+                    if (modal) {
+                        modal.style.display = 'none';
+                        modal.style.pointerEvents = 'none';
+                    }
+                
+                    // 5. Force Reactivation of Controls
+                    setTimeout(() => {
+                        if (window.joystick) {
+                            window.joystick.active = true;
+                        }
+                        console.log("Jump successful:", dest.name);
+                    }, 100);
                 }
-                console.log("Jumping to:", dest.name);
-            }
         
             // --- 2. UI INITIALIZATION ---
             function initNavHub() {
