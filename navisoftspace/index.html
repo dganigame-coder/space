@@ -186,12 +186,20 @@
         border-radius: 4px;
         font-weight: bold;
     }
-    #nav-trigger {
-        z-index: 9999; /* Higher than everything else */
-        pointer-events: auto;
-        touch-action: manipulation; /* Crucial: Prevents double-tap delay */
-        -webkit-tap-highlight-color: transparent; /* Removes the ugly blue mobile selection box */
-    }
+    #nav-modal {
+    position: fixed;
+    top: 20%;
+    left: 10%;
+    width: 80%;
+    height: 60%;
+    overflow-y: auto;       /* This is crucial for scrolling */
+    -webkit-overflow-scrolling: touch; /* Makes scrolling feel smooth like a native app */
+    background: #000;
+    border: 1px solid #00ffcc;
+    z-index: 9999;
+    padding: 10px;
+}
+
 </style>
 </style>
 </head>
@@ -508,28 +516,36 @@
                 }
         
             // --- 2. UI INITIALIZATION ---
-            function initNavHub() {
-                const container = document.getElementById('button-container');
-                const modal = document.getElementById('nav-modal');
-                const trigger = document.getElementById('nav-trigger');
-            
-                destinations.forEach(dest => {
-                    const btn = document.createElement('button');
-                    btn.innerText = dest.name;
-                    btn.style.cssText = "padding: 10px; cursor: pointer; background: #1a1a1a; color: #00ffcc; border: 1px solid #00ffcc; width: 100%; text-align: left;";
-            
-                    // USE ONLY ONE LISTENER: 'pointerdown'
-                    btn.addEventListener('pointerdown', (e) => {
-                        // 1. Stop event from bubbling to the joystick
-                        e.stopPropagation(); 
-                        
-                        // 2. Perform the action
-                        jumpTo(dest);
-                        modal.style.display = 'none';
-                    }, { passive: false });
-            
-                    container.appendChild(btn);
-                });
+            // Change initNavHub logic:
+function initNavHub() {
+    const container = document.getElementById('button-container');
+    const modal = document.getElementById('nav-modal');
+
+    // Clear previous
+    container.innerHTML = '';
+
+    destinations.forEach(dest => {
+        const btn = document.createElement('button');
+        btn.innerText = dest.name;
+        btn.dataset.name = dest.name; // Store the name for lookup
+        btn.style.cssText = "padding: 15px; background: #1a1a1a; color: #00ffcc; border: 1px solid #00ffcc; width: 100%; display: block; margin-bottom: 5px;";
+        container.appendChild(btn);
+    });
+
+    // Event Delegation: Listen on the container, not every button
+    container.addEventListener('pointerdown', (e) => {
+        const target = e.target;
+        if (target.tagName === 'BUTTON') {
+            // Find the destination data based on the text
+            const dest = destinations.find(d => d.name === target.innerText);
+            if (dest) {
+                jumpTo(dest);
+                modal.style.display = 'none';
+            }
+        }
+    });
+}
+
             
                 // Setup Trigger (Use pointerdown here too for consistency)
                 trigger.addEventListener('pointerdown', (e) => {
