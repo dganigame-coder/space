@@ -187,10 +187,10 @@
         font-weight: bold;
     }
     #nav-trigger {
-        min-width: 60px;
-        min-height: 44px;
-        padding: 15px 20px;
-        touch-action: manipulation; /* Tells mobile browsers to prioritize tap zooming/scrolling less */
+        z-index: 9999; /* Higher than everything else */
+        pointer-events: auto;
+        touch-action: manipulation; /* Crucial: Prevents double-tap delay */
+        -webkit-tap-highlight-color: transparent; /* Removes the ugly blue mobile selection box */
     }
 </style>
 </style>
@@ -512,20 +512,21 @@
                 const container = document.getElementById('button-container');
                 const modal = document.getElementById('nav-modal');
                 const trigger = document.getElementById('nav-trigger');
-        
+
                 // Create buttons
                 destinations.forEach(dest => {
                     const btn = document.createElement('button');
                     btn.innerText = dest.name;
                     btn.style.cssText = "padding: 10px; cursor: pointer; background: #1a1a1a; color: #00ffcc; border: 1px solid #00ffcc; width: 100%; text-align: left;";
 
+                    
                     // Change this line in your initNavHub function:
                     btn.addEventListener('click', (e) => {
                         e.stopPropagation(); // Stops it from bubbling to your 3D engine
                         jumpTo(dest);
                         modal.style.display = 'none';
                     });
-                    
+
                     // Update your button event listeners in initNavHub like this:
                     btn.addEventListener('touchstart', (e) => {
                         e.stopPropagation();
