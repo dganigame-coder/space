@@ -339,7 +339,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V2405260957</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-V2405261038</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -512,46 +512,30 @@
                 const container = document.getElementById('button-container');
                 const modal = document.getElementById('nav-modal');
                 const trigger = document.getElementById('nav-trigger');
-
-                // Create buttons
+            
                 destinations.forEach(dest => {
                     const btn = document.createElement('button');
                     btn.innerText = dest.name;
                     btn.style.cssText = "padding: 10px; cursor: pointer; background: #1a1a1a; color: #00ffcc; border: 1px solid #00ffcc; width: 100%; text-align: left;";
-
-                    
-                    // Change this line in your initNavHub function:
-                    btn.addEventListener('click', (e) => {
-                        e.stopPropagation(); // Stops it from bubbling to your 3D engine
+            
+                    // USE ONLY ONE LISTENER: 'pointerdown'
+                    btn.addEventListener('pointerdown', (e) => {
+                        // 1. Stop event from bubbling to the joystick
+                        e.stopPropagation(); 
+                        
+                        // 2. Perform the action
                         jumpTo(dest);
                         modal.style.display = 'none';
-                    });
-
-                    // Update your button event listeners in initNavHub like this:
-                    btn.addEventListener('touchstart', (e) => {
-                        e.stopPropagation();
-                        e.preventDefault(); // <-- ADD THIS: Stops the browser from triggering other events
-                        jumpTo(dest);
-                        modal.style.display = 'none';
-                    }, {passive: false});
-                    
-                    // Also stop the 'touchend' event to be extra safe
-                    btn.addEventListener('touchend', (e) => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                    }, {passive: false});
-
-                    /*
-                    btn.onclick = (e) => {
-                        e.stopPropagation();
-                        jumpTo(dest);
-                        modal.style.display = 'none';
-                    };
-                    */
+                    }, { passive: false });
+            
                     container.appendChild(btn);
                 });
-                // Setup Trigger
-                trigger.onclick = () => modal.style.display = 'block';
+            
+                // Setup Trigger (Use pointerdown here too for consistency)
+                trigger.addEventListener('pointerdown', (e) => {
+                    e.stopPropagation();
+                    modal.style.display = 'block';
+                });
             }
         
             window.addEventListener('DOMContentLoaded', initNavHub);
