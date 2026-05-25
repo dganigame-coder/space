@@ -347,7 +347,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V2405261038</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-V2505260903</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -516,44 +516,34 @@
                 }
         
             // --- 2. UI INITIALIZATION ---
-            // Change initNavHub logic:
-function initNavHub() {
-    const container = document.getElementById('button-container');
-    const modal = document.getElementById('nav-modal');
-
-    // Clear previous
-    container.innerHTML = '';
-
-    destinations.forEach(dest => {
-        const btn = document.createElement('button');
-        btn.innerText = dest.name;
-        btn.dataset.name = dest.name; // Store the name for lookup
-        btn.style.cssText = "padding: 15px; background: #1a1a1a; color: #00ffcc; border: 1px solid #00ffcc; width: 100%; display: block; margin-bottom: 5px;";
-        container.appendChild(btn);
-    });
-
-    // Event Delegation: Listen on the container, not every button
-    container.addEventListener('pointerdown', (e) => {
-        const target = e.target;
-        if (target.tagName === 'BUTTON') {
-            // Find the destination data based on the text
-            const dest = destinations.find(d => d.name === target.innerText);
-            if (dest) {
-                jumpTo(dest);
-                modal.style.display = 'none';
-            }
-        }
-    });
-}
-
+            function initNavHub() {
+                const container = document.getElementById('button-container');
+                const modal = document.getElementById('nav-modal');
             
-                // Setup Trigger (Use pointerdown here too for consistency)
-                trigger.addEventListener('pointerdown', (e) => {
-                    e.stopPropagation();
-                    modal.style.display = 'block';
+                // Clear previous
+                container.innerHTML = '';
+            
+                destinations.forEach(dest => {
+                    const btn = document.createElement('button');
+                    btn.innerText = dest.name;
+                    btn.dataset.name = dest.name; // Store the name for lookup
+                    btn.style.cssText = "padding: 15px; background: #1a1a1a; color: #00ffcc; border: 1px solid #00ffcc; width: 100%; display: block; margin-bottom: 5px;";
+                    container.appendChild(btn);
                 });
-            }
-        
+            
+                // Event Delegation: Listen on the container, not every button
+                container.addEventListener('pointerdown', (e) => {
+                    const target = e.target;
+                    if (target.tagName === 'BUTTON') {
+                        // Find the destination data based on the text
+                        const dest = destinations.find(d => d.name === target.innerText);
+                        if (dest) {
+                            jumpTo(dest);
+                            modal.style.display = 'none';
+                        }
+                    }
+                });
+            }        
             window.addEventListener('DOMContentLoaded', initNavHub);
 
         //const universe = new UniverseGenerator(engine.scene);
