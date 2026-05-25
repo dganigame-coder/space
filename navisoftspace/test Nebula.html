@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Nebula Test Environment</title>
+    <style>body { margin: 0; overflow: hidden; background: #000; }</style>
+</head>
+<body>
+    <script type="module">
+        import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
+        import { createNebula } from './nebula.js';
+
+        // 1. Setup Scene
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        camera.position.z = 5000;
+
+        // 2. Configuration for your nebula
+        const nebulaConfig = {
+            name: "Test Nebula",
+            x: 0, y: 0, z: 0,
+            spread: 2000,
+            size: 500,
+            count: 100,
+            colors: [0xff00ff, 0x00ffff, 0xffaa00]
+        };
+
+        // 3. Initialize the nebula
+        const myNebula = createNebula(scene, nebulaConfig);
+
+        // 4. Simple Animation Loop
+        function animate() {
+            requestAnimationFrame(animate);
+            // Optional: Rotate the whole nebula group slowly
+            myNebula.rotation.y += 0.002;
+            renderer.render(scene, camera);
+        }
+        animate();
+    </script>
+</body>
+</html>
