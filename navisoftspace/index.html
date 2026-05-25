@@ -345,7 +345,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V2505262042</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-V2505262051</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -477,49 +477,42 @@
                 { name: "Black Hole Singularity", x: 0, y: 0, z: 500000000 }
             ];
         
-                function jumpTo(dest) {
-                    const offset = 5000000;
-                    console.log("Jumping to:", dest.name);
-    
-                    // FORCE reset pointer events on the modal so it doesn't stay "stuck"
-                    const modal = document.getElementById('nav-modal');
-                    modal.style.display = 'none';
-                    modal.style.pointerEvents = 'auto'; // Reset this
-                
-                    // 1. Reset Joystick State (Prevents input locking on mobile)
-                    if (window.joystick) {
-                        window.joystick.velocity.set(0, 0);
-                        window.joystick.active = false;
-                    }
-                
-                    // 2. Perform Jump & Camera Positioning
-                    engine.camera.position.set(dest.x + offset, dest.y + offset, dest.z + offset);
-                    engine.camera.lookAt(dest.x, dest.y, dest.z);
-                
-                    // 3. Dynamic Far Plane Adjustment (Ensures the destination is visible)
-                    const distanceToTarget = Math.abs(dest.z) + offset + 10000000;
-                    if (engine.camera.far < distanceToTarget) {
-                        engine.camera.far = distanceToTarget;
-                        engine.camera.updateProjectionMatrix();
-                    }
-                
-                    // 4. Clear Modal & Reset Pointer Events
-                    const modal = document.getElementById('nav-modal');
-                    if (modal) {
-                        modal.style.display = 'none';
-                        modal.style.pointerEvents = 'none';
-                    }
-
-                
-                    // 5. Force Reactivation of Controls
-                    setTimeout(() => {
-                        if (window.joystick) {
-                            window.joystick.active = true;
-                        }
-                        console.log("Jump successful:", dest.name);
-                    }, 100);
+            function jumpTo(dest) {
+                console.log("Jumping to:", dest.name);
+                const offset = 5000000;
+                const modal = document.getElementById('nav-modal');
+            
+                // 1. Reset Joystick State
+                if (window.joystick) {
+                    window.joystick.velocity.set(0, 0);
+                    window.joystick.active = false;
                 }
-        
+            
+                // 2. Perform Jump & Camera Positioning
+                engine.camera.position.set(dest.x + offset, dest.y + offset, dest.z + offset);
+                engine.camera.lookAt(dest.x, dest.y, dest.z);
+            
+                // 3. Dynamic Far Plane Adjustment
+                const distanceToTarget = Math.abs(dest.z) + offset + 10000000;
+                if (engine.camera.far < distanceToTarget) {
+                    engine.camera.far = distanceToTarget;
+                    engine.camera.updateProjectionMatrix();
+                }
+            
+                // 4. Close Modal & Ensure it remains interactive for next time
+                if (modal) {
+                    modal.style.display = 'none';
+                    modal.style.pointerEvents = 'auto'; // KEEP THIS 'auto' so it can be opened again!
+                }
+            
+                // 5. Force Reactivation of Controls
+                setTimeout(() => {
+                    if (window.joystick) {
+                        window.joystick.active = true;
+                    }
+                }, 100);
+            }
+                    
             // --- 2. UI INITIALIZATION ---
             function initNavHub() {
                 const container = document.getElementById('button-container');
