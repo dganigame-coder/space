@@ -1,41 +1,39 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Nebula Test Environment</title>
-    <style>body { margin: 0; overflow: hidden; background: #000; }</style>
+    <title>Nebula Visual Test</title>
+    <style>body { margin: 0; background: #000; color: #fff; font-family: sans-serif; }</style>
 </head>
 <body>
+    <div style="position:absolute; top:10px; left:10px;">
+        <h1>Nebula Sandbox</h1>
+        <p>Inspecting: All Nebulae</p>
+    </div>
+    
     <script type="module">
         import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
         import { createNebula } from './nebula.js';
 
-        // 1. Setup Scene
         const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 20000);
+        const renderer = new THREE.WebGLRenderer();
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        camera.position.z = 5000;
+        camera.position.z = 10000;
 
-        // 2. Configuration for your nebula
-        const nebulaConfig = {
-            name: "Test Nebula",
-            x: 0, y: 0, z: 0,
-            spread: 2000,
-            size: 500,
-            count: 100,
-            colors: [0xff00ff, 0x00ffff, 0xffaa00]
-        };
+        // Define your list here to test
+        const testNebulae = [
+            { name: "Eagle Nebula", x: 0, y: 0, z: 0, count: 500, spread: 3000, size: 700, colors: [0x8800ff, 0xff00ff] },
+            { name: "Orion Nebula", x: 5000, y: 0, z: 0, count: 800, spread: 2500, size: 500, colors: [0xffaa00, 0xff5500] }
+        ];
 
-        // 3. Initialize the nebula
-        const myNebula = createNebula(scene, nebulaConfig);
+        // Build them
+        testNebulae.forEach(config => createNebula(scene, config));
 
-        // 4. Simple Animation Loop
         function animate() {
             requestAnimationFrame(animate);
-            // Optional: Rotate the whole nebula group slowly
-            myNebula.rotation.y += 0.002;
+            scene.rotation.y += 0.005; // Spin the whole scene to see the volume
             renderer.render(scene, camera);
         }
         animate();
