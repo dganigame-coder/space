@@ -336,7 +336,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V2505262327</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-V2605260036</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -490,11 +490,17 @@
                 
                     // 4. Clear Modal & Reset Pointer Events
                     const modal = document.getElementById('nav-modal');
+                    /*
                     if (modal) {
                         modal.style.display = 'none';
                         modal.style.pointerEvents = 'none';
+                    }*/
+
+                    if (modal) {
+                        modal.style.display = 'none';
+                        modal.style.pointerEvents = 'auto'; // CRITICAL: Reset this so it works next time
                     }
-                
+                    
                     // 5. Force Reactivation of Controls
                     setTimeout(() => {
                         if (window.joystick) {
@@ -514,7 +520,8 @@
                     const btn = document.createElement('button');
                     btn.innerText = dest.name;
                     btn.style.cssText = "padding: 10px; cursor: pointer; background: #1a1a1a; color: #00ffcc; border: 1px solid #00ffcc; width: 100%; text-align: left;";
-            
+
+        /*
                     // USE ONLY ONE LISTENER: 'pointerdown'
                     btn.addEventListener('pointerdown', (e) => {
                         // 1. Stop event from bubbling to the joystick
@@ -524,15 +531,57 @@
                         jumpTo(dest);
                         modal.style.display = 'none';
                     }, { passive: false });
-            
+
+                    
                     container.appendChild(btn);
                 });
-            
+
+                trigger.addEventListener('pointerdown', (e) => {
+                        e.stopPropagation();
+                        modal.style.display = 'block';
+                        modal.style.pointerEvents = 'auto'; // Explicitly enable interaction
+                    });
                 // Setup Trigger (Use pointerdown here too for consistency)
                 trigger.addEventListener('pointerdown', (e) => {
                     e.stopPropagation();
                     modal.style.display = 'block';
                 });
+
+
+                */
+
+                    // --- 1. CLEANED TRIGGER LOGIC ---
+                    const trigger = document.getElementById('nav-trigger');
+                    const modal = document.getElementById('nav-modal');
+                    
+                    // Remove all existing listeners (if you've been testing, this is safe)
+                    // Use one single listener to open the modal
+                    trigger.addEventListener('pointerdown', (e) => {
+                        e.stopPropagation();
+                        modal.style.display = 'block';
+                        modal.style.pointerEvents = 'auto'; // Force interactivity
+                        console.log("Menu opened");
+                    }, { passive: false });
+                    
+                    // --- 2. CLEANED BUTTON LOGIC ---
+                    destinations.forEach(dest => {
+                        const btn = document.createElement('button');
+                        btn.innerText = dest.name;
+                        // ... your styles ...
+                    
+                        btn.addEventListener('pointerdown', (e) => {
+                            e.stopPropagation();
+                            
+                            // Call the consolidated jump function
+                            jumpTo(dest);
+                            
+                            // Hide modal but keep pointer-events 'auto' on the container
+                            modal.style.display = 'none';
+                            modal.style.pointerEvents = 'auto'; 
+                        }, { passive: false });
+                    
+                        container.appendChild(btn);
+                    });
             }
         
             window.addEventListener('DOMContentLoaded', initNavHub);
