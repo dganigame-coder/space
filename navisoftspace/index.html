@@ -187,6 +187,11 @@
         font-weight: bold;
     }
 #nav-modal {
+    display: none; /* Only show when triggered */
+    pointer-events: auto; /* Always allow clicks */
+    touch-action: pan-y; /* Always allow vertical scrolling */
+    overflow-y: auto;
+    /* ... other styles ... */
     touch-action: pan-y; /* Crucial: Explicitly enables vertical scrolling */
     -webkit-overflow-scrolling: touch;
     overflow-y: auto;
@@ -345,7 +350,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V2505262051</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-V2505262104</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
