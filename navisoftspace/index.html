@@ -186,18 +186,16 @@
         border-radius: 4px;
         font-weight: bold;
     }
-    #nav-modal {
-    position: fixed;
-    top: 20%;
-    left: 10%;
-    width: 80%;
-    height: 60%;
-    overflow-y: auto;       /* This is crucial for scrolling */
-    -webkit-overflow-scrolling: touch; /* Makes scrolling feel smooth like a native app */
-    background: #000;
-    border: 1px solid #00ffcc;
-    z-index: 9999;
-    padding: 10px;
+#nav-modal {
+    touch-action: pan-y; /* Crucial: Explicitly enables vertical scrolling */
+    -webkit-overflow-scrolling: touch;
+    overflow-y: auto;
+    pointer-events: auto; /* Ensure the modal itself can be touched */
+}
+
+#button-container button {
+    touch-action: manipulation; /* Optimizes buttons for tap, avoids double-tap delay */
+    pointer-events: auto;
 }
 
 </style>
@@ -347,7 +345,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V2505260903</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-V2505262042</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -481,6 +479,12 @@
         
                 function jumpTo(dest) {
                     const offset = 5000000;
+                    console.log("Jumping to:", dest.name);
+    
+                    // FORCE reset pointer events on the modal so it doesn't stay "stuck"
+                    const modal = document.getElementById('nav-modal');
+                    modal.style.display = 'none';
+                    modal.style.pointerEvents = 'auto'; // Reset this
                 
                     // 1. Reset Joystick State (Prevents input locking on mobile)
                     if (window.joystick) {
@@ -505,6 +509,7 @@
                         modal.style.display = 'none';
                         modal.style.pointerEvents = 'none';
                     }
+
                 
                     // 5. Force Reactivation of Controls
                     setTimeout(() => {
@@ -519,31 +524,25 @@
             function initNavHub() {
                 const container = document.getElementById('button-container');
                 const modal = document.getElementById('nav-modal');
-            
-                // Clear previous
-                container.innerHTML = '';
+                
+                // Clear and re-populate only if empty to avoid double-listeners
+                if (container.children.length > 0) return; 
             
                 destinations.forEach(dest => {
                     const btn = document.createElement('button');
                     btn.innerText = dest.name;
-                    btn.dataset.name = dest.name; // Store the name for lookup
-                    btn.style.cssText = "padding: 15px; background: #1a1a1a; color: #00ffcc; border: 1px solid #00ffcc; width: 100%; display: block; margin-bottom: 5px;";
+                    // Large hit area for mobile
+                    btn.style.cssText = "padding: 20px; margin: 5px 0; background: #1a1a1a; color: #00ffcc; border: 1px solid #00ffcc; width: 100%; display: block;";
+            
+                    // Use pointerdown with a check for actual movement
+                    btn.addEventListener('pointerdown', (e) => {
+                        e.stopPropagation();
+                        jumpTo(dest);
+                    });
+                    
                     container.appendChild(btn);
                 });
-            
-                // Event Delegation: Listen on the container, not every button
-                container.addEventListener('pointerdown', (e) => {
-                    const target = e.target;
-                    if (target.tagName === 'BUTTON') {
-                        // Find the destination data based on the text
-                        const dest = destinations.find(d => d.name === target.innerText);
-                        if (dest) {
-                            jumpTo(dest);
-                            modal.style.display = 'none';
-                        }
-                    }
-                });
-            }        
+            }       
             window.addEventListener('DOMContentLoaded', initNavHub);
 
         //const universe = new UniverseGenerator(engine.scene);
