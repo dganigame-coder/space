@@ -516,74 +516,40 @@
                 const modal = document.getElementById('nav-modal');
                 const trigger = document.getElementById('nav-trigger');
             
-                destinations.forEach(dest => {
-                    const btn = document.createElement('button');
-                    btn.innerText = dest.name;
-                    btn.style.cssText = "padding: 10px; cursor: pointer; background: #1a1a1a; color: #00ffcc; border: 1px solid #00ffcc; width: 100%; text-align: left;";
-
-        /*
-                    // USE ONLY ONE LISTENER: 'pointerdown'
-                    btn.addEventListener('pointerdown', (e) => {
-                        // 1. Stop event from bubbling to the joystick
-                        e.stopPropagation(); 
-                        
-                        // 2. Perform the action
-                        jumpTo(dest);
-                        modal.style.display = 'none';
-                    }, { passive: false });
-
-                    
-                    container.appendChild(btn);
-                });
-
-                trigger.addEventListener('pointerdown', (e) => {
-                        e.stopPropagation();
-                        modal.style.display = 'block';
-                        modal.style.pointerEvents = 'auto'; // Explicitly enable interaction
-                    });
-                // Setup Trigger (Use pointerdown here too for consistency)
+                // 1. CLEAR PREVIOUS BUTTONS (Prevents duplicates if init is called twice)
+                container.innerHTML = '';
+            
+                // 2. TRIGGER LOGIC
+                // Use one single listener to open the modal
                 trigger.addEventListener('pointerdown', (e) => {
                     e.stopPropagation();
                     modal.style.display = 'block';
-                });
-
-
-                */
-
-                    // --- 1. CLEANED TRIGGER LOGIC ---
-                    const trigger = document.getElementById('nav-trigger');
-                    const modal = document.getElementById('nav-modal');
+                    modal.style.pointerEvents = 'auto'; // Force interactivity
+                }, { passive: false });
+            
+                // 3. DESTINATION BUTTON LOGIC
+                destinations.forEach(dest => {
+                    const btn = document.createElement('button');
+                    btn.innerText = dest.name;
                     
-                    // Remove all existing listeners (if you've been testing, this is safe)
-                    // Use one single listener to open the modal
-                    trigger.addEventListener('pointerdown', (e) => {
+                    // Mobile-friendly styling
+                    btn.style.cssText = "padding: 15px; margin: 5px 0; background: #1a1a1a; color: #00ffcc; border: 1px solid #00ffcc; width: 100%; display: block; font-size: 16px; touch-action: manipulation;";
+            
+                    btn.addEventListener('pointerdown', (e) => {
                         e.stopPropagation();
-                        modal.style.display = 'block';
-                        modal.style.pointerEvents = 'auto'; // Force interactivity
-                        console.log("Menu opened");
+                        
+                        // Execute the jump logic
+                        jumpTo(dest);
+                        
+                        // Hide modal but ensure it remains interactive for next time
+                        modal.style.display = 'none';
+                        modal.style.pointerEvents = 'auto'; 
                     }, { passive: false });
-                    
-                    // --- 2. CLEANED BUTTON LOGIC ---
-                    destinations.forEach(dest => {
-                        const btn = document.createElement('button');
-                        btn.innerText = dest.name;
-                        // ... your styles ...
-                    
-                        btn.addEventListener('pointerdown', (e) => {
-                            e.stopPropagation();
-                            
-                            // Call the consolidated jump function
-                            jumpTo(dest);
-                            
-                            // Hide modal but keep pointer-events 'auto' on the container
-                            modal.style.display = 'none';
-                            modal.style.pointerEvents = 'auto'; 
-                        }, { passive: false });
-                    
-                        container.appendChild(btn);
-                    });
+            
+                    container.appendChild(btn);
+                });
             }
-        
+                    
             window.addEventListener('DOMContentLoaded', initNavHub);
 
         //const universe = new UniverseGenerator(engine.scene);
