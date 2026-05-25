@@ -277,27 +277,20 @@
             }
         }, { passive: true });
 
-        targetBtn.addEventListener('touchend', (e) => {
-            e.stopPropagation();
-            e.preventDefault(); 
-            
-            // Inside your touchend listener
-            if (typeof SaveSystem !== 'undefined') {
-                callback(targetBtn);
-            } else {
-                console.error("Critical Error: SaveSystem is not loaded!");
-            }
-            
-            setTimeout(() => {
-                window.blockShipControls = false; 
-            }, 120);
-        }, { passive: false });
-
-        targetBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
+    // Now, your targetBtn listener will be able to see SaveSystem
+    targetBtn.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+    
+        try {
+            // Now 'SaveSystem' is defined!
             callback(targetBtn);
-        });
-    }
+        } catch (err) {
+            console.error("Button action failed:", err);
+        } finally {
+            window.blockShipControls = false;
+        }
+    }, { passive: false });
 
     // Bind Log Position
     setupCockpitButton('saveBtn', (buttonEl) => {
@@ -340,7 +333,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V2505262131</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-V2505262152</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
