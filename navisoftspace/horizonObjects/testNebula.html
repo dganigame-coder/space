@@ -22,11 +22,20 @@
 
         camera.position.z = 10000;
 
-        // Define your list here to test
-        const testNebulae = [
-            { name: "Eagle Nebula", x: 0, y: 0, z: 0, count: 500, spread: 3000, size: 700, colors: [0x8800ff, 0xff00ff] },
-            { name: "Orion Nebula", x: 5000, y: 0, z: 0, count: 800, spread: 2500, size: 500, colors: [0xffaa00, 0xff5500] }
-        ];
+// Replace your existing testNebulae array with this:
+const testNebulae = [
+    // 1. Center: Pillars of Creation (The "Anchor")
+    { name: "Pillars of Creation", x: 0, y: 0, z: 0, count: 1200, spread: 4000, size: 800, colors: [0xff3300, 0x8800ff, 0x00ffff] },
+    
+    // 2. Top Right: Helix Nebula (The "Eye")
+    { name: "Helix Nebula", x: 6000, y: 3000, z: -2000, count: 600, spread: 2000, size: 600, colors: [0xff4400, 0x00aaff] },
+    
+    // 3. Bottom Right: Butterfly Nebula (The "Wings")
+    { name: "Butterfly Nebula", x: 5000, y: -3000, z: -1000, count: 700, spread: 2500, size: 700, colors: [0xff5500, 0xffffff, 0x8800ff] },
+    
+    // 4. Left Side: Orion/Carina Complex (The "Base")
+    { name: "Carina Complex", x: -6000, y: -1000, z: -3000, count: 1500, spread: 5000, size: 900, colors: [0xff9900, 0xff0088, 0x00ffff] }
+];
 
         // Build them
         testNebulae.forEach(config => createNebula(scene, config));
