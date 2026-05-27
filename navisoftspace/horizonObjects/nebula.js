@@ -62,9 +62,14 @@ export function createNebula(scene, config) {
     }
 
     // --- 3. INTERNAL LIGHT ---
-    const coreLight = new THREE.PointLight(config.colors[0], 2, config.spread * 2);
+    // 1. Calculate the bright color for the core
+    const brightCoreColor = new THREE.Color(config.colors[0]).multiplyScalar(1.5);
+    
+    // 2. Create the light using that color
+    const coreLight = new THREE.PointLight(brightCoreColor, 5, config.spread * 2);
+    
+    // 3. Add ONLY the light to the group
     group.add(coreLight);
-
     group.position.set(config.x, config.y, config.z);
     
     group.userData = {
