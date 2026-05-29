@@ -5,35 +5,30 @@ export function createInterstellarAnomaly(scene, config) {
 
     // 🎯 1. Build the cigar shape
     const rockGeo = new THREE.SphereGeometry(150, 32, 32);
-    
-    // Using MeshBasicMaterial so it renders even if your scene lighting is dark
-    const rockMat = new THREE.MeshBasicMaterial({
-        color: 0x3d3535
-    });
-
+    const rockMat = new THREE.MeshBasicMaterial({ color: 0x3d3535 });
     const oumuamuaMesh = new THREE.Mesh(rockGeo, rockMat);
     oumuamuaMesh.name = "oumuamuaMesh";
-    
-    // 🚀 Scale the mesh directly (safer than scaling geometry)
     oumuamuaMesh.scale.set(1.0, 1.2, 10.0);
     
-    // 🎯 2. IDENTITY LAYER
+    anomalyGroup.add(oumuamuaMesh);
+
+    // 🎯 2. ADD A BEACON (Crucial for deep space visibility)
+    // This creates a small persistent dot so you can spot the anomaly at long distances
+    const beaconGeo = new THREE.SphereGeometry(500, 8, 8);
+    const beaconMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.3 });
+    const beacon = new THREE.Mesh(beaconGeo, beaconMat);
+    anomalyGroup.add(beacon);
+
+    // 🎯 3. IDENTITY LAYER
     const targetName = config.name || "'Oumuamua / Interstellar Wanderer";
-    
     anomalyGroup.name = targetName;
     anomalyGroup.userData = {
         type: 'solid',
         name: targetName,
-        state: 'solid',
         innerRadius: config.innerRadius || 0,
-        outerRadius: config.outerRadius || 5000 
+        outerRadius: config.outerRadius || 50000 // Increased range for scanner detection
     };
 
-    // Keep child mesh properties synced
-    oumuamuaMesh.userData = anomalyGroup.userData;
-    anomalyGroup.add(oumuamuaMesh);
-
-    // Global position settings
     anomalyGroup.position.set(config.x, config.y, config.z);
     
     scene.add(anomalyGroup);
