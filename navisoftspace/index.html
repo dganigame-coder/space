@@ -442,7 +442,7 @@
                 { name: "Heliopause", x: 0, y: 0, z: 18000000 },
                 { name: "Voyager Probe", x: 10000, y: 2000, z: 22505000 },
                 { name: "Oort Cloud", x: 0, y: 0, z: 65000000 },
-            
+           
                 // --- Local Stellar Neighborhood ---
                 { name: "Alpha Centauri A", x: 50000000, y: 0, z: 50000000 },
                 { name: "Alpha Centauri B", x: 50800000, y: 0, z: 50800000 },
@@ -451,19 +451,19 @@
                 { name: "'Oumuamua", x: 48000000, y: 20000, z: 49050000 },
       
                 // --- Deep Space / Interstellar ---
-                { name: "Orion Nursery", x: 20000000, y: 5000000, z: -80000000 },
+                { name: "Orion Nursery", x: 20000000, y: 5000000, z: -70000000 },
                 { name: "Vela Remnant", x: -300000000, y: -100000000, z: 250000000 },
                 { name: "Crab Pulsar/Nebula", x: -30000000, y: 10000000, z: 200000000 },
                 { name: "NGC 6302 Outflow", x: 60000000, y: 15000000, z: -95000000 },
                 { name: "Messier 16 / Carina", x: -120000000, y: -45000000, z: -60000000 },
                 { name: "PSR B1509-58 / Magnetar", x: 45000000, y: -80000000, z: 140000000 },
                 { name: "IC 434 / Ghost Filament", x: -90000000, y: 90000000, z: 85000000 },
-                { name: "Andromeda Galaxy", x: 150000000, y: 80000000, z: -300000000 },
-                { name: "Molecular Void", x: -150000000, y: -20000000, z: -150000000 },
-            
+                { name: "Andromeda Galaxy", x: 150000000, y: 80000000, z: -290000000 },
+                { name: "Molecular Void", x: -150000000, y: -20000000, z: -140000000 },
+
                 // --- Extreme Deep Space ---
                 { name: "Supreme Exoplanet System", x: 10000000, y: 0, z: 250000000 },
-                { name: "Black Hole Singularity", x: 0, y: 0, z: 500000000 }
+                { name: "Black Hole Singularity", x: 250000, y: 250000, z: 499900000 }
             ];
         
                 function jumpTo(dest) {
@@ -607,30 +607,17 @@
 
         // FIXED: Oort Cloud pushed far beyond the Kuiper Belt
         const oortCloud = createBelt(engine.scene, {
-    count: 20000,
-    innerRadius: 50000000,   // 50 Million
-    outerRadius: 80000000,   // 80 Million
-    verticalScatter: 2000000, 
-    color: 0xffffff, 
-    size: {min: 12000, max: 35000},
-    type: 'asteroid_belt',
-    name: 'Oort Cloud',
-    sound: 'DEEP_SPACE_STATIC'
-      });
-
-        /*
-        // 3. The Oort Cloud (Massive/Edge of Solar System)
-        const oortCloud = createBelt(engine.scene, {
             count: 20000,
-            innerRadius: 60000000, 
-            outerRadius: 80000000, 
+            innerRadius: 50000000,   // 50 Million
+            outerRadius: 80000000,   // 80 Million
             verticalScatter: 2000000, 
             color: 0xffffff, 
             size: {min: 12000, max: 35000},
             type: 'asteroid_belt',
             name: 'Oort Cloud',
             sound: 'DEEP_SPACE_STATIC'
-        });*/
+              });
+
 
         const oumuamua = createInterstellarAnomaly(engine.scene, {
                 x: 48000000, // Positioned near the Alpha Centauri sector boundaries
@@ -670,20 +657,6 @@
             name: "Orion Nursery",
             sound: 'NEBULA_HUM'
         });
-
-        /*
-        // --- 2. The Supernova Remnant (Violent Orange/Red) ---
-        const remnant = createNebula(engine.scene, {
-            x: -50000000, 
-            y: -20000000, 
-            z: 40000000,
-               count: 600,
-            spread: 5000000, 
-            size: 1500000,   
-            colors: [0xff4500, 0xffd700],
-            name: "Vela Remnant",
-            sound: 'ELECTRO_STATIC'
-        });*/
 
         const remnant = createNebula(engine.scene, {
             x: -300000000, // Increased to 300 Million
@@ -1350,7 +1323,8 @@
             const buffer = 5000000; 
             
             if (distToRemnant < (range + buffer)) {
-                phoenixRemnant.userData.onUpdate();
+                if (phoenixRemnant) 
+                    if(phoenixRemnant.userData) phoenixRemnant.userData.onUpdate();
             }
 
             // 1. Tell the universe to check if the pilot entered a new sector chunk
