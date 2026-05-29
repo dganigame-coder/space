@@ -3,31 +3,30 @@ import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
 export function createInterstellarAnomaly(scene, config) {
     const anomalyGroup = new THREE.Group();
 
-    // 🎯 1. Build the cigar shape ('Oumuamua is roughly 10x longer than it is wide)
-    // We stretch a sphere heavily along the Z axis to create that iconic rocky needle shape
+    // 🎯 1. Build the cigar shape
     const rockGeo = new THREE.SphereGeometry(150, 32, 32);
-    rockGeo.scale(1.0, 1.2, 10.0); // 🚀 Crucial: Stretches the geometry into a 3000-unit long cigar!
-
-    // Dark, metallic, highly textured rocky material
-    const rockMat = new THREE.MeshStandardMaterial({
-        color: 0x3d3535,         // Dark reddish-brown interstellar rock
-        roughness: 0.9,
-        metalness: 0.4
+    
+    // Using MeshBasicMaterial so it renders even if your scene lighting is dark
+    const rockMat = new THREE.MeshBasicMaterial({
+        color: 0x3d3535
     });
 
     const oumuamuaMesh = new THREE.Mesh(rockGeo, rockMat);
     oumuamuaMesh.name = "oumuamuaMesh";
     
-    // 🎯 2. IDENTITY LAYER: Stamping it for your target loop HUD scanner
+    // 🚀 Scale the mesh directly (safer than scaling geometry)
+    oumuamuaMesh.scale.set(1.0, 1.2, 10.0);
+    
+    // 🎯 2. IDENTITY LAYER
     const targetName = config.name || "'Oumuamua / Interstellar Wanderer";
     
     anomalyGroup.name = targetName;
     anomalyGroup.userData = {
-        type: 'solid',                          // 🪨 Matches your physical classification pipeline
+        type: 'solid',
         name: targetName,
-        state: 'solid',                         // Confirms it is solid interstellar crust
-        innerRadius: config.innerRadius || 0,    // Fixes HUD 'undefined' zone checking errors
-        outerRadius: config.outerRadius || 5000  // Sets radar tracking boundary zone size
+        state: 'solid',
+        innerRadius: config.innerRadius || 0,
+        outerRadius: config.outerRadius || 5000 
     };
 
     // Keep child mesh properties synced
