@@ -46,7 +46,15 @@ export function createSupernova(scene, config) {
     }
 
     group.position.set(config.x, config.y, config.z);
-    group.userData = { age: Math.random() * 600.0, state: 'MAIN_SEQUENCE' };
+    
+    // Updated group.userData with name and radius
+    group.userData = { 
+        type: 'supernova', 
+        name: config.name,
+        radius: config.size * 0.5,
+        age: Math.random() * 600.0, 
+        state: 'MAIN_SEQUENCE' 
+    };
 
     // 3. 10-Minute Lifecycle Update
     group.onUpdate = () => {
