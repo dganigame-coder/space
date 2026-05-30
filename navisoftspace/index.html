@@ -372,7 +372,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER3005261954</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER3005262107</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -1359,29 +1359,56 @@
             updateWormhole(wormhole, time);
 
             const distToRemnant = phoenixRemnant.position.distanceTo(engine.camera.position);
-            // Update ALL supernovas
-                supernovas.forEach(star => {
-                    const dist = star.position.distanceTo(engine.camera.position);
-                    const range = 50000000;
-                    const buffer = 5000000;
+            // 1. HOIST CONSTANTS: Define these OUTSIDE the loop so they aren't recreated every frame
+            const cullRange = 50000000;
+            const cullBuffer = 5000000;
+            // OPTIMIZATION: Use squared distances to avoid expensive Math.sqrt() calculations
+            const maxDistSq = (cullRange + cullBuffer) * (cullRange + cullBuffer);
+            const hudRangeSq = cullRange * cullRange; 
             
-                    // Only process the ones near the camera (Frustum/Range culling)
-                    if (dist < (range + buffer)) {
-                        if (star.onUpdate) star.onUpdate();
-                        star.visible = true; // Ensure they are rendered
-                    } else {
-                        // Optional: Hide them if very far to save GPU
-                        star.visible = false; 
+            let closestSupernova = null;
+            let minDistanceSq = Infinity;
+            const camPos = engine.camera.position;
+            
+            // 2. USE A STANDARD FOR-LOOP: Slightly faster than .forEach() in a heavy render loop
+            for (let i = 0; i < supernovas.length; i++) {
+                const star = supernovas[i];
+                
+                // OPTIMIZATION: distanceToSquared is MUCH faster than distanceTo
+                const distSq = star.position.distanceToSquared(camPos);
+            
+                if (distSq < maxDistSq) {
+                    if (star.onUpdate) star.onUpdate();
+                    star.visible = true; // Render it
+            
+                    // Check if it's the closest one for our HUD
+                    if (distSq < hudRangeSq && distSq < minDistanceSq) {
+                        minDistanceSq = distSq;
+                        closestSupernova = star;
                     }
-                });
-            
-                // Update your UI (using the first one as an example or finding the closest)
-                if (supernovas.length > 0) {
-                    const hud = document.getElementById('status-display');
-                    if(horizonObjElement)
-                        horizonObjElement.innerText = `Superova Status: ${supernovas[0].userData.state} | Next phase in: ${supernovas[0].userData.timeToChange}`;
+                } else {
+                    star.visible = false; // Hide it to save GPU
                 }
-
+            }
+            
+            // 3. OPTIMIZED DOM UPDATE: Prevent "Layout Thrashing"
+            if (horizonObjElement) {
+                let newText = "";
+                
+                if (closestSupernova) {
+                    newText = `Supernova Status: ${closestSupernova.userData.state} | Next phase in: ${closestSupernova.userData.timeToChange}`;
+                } else {
+                    // Use squared lengths here too for consistency and speed
+                    const interstellarDistSq = 85000000 * 85000000;
+                    newText = (camPos.lengthSq() > interstellarDistSq) ? ">> STATUS: INTERSTELLAR SPACE" : ">> STATUS: CRUISE MODE";
+                }
+            
+                // ONLY update the DOM if the text actually changed this frame
+                if (horizonObjElement._currentText !== newText) {
+                    horizonObjElement.innerText = newText;
+                    horizonObjElement._currentText = newText; // Cache it
+                }
+            }
             // 1. Tell the universe to check if the pilot entered a new sector chunk
             //universe.update(engine.camera.position);
         
