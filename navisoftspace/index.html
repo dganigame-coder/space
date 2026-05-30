@@ -230,18 +230,24 @@
         TRANSITION NAVIGATION HUB
     </h3>
     
-    <div id="button-container" style="
+   <div id="button-container" 
+     ontouchmove="event.stopPropagation()" 
+     onwheel="event.stopPropagation()" 
+     style="
         display: flex; 
         flex-direction: column; 
         gap: 10px; 
         overflow-y: auto; 
         flex-grow: 1; 
-        min-height: 0; /* CRITICAL for flexbox scrolling */
-        padding-right: 8px; /* Breathing room for the scrollbar */
-        margin-bottom: 15px; /* Space between last button and footer line */
-    ">
-        </div>
-
+        min-height: 0; 
+        padding-right: 8px; 
+        margin-bottom: 15px; 
+        /* --- THE MOBILE SCROLL LOCKS --- */
+        touch-action: pan-y; 
+        -webkit-overflow-scrolling: touch; 
+        overscroll-behavior: contain; 
+">
+    </div>
     <div style="flex-shrink: 0; padding-top: 15px; border-top: 1px solid #444;">
         <button onclick="document.getElementById('nav-modal').style.display='none'" style="
             width: 100%; padding: 14px; cursor: pointer; 
@@ -372,7 +378,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER3005262314</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER3105260005</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -1231,13 +1237,13 @@
                 /*
             else if (shipDist > 85000000) {
                 horizonObjElement.innerText = ">> STATUS: INTERSTELLAR SPACE";
-            }
+            }*/
             else {
                 horizonObjElement.style.color = "#00ccff";
                 horizonObjElement.innerText = ""; 
             }
 
-*/
+
             if (blackHole) {
                 const time = Date.now();
                 const dist = engine.camera.position.distanceTo(blackHole.position);
