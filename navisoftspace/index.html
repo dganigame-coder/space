@@ -210,20 +210,18 @@
     </button>
 </div>
 
-
 <div id="nav-modal" style="
     display: none !important;
     position: fixed; 
-    top: 50%; left: 50%; transform: translate(-50%, -50%); /* Centers it */
+    top: 50%; left: 50%; transform: translate(-50%, -50%);
     z-index: 9999; 
     background: rgba(0, 0, 0, 0.95); 
     padding: 20px; 
     border: 2px solid #00ffcc; 
-    width: 90%;          /* Mobile friendly */
-    max-width: 400px;    /* Keeps it narrow on desktop */
-    max-height: 85vh;    /* Prevents it from going off-screen */
+    width: 90%; 
+    max-width: 400px; 
+    max-height: 85vh; 
     box-shadow: 0 0 20px rgba(0, 255, 204, 0.3);
-    display: flex;       /* Uses flexbox to manage height */
     flex-direction: column;
 ">
     <h3 style="color: #00ffcc; text-align: center; font-family: monospace; margin-top: 0; font-size: 20px;">
@@ -235,7 +233,8 @@
         flex-direction: column; 
         gap: 10px; 
         overflow-y: auto; 
-        flex-grow: 1; /* Makes it take available space */
+        flex: 1 1 auto; 
+        min-height: 0; /* CRITICAL: Allows inner container to shrink for scroll */
         -webkit-overflow-scrolling: touch;
         padding-right: 5px;
     ">
@@ -243,21 +242,16 @@
 
     <div style="padding-top: 15px; border-top: 1px solid #444; margin-top: 10px;">
         <button onclick="document.getElementById('nav-modal').style.display='none'" style="
-            width: 100%; 
-            padding: 14px; 
-            cursor: pointer; 
-            background: #1a1a1a; 
-            color: #ff4444; 
-            border: 1px solid #ff4444; 
-            font-weight: bold; 
-            font-size: 16px; 
-            touch-action: manipulation;
+            width: 100%; padding: 14px; cursor: pointer; 
+            background: #1a1a1a; color: #ff4444; border: 1px solid #ff4444; 
+            font-weight: bold; font-size: 16px; touch-action: manipulation;
             border-radius: 4px;
         ">
             CLOSE
         </button>
     </div>
 </div>
+
     
 <div id="mobile-debug">
     Debug Log Initialized...
@@ -376,7 +370,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER3005261900</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER3005261922</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -1382,8 +1376,8 @@
                 // Update your UI (using the first one as an example or finding the closest)
                 if (supernovas.length > 0) {
                     const hud = document.getElementById('status-display');
-                    if(hud)
-                        hud.innerText = `Status: ${supernovas[0].userData.state} | Next phase in: ${supernovas[0].userData.timeToChange}`;
+                    if(horizonObjElement)
+                        horizonObjElement.innerText = `Status: ${supernovas[0].userData.state} | Next phase in: ${supernovas[0].userData.timeToChange}`;
                 }
 
             // 1. Tell the universe to check if the pilot entered a new sector chunk
