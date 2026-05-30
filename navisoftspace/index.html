@@ -1323,15 +1323,15 @@
                 const distanceMiles = distanceUnits * 1550;
             
                 const formattedKM = Math.floor(distanceKM).toLocaleString();
-                distanceElementKM.innerText = `${formattedKM} Km`; 
+                distanceElementKM.innerText = `${formattedKM}`; 
                
                 const lightSeconds = distanceKM / 300000;
                 if (lightSeconds > 3600) {
                     const lightHours = (lightSeconds / 3600).toFixed(2);
-                    distanceElementLH.innerText = `${lightHours} Light Hours`;
+                    distanceElementLH.innerText = `${lightHours}`;
                 } else if (lightSeconds > 60) {
                     const lightMinutes = (lightSeconds / 60).toFixed(2);
-                    distanceElementLH.innerText = `${lightMinutes} Light Minutes`;
+                    distanceElementLH.innerText = `${lightMinutes}`;
                 }
                                 
                  }
