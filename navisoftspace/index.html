@@ -211,14 +211,55 @@
 </div>
 
 
-<div id="nav-modal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 9999; background: rgba(0, 0, 0, 0.95); padding: 25px; border: 2px solid #00ffcc; width: 350px; box-shadow: 0 0 20px rgba(0, 255, 204, 0.3);">
-    <h3 style="color: #00ffcc; margin-top: 0; text-align: center; font-family: monospace;">TRANSITION NAVIGATION HUB</h3>
-    <div id="button-container" style="display: flex; flex-direction: column; gap: 8px; max-height: 60vh; overflow-y: auto; padding-right: 5px;"></div>
-    <button onclick="document.getElementById('nav-modal').style.display='none'" 
-            style="width: 100%; margin-top: 15px; padding: 10px; cursor: pointer; background: #1a1a1a; color: #ff4444; border: 1px solid #ff4444; font-weight: bold;">
-        CLOSE
-    </button>
+<div id="nav-modal" style="
+    display: none; 
+    position: fixed; 
+    top: 0; left: 0; right: 0; bottom: 0; 
+    z-index: 9999; 
+    background: rgba(0, 0, 0, 0.98); 
+    padding: 20px; 
+    overscroll-behavior: contain;
+">
+    <h3 style="color: #00ffcc; text-align: center; font-family: monospace; margin-top: 0; font-size: 20px;">
+        TRANSITION NAVIGATION HUB
+    </h3>
+    
+    <div id="button-container" style="
+        display: flex; 
+        flex-direction: column; 
+        gap: 12px; 
+        height: 75vh; 
+        overflow-y: auto; 
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 20px;
+    ">
+        </div>
+
+    <div style="
+        position: sticky; 
+        bottom: 0; 
+        background: rgba(0,0,0,0.95); 
+        padding-top: 15px; 
+        border-top: 1px solid #444;
+    ">
+        <button onclick="document.getElementById('nav-modal').style.display='none'" style="
+            width: 100%; 
+            padding: 16px; 
+            cursor: pointer; 
+            background: #1a1a1a; 
+            color: #ff4444; 
+            border: 1px solid #ff4444; 
+            font-weight: bold; 
+            font-size: 16px; 
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            border-radius: 4px;
+        ">
+            CLOSE
+        </button>
+    </div>
 </div>
+    
 <div id="mobile-debug">
     Debug Log Initialized...
 </div>
@@ -336,7 +377,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-V3005260130</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER3005261811</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
