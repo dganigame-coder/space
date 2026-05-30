@@ -214,11 +214,17 @@
 <div id="nav-modal" style="
     display: none; 
     position: fixed; 
-    top: 0; left: 0; right: 0; bottom: 0; 
+    top: 50%; left: 50%; transform: translate(-50%, -50%); /* Centers it */
     z-index: 9999; 
-    background: rgba(0, 0, 0, 0.98); 
+    background: rgba(0, 0, 0, 0.95); 
     padding: 20px; 
-    overscroll-behavior: contain;
+    border: 2px solid #00ffcc; 
+    width: 90%;          /* Mobile friendly */
+    max-width: 400px;    /* Keeps it narrow on desktop */
+    max-height: 85vh;    /* Prevents it from going off-screen */
+    box-shadow: 0 0 20px rgba(0, 255, 204, 0.3);
+    display: flex;       /* Uses flexbox to manage height */
+    flex-direction: column;
 ">
     <h3 style="color: #00ffcc; text-align: center; font-family: monospace; margin-top: 0; font-size: 20px;">
         TRANSITION NAVIGATION HUB
@@ -227,24 +233,18 @@
     <div id="button-container" style="
         display: flex; 
         flex-direction: column; 
-        gap: 12px; 
-        height: 75vh; 
+        gap: 10px; 
         overflow-y: auto; 
+        flex-grow: 1; /* Makes it take available space */
         -webkit-overflow-scrolling: touch;
-        padding-bottom: 20px;
+        padding-right: 5px;
     ">
         </div>
 
-    <div style="
-        position: sticky; 
-        bottom: 0; 
-        background: rgba(0,0,0,0.95); 
-        padding-top: 15px; 
-        border-top: 1px solid #444;
-    ">
+    <div style="padding-top: 15px; border-top: 1px solid #444; margin-top: 10px;">
         <button onclick="document.getElementById('nav-modal').style.display='none'" style="
             width: 100%; 
-            padding: 16px; 
+            padding: 14px; 
             cursor: pointer; 
             background: #1a1a1a; 
             color: #ff4444; 
@@ -252,7 +252,6 @@
             font-weight: bold; 
             font-size: 16px; 
             touch-action: manipulation;
-            -webkit-tap-highlight-color: transparent;
             border-radius: 4px;
         ">
             CLOSE
@@ -377,7 +376,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER3005261838</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER3005261849</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
