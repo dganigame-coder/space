@@ -55,7 +55,7 @@ export function createSupernova(scene, config) {
         age: Math.random() * 600.0, 
         state: 'MAIN_SEQUENCE' 
     };
-
+  
     // 3. 10-Minute Lifecycle Update
     group.onUpdate = () => {
         const CYCLE_DURATION = 600.0; // 10 Minutes
@@ -64,12 +64,24 @@ export function createSupernova(scene, config) {
 
         // --- STAGE 1: STABLE STAR (0s - 500s) ---
         if (age < 500.0) {
+            group.userData.state = 'STABLE';
+            group.userData.timeToChange = (500.0 - age).toFixed(1) + 's';
+            
+            // Visual Reset: Ensure star reappears and particles disappear
             coreMesh.visible = true;
+            coreMesh.scale.setScalar(1.0);
             coreMat.opacity = 1.0;
-            spritesArray.forEach(s => { s.material.opacity = 0; });
+            spritesArray.forEach(s => { 
+                s.material.opacity = 0; 
+                s.position.set(0, 0, 0); 
+            });
         } 
+
         // --- STAGE 2: EXPLOSION (500s - 550s) ---
         else if (age >= 500.0 && age < 550.0) {
+            group.userData.state = 'EXPLODING';
+            group.userData.timeToChange = (550.0 - age).toFixed(1) + 's';
+            
             const p = (age - 500.0) / 50.0; // Explosion lasts 50 seconds
             coreMesh.scale.setScalar(1.0 + (p * 8)); // Star expansion
             coreMat.opacity = 1.0 - p;
@@ -79,9 +91,12 @@ export function createSupernova(scene, config) {
                 s.position.copy(s.userData.direction).multiplyScalar(config.spread * p);
             });
         } 
+
         // --- STAGE 3: LINGERING NEBULA (550s - 600s) ---
         else {
-            group.userData.state = 'NEBULA_REMNANT';
+            group.userData.state = 'NEBULA';
+            group.userData.timeToChange = (600.0 - age).toFixed(1) + 's';
+            
             coreMesh.visible = false;
             spritesArray.forEach((s) => {
                 // Nebula drift based on config spread
