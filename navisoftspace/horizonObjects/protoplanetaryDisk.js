@@ -105,13 +105,15 @@ export function createProtoplanetaryDisk(scene, config) {
 
     const diskPoints = new THREE.Points(geometry, material);
     group.add(diskPoints);
-
+ 
     // 🌟 6. Central Protostar Core (Using the fixed starSize variable)
     const starGeo = new THREE.SphereGeometry(starSize, 32, 32); 
     const starMat = new THREE.MeshBasicMaterial({ 
         color: starColor,
-        transparent: true, opacity: 0.8,
+        transparent: true, 
+        opacity: 0.8,
         blending: THREE.AdditiveBlending
+         depthWrite: false;
     });
     const starMesh = new THREE.Mesh(starGeo, starMat);
     group.add(starMesh);
