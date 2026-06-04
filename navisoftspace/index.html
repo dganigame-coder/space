@@ -378,7 +378,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER0506260011</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER0506260015</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -415,7 +415,7 @@
         "exoplanetsystem":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@8c0ffb8/navisoftspace/horizonObjects/exoplanetsystem.js",
         "nebula":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@6e9f516/navisoftspace/horizonObjects/nebula.js",
         "supernova":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@bb19f83/navisoftspace/horizonObjects/supernova.js",
-        "protoplanetaryDisk":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@bb19f83/navisoftspace/horizonObjects/protoplanetaryDisk.js"
+        "protoplanetaryDisk":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@1c6f451/navisoftspace/horizonObjects/protoplanetaryDisk.js"
         }
     }
  
@@ -438,7 +438,7 @@
     import {createSupernova } from 'supernova';
     import { createExoplanetSystem as createDetailedSystem } from 'exoplanet';
     import { createExoplanetSystem as createLightweightSystem } from 'exoplanetsystem';
-        import {createProtoplanetaryDisk} from 'protoplanetaryDisk';
+    import {createProtoplanetaryDisk} from 'protoplanetaryDisk';
     import {createInterstellarAnomaly } from 'interstellarAnomaly';
     import { createSun } from 'sun';   
     import { createEarth } from 'earth';
@@ -458,21 +458,21 @@
     let autoPilotActive = false; 
         
 
-        const enginePromise = initEngine();
-        // --- 1. INITIALIZE ALL BODIES ---
-        const sun = createSun();
-        const mercury = createMercury();
-        const venus = createVenus();
-        const earth = createEarth();
-        const moon = createMoon();
-        const mars = createMars();
-        const jupiter = createJupiter();
-        const saturn = createSaturn();
-        const titan = createTitan();
-        const uranus = createUranus();
-        const neptune = createNeptune();
-        const pluto = createPluto();
-        const starfield = createStars();       
+    const enginePromise = initEngine();
+    // --- 1. INITIALIZE ALL BODIES ---
+    const sun = createSun();
+    const mercury = createMercury();
+    const venus = createVenus();
+    const earth = createEarth();
+    const moon = createMoon();
+    const mars = createMars();
+    const jupiter = createJupiter();
+    const saturn = createSaturn();
+    const titan = createTitan();
+    const uranus = createUranus();
+    const neptune = createNeptune();
+    const pluto = createPluto();
+    const starfield = createStars();       
 
 
         // 1. Kick off the Engine loading immediately in the background
