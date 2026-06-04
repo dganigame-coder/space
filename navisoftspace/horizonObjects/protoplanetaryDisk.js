@@ -16,18 +16,20 @@ export function createProtoplanetaryDisk(scene, config) {
     const count = config.count || 1000; 
     const pointSize = config.size || 50000; // Size of individual dust sprites
     
+    // 🌟 FIX 1: Explicitly define the star core size and rotation speed
+    const starSize = config.starSize || (diskSize * 0.02); // 2% of total disk size
+    const rotationSpeed = config.rotationSpeed || 0.0005;
+    
     // Available Palette (picks random variations from provided array)
     const palette = config.colors.map(c => new THREE.Color(c));
 
     // 🌟 2. RANDOMIZATION MAGIC: Generate the unique Gap Structures
-    // Defines where planets have cleared the dust. Varied on every call.
     const gapZones = [];
-    // Randomly decide how many gaps (0 to 3) this specific disk has
     const numGaps = Math.floor(Math.random() * 3); 
     
     for (let i = 0; i < numGaps; i++) {
-        const gapStartPerc = 0.2 + (Math.random() * 0.6); // Gap is located between 20%-80% radius
-        const gapWidthPerc = 0.05 + (Math.random() * 0.1); // Gap cleared lane is 5%-15% of width
+        const gapStartPerc = 0.2 + (Math.random() * 0.6); 
+        const gapWidthPerc = 0.05 + (Math.random() * 0.1); 
         
         const gapStartRad = innerRadius + (outerRadius - innerRadius) * gapStartPerc;
         const gapEndRad = gapStartRad + (diskSize * gapWidthPerc);
@@ -35,15 +37,15 @@ export function createProtoplanetaryDisk(scene, config) {
         gapZones.push({ start: gapStartRad, end: gapEndRad });
     }
 
-    // 🎨 3. Optimized Sprite Generator (Standard glowing dust circle)
+    // 🎨 3. Optimized Sprite Generator
     const canvas = document.createElement('canvas');
     canvas.width = 64; canvas.height = 64;
     const ctx = canvas.getContext('2d');
     const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
-    gradient.addColorStop(0, 'rgba(255,255,255,1)');    // White hot core
+    gradient.addColorStop(0, 'rgba(255,255,255,1)');    
     gradient.addColorStop(0.2, 'rgba(255,255,255,0.8)');
-    gradient.addColorStop(0.5, 'rgba(255,255,255,0.15)'); // Soft edge bleed
-    gradient.addColorStop(1, 'rgba(0,0,0,0)');          // Transparency
+    gradient.addColorStop(0.5, 'rgba(255,255,255,0.15)'); 
+    gradient.addColorStop(1, 'rgba(0,0,0,0)');          
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, 64, 64);
     const spriteTexture = new THREE.CanvasTexture(canvas);
@@ -51,50 +53,35 @@ export function createProtoplanetaryDisk(scene, config) {
     // 🌟 4. Mathematical Particle Distribution Algorithm
     const vertices = [];
     const colors = [];
-
-    // Bias parameter: Makes it much denser near the center
     const distributionBias = 1.6; 
 
     for (let i = 0; i < count; i++) {
-        // A. Generate Radius with Bias Toward Center (inverse exponential curve)
         let radius = innerRadius + (outerRadius - innerRadius) * Math.pow(Math.random(), distributionBias);
         
-        // B. Gap Checking Logic: If particle falls in a dark lane, discard it or reduce density
         if (gapZones.length > 0) {
             let inGap = false;
             for (let gap of gapZones) {
                 if (radius >= gap.start && radius <= gap.end) {
-                    // Decide whether to actually clear it completely (dramatize)
-                    // Allows some "dust motes" to remain in gaps (realistic)
                     if (Math.random() > 0.08) inGap = true; 
                     break;
                 }
             }
-            if (inGap) continue; // Skip generating this point entirely
+            if (inGap) continue; 
         }
 
-        // C. Generate Rotation Position
         const angle = Math.random() * Math.PI * 2;
-        
-        // D. Generate Thickness position (Z-axis offset)
-        // Disks are very thin, but thickest near the core.
-        const thicknessMod = 1.0 - (radius / outerRadius); // 1 near center, 0 at outer edge
-        const spreadY = (diskSize * 0.01) * thicknessMod; // 1% of size spread near core
+        const thicknessMod = 1.0 - (radius / outerRadius); 
+        const spreadY = (diskSize * 0.01) * thicknessMod; 
         const yOffset = (Math.random() - 0.5) * 2.0 * spreadY;
 
-        // Final Coordinate (Swirling around central point)
         vertices.push(
-            Math.cos(angle) * radius, // X position
-            yOffset,                  // Z position (up/down) - assuming flat y-plane
-            Math.sin(angle) * radius  // Z position (forward/back)
+            Math.cos(angle) * radius, 
+            yOffset,                  
+            Math.sin(angle) * radius  
         );
 
-        // E. Assign Randomized Vertex Colors
-        // Picks randomly from your palette array
         const baseColor = palette[Math.floor(Math.random() * palette.length)] || palette[0];
-        
-        // Optimization: Slights randomize color variation per vertex for rich look
-        const colorVariation = 0.8 + (Math.random() * 0.4); // Stretches color saturation 80%-120%
+        const colorVariation = 0.8 + (Math.random() * 0.4); 
         colors.push(
             baseColor.r * colorVariation, 
             baseColor.g * colorVariation, 
@@ -105,22 +92,22 @@ export function createProtoplanetaryDisk(scene, config) {
     // 🌟 5. Compile into Optimized THREE.Points
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-    geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3)); // Enable Vertex Colors!
+    geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3)); 
 
     const material = new THREE.PointsMaterial({
         size: pointSize,
         map: spriteTexture,
         transparent: true,
-        blending: THREE.AdditiveBlending, // Makes the dust glow beautifully
-        vertexColors: true, // Crucial: Tells shader to use the precomputed vertex colors
-        depthWrite: false   // Prevents particle edges from blocking particles behind them
+        blending: THREE.AdditiveBlending, 
+        vertexColors: true, 
+        depthWrite: false   
     });
 
     const diskPoints = new THREE.Points(geometry, material);
     group.add(diskPoints);
 
-    // 🌟 6. Central Protostar Core (Glow shell only)
-    const starGeo = new THREE.SphereGeometry(size, 32, 32); 
+    // 🌟 6. Central Protostar Core (Using the fixed starSize variable)
+    const starGeo = new THREE.SphereGeometry(starSize, 32, 32); 
     const starMat = new THREE.MeshBasicMaterial({ 
         color: starColor,
         transparent: true, opacity: 0.8,
@@ -129,13 +116,20 @@ export function createProtoplanetaryDisk(scene, config) {
     const starMesh = new THREE.Mesh(starGeo, starMat);
     group.add(starMesh);
 
-
     // Setting final position from config payload
     group.position.set(pos.x, pos.y, pos.z);
     
-    // Swirling Animation Loop
+    // 🌟 FIX 2: Swirling Animation Loop (Using the fixed rotationSpeed variable)
     group.onUpdate = () => {
-        diskPoints.rotation.y += (rotationSpeed || 0.0003); // Spins slowly around the center star
+        diskPoints.rotation.y += rotationSpeed; 
+    };
+
+    // 🌟 ADDED FOR THE MONITOR: Assigns the payload name directly to the object
+    group.userData = {
+        name: config.name || "Unknown Protoplanetary Disk",
+        type: "Protoplanetary Disk",
+        spread: diskSize,
+        particleCount: count
     };
 
     scene.add(group);
