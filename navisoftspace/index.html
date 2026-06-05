@@ -193,29 +193,30 @@
         -webkit-tap-highlight-color: transparent; /* Removes the ugly blue mobile selection box */
     }
 
-    /* 🌟 Force a large, custom scrollbar on mobile & desktop */
-    #button-container::-webkit-scrollbar {
-        width: 14px !important; /* Makes it thick and highly visible */
-        display: block !important;
-    }
+/* 🌟 Massive Cyber-Scrollbar for Easy Mobile Grabbing */
+#button-container::-webkit-scrollbar {
+    width: 24px !important; /* Jacked up from 14px to 24px */
+    display: block !important;
+}
 
-    /* The track/rail behind the scroll handle */
-    #button-container::-webkit-scrollbar-track {
-        background: rgba(26, 26, 26, 0.8) !important;
-        border-left: 1px solid rgba(0, 255, 204, 0.3) !important;
-    }
+/* The track background */
+#button-container::-webkit-scrollbar-track {
+    background: rgba(15, 15, 15, 0.9) !important;
+    border-left: 2px solid rgba(0, 255, 204, 0.2) !important;
+}
 
-    /* The actual draggable handle */
-    #button-container::-webkit-scrollbar-thumb {
-        background: #00ffcc !important; /* Bright neon cyan */
-        border: 2px solid #1a1a1a !important; /* Creates a clean border gap */
-        border-radius: 4px !important;
-    }
+/* The actual big draggable slider handle */
+#button-container::-webkit-scrollbar-thumb {
+    background: #00ffcc !important; 
+    border: 4px solid #1a1a1a !important; /* Thicker inset border gives it a tactile "button" look */
+    border-radius: 6px !important;
+}
 
-    /* Changes color when actively touched/clicked */
-    #button-container::-webkit-scrollbar-thumb:active {
-        background: #00ffff !important; 
-    }
+/* Brightens up when held down or dragged */
+#button-container::-webkit-scrollbar-thumb:active {
+    background: #00ffff !important;
+    box-shadow: 0 0 10px #00ffff;
+}
 </style>
 </head>
 <body>
@@ -264,13 +265,13 @@
         overflow-y: auto; 
         flex-grow: 1; 
         min-height: 0; 
-        max-height: 60vh; /* 🌟 FIX 1: Forces the container to scroll on small screens */
-        padding-right: 8px; 
+        max-height: 60vh; 
+        padding-right: 28px; /* 🌟 Increased to keep buttons clear of the wide scrollbar */
         margin-bottom: 15px; 
-        pointer-events: auto; /* 🌟 FIX 2: Ensures the UI accepts touches over the canvas */
+        pointer-events: auto; 
         touch-action: pan-y; 
         -webkit-overflow-scrolling: touch; 
-        overscroll-behavior: contain;">
+        overscroll-behavior: contain; ">
     </div>
     <div style="flex-shrink: 0; padding-top: 15px; border-top: 1px solid #444;">
         <button onclick="document.getElementById('nav-modal').style.display='none'" style="
@@ -402,7 +403,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER0506261714</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER0506261742</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
