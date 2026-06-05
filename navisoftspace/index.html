@@ -403,7 +403,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER0506261809</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER0506261858</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -991,22 +991,29 @@
         }
 
 
-        // 1. 🛑 YOU MUST DEFINE THESE THREE FIRST:
-        const colors = [0xff4500, 0x00ffff, 0xffaa00]; // Your palette array
-        const positionVector = { x: -80000000, y: 30000000, z: -150000000 }; // Coordinates
-        // (And ensure 'engine.scene' already exists)
+        const colors = [0xff4500, 0x00ffff, 0xffaa00]; 
+        const positionVector = { x: -80000000, y: 30000000, z: -150000000 }; 
         
         const BornSystem = createProtoplanetaryDisk(engine.scene, {
             x: positionVector.x, 
             y: positionVector.y, 
             z: positionVector.z,
             colors: colors,
-            count: 1500,        
+            
+            // 🌟 CHANGE 1: Crank up the count dramatically!
+            // 1,500 particles leaves massive empty spaces. We need 50,000+ so they overlap 
+            // and blend into a fluid, continuous gaseous sheet.
+            count: 50000,        
+        
             spread: 12000000,  
-            size: 500000,      
+            
+            // 🌟 CHANGE 2: Tweak particle size relative to your massive spread.
+            // If 500,000 looks too blocky or too small, test values between 300,000 and 800,000.
+            // We want the fuzzy edges of the particles to bleed into each other perfectly.
+            size: 450000,      
+        
             name: "Stellar Nursery Component"
         });
-
 
           // Add the background
       
