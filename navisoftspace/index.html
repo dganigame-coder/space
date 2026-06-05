@@ -230,8 +230,9 @@
         TRANSITION NAVIGATION HUB
     </h3>
     
-   <div id="button-container" 
-     ontouchmove="event.stopPropagation()" 
+<div id="button-container" 
+     onpointerdown="event.stopPropagation()" 
+     onpointermove="event.stopPropagation()" 
      onwheel="event.stopPropagation()" 
      style="
         display: flex; 
@@ -240,13 +241,13 @@
         overflow-y: auto; 
         flex-grow: 1; 
         min-height: 0; 
+        max-height: 60vh; /* 🌟 FIX 1: Forces the container to scroll on small screens */
         padding-right: 8px; 
         margin-bottom: 15px; 
-        /* --- THE MOBILE SCROLL LOCKS --- */
+        pointer-events: auto; /* 🌟 FIX 2: Ensures the UI accepts touches over the canvas */
         touch-action: pan-y; 
         -webkit-overflow-scrolling: touch; 
-        overscroll-behavior: contain; 
-">
+        overscroll-behavior: contain;">
     </div>
     <div style="flex-shrink: 0; padding-top: 15px; border-top: 1px solid #444;">
         <button onclick="document.getElementById('nav-modal').style.display='none'" style="
@@ -378,7 +379,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER0506261510</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER0506261545</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
