@@ -112,7 +112,7 @@ export function createProtoplanetaryDisk(scene, config) {
         color: starColor,
         transparent: true, 
         opacity: 0.8,
-        blending: THREE.AdditiveBlending
+        blending: THREE.AdditiveBlending,
          depthWrite: false;
     });
     const starMesh = new THREE.Mesh(starGeo, starMat);
