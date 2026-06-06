@@ -995,25 +995,15 @@
         const positionVector = { x: -80000000, y: 30000000, z: -150000000 }; 
         
         const BornSystem = createProtoplanetaryDisk(engine.scene, {
-            x: positionVector.x, 
-            y: positionVector.y, 
-            z: positionVector.z,
-            colors: colors,
-            
-            // 🌟 CHANGE 1: Crank up the count dramatically!
-            // 1,500 particles leaves massive empty spaces. We need 50,000+ so they overlap 
-            // and blend into a fluid, continuous gaseous sheet.
-            count: 50000,        
-        
-            spread: 12000000,  
-            
-            // 🌟 CHANGE 2: Tweak particle size relative to your massive spread.
-            // If 500,000 looks too blocky or too small, test values between 300,000 and 800,000.
-            // We want the fuzzy edges of the particles to bleed into each other perfectly.
-            size: 450000,      
-        
-            name: "Stellar Nursery Component"
-        });
+    x: positionVector.x, 
+    y: positionVector.y, 
+    z: positionVector.z,
+    colors: colors,
+    count: 70000,    // 🔥 Boosted configuration ensures dense arms AND background dust render together!
+    spread: 12000000,  
+    size: 700000,    
+    name: "Stellar Nursery Component"
+});
 
           // Add the background
       
