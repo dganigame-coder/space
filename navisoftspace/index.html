@@ -774,16 +774,19 @@
         
         // 1. The Phoenix Filament Field (Massive shockwave boundary)
         // 1. Initialize with the Remnant-Ready factory
-        const phoenixRemnant = createSupernova(engine.scene, {
-            x: -80000000, 
-            y: 30000000, 
-            z: -150000000,
-            count: 1200,        // Slightly denser for a better lingering remnant
-            spread: 12000000,  
-            size: 500000,       // Smaller individual grains for the static cloud
-            colors: [0xff4500, 0x00ffff],
-            name: "SNR G106.3+2.7 / The Phoenix Shroud"
-        });
+const phoenixRemnant = createSupernova(engine.scene, {
+    // 🚀 NEW INDEPENDENT COORDINATES: Separated safely from Phoenix-80M
+    x: -120000000, 
+    y: 25000000, 
+    z: -190000000,
+    
+    count: 1200,        // Slightly denser for a better lingering remnant
+    spread: 12000000,  
+    size: 500000,       // Smaller individual grains for the static cloud
+    colors: [0xff4500, 0x00ffff],
+    name: "SNR G106.3+2.7 / The Phoenix Shroud"
+});
+
         
         
         // 2. The Rescaled Stellar Collapse Matrix (Now safely out in deep space)
