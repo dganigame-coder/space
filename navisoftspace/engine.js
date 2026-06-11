@@ -235,6 +235,20 @@ export function checkCollisions(camera, bodies, scene) {
                 playHighFi('WORMHOLE_PULSE', penetration);
                 camera.rotation.z += Math.sin(Date.now() * 0.01) * penetration * 0.1;
             }
+            // ADD THIS NEW BLOCK:
+            else if (type === 'supernova') {
+                updateRightMonitor(spaceObject);
+                const currentState = spaceObject.userData.state;
+                
+                // If it's exploding, it's LOUD and violent
+                if (currentState === 'EXPLODING') {
+                    playHighFi('SUPERNOVA_EXPLOSION_ZONE', penetration); 
+                } 
+                // If it's stable or nebula, it's just a humming corona
+                else {
+                    playHighFi('STELLAR_CORONA', penetration);
+                }
+            }
             // Rigid Mesh Collisions (Asteroids / Planets Surfaces)
             else if (type === 'solid') {
                 if (typeof window.isColliding === 'undefined') window.isColliding = false;
