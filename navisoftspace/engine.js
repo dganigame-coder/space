@@ -238,15 +238,26 @@ export function checkCollisions(camera, bodies, scene) {
             // ADD THIS NEW BLOCK:
             else if (type === 'supernova') {
                 updateRightMonitor(spaceObject);
-                const currentState = spaceObject.userData.state;
+                const state = spaceObject.userData.state;
                 
-                // If it's exploding, it's LOUD and violent
-                if (currentState === 'EXPLODING') {
-                    playHighFi('SUPERNOVA_EXPLOSION_ZONE', penetration); 
-                } 
-                // If it's stable or nebula, it's just a humming corona
-                else {
-                    playHighFi('STELLAR_CORONA', penetration);
+                // Switch handles state mapping efficiently
+                switch (state) {
+                    case 'EXPLODING':
+                        // High intensity, violent
+                        triggerSolarFlare(camera, spaceObject);
+                        playHighFi('SUPERNOVA_EXPLOSION_ZONE', penetration);
+                        break;
+            
+                    case 'NEBULA':
+                        // Airy, dissipating, fading sound
+                        playHighFi('NEBULA_WIND', penetration);
+                        break;
+            
+                    case 'STABLE':
+                    default:
+                        // Standard corona hum
+                        playHighFi('STELLAR_CORONA', penetration);
+                        break;
                 }
             }
             // Rigid Mesh Collisions (Asteroids / Planets Surfaces)
