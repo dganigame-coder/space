@@ -130,6 +130,15 @@ export function playHighFi(key, intensity = 0.5) {
                 navigator.vibrate(vibrationDuration);
             }
             break;
+        case 'STELLAR_CORONA':
+            coronaVolume.volume.setTargetAtTime(db - 12, now, 0.8);
+            break;
+        case 'SUPERNOVA_EXPLOSION_ZONE':
+            explosionVolume.volume.setTargetAtTime(db + 2, now, 0.1); // Regelt nur das anhaltende Dröhnen
+            break;
+        case 'NEBULA_WIND':
+            nebulaVolume.volume.setTargetAtTime(db - 15, now, 0.5);
+            break;
         case 'SILENCE':
             [gasVolume, beltVolume, hullRainVolume, anomalyVolume, voidVolume, solarVolume].forEach(v => {
                 if(v) v.volume.rampTo(-100, 0.5);
