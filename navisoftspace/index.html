@@ -403,7 +403,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER1106262243</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER1206260019</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -412,8 +412,8 @@
       "imports": {
         "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
         "tone":"https://cdn.skypack.dev/tone@14.8.49",
-        "engine": "https://cdn.jsdelivr.net/gh/dganigame-coder/space@9bcca31/navisoftspace/engine.js",
-        "audio":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@6bb64ac/navisoftspace/audio.js",
+        "engine": "https://cdn.jsdelivr.net/gh/dganigame-coder/space@40014b0/navisoftspace/engine.js",
+        "audio":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@f71c227/navisoftspace/audio.js",
         "pilot": "https://cdn.jsdelivr.net/gh/dganigame-coder/space@25daaf/navisoftspace/pilot.js",
         "save": "https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/save.js",
         "stars":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@c5f872c/navisoftspace/horizonObjects/stars.js",
@@ -784,7 +784,8 @@ const phoenixRemnant = createSupernova(engine.scene, {
     spread: 12000000,  
     size: 500000,       // Smaller individual grains for the static cloud
     colors: [0xff4500, 0x00ffff],
-    name: "SNR G106.3+2.7 / The Phoenix Shroud"
+    name: "SNR G106.3+2.7 / The Phoenix Shroud",
+    type:"supernova"
 });
 
         
@@ -802,7 +803,8 @@ const phoenixRemnant = createSupernova(engine.scene, {
             count: 500,         // Boosted from 80 for dense, beautiful matrix clouds
             
             colors: [0xff3300, 0xffaa00, 0xff00ff], // Hot plasma matrix spectrum
-            name: "Henize 2-428 / Toroidal Core Collapse"
+            name: "Henize 2-428 / Toroidal Core Collapse",
+            type:"supernova"
         });
         // ============================================================================
         // 🌌 THE ANOMALOUS DEEP-SPACE CATALOGUE (Hyper-Realistic Configuration Matrix)
@@ -818,7 +820,8 @@ const phoenixRemnant = createSupernova(engine.scene, {
             size: 800000,       
             spread: 2500000,    
             count: 600,         
-            colors: [0xff3300, 0xffaa00, 0xff00ff] // High-energy ionized gas spectrum
+            colors: [0xff3300, 0xffaa00, 0xff00ff], // High-energy ionized gas spectrum
+            type:"supernova"
         });
         
         // 2. NEW: A Massive High-Mass Star-Forming Hatchery
@@ -831,7 +834,8 @@ const phoenixRemnant = createSupernova(engine.scene, {
             size: 1500000,       
             spread: 4000000,    
             count: 900,         
-            colors: [0x00ffff, 0x4b0082, 0xffffff] 
+            colors: [0x00ffff, 0x4b0082, 0xffffff] ,
+            type:"supernova"
         });
         
         // 3. NEW: A Blinding Magnetar Hyperburst Core
@@ -844,7 +848,8 @@ const phoenixRemnant = createSupernova(engine.scene, {
             size: 50000,        // Tiny, ultra-dense energetic center core
             spread: 3500000,    // Colossal radiating particle wind shockwave
             count: 750,         
-            colors: [0xffffff, 0x00aeff, 0x7b00ff] 
+            colors: [0xffffff, 0x00aeff, 0x7b00ff] ,
+            type:"supernova"
         });
         
         // 🌌 4. NEW: An Ancient Cosmic Ghost Nebula
@@ -856,7 +861,8 @@ const phoenixRemnant = createSupernova(engine.scene, {
             size: 600000,       
             spread: 1800000,    
             count: 450,         
-            colors: [0x00ff66, 0xd4af37, 0x228b22] // Emerald, Gold, Forest Green
+            colors: [0x00ff66, 0xd4af37, 0x228b22], // Emerald, Gold, Forest Green
+            type:"supernova"
         });
         
         // 🎯 THE FIX: Force the material color shift if the factory function ignored it
