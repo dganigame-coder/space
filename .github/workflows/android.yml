@@ -8,19 +8,13 @@ on:
 jobs:
   deploy-web:
     runs-on: ubuntu-latest
-    # This ensures every command runs inside the 'space' folder
     defaults:
       run:
         working-directory: ./space
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Debug file structure
-        run: |
-          pwd
-          ls -R
-
+      
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -76,4 +70,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: navisoft-package
-          path: space/android/app/build/outputs/apk/debug/navisoft.apk
+          # Note: Since we are already working in './space', we don't need to prefix the path with 'space/'
+          path: android/app/build/outputs/apk/debug/navisoft.apk
