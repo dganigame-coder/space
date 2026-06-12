@@ -8,6 +8,10 @@ on:
 jobs:
   deploy-web:
     runs-on: ubuntu-latest
+    # This block forces the runner to look inside the 'space' folder
+    defaults:
+      run:
+        working-directory: ./space 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -18,15 +22,10 @@ jobs:
           node-version: 20
 
       - name: Install dependencies
-        run: |
-          # Finds the directory containing package.json and cd into it
-          cd "$(dirname "$(find . -name "package.json" | head -n 1)")"
-          npm install
+        run: npm install
 
       - name: Build
-        run: |
-          cd "$(dirname "$(find . -name "package.json" | head -n 1)")"
-          npm run build || echo "No build step"
+        run: npm run build || echo "No build step"
 
       - name: Deploy to Render
         run: curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK }}
@@ -34,6 +33,9 @@ jobs:
   build-android:
     needs: deploy-web
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./space
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -43,33 +45,28 @@ jobs:
         with:
           node-version: 20
 
+      - name: Install dependencies
+        run: npm install
+
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Install and Sync
-        run: |
-          # Find project folder and perform setup
-          PROJECT_DIR="$(dirname "$(find . -name "package.json" | head -n 1)")"
-          cd "$PROJECT_DIR"
-          npm install
-          npx cap sync android
+      - name: Sync Capacitor
+        run: npx cap sync android
 
       - name: Build APK
         run: |
-          # This assumes the android folder is inside your project folder
-          PROJECT_DIR="$(dirname "$(find . -name "package.json" | head -n 1)")"
-          cd "$PROJECT_DIR/android"
+          cd android
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      - name: Rename and Upload APK
+      - name: Rename and Prepare APK
         run: |
-          # Find the APK wherever it was built
-          APK_PATH=$(find . -name "app-debug.apk" | head -n 1)
-          echo "Found APK at: $APK_PATH"
+          # Finds the file in the android folder
+          APK_PATH=$(find android -name "app-debug.apk" | head -n 1)
           mkdir -p final_output
           mv "$APK_PATH" final_output/navisoft.apk
 
@@ -77,4 +74,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: navisoft-package
-          path: final_output/navisoft.apk
+          path: space/final_output/navisoft.apk
