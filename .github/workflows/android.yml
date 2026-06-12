@@ -1,4 +1,4 @@
-name: Build and Deploy
+name: Deploy and Build
 
 on:
   push:
@@ -6,31 +6,45 @@ on:
       - main
 
 jobs:
-  # JOB 1: Your existing web deployment
   deploy-web:
     runs-on: ubuntu-latest
+    # This ensures every command runs inside the 'space' folder
+    defaults:
+      run:
+        working-directory: ./space
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Debug file structure
+        run: |
+          pwd
+          ls -R
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
+
       - name: Install dependencies
         run: npm install
+
       - name: Build
         run: npm run build || echo "No build step"
+
       - name: Deploy to Render
         run: curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK }}
 
-  # JOB 2: The new Android APK build
   build-android:
-    needs: deploy-web # Optional: starts after web deploy finishes
+    needs: deploy-web
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./space
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -38,9 +52,6 @@ jobs:
 
       - name: Install dependencies
         run: npm install
-
-      - name: Build Web
-        run: npm run build
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -60,9 +71,9 @@ jobs:
       - name: Rename and Upload APK
         run: |
           mv android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/navisoft.apk
-      
+
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: navisoft-package
-          path: android/app/build/outputs/apk/debug/navisoft.apk
+          path: space/android/app/build/outputs/apk/debug/navisoft.apk
