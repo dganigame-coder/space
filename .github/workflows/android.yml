@@ -8,9 +8,6 @@ on:
 jobs:
   deploy-web:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./space
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -32,9 +29,6 @@ jobs:
   build-android:
     needs: deploy-web
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./space
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -70,5 +64,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: navisoft-package
-          # Note: Since we are already working in './space', we don't need to prefix the path with 'space/'
           path: android/app/build/outputs/apk/debug/navisoft.apk
