@@ -18,10 +18,15 @@ jobs:
           node-version: 20
 
       - name: Install dependencies
-        run: npm install
+        run: |
+          # Finds the directory containing package.json and cd into it
+          cd "$(dirname "$(find . -name "package.json" | head -n 1)")"
+          npm install
 
       - name: Build
-        run: npm run build || echo "No build step"
+        run: |
+          cd "$(dirname "$(find . -name "package.json" | head -n 1)")"
+          npm run build || echo "No build step"
 
       - name: Deploy to Render
         run: curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK }}
@@ -38,34 +43,34 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install dependencies
-        run: npm install
-
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Sync Capacitor
-        run: npx cap sync android
+      - name: Install and Sync
+        run: |
+          # Find project folder and perform setup
+          PROJECT_DIR="$(dirname "$(find . -name "package.json" | head -n 1)")"
+          cd "$PROJECT_DIR"
+          npm install
+          npx cap sync android
 
       - name: Build APK
         run: |
-          cd android
+          # This assumes the android folder is inside your project folder
+          PROJECT_DIR="$(dirname "$(find . -name "package.json" | head -n 1)")"
+          cd "$PROJECT_DIR/android"
           chmod +x gradlew
           ./gradlew assembleDebug
-          echo "--- DEBUG: Locating APK ---"
-          find . -name "app-debug.apk"
 
-      - name: Rename and Prepare APK
+      - name: Rename and Upload APK
         run: |
-          # Find the path dynamically
-          APK_PATH=$(find android -name "app-debug.apk" | head -n 1)
+          # Find the APK wherever it was built
+          APK_PATH=$(find . -name "app-debug.apk" | head -n 1)
           echo "Found APK at: $APK_PATH"
-          # Create a clean folder for the output
           mkdir -p final_output
-          # Move and rename
           mv "$APK_PATH" final_output/navisoft.apk
 
       - name: Upload Artifact
