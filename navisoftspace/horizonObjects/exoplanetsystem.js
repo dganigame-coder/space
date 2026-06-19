@@ -1,54 +1,46 @@
-// 📦 ADD THIS IMPORT LINE AT THE VERY TOP:
-import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
+export function createExoplanetSystem(scene, config) {
+    // 1. EXTRACT DATA SAFELY
+    const { x = 0, y = 0, z = 0, name = 'Proxima Centauri', type = 'exoplanet' } = config;
 
-// Add this to your star creation logic
-export function createExoplanetSystem(scene, starPosition) {
+    // 2. CREATE SYSTEM CONTAINER (Defined once)
     const system = new THREE.Group();
     
-    // 🎯 Gather configuration fallbacks to keep the tracker loop happy
-    const systemName = starPosition.name || 'Proxima Centauri';
-    const systemType = starPosition.type || 'exoplanet';
-
-    // Set identity on the master group container
-    system.name = systemName;
+    // 3. SET IDENTITY
+    system.name = name;
     system.userData = {
-        type: systemType,
-        innerRadius: starPosition.innerRadius || 0,
-        outerRadius: starPosition.outerRadius || 0,
-        name: systemName
+        type: type,
+        name: name
     };
     
-    // --- 1. THE STAR (Proxima) ---
+    // --- 4. THE STAR ---
     const starGeo = new THREE.SphereGeometry(5000, 32, 32);
     const starMat = new THREE.MeshBasicMaterial({ color: 0xff4400 });
     const star = new THREE.Mesh(starGeo, starMat);
     
-    // 🎯 STAR IDENTITY LAYER: Set state to 'gas'
-    star.name = systemName + " Star";
+    star.name = name + " Star"; // Changed systemName to name
     star.userData = {
         type: 'star',
-        name: systemName,
-        state: 'gas' // Star core is burning plasma gas
+        name: name,
+        state: 'gas'
     };
     system.add(star);
 
-    // --- 2. THE EARTH-LIKE PLANET (Proxima b) ---
+    // --- 5. THE EARTH-LIKE PLANET ---
     const planetGeo = new THREE.SphereGeometry(200, 32, 32);
-    const planetMat = new THREE.MeshStandardMaterial({ color: 0x2277ff }); // Blue/Green
+    const planetMat = new THREE.MeshStandardMaterial({ color: 0x2277ff });
     const planet = new THREE.Mesh(planetGeo, planetMat);
-    planet.position.x = 15000; // Orbit distance
+    planet.position.x = 15000;
     
-    // 🎯 PLANET IDENTITY LAYER: Set state to 'solid'
-    planet.name = systemName + " b";
+    planet.name = name + " b"; // Changed systemName to name
     planet.userData = {
         type: 'exoplanet_body',
-        name: systemName + ' b',
-        state: 'solid' // Rocky exoplanet core surface
+        name: name + ' b',
+        state: 'solid'
     };
     system.add(planet);
 
-    // GLOBAL POSITIONING
-    system.position.set(starPosition.x, starPosition.y, starPosition.z);
+    // 6. GLOBAL POSITIONING
+    system.position.set(x, y, z);
     scene.add(system);
     
     return system; 
