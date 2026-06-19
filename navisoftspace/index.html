@@ -403,7 +403,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER1906262007</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER1906262023</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -760,17 +760,29 @@
         });
 
 
-        const blackEye = createNebula(engine.scene, {
-                x: 200000000,      // Position in your 3D space
-                y: 90000000, 
-                z: -400000000,     // Deeper in space
-                count: 2500,       // Higher count to define the dust lane
-                spread: 8000000,   // Tighter spread to create a compact, intense "Eye"
-                size: 400000,      // Slightly smaller particles for a denser look
-                colors: [0xfff5e1, 0x5d2e1b], // Bright Gold Core + Deep Reddish-Brown Dust
-                name: "Black Eye Galaxy",
-                sound: 'LOW_RUMBLE_GRAVITY' // Changed from static to something more intense
-            });
+        const galaxyCoords = { x: 200000000, y: 90000000, z: -400000000 };
+
+        // 1. THE CORE: Small, bright, and dense
+        const blackEyeCore = createNebula(engine.scene, {
+            ...galaxyCoords,
+            count: 3000,
+            spread: 3000000,      // Tight core
+            size: 200000,         // Small stars
+            colors: [0xffffff, 0xffe080], // Bright white to gold
+            name: "Black Eye Core",
+            sound: 'LOW_RUMBLE_GRAVITY'
+        });
+        
+        // 2. THE DUST LANE: Wider, dark, and "wispy"
+        const blackEyeDust = createNebula(engine.scene, {
+            ...galaxyCoords,
+            count: 2000,
+            spread: 12000000,     // Wider spread creates the "Eye" ring
+            size: 800000,         // Larger "clumps" of dust
+            colors: [0x5d2e1b, 0x2b1509], // Dark reddish-browns
+            name: "Black Eye Dust",
+            sound: 'LOW_RUMBLE_GRAVITY'
+        });
         
         const molecularCloud = createNebula(engine.scene, {
             x: -150000000, y: -20000000, z: -150000000,
@@ -1028,7 +1040,8 @@ const phoenixRemnant = createSupernova(engine.scene, {
 });
 
           // Add the background
-      
+              // 1. THE CORE: Small, bright, and dense
+         
            engine.scene.add(starfield); 
     
             console.log("Audio systems initialized via User Gesture.");
@@ -1039,7 +1052,7 @@ const phoenixRemnant = createSupernova(engine.scene, {
             // This is what allows you to land on them and see their HUD data
             const bodies = [sun, mercury, venus, earth, moon, mars, jupiter, saturn, titan, uranus, neptune , pluto];
             const horizonObj = [mainBelt,kuiperBelt,oortCloud,orionNebula, 
-                                remnant, andromeda,blackEye,molecularCloud, 
+                                remnant, andromeda, blackEyeCore,blackEyeDust,molecularCloud, 
                                 systemA,systemB,proximaSystem,sharedBelt,oumuamua, BornSystem
                                 //crabNebula
                                 //,supernova,dynamicSupernova
