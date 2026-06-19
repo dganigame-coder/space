@@ -403,7 +403,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER1906262321</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER1906262332</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -1042,47 +1042,48 @@ const phoenixRemnant = createSupernova(engine.scene, {
     name: "Stellar Nursery Component"
 });
 
-        // 0. Define the System's core coordinates so everything aligns
+// 0. Define the System's core coordinates
     const tauCetiPos = { x: 50000, y: 10000, z: -20000 };
 
-    // 1. THE STAR (Using your newly updated sun.js)
-    const tauCetiStar = window.createSun({
+    // 1. THE STAR (Tau Ceti Prime)
+    const tauCetiStar = createSun({
         position: tauCetiPos,
         name: "Tau Ceti Prime",
-        radius: 3100 // Slightly smaller than our Sun (Sol is 4000)
+        radius: 3100 
     });
     engine.scene.add(tauCetiStar);
 
-    // 2. THE DEBRIS DISK (Using your nebula logic)
-    // Assuming you added `window.createNebula = createNebula` to your nebula.js
-    const tauCetiDisk = window.createNebula(engine.scene, {
+    // 2. THE DEBRIS DISK (The Dusty Ring)
+    const tauCetiDisk = createNebula(engine.scene, {
         x: tauCetiPos.x,
         y: tauCetiPos.y,
         z: tauCetiPos.z,
-        count: 1500,           // Less than a galaxy, enough for a dense ring
-        spread: 18000,         // Tight orbital spread
-        size: 80,              // Small, rocky asteroids/dust
-        colors: [0x5d2e1b, 0x4a3c31], // Dark rock and dust colors
+        count: 1500,
+        spread: 18000,
+        size: 80,
+        colors: [0x5d2e1b, 0x4a3c31],
         name: "Tau Ceti Debris Disk"
     });
-    // Ensure the disk uses NormalBlending so it blocks light, just like M64!
+
+    // 3. THE EXOPLANETS (Using your actual engine functions)
     
-    // 3. THE EXOPLANETS (Using your exoplanet.js)
-    // Let's spawn "Tau Ceti e" - a potentially habitable rocky world
-    // Assuming you added `window.createPlanet` to your exoplanet.js
-    if (window.createPlanet) {
-        const planetE = window.createPlanet({
-            position: { 
-                x: tauCetiPos.x + 12000, // Orbiting 12,000 units away
-                y: tauCetiPos.y, 
-                z: tauCetiPos.z 
-            },
-            radius: 450, // Roughly Earth-sized
-            color: 0x228833, // Greenish/Blue
-            name: "Tau Ceti e"
-        });
-        engine.scene.add(planetE);
-    }
+    // Planet 1: Tau Ceti e (Performance Tier)
+    const planetE = createExoplanetSystem(engine.scene, {
+        x: tauCetiPos.x + 12000, // Inner orbit
+        y: tauCetiPos.y,
+        z: tauCetiPos.z,
+        name: "Tau Ceti e",
+        type: "exoplanet"
+    });
+
+    // Planet 2: Tau Ceti f (Performance Tier)
+    const planetF = createExoplanetSystem(engine.scene, {
+        x: tauCetiPos.x + 28000, // Outer orbit
+        y: tauCetiPos.y,
+        z: tauCetiPos.z,
+        name: "Tau Ceti f",
+        type: "exoplanet"
+    });
           // Add the background
               // 1. THE CORE: Small, bright, and dense
          
@@ -1097,7 +1098,8 @@ const phoenixRemnant = createSupernova(engine.scene, {
             const bodies = [sun, mercury, venus, earth, moon, mars, jupiter, saturn, titan, uranus, neptune , pluto];
             const horizonObj = [mainBelt,kuiperBelt,oortCloud,orionNebula, 
                                 remnant, andromeda, blackEyeCore,blackEyeDust,molecularCloud, 
-                                systemA,systemB,proximaSystem,sharedBelt,oumuamua, BornSystem
+                                systemA,systemB,proximaSystem,sharedBelt,oumuamua, BornSystem,
+                                planetE,planetF
                                 //crabNebula
                                 //,supernova,dynamicSupernova
                                ];
