@@ -748,7 +748,6 @@
         // --- 3. Distant Andromeda Galaxy (Extremely Far, White/Blue) ---
         const andromeda = createNebula(engine.scene, {
             x: 150000000, 
-            
             y: 80000000, 
             z: -300000000, // Deep Deep Space
             count: 1000,
@@ -759,6 +758,19 @@
             sound: 'DEEP_SPACE_STATIC'
         });
 
+
+        const blackEye = createNebula(engine.scene, {
+                x: 200000000,      // Position in your 3D space
+                y: 90000000, 
+                z: -400000000,     // Deeper in space
+                count: 2500,       // Higher count to define the dust lane
+                spread: 8000000,   // Tighter spread to create a compact, intense "Eye"
+                size: 400000,      // Slightly smaller particles for a denser look
+                colors: [0xfff5e1, 0x5d2e1b], // Bright Gold Core + Deep Reddish-Brown Dust
+                name: "Black Eye Galaxy",
+                sound: 'LOW_RUMBLE_GRAVITY' // Changed from static to something more intense
+            });
+        
         const molecularCloud = createNebula(engine.scene, {
             x: -150000000, y: -20000000, z: -150000000,
             name: "Barnard 68 / Dark Molecular Void",
@@ -1026,7 +1038,7 @@ const phoenixRemnant = createSupernova(engine.scene, {
             // This is what allows you to land on them and see their HUD data
             const bodies = [sun, mercury, venus, earth, moon, mars, jupiter, saturn, titan, uranus, neptune , pluto];
             const horizonObj = [mainBelt,kuiperBelt,oortCloud,orionNebula, 
-                                remnant, andromeda,molecularCloud, 
+                                remnant, andromeda,blackEye,molecularCloud, 
                                 systemA,systemB,proximaSystem,sharedBelt,oumuamua, BornSystem
                                 //crabNebula
                                 //,supernova,dynamicSupernova
