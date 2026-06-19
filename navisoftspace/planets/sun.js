@@ -1,6 +1,6 @@
 import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
 
-export function createSun(onfig = {}) {
+export function createSun(config = {}) {
     // Extract values, or use defaults if nothing is provided
     const { 
         position = { x: 0, y: 0, z: 0 }, 
