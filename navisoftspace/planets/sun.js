@@ -1,6 +1,14 @@
 import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
 
-export function createSun() {
+export function createSun(onfig = {}) {
+    // Extract values, or use defaults if nothing is provided
+    const { 
+        position = { x: 0, y: 0, z: 0 }, 
+        name = "THE SUN",
+        radius = 4000 
+    } = config;
+
+    
     const loader = new THREE.TextureLoader();
     const group = new THREE.Group();
 
@@ -54,11 +62,14 @@ export function createSun() {
     group.add(sunLight);
 
     // POSITIONING
-    group.position.set(0, 0, 0); // The center
+    // 2. Use the dynamically passed position
+    group.position.set(position.x, position.y, position.z); 
+    
+    // 3. Use the dynamically passed name and radius
     group.userData = { 
-        name: "THE SUN", 
+        name: name, 
         info: "Class G2V Star. Providing heat and light to the system.",
-        r: 4000 ,
+        r: radius,
         type:"star"
     };
 
