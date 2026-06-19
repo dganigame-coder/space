@@ -403,7 +403,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER1906262303</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER1906262307</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -422,7 +422,7 @@
         "jupiter":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@e7735dd/navisoftspace/planets/jupiter.js",
         "earth": "https://cdn.jsdelivr.net/gh/dganigame-coder/space@b148479/navisoftspace/planets/earth.js",
         "moon": "https://cdn.jsdelivr.net/gh/dganigame-coder/space@adab28e/navisoftspace/planets/moon.js",
-        "sun": "https://cdn.jsdelivr.net/gh/dganigame-coder/space@794525d/navisoftspace/planets/sun.js",
+        "sun": "https://cdn.jsdelivr.net/gh/dganigame-coder/space@4e25b43/navisoftspace/planets/sun.js",
         "venus":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@1714419/navisoftspace/planets/venus.js",
         "mercury":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@e65ef7f/navisoftspace/planets/mercury.js",
         "uranus":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@e19b4c4/navisoftspace/planets/uranus.js",
@@ -771,7 +771,7 @@
             colors: [0xffffff, 0xffe080], // Bright white to gold
             name: "Black Eye Core",
             sound: 'LOW_RUMBLE_GRAVITY',
-            renderOrder = 0
+            renderOrder: 0
         });
         
         // 2. THE DUST LANE: Wider, dark, and "wispy"
@@ -783,7 +783,7 @@
             colors: [0x5d2e1b, 0x2b1509], // Dark reddish-browns
             name: "Black Eye Dust",
             sound: 'LOW_RUMBLE_GRAVITY',
-            renderOrder = 1
+            renderOrder : 1
         });
         
         const molecularCloud = createNebula(engine.scene, {
