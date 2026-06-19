@@ -770,7 +770,8 @@
             size: 200000,         // Small stars
             colors: [0xffffff, 0xffe080], // Bright white to gold
             name: "Black Eye Core",
-            sound: 'LOW_RUMBLE_GRAVITY'
+            sound: 'LOW_RUMBLE_GRAVITY',
+            renderOrder = 0
         });
         
         // 2. THE DUST LANE: Wider, dark, and "wispy"
@@ -781,7 +782,8 @@
             size: 800000,         // Larger "clumps" of dust
             colors: [0x5d2e1b, 0x2b1509], // Dark reddish-browns
             name: "Black Eye Dust",
-            sound: 'LOW_RUMBLE_GRAVITY'
+            sound: 'LOW_RUMBLE_GRAVITY',
+            renderOrder = 1
         });
         
         const molecularCloud = createNebula(engine.scene, {
@@ -791,6 +793,7 @@
             spread: 30000000,   // Spans a massive area
             size: 200000,       // Smaller "specks" like the image
             colors: [0xbbccff, 0x112244], // Pale blue and deep space black
+            
         });
 
         // ============================================================================
