@@ -1042,12 +1042,13 @@ const phoenixRemnant = createSupernova(engine.scene, {
             name: "Stellar Nursery Component"
         });
 
-        // 0. Define a massive offset to get it away from our Solar System (which is at 0,0,0)
-        const tauOffsetX = 100000;  // 100k units to the right
-        const tauOffsetY = 5000;    // Slightly elevated
-        const tauOffsetZ = -80000;  // 80k units deep into the screen
+        // 0. Define massive, sector-based offsets
+        // We are now moving out into the hundreds of thousands/millions
+        const tauOffsetX = 500000;  // 500k units out
+        const tauOffsetY = 50000;   // 50k units high
+        const tauOffsetZ = -500000; // 500k units deep
         
-        // 1. THE STAR (Tau Ceti Prime)
+        // 1. THE STAR
         const tauCetiStar = createSun({
             position: { x: tauOffsetX, y: tauOffsetY, z: tauOffsetZ },
             name: "Tau Ceti Prime",
@@ -1059,15 +1060,15 @@ const phoenixRemnant = createSupernova(engine.scene, {
             x: tauOffsetX,
             y: tauOffsetY,
             z: tauOffsetZ,
-            count: 1500,
-            spread: 18000,
-            size: 80,
+            count: 2000,
+            spread: 25000, // Increased spread
+            size: 100,
             colors: [0x5d2e1b, 0x4a3c31],
             name: "Tau Ceti Debris Disk"
         });
         
         // 3. THE EXOPLANETS 
-        // Planet 1: Tau Ceti e (Add 12000 to the offset so it orbits the star!)
+        // Using the same base tauOffsetX ensures they stay locked to the Star
         const planetE = createExoplanetSystem(engine.scene, {
             x: tauOffsetX + 12000, 
             y: tauOffsetY,
@@ -1076,15 +1077,13 @@ const phoenixRemnant = createSupernova(engine.scene, {
             type: "exoplanet"
         });
         
-        // Planet 2: Tau Ceti f (Add 28000 to the offset)
         const planetF = createExoplanetSystem(engine.scene, {
             x: tauOffsetX + 28000, 
             y: tauOffsetY,
             z: tauOffsetZ,
             name: "Tau Ceti f",
             type: "exoplanet"
-        });         
-                // Add the background
+        });                // Add the background
               // 1. THE CORE: Small, bright, and dense
          
            engine.scene.add(starfield); 
