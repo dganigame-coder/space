@@ -403,7 +403,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER1906262344</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER1906262351</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -1032,59 +1032,59 @@ const phoenixRemnant = createSupernova(engine.scene, {
         const positionVector = { x: -80000000, y: 30000000, z: -150000000 }; 
         
         const BornSystem = createProtoplanetaryDisk(engine.scene, {
-    x: positionVector.x, 
-    y: positionVector.y, 
-    z: positionVector.z,
-    colors: colors,
-    count: 70000,    // 🔥 Boosted configuration ensures dense arms AND background dust render together!
-    spread: 12000000,  
-    size: 700000,    
-    name: "Stellar Nursery Component"
-});
+            x: positionVector.x, 
+            y: positionVector.y, 
+            z: positionVector.z,
+            colors: colors,
+            count: 70000,    // 🔥 Boosted configuration ensures dense arms AND background dust render together!
+            spread: 12000000,  
+            size: 700000,    
+            name: "Stellar Nursery Component"
+        });
 
-// 0. Define the System's core coordinates
-    const tauCetiPos = { x: 50000, y: 10000, z: -20000 };
-
-    // 1. THE STAR (Tau Ceti Prime)
-    const tauCetiStar = createSun({
-        position: tauCetiPos,
-        name: "Tau Ceti Prime",
-        radius: 3100 
-    });
-    
-
-    // 2. THE DEBRIS DISK (The Dusty Ring)
-    const tauCetiDisk = createNebula(engine.scene, {
-        x: tauCetiPos.x,
-        y: tauCetiPos.y,
-        z: tauCetiPos.z,
-        count: 1500,
-        spread: 18000,
-        size: 80,
-        colors: [0x5d2e1b, 0x4a3c31],
-        name: "Tau Ceti Debris Disk"
-    });
-
-    // 3. THE EXOPLANETS (Using your actual engine functions)
-    
-    // Planet 1: Tau Ceti e (Performance Tier)
-    const planetE = createExoplanetSystem(engine.scene, {
-        x: tauCetiPos.x + 12000, // Inner orbit
-        y: tauCetiPos.y,
-        z: tauCetiPos.z,
-        name: "Tau Ceti e",
-        type: "exoplanet"
-    });
-
-    // Planet 2: Tau Ceti f (Performance Tier)
-    const planetF = createExoplanetSystem(engine.scene, {
-        x: tauCetiPos.x + 28000, // Outer orbit
-        y: tauCetiPos.y,
-        z: tauCetiPos.z,
-        name: "Tau Ceti f",
-        type: "exoplanet"
-    });
-          // Add the background
+        // 0. Define a massive offset to get it away from our Solar System (which is at 0,0,0)
+        const tauOffsetX = 100000;  // 100k units to the right
+        const tauOffsetY = 5000;    // Slightly elevated
+        const tauOffsetZ = -80000;  // 80k units deep into the screen
+        
+        // 1. THE STAR (Tau Ceti Prime)
+        const tauCetiStar = createSun({
+            position: { x: tauOffsetX, y: tauOffsetY, z: tauOffsetZ },
+            name: "Tau Ceti Prime",
+            radius: 3100 
+        });
+        
+        // 2. THE DEBRIS DISK
+        const tauCetiDisk = createNebula(engine.scene, {
+            x: tauOffsetX,
+            y: tauOffsetY,
+            z: tauOffsetZ,
+            count: 1500,
+            spread: 18000,
+            size: 80,
+            colors: [0x5d2e1b, 0x4a3c31],
+            name: "Tau Ceti Debris Disk"
+        });
+        
+        // 3. THE EXOPLANETS 
+        // Planet 1: Tau Ceti e (Add 12000 to the offset so it orbits the star!)
+        const planetE = window.createExoplanetSystem(engine.scene, {
+            x: tauOffsetX + 12000, 
+            y: tauOffsetY,
+            z: tauOffsetZ,
+            name: "Tau Ceti e",
+            type: "exoplanet"
+        });
+        
+        // Planet 2: Tau Ceti f (Add 28000 to the offset)
+        const planetF = createExoplanetSystem(engine.scene, {
+            x: tauOffsetX + 28000, 
+            y: tauOffsetY,
+            z: tauOffsetZ,
+            name: "Tau Ceti f",
+            type: "exoplanet"
+        });         
+                // Add the background
               // 1. THE CORE: Small, bright, and dense
          
            engine.scene.add(starfield); 
