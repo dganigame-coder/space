@@ -403,7 +403,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER2106262200</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER2106262211</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -1099,7 +1099,32 @@
         z: tauOffsetZ,
         name: "Tau Ceti f",
         type: "exoplanet"
-    });         
+    });       
+
+
+     // 0. The Massive Cosmological Coordinates
+    const momX = 900000000;
+    const momY = 450000000;
+    const momZ = -900000000;
+    
+    // 1. REUSE CREATE-SUN: For the bright, hyper-dense galactic core
+    const momCore = createSun({
+        position: { x: momX, y: momY, z: momZ },
+        name: "Galaxy MoM-z14 Core",
+        radius: 5000 // Make it massive so it can be seen from far away!
+    });
+   
+    // 2. REUSE CREATE-NEBULA: For the gas cloud surrounding the early galaxy
+    const momGasCloud = createNebula(engine.scene, {
+        x: momX,
+        y: momY,
+        z: momZ,
+        count: 5000,       // High density of primitive stars
+        spread: 60000,     // A massive galactic radius expansion
+        size: 150,         // Large, intensely bright star-forming regions
+        colors: [0xff0000, 0x550000], // Deep, redshifted infrared-crimson tones
+        name: "MoM-z14 Primordial Dust"
+    });   
            engine.scene.add(starfield); 
     
             console.log("Audio systems initialized via User Gesture.");
@@ -1112,7 +1137,8 @@
             const horizonObj = [mainBelt,kuiperBelt,oortCloud,orionNebula, 
                                 remnant, andromeda, blackEyeCore,blackEyeDust,molecularCloud, 
                                 systemA,systemB,proximaSystem,sharedBelt,oumuamua, BornSystem,
-                                planetE,planetF,tauCetiDisk,tauCetiStar
+                                planetE,planetF,tauCetiDisk,tauCetiStar,
+                                 momCore, momGasCloud
                                 //crabNebula
                                 //,supernova,dynamicSupernova
                                ];
