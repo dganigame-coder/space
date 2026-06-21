@@ -403,7 +403,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER2106262303</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER2106262333</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -1187,19 +1187,27 @@
         name: "MoM-z14 Primordial Dust"
     });   
 
-        // 🌌 THE ABSOLUTE EDGE OF THE OBSERVABLE UNIVERSE MATRIX
-        const cmbDistance = 2000000000; // 2 Billion Units (Absolute Engine Edge)
+    // 🌌 THE RECONFIGURED COSMIC HORIZON DATA MATRIX
+    const cmbDistance = 2000000000; // 2 Billion Units
+    
+    const cosmicHorizon = createNebula(engine.scene, {
+        x: 0, 
+        y: 0, 
+        z: 0, 
+        count: 30000,        // ⬆️ Massive density to fill the void smoothly
+        spread: cmbDistance, 
+        size: 3500,          // ⬆️ Giant point sizes let the textures bleed together like real cream
         
-        const cosmicHorizon = createNebula(engine.scene, {
-            x: 0, 
-            y: 0, 
-            z: 0, // Centered at origin, wrapping around the whole map
-            count: 8000,
-            spread: cmbDistance, // Massive cosmic radius
-            size: 400, // Large, faint clouds of static noise
-            colors: [0x331100, 0x110022], // Faint amber and cosmic violet radiation
-            name: "Cosmic Microwave Horizon"
-        });
+        // 🔮 THE HIGH-GLOW NEON VIOLET AND GOLDEN AMBER RADIATION PALETTE
+        colors: [
+            0xffaa00,        // Radiant Golden Amber (Leftover Big Bang Heat)
+            0xa020f0,        // Thick Creamy Violet
+            0x6a1b9a,        // Intense Velvet Plum
+            0x110022         // Midnight Void Indigo Back-layer
+        ],
+        name: "Cosmic Microwave Horizon"
+    });
+        
            engine.scene.add(starfield); 
     
             console.log("Audio systems initialized via User Gesture.");
