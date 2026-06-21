@@ -403,7 +403,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER2106262243</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER2106262247</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -1605,7 +1605,28 @@
             const time = Date.now();
         
             // Update the wormhole's pulse and rotation
-            updateWormhole(wormhole, time);
+            // ==========================================
+            // INSIDE YOUR MAIN ANIMATION/RENDER LOOP TICK:
+            // ==========================================
+            
+            // 1. Keep track of all your individual created wormholes in one place
+            const activeWormholesList = [
+                wormholeAlpha, wormholeBeta, wormholeGamma, wormholeDelta, wormholeEpsilon,
+                wormholeZeta, wormholeEta, wormholeTheta, wormholeIota, wormholeJupiter
+            ].filter(wh => wh !== undefined && wh !== null); // Safely filters out any unloaded or uncreated gates
+            
+            // 2. Loop through the list and update every single wormhole asset dynamically 
+            activeWormholesList.forEach((wh) => {
+                // This runs your animation math on each individual gate using the current time frame
+                updateWormhole(wh, time);
+            });
+
+// 3. Existing 'Oumuamua tumbling mechanics (Keep this right below it)
+if (oumuamua) {
+    oumuamua.rotation.x += 0.005; // End-over-end tumble
+    oumuamua.rotation.y += 0.002; // Slow lateral twisting
+    oumuamua.rotation.z += 0.001; // Chaotic stability wobble
+}
 
             const distToRemnant = phoenixRemnant.position.distanceTo(engine.camera.position);
             // 1. HOIST CONSTANTS: Define these OUTSIDE the loop so they aren't recreated every frame
