@@ -403,7 +403,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER2006260017</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER2106262148</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -802,19 +802,19 @@
         
         // 1. The Phoenix Filament Field (Massive shockwave boundary)
         // 1. Initialize with the Remnant-Ready factory
-const phoenixRemnant = createSupernova(engine.scene, {
-    // 🚀 NEW INDEPENDENT COORDINATES: Separated safely from Phoenix-80M
-    x: -120000000, 
-    y: 25000000, 
-    z: -190000000,
-    
-    count: 1200,        // Slightly denser for a better lingering remnant
-    spread: 12000000,  
-    size: 500000,       // Smaller individual grains for the static cloud
-    colors: [0xff4500, 0x00ffff],
-    name: "SNR G106.3+2.7 / The Phoenix Shroud",
-    type:"supernova"
-});
+        const phoenixRemnant = createSupernova(engine.scene, {
+            // 🚀 NEW INDEPENDENT COORDINATES: Separated safely from Phoenix-80M
+            x: -120000000, 
+            y: 25000000, 
+            z: -190000000,
+            
+            count: 1200,        // Slightly denser for a better lingering remnant
+            spread: 12000000,  
+            size: 500000,       // Smaller individual grains for the static cloud
+            colors: [0xff4500, 0x00ffff],
+            name: "SNR G106.3+2.7 / The Phoenix Shroud",
+            type:"supernova"
+        });
 
         
         
@@ -1042,50 +1042,53 @@ const phoenixRemnant = createSupernova(engine.scene, {
             name: "Stellar Nursery Component"
         });
 
-        // 0. Define massive, sector-based offsets
-        // We are now moving out into the hundreds of thousands/millions
-        const tauOffsetX = 500000;  // 500k units out
-        const tauOffsetY = 50000;   // 50k units high
-        const tauOffsetZ = -500000; // 500k units deep
-        
-        // 1. THE STAR
-        const tauCetiStar = createSun({
-            position: { x: tauOffsetX, y: tauOffsetY, z: tauOffsetZ },
-            name: "Tau Ceti Prime",
-            radius: 3100 
-        });
-        
-        // 2. THE DEBRIS DISK
-        const tauCetiDisk = createNebula(engine.scene, {
-            x: tauOffsetX,
-            y: tauOffsetY,
-            z: tauOffsetZ,
-            count: 2000,
-            spread: 25000, // Increased spread
-            size: 100,
-            colors: [0x5d2e1b, 0x4a3c31],
-            name: "Tau Ceti Debris Disk"
-        });
-        
-        // 3. THE EXOPLANETS 
-        // Using the same base tauOffsetX ensures they stay locked to the Star
-        const planetE = createExoplanetSystem(engine.scene, {
-            x: tauOffsetX + 12000, 
-            y: tauOffsetY,
-            z: tauOffsetZ,
-            name: "Tau Ceti e",
-            type: "exoplanet"
-        });
-        
-        const planetF = createExoplanetSystem(engine.scene, {
-            x: tauOffsetX + 28000, 
-            y: tauOffsetY,
-            z: tauOffsetZ,
-            name: "Tau Ceti f",
-            type: "exoplanet"
-        });                // Add the background
-              // 1. THE CORE: Small, bright, and dense
-         
+     // ==========================================
+    // 🛠️ THE CHANGES TO MAKE:
+    // ==========================================
+    
+    // 0. Update these base constants to the massive proportional interstellar scale
+    const tauOffsetX = 150000000; // 150 Million (Far beyond Oort Cloud at 65 Million)
+    const tauOffsetY = 10000000;  // 10 Million 
+    const tauOffsetZ = 150000000; // 150 Million
+    
+    // 1. THE STAR
+    const tauCetiStar = createSun({
+        position: { x: tauOffsetX, y: tauOffsetY, z: tauOffsetZ },
+        name: "Tau Ceti Prime",
+        radius: 3100 
+    });
+    
+    // 2. THE DEBRIS DISK
+    const tauCetiDisk = createNebula(engine.scene, {
+        x: tauOffsetX,
+        y: tauOffsetY,
+        z: tauOffsetZ,
+        count: 2000,
+        spread: 25000, 
+        size: 100,
+        colors: [0x5d2e1b, 0x4a3c31],
+        name: "Tau Ceti Debris Disk"
+    });
+    
+    // 3. THE EXOPLANETS 
+    // Pass the EXACT same system center coordinates (tauOffsetX, tauOffsetY, tauOffsetZ).
+    // Do NOT manually add +12000 or +28000 here! The planet function internally handles 
+    // putting the planet body at its orbit radius (e.g. planet.position.x = 15000) inside its group.
+    const planetE = createExoplanetSystem(engine.scene, {
+        x: tauOffsetX, 
+        y: tauOffsetY,
+        z: tauOffsetZ,
+        name: "Tau Ceti e",
+        type: "exoplanet"
+    });
+    
+    const planetF = createExoplanetSystem(engine.scene, {
+        x: tauOffsetX, 
+        y: tauOffsetY,
+        z: tauOffsetZ,
+        name: "Tau Ceti f",
+        type: "exoplanet"
+    });         
            engine.scene.add(starfield); 
     
             console.log("Audio systems initialized via User Gesture.");
