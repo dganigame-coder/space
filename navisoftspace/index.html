@@ -403,7 +403,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER2106262333</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER250626</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -1207,6 +1207,69 @@
         ],
         name: "Cosmic Microwave Horizon"
     });
+
+
+        // 1. Spawning using your exact, unmodified function block
+const gj504b = createExoplanetSystem(engine.scene, {
+    name: "Exoplanet GJ 504b",
+    x: -380000000, 
+    y: 120000000, 
+    z: 520000000
+});
+
+// 2. Locate the internal meshes by their names from outside
+const hostStar   = gj504b.getObjectByName("Exoplanet GJ 504b Star");
+const planetPivot = gj504b.getObjectByName("exoplanetPivot");
+const planetBody  = gj504b.getObjectByName("planetBody");
+const planetClouds= gj504b.getObjectByName("planetClouds");
+const planetHalo  = gj504b.getObjectByName("planetHalo");
+
+// ☀️ A. Update the Star to a Yellow G-Type sun (GJ 504)
+if (hostStar) {
+    hostStar.material.color.setHex(0xffdd44); 
+}
+
+// 🪐 B. Scale up the planet (Gas giants are much bigger than Earth)
+if (planetPivot) {
+    // Scaling up by 3x makes your 600 radius planet look like an 1800 radius giant!
+    planetPivot.scale.set(3, 3, 3);
+    
+    // Push its orbit further away so it doesn't clip into the star light boundaries
+    planetPivot.position.x = 45000; 
+}
+
+// 🌸 C. Morph the surface to a Young, Glowing Pink Gas Giant
+if (planetBody) {
+    // Strip out the Earth maps cleanly from memory
+    planetBody.material.map = null;
+    planetBody.material.normalMap = null;
+    planetBody.material.roughnessMap = null;
+    
+    // Set the signature deep cherry-pink color matrix
+    planetBody.material.color.setHex(0xff5577);
+    planetBody.material.roughness = 0.4;
+    
+    // Update data registries to flag it as a gaseous world for your HUD
+    planetBody.userData.state = 'gas';
+    planetBody.userData.name = 'Exoplanet GJ 504b Prime';
+}
+
+// ☁️ D. Remove the terrestrial Earth clouds (Gas giants have integrated storms)
+if (planetClouds) {
+    planetPivot.remove(planetClouds);
+}
+
+// 🔮 E. Swap the atmosphere scattering ring color to a soft Magenta sheen
+if (planetHalo) {
+    planetHalo.material.color.setHex(0xff0044);
+    planetHalo.material.opacity = 0.35;
+}
+
+// 🔄 Force Three.js to compile the clean, new material pipelines
+gj504b.traverse((child) => {
+    if (child.isMesh) child.material.needsUpdate = true;
+});
+
         
            engine.scene.add(starfield); 
     
