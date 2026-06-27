@@ -548,7 +548,7 @@
                 { name: "Vela Remnant", x: -300000000, y: -100000000, z: 250000000 },
                 { name: "Black Eye Galaxy", x: 200000000, y: 90000000, z: -400000000 },
                 { name: "Black Hole Singularity", x: 250000, y: 250000, z: 499900000 },
-
+                { name: "OMC-2 Molecular Nebula (Cloud of Creation)", x: 25000000,  y: 6000000,  z: -72000000 },
                 { name: "Exoplanet GJ 504b", x: -380000000, y: 120000000, z: 520000000 },
                 // ==========================================
                 // LEVEL 6: COSMOLOGICAL BOUNDARY WALLS
@@ -1269,7 +1269,38 @@ gj504b.traverse((child) => {
     if (child.isMesh) child.material.needsUpdate = true;
 });
 
-        
+   // ==========================================
+// 🌌 COMPONENT: OMC-2 Cloud of Creation (Orion Sword)
+// ==========================================
+const omcX = 25000000;   
+const omcY = 6000000;
+const omcZ = -72000000;
+
+// Named properly as a Nebula asset
+const omc2Nebula = createNebula(engine.scene, {
+    x: omcX,
+    y: omcY,
+    z: omcZ,
+    count: 45000,         
+    spread: 8000000,      
+    size: 450000,         
+    colors: [
+        0x00ffff,        // Bright Cosmic Cyan
+        0x7cfc00,        // Organic Polycyclic Green
+        0xffaa00,        // Glowing Protostar Amber
+        0x3d2314,        // Dark Obscuring Dust Clumps
+        0x050010         // Deep Void Indigo
+    ],
+    name: "OMC-2 Stellar Nursery"
+});
+
+// HUD Tracking Data Registry
+omc2Nebula.userData = {
+    name: "OMC-2 Molecular Nebula",
+    type: "Stellar Nursery",
+    notes: "Dense dust filament tracking embryonic stars and polycyclic aromatic hydrocarbon emissions."
+};
+     
            engine.scene.add(starfield); 
     
             console.log("Audio systems initialized via User Gesture.");
@@ -1284,7 +1315,7 @@ gj504b.traverse((child) => {
                                 systemA,systemB,proximaSystem,sharedBelt,oumuamua, BornSystem,
                                 planetE,planetF,tauCetiDisk,tauCetiStar,
                                  momCore, momGasCloud,
-                                 cosmicHorizon
+                                 cosmicHorizon,omc2Nebula
                                 //crabNebula
                                 //,supernova,dynamicSupernova
                                ];
