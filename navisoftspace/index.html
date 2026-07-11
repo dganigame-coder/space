@@ -403,7 +403,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER1107261610</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER1107261840</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -1858,7 +1858,68 @@ if (sdssBlackHoleCore && sdssRadioJet) {
     sdssRadioJet.updateMatrix();
 }
 
-            
+   // =========================================================
+// 🕳️ SDSS J110546 DYNAMIC PROXIMITY ANIMATION
+// =========================================================
+if (sdssBlackHoleCore && sdssRadioJet) {
+    const dangerZoneRadius = 25000000; // Trigger distance (matches HUD warning)
+    const distToSDSS = engine.camera.position.distanceTo(sdssBlackHoleCore.position);
+
+    if (distToSDSS < dangerZoneRadius) {
+        // 1. Calculate an intensity factor from 0.0 (edge of zone) to 1.0 (dead center)
+        const intensity = 1.0 - (distToSDSS / dangerZoneRadius);
+
+        // 2. Hyper-accelerate the spinning accretion disk as you get closer
+        // Base speed plus an intense speed boost driven by proximity
+        const diskSpinSpeed = 0.005 + (intensity * 0.08);
+        sdssBlackHoleCore.rotation.y += diskSpinSpeed;
+
+        // 3. Counter-rotate the jet at extreme velocities
+        const jetSpinSpeed = -0.01 - (intensity * 0.15);
+        sdssRadioJet.rotation.y += jetSpinSpeed;
+
+        // 4. Violent Core Pulsing (The event horizon begins to violently fluctuate)
+        const pulseFrequency = time * (0.01 + intensity * 0.05);
+        const coreScale = 1.0 + Math.sin(pulseFrequency) * (0.05 + intensity * 0.3);
+        sdssBlackHoleCore.scale.set(coreScale, coreScale, coreScale);
+
+        // 5. Camera Shake / Gravitational Hull Stress
+        // Introduces high-frequency random vibrations to the camera matrix
+        if (engine.camera) {
+            const shakeAmount = intensity * 15000; // Adjust max shake intensity here
+            engine.camera.position.x += (Math.random() - 0.5) * shakeAmount;
+            engine.camera.position.y += (Math.random() - 0.5) * shakeAmount;
+            engine.camera.position.z += (Math.random() - 0.5) * shakeAmount;
+        }
+
+        // 6. HUD Emergency Strobe
+        if (horizonObjElement) {
+            // Flashes the text background or opacity based on high-frequency time
+            const flash = Math.sin(time * 0.05) > 0;
+            horizonObjElement.style.color = flash ? "#ff0055" : "#00ffff"; 
+            horizonObjElement.innerText = `>> EMERGENCY: GRAVITATIONAL SHEAR CRITICAL (${(intensity * 100).toFixed(0)}%)`;
+        }
+
+    } else {
+        // 🌌 STANDARD CALM ANIMATION (When you are safely far away)
+        sdssBlackHoleCore.rotation.y += 0.005;
+        sdssRadioJet.rotation.y -= 0.01;
+        
+        const calmScale = 1.0 + Math.sin(time * 0.01) * 0.05;
+        sdssBlackHoleCore.scale.set(calmScale, calmScale, calmScale);
+        
+        // Reset HUD styling if you escape the zone
+        if (horizonObjElement && horizonObjElement.innerText.includes("EMERGENCY")) {
+            horizonObjElement.innerText = ">> SYSTEM STATUS: SECURE";
+            horizonObjElement.style.color = "#00ffff";
+        }
+    }
+
+    // Force updates to the GPU rendering context
+    sdssBlackHoleCore.updateMatrix();
+    sdssRadioJet.updateMatrix();
+}
+         
             // 1. Tell the universe to check if the pilot entered a new sector chunk
             //universe.update(engine.camera.position);
         
