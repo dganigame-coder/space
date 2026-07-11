@@ -403,7 +403,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER1107261546</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER1107261610</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -1836,6 +1836,26 @@ const distToSDSS = engine.camera.position.distanceTo(sdssBlackHoleCore.position)
 if (distToSDSS < 25000000) {
     horizonObjElement.innerText = ">> WARNING: RADIATING ACTIVE NUCLEUS DETECTED [SDSS J110546]";
     horizonObjElement.style.color = "#00ffff"; // Jet cyan alert color
+}
+// --- SDSS J110546 HIGH-ENERGY ANIMATION ---
+if (sdssBlackHoleCore && sdssRadioJet) {
+    // 1. Swirl the accretion disk rapidly around the core (Y-axis)
+    sdssBlackHoleCore.rotation.y = time * 0.005;
+    
+    // 2. Create a high-speed pulsing effect for the turbulent core particles
+    const coreScale = 1.0 + Math.sin(time * 0.01) * 0.05;
+    sdssBlackHoleCore.scale.set(coreScale, coreScale, coreScale);
+
+    // 3. Spin the jet column and simulate particles blasting violently upward
+    sdssRadioJet.rotation.y = time * -0.01; // Fast counter-rotation
+    
+    // This shifts the position slightly up and down dynamically, 
+    // simulating a churning, powerful particle stream emission
+    sdssRadioJet.position.y = sdsy + 1500000 + (Math.sin(time * 0.02) * 50000);
+    
+    // Force Three.js/WebGL to update the matrices for rendering
+    sdssBlackHoleCore.updateMatrix();
+    sdssRadioJet.updateMatrix();
 }
 
             
