@@ -550,6 +550,7 @@
                 { name: "Black Hole Singularity", x: 250000, y: 250000, z: 499900000 },
                 { name: "OMC-2 Molecular Nebula (Cloud of Creation)", x: 25000000,  y: 6000000,  z: -72000000 },
                 { name: "Exoplanet GJ 504b", x: -380000000, y: 120000000, z: 520000000 },
+                { name: "Galaxy SDSS J110546 (Rapid-Growth Black Hole)", x: 450000000, y: -120000000, z: -550000000 },
                 // ==========================================
                 // LEVEL 6: COSMOLOGICAL BOUNDARY WALLS
                 // ==========================================
@@ -1300,6 +1301,57 @@ omc2Nebula.userData = {
     type: "Stellar Nursery",
     notes: "Dense dust filament tracking embryonic stars and polycyclic aromatic hydrocarbon emissions."
 };
+
+
+// ==========================================
+// 🕳️ NEW OBJECT: SDSS J110546 Prototype Active Nucleus
+// ==========================================
+const sdsx = 450000000;
+const sdsy = -120000000;
+const sdsz = -550000000;
+
+// Component A: The Hyper-Accreting Light Core
+const sdssBlackHoleCore = createNebula(engine.scene, {
+    x: sdsx,
+    y: sdsy,
+    z: sdsz,
+    count: 8000,
+    spread: 350000,       // Highly compressed, intense accretion disk boundary
+    size: 150000,
+    colors: [
+        0xffffff,        // Pure energetic white core
+        0xffaa00,        // Blazing acceleration amber
+        0x330066         // Highly distorted event horizon violet
+    ],
+    name: "SDSS J110546 Core"
+});
+
+// Component B: The Relativistic Radio Jet (Concentrated Particle Beam)
+const sdssRadioJet = createNebula(engine.scene, {
+    x: sdsx,
+    y: sdsy + 1500000,   // Projected upward on the Y-axis out of the pole
+    z: sdsz,
+    count: 12000,
+    spread: 80000,       // Tight, dense, highly collimated beam
+    size: 90000,
+    colors: [
+        0x00ffff,        // High-energy synchrotron cyan
+        0x0055ff         // Intense radio spectrum blue
+    ],
+    name: "SDSS J110546 Jet"
+});
+
+// Stretch the jet vertically to make it look like a true particle stream
+sdssRadioJet.scale.set(1, 15, 1); 
+sdssRadioJet.updateMatrix();
+
+// Metadata registry for HUD diagnostics
+sdssBlackHoleCore.userData = {
+    name: "SDSS J110546.07+145202.4",
+    type: "Rapid-Growth Lightweight SMBH",
+    notes: "Prototype galaxy showing 20-fold radio jet amplification. Mimics early universe conditions in nearby space."
+};
+     
      
            engine.scene.add(starfield); 
     
@@ -1324,7 +1376,7 @@ omc2Nebula.userData = {
                                 ,crabPulsar
                                ];
             const spaceholes=[blackHole,
-                              wormholeJupiter, wormholeIota ,wormholeTheta, wormholeEta, wormholeZeta, wormholeEpsilon ,wormholeDelta ,wormholeGamma ,wormholeBeta ,wormholeAlpha];
+                              wormholeJupiter, wormholeIota ,wormholeTheta, wormholeEta, wormholeZeta, wormholeEpsilon ,wormholeDelta ,wormholeGamma ,wormholeBeta ,wormholeAlpha,sdssBlackHoleCore ];
             bodies.push(...[voyager] );
             bodies.push(...horizonObj);
             bodies.push(...spaceholes);
@@ -1779,6 +1831,14 @@ if (oumuamua) {
                     horizonObjElement._currentText = newText; // Cache it
                 }
             }
+const distToSDSS = engine.camera.position.distanceTo(sdssBlackHoleCore.position);
+
+if (distToSDSS < 25000000) {
+    horizonObjElement.innerText = ">> WARNING: RADIATING ACTIVE NUCLEUS DETECTED [SDSS J110546]";
+    horizonObjElement.style.color = "#00ffff"; // Jet cyan alert color
+}
+
+            
             // 1. Tell the universe to check if the pilot entered a new sector chunk
             //universe.update(engine.camera.position);
         
