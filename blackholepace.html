@@ -3,163 +3,195 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hyper-Realistic Volumetric Black Hole Simulator</title>
+    <title>Relativistic WebGL Black Hole Simulator</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background-color: #000; font-family: sans-serif; }
-        canvas { display: block; width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; background: #000; }
-        #overlay {
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #000; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        canvas { display: block; width: 100vw; height: 100vh; }
+        #ui {
             position: absolute; top: 20px; left: 20px; z-index: 10;
-            background: rgba(5, 5, 10, 0.85); backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px;
-            padding: 20px; width: 300px; box-shadow: 0 20px 50px rgba(0,0,0,0.9);
-            color: #e2e8f0; pointer-events: auto;
+            background: rgba(4, 4, 8, 0.8); backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px;
+            padding: 24px; width: 320px; color: #f8fafc;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.8);
         }
-        h1 { font-size: 1rem; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 15px; color: #93c5fd; }
-        .slider-box { margin-bottom: 15px; }
-        label { display: flex; justify-content: space-between; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px; }
-        input[type="range"] { width: 100%; -webkit-appearance: none; background: rgba(255,255,255,0.1); height: 4px; border-radius: 2px; outline: none; }
-        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: #3b82f6; cursor: pointer; }
+        h1 { font-size: 1.1rem; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; margin: 0 0 4px 0; color: #60a5fa; }
+        .desc { font-size: 0.75rem; color: #64748b; margin-bottom: 20px; text-transform: uppercase; }
+        .control { margin-bottom: 16px; }
+        label { display: flex; justify-content: space-between; font-size: 0.8rem; color: #cbd5e1; margin-bottom: 6px; }
+        .val { font-family: monospace; color: #34d399; }
+        input[type="range"] { -webkit-appearance: none; width: 100%; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; outline: none; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #3b82f6; cursor: pointer; box-shadow: 0 0 8px rgba(59,130,246,0.6); }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
-    <canvas id="canvas"></canvas>
-
-    <div id="overlay">
-        <h1>Singularity Core</h1>
-        <div class="slider-box">
-            <label>Observer Pitch Angle <span id="pitch-val">12°</span></label>
-            <input type="range" id="pitch-slider" min="2" max="45" step="1" value="12">
+    <div id="ui">
+        <h1>Singularity Engine</h1>
+        <div class="desc">WebGL Relativistic Spacetime</div>
+        
+        <div class="control">
+            <label>Camera Tilt <span id="tilt-val" class="val">0.15 rad</span></label>
+            <input type="range" id="tilt" min="-0.5" max="0.5" step="0.01" value="0.15">
         </div>
-        <div class="slider-box">
-            <label>Accretion Density <span id="density-val">High</span></label>
-            <input type="range" id="density-slider" min="1" max="3" step="1" value="2">
+        <div class="control">
+            <label>Disk Outer Limit <span id="disk-val" class="val">5.5 Rs</span></label>
+            <input type="range" id="disk" min="3.0" max="8.0" step="0.1" value="5.5">
         </div>
     </div>
 
     <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
+        // Setup Three.js Boilerplate
+        const scene = new THREE.Scene();
+        const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
 
-        let width = canvas.width = window.innerWidth / 2; // Render at lower res for pixel-computation performance
-        let height = canvas.height = window.innerHeight / 2;
-        let imgData = ctx.createImageData(width, height);
-
-        let options = {
-            pitch: 12 * Math.PI / 180,
-            density: 2,
-            time: 0
+        // Uniforms data structure passed straight to GPU
+        const uniforms = {
+            u_resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+            u_time: { value: 0 },
+            u_camTilt: { value: 0.15 },
+            u_diskOuter: { value: 5.5 }
         };
 
-        document.getElementById('pitch-slider').addEventListener('input', (e) => {
-            options.pitch = parseInt(e.target.value) * Math.PI / 180;
-            document.getElementById('pitch-val').innerText = e.target.value + '°';
+        // UI Event Listeners
+        document.getElementById('tilt').addEventListener('input', (e) => {
+            uniforms.u_camTilt.value = parseFloat(e.target.value);
+            document.getElementById('tilt-val').innerText = uniforms.u_camTilt.value.toFixed(2) + ' rad';
+        });
+        document.getElementById('disk').addEventListener('input', (e) => {
+            uniforms.u_diskOuter.value = parseFloat(e.target.value);
+            document.getElementById('disk-val').innerText = uniforms.u_diskOuter.value.toFixed(1) + ' Rs';
         });
 
-        window.addEventListener('resize', () => {
-            width = canvas.width = window.innerWidth / 2;
-            height = canvas.height = window.innerHeight / 2;
-            imgData = ctx.createImageData(width, height);
-        });
+        // GLSL Vertex Shader (Passes screen geometry layout)
+        const vertexShader = `
+            varying vec2 vUv;
+            void main() {
+                vUv = uv;
+                gl_Position = vec4(position, 1.0);
+            }
+        `;
 
-        // Pseudo-noise function to generate plasma/gas textures dynamically
-        function noise(x, y, z) {
-            let X = Math.floor(x) & 255, Y = Math.floor(y) & 255, Z = Math.floor(z) & 255;
-            x -= Math.floor(x); y -= Math.floor(y); z -= Math.floor(z);
-            let u = x * x * (3 - 2 * x), v = y * y * (3 - 2 * y);
-            let n = X + Y * 57 + Z * 113;
-            return Math.sin(n + u + v + z * 0.3) * 0.5 + 0.5;
-        }
+        // GLSL Fragment Shader: Pure Spacetime Gravitational Lensing Mathematics
+        const fragmentShader = `
+            uniform vec2 u_resolution;
+            uniform float u_time;
+            uniform float u_camTilt;
+            uniform float u_diskOuter;
+            varying vec2 vUv;
 
-        function render() {
-            let data = imgData.data;
-            let cx = width / 2;
-            let cy = height / 2;
-            let t = options.time;
-
-            let rs = 28; // Schwarzschild radius in pixel space
-            let cosP = Math.cos(options.pitch);
-            let sinP = Math.sin(options.pitch);
-
-            for (let y = 0; y < height; y++) {
-                let dy = y - cy;
-                for (let x = 0; x < width; x++) {
-                    let dx = x - cx;
-                    
-                    // Core ray position calculations
-                    let rIdx = (y * width + x) * 4;
-                    let r_raw = Math.sqrt(dx * dx + dy * dy);
-
-                    if (r_raw < rs) {
-                        // Complete gravitational collapse inside Event Horizon
-                        data[rIdx] = 0; data[rIdx+1] = 0; data[rIdx+2] = 0; data[rIdx+3] = 255;
-                        continue;
-                    }
-
-                    // Einstein Relativistic Ray-Deflection Mechanics
-                    // Bends straight 2D screen coordinates into a pseudo-3D warped spacetime manifold
-                    let deflection = (rs * rs * rs) / (r_raw * 0.85);
-                    let warpedR = r_raw - deflection;
-
-                    // Calculate spatial position on the inclined accretion disk plane
-                    let angle = Math.atan2(dy, dx);
-                    let diskX = Math.cos(angle) * warpedR;
-                    let diskY = (Math.sin(angle) * warpedR) / sinP; 
-                    let diskDist = Math.sqrt(diskX * diskX + diskY * diskY);
-
-                    // Initialize background space void color
-                    let r = 2, g = 2, b = 6; 
-
-                    // Accretion disk volumetric rendering limits
-                    if (diskDist > rs * 1.2 && diskDist < rs * 6) {
-                        // Procedural gas bands using math noise spirals
-                        let radialSpeed = t * 2.5 + (150 / diskDist);
-                        let gasTex = noise(diskDist * 0.12 - radialSpeed, Math.atan2(diskY, diskX) * 5, t * 0.2);
-                        gasTex += noise(diskDist * 0.3, Math.atan2(diskY, diskX) * 12, t) * 0.3;
-
-                        // Density attenuation falloff curves
-                        let edgeFade = Math.sin((diskDist - rs * 1.2) / (rs * 4.8) * Math.PI);
-                        let density = gasTex * edgeFade * (options.density * 0.8);
-
-                        // Asymmetric Relativistic Doppler Boosting (Left side approaches, Right side recedes)
-                        let orbitalDirection = diskX; 
-                        let doppler = 1.0 - (orbitalDirection / diskDist) * 0.55;
-                        density *= doppler;
-
-                        if (density > 0.02) {
-                            // Thermal color curves (Hot blue/white inner ring to dark crimson outer boundary)
-                            let heat = Math.min(1, (rs * 3) / diskDist);
-                            r += density * (180 + heat * 75);
-                            g += density * (80 + heat * 175);
-                            b += density * (30 + heat * 225);
-                        }
-                    }
-
-                    // Gravitational Photon Lensing Ring overlay (The ultra-thin light wrap at horizon boundary)
-                    if (r_raw >= rs && r_raw < rs + 4) {
-                        let RingIntensity = Math.pow(1 - (r_raw - rs) / 4, 3.5) * 190;
-                        r += RingIntensity; g += RingIntensity * 0.6; b += RingIntensity * 0.3;
-                    }
-
-                    // Apply rendered pixel array values
-                    data[rIdx]     = Math.min(255, r);
-                    data[rIdx + 1] = Math.min(255, g);
-                    data[rIdx + 2] = Math.min(255, b);
-                    data[rIdx + 3] = 255;
-                }
+            // GPU Pseudo-random noise for fluid gas texture
+            float noise(vec2 p) {
+                return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
             }
 
-            ctx.putImageData(imgData, 0, 0);
-            
-            // Smoothly scale performance frame output up to full screen size
-            ctx.drawImage(canvas, 0, 0, width, height, 0, 0, window.innerWidth, window.innerHeight);
-            
-            options.time += 0.03;
-            requestAnimationFrame(render);
+            float fbm(vec2 p) {
+                float v = 0.0;
+                float amt = 0.5;
+                for (int i = 0; i < 4; i++) {
+                    v += amt * noise(p);
+                    p *= 2.0;
+                    amt *= 0.5;
+                }
+                return v;
+            }
+
+            void main() {
+                // Normalize screen coordinates (-1 to 1 layout)
+                vec2 uv = (gl_FragCoord.xy * 2.0 - u_resolution.xy) / u_resolution.y;
+
+                // Set up mathematical camera metrics
+                vec3 rayOri = vec3(0.0, u_camTilt * 3.5, 7.0); 
+                vec3 rayDir = normalize(vec3(uv, -1.8));
+
+                // Relativistic Raymarching Engine loop
+                vec3 p = rayOri;
+                float stepSize = 0.04;
+                vec3 totalColor = vec3(0.0);
+                float accumulatedAlpha = 0.0;
+
+                float rs = 0.7; // Schwarzschild Radius boundary baseline
+
+                for (int i = 0; i < 160; i++) {
+                    float r2 = dot(p, p);
+                    float r = sqrt(r2);
+
+                    if (r < rs) {
+                        // Ray fell inside Event Horizon: Terminate light path instantly
+                        break;
+                    }
+
+                    // --- CRITICAL PHYSICS: Einstein General Relativity Ray Bending ---
+                    // Force vector dragging rays toward mass center based on inverse cube law
+                    vec3 gravityF = (-1.5 * rs * cross(cross(p, rayDir), rayDir)) / (r2 * r);
+                    rayDir = normalize(rayDir + gravityF * stepSize);
+                    p += rayDir * stepSize;
+
+                    // Test interception intersect with flat accretion disk plane (y = 0)
+                    float thicknessLimit = 0.06;
+                    if (abs(p.y) < thicknessLimit) {
+                        float diskR = length(p.xz);
+
+                        // Render parameters inside the accretion disk metrics
+                        if (diskR > rs * 1.5 && diskR < u_diskOuter) {
+                            // Map moving gas fields using fractal noise spirals
+                            float phi = atan(p.z, p.x);
+                            vec2 texUV = vec2(diskR * 2.5 - u_time * 1.8, phi * 2.5 + diskR * 0.4);
+                            float gasDensity = fbm(texUV) * smoothstep(rs * 1.5, rs * 2.5, diskR) * smoothstep(u_diskOuter, u_diskOuter - 1.0, diskR);
+
+                            // Relativistic Doppler Beaming (Left-side approaches user, boosts illumination)
+                            float doppler = 1.0 - (p.z / diskR) * 0.55;
+                            gasDensity *= doppler;
+
+                            if (gasDensity > 0.05) {
+                                // Dynamic core heat gradients (No hard solid vector lines)
+                                float heatMap = smoothstep(u_diskOuter, rs * 1.5, diskR);
+                                vec3 hotCoreColor = vec3(1.0, 0.55, 0.2) + vec3(0.2, 0.4, 1.0) * pow(heatMap, 3.0);
+                                
+                                float alpha = gasDensity * 0.25;
+                                totalColor += (1.0 - accumulatedAlpha) * hotCoreColor * alpha * 4.0;
+                                accumulatedAlpha += (1.0 - accumulatedAlpha) * alpha;
+
+                                if (accumulatedAlpha >= 0.98) break;
+                            }
+                        }
+                    }
+                }
+
+                // Smoothly merge space void black with the gas energy emission fields
+                gl_FragColor = vec4(totalColor, 1.0);
+            }
+        `;
+
+        // Assemble Shader Material asset components
+        const material = new THREE.ShaderMaterial({
+            vertexShader: vertexShader,
+            fragmentShader: fragmentShader,
+            uniforms: uniforms
+        });
+
+        const geometry = new THREE.PlaneGeometry(2, 2);
+        const mesh = new THREE.Mesh(geometry, material);
+        scene.add(mesh);
+
+        // Core Render and Animation Ticking Event Loop
+        const clock = new THREE.Clock();
+        function animate() {
+            requestAnimationFrame(animate);
+            uniforms.u_time.value = clock.getElapsedTime();
+            renderer.render(scene, camera);
         }
 
-        render();
+        // Keep Viewport Scaled Perfectly
+        window.addEventListener('resize', () => {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            uniforms.u_resolution.value.set(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
     </script>
 </body>
 </html>
