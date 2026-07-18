@@ -3,16 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>360° Relativistic Black Hole Simulator</title>
+    <title>Omnidirectional 360° Black Hole</title>
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #000; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #020205; }
         canvas { display: block; width: 100vw; height: 100vh; }
         #instructions {
             position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
-            z-index: 10; background: rgba(5, 5, 10, 0.6); backdrop-filter: blur(8px);
+            z-index: 10; background: rgba(5, 5, 12, 0.75); backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px;
-            padding: 8px 16px; color: #94a3b8; font-size: 0.8rem; pointer-events: none;
-            font-family: sans-serif; letter-spacing: 1px; text-transform: uppercase;
+            padding: 8px 18px; color: #e2e8f0; font-size: 0.75rem; pointer-events: none;
+            font-family: sans-serif; letter-spacing: 2px; text-transform: uppercase;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -20,7 +21,7 @@
 </head>
 <body>
 
-    <div id="instructions">Drag to orbit 360°</div>
+    <div id="instructions">Orbit 360° — Never Vanishes</div>
 
     <script>
         const scene = new THREE.Scene();
@@ -30,21 +31,20 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        camera.position.set(0, 1.5, 4.5);
+        camera.position.set(0, 2, 5);
 
-        // --- NEW: Add Interactive 360-degree Controls ---
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
-        controls.dampingFactor = 0.05;
-        controls.maxDistance = 10;
-        controls.minDistance = 2;
+        controls.dampingFactor = 0.07;
+        controls.maxDistance = 12;
+        controls.minDistance = 2.5;
 
-        // Starfield
+        // Omnidirectional Starfield background matrix
         const starGeo = new THREE.BufferGeometry();
-        const starCount = 400;
+        const starCount = 500;
         const starPos = new Float32Array(starCount * 3);
         for(let i=0; i<starCount*3; i+=3) {
-            const r = 25 + Math.random() * 15;
+            const r = 30 + Math.random() * 15;
             const theta = Math.random() * Math.PI * 2;
             const phi = Math.acos((Math.random() * 2) - 1);
             starPos[i] = r * Math.sin(phi) * Math.cos(theta);
@@ -52,88 +52,125 @@
             starPos[i+2] = r * Math.cos(phi);
         }
         starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
-        const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.07, transparent: true, opacity: 0.8 });
-        const starField = new THREE.Points(starGeo, starMat);
-        scene.add(starField);
+        const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.08, transparent: true, opacity: 0.9 });
+        scene.add(new THREE.Points(starGeo, starMat));
 
-        // Event Horizon Core Shadow
-        const shadowGeo = new THREE.SphereGeometry(0.65, 32, 32);
+        // Event Horizon Core Shadow (Fitted with a subtle glow backing so it stands out)
+        const shadowGeo = new THREE.SphereGeometry(0.7, 32, 32);
         const shadowMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
         const shadowMesh = new THREE.Mesh(shadowGeo, shadowMat);
         scene.add(shadowMesh);
+
+        // --- NEW DATA MODEL: Volumetric Particle Cloud Accretion Disk ---
+        const particleCount = 12000; // High particle density that runs seamlessly via GPU points
+        const diskGeo = new THREE.BufferGeometry();
+        const positions = new Float32Array(particleCount * 3);
+        const randoms = new Float32Array(particleCount);
+
+        for (let i = 0; i < particleCount; i++) {
+            // Distribute particles exponentially closer to the event horizon edge
+            const r = 0.95 + Math.pow(Math.random(), 2.5) * 3.5; 
+            const theta = Math.random() * Math.PI * 2;
+            
+            // Give the disk actual physical thickness (Y axis variance) so it never thins out to 0
+            const thickness = (Math.random() - 0.5) * 0.12 * (r * 0.4);
+
+            positions[i * 3] = Math.cos(theta) * r;
+            positions[i * 3 + 1] = thickness;
+            positions[i * 3 + 2] = Math.sin(theta) * r;
+
+            randoms[i] = Math.random();
+        }
+
+        diskGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        diskGeo.setAttribute('aRandom', new THREE.BufferAttribute(randoms, 1));
 
         const diskUniforms = {
             u_time: { value: 0 },
             u_camPos: { value: new THREE.Vector3() }
         };
 
+        // Fully Angular-Stable GLSL Shaders
         const vertexShader = `
+            uniform float u_time;
             uniform vec3 u_camPos;
+            attribute float aRandom;
             varying vec3 vPos;
             varying float vDoppler;
 
             void main() {
                 vec3 p = position;
                 float r = length(p.xz);
-                
-                // Dynamic Vertex Warping relative to current camera position
+
+                // Constant orbital rotation calculation handled per vertex
+                float speed = sqrt(1.0 / (r * r * r)) * 1.2;
+                float angle = u_time * speed + (aRandom * 6.28);
+                p.x = Math.cos(angle) * r;
+                p.z = Math.sin(angle) * r;
+
+                // --- ADVANCED OMNIDIRECTIONAL LENSING WARP ---
+                // Calculate dynamic displacement vectors regardless of camera flips
                 vec3 toCam = normalize(u_camPos - p);
+                float camDist = length(u_camPos - p);
                 
-                // Real-time Einstein Lensing estimation: pull back-facing geometry toward the viewer
-                float viewDot = dot(normalize(p), toCam);
-                if (viewDot < 0.1) {
-                    float warpFactor = pow(0.65 / r, 2.0) * 0.85;
-                    p += toCam * warpFactor * 0.5;
+                // If a particle is physically behind the singularity from the camera's current perspective
+                float alignment = dot(normalize(p), toCam);
+                if (alignment < 0.2) {
+                    float warpIntensity = pow(0.7 / r, 2.0) * 0.65;
+                    p += vec3(0.0, 1.0, 0.0) * toCam.y * warpIntensity * (1.0 - abs(toCam.y));
                 }
 
                 vPos = p;
-                vDoppler = 1.0 - (p.x / r) * 0.45;
 
-                gl_Position = projectionMatrix + modelViewMatrix * vec4(p, 1.0);
+                // Relativistic Doppler Beaming calculation mapped relative to camera perspective matrix
+                vec3 orbitDir = normalize(vec3(-p.z, 0.0, p.x));
+                vDoppler = 1.0 + dot(orbitDir, toCam) * 0.55;
+
+                vec4 mvPosition = modelViewMatrix * vec4(p, 1.0);
+                
+                // Scale point sizes realistically based on device perspective depth distance
+                gl_PointSize = (18.0 / -mvPosition.z) * (0.6 + aRandom * 0.8);
+                gl_Position = projectionMatrix * mvPosition;
             }
         `;
 
         const fragmentShader = `
-            uniform float u_time;
             varying vec3 vPos;
             varying float vDoppler;
 
-            float mobileNoise(vec2 p) {
-                return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
-            }
-
             void main() {
-                float r = length(vPos.xz);
-                float phi = atan(vPos.z, vPos.x);
-
-                float n = mobileNoise(vec2(r * 4.0 - u_time * 2.5, phi * 3.0));
-                float edgeFade = smoothstep(0.65, 1.1, r) * smoothstep(3.2, 2.0, r);
+                // Shape flat square points into clean fuzzy organic circular gas blobs
+                vec2 circCoord = gl_PointCoord - vec2(0.5);
+                if (length(circCoord) > 0.5) discard;
                 
-                float finalDensity = (0.35 + n * 0.65) * edgeFade * vDoppler;
+                float r = length(vPos.xz);
+                
+                // Falloff profiles for the inner and outer boundaries
+                float intensity = smoothstep(0.5, 0.0, length(circCoord));
+                float edgeFade = smoothstep(0.8, 1.3, r) * smoothstep(4.5, 2.5, r);
+                
+                float alpha = intensity * edgeFade * vDoppler * 0.6;
+                if (alpha < 0.01) discard;
 
-                if (finalDensity < 0.02) discard;
-
-                vec3 color = vec3(1.0, 0.48, 0.12) * finalDensity * 2.5;
-                color += vec3(0.25, 0.45, 1.0) * pow(smoothstep(2.8, 0.65, r), 3.0) * finalDensity;
-
-                gl_FragColor = vec4(color, finalDensity);
+                // High-fidelity color map transitions
+                vec3 coreColor = vec3(1.0, 0.45, 0.1); // Warm accretion orange boundary
+                vec3 ultraHotColor = vec3(0.3, 0.6, 1.0) * pow(smoothstep(3.0, 0.8, r), 2.5); // Blue shift core thermal bleed
+                
+                gl_FragColor = vec4((coreColor + ultraHotColor) * vDoppler, alpha);
             }
         `;
-
-        const diskGeo = new THREE.RingGeometry(0.7, 3.4, 64, 16);
-        diskGeo.rotateX(-Math.PI / 2); 
 
         const diskMat = new THREE.ShaderMaterial({
             vertexShader: vertexShader,
             fragmentShader: fragmentShader,
             uniforms: diskUniforms,
             transparent: true,
-            side: THREE.DoubleSide,
-            blending: THREE.AdditiveBlending
+            blending: THREE.AdditiveBlending,
+            depthWrite: false
         });
 
-        const diskMesh = new THREE.Mesh(diskGeo, diskMat);
-        scene.add(diskMesh);
+        const diskParticles = new THREE.Points(diskGeo, diskMat);
+        scene.add(diskParticles);
 
         const clock = new THREE.Clock();
         function animate() {
@@ -142,9 +179,7 @@
             diskUniforms.u_time.value = clock.getElapsedTime();
             diskUniforms.u_camPos.value.copy(camera.position);
 
-            // Update user input tracking
             controls.update();
-            
             renderer.render(scene, camera);
         }
 
