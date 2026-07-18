@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hyper-Realistic Black Hole Simulator</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #020208;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            color: #fff;
+        }
+
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* UI Overlay */
+        #ui-container {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            background: rgba(10, 10, 25, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 24px;
+            width: 340px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.7);
+            transition: all 0.3s ease;
+        }
+
+        h1 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+            color: #e0e5ff;
+            text-shadow: 0 0 10px rgba(100, 150, 255, 0.5);
+        }
+
+        .subtitle {
+            font-size: 0.75rem;
+            color: #8a99ad;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .control-group {
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: #cbd5e1;
+            margin-bottom: 6px;
+        }
+
+        .value-display {
+            font-family: monospace;
+            color: #60a5fa;
+            font-weight: bold;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.8);
+            transition: transform 0.1s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .telemetry {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: #94a3b8;
+        }
+
+        .telemetry-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+
+        .telemetry-value {
+            color: #34d399;
+        }
+
+        /* Cinematic mode helper */
+        #hide-ui-btn {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 10;
+            background: rgba(10, 10, 25, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #94a3b8;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            backdrop-filter: blur(5px);
+            transition: all 0.2s;
+        }
+        #hide-ui-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="simulator"></canvas>
+
+    <div id="ui-container">
+        <h1>Event Horizon</h1>
+        <div class="subtitle">Relativistic Space Simulator</div>
+
+        <div class="control-group">
+            <label>Singularity Mass <span id="mass-val" class="value-display">4.3M ☉</span></label>
+            <input type="range" id="mass-slider" min="1" max="10" step="0.1" value="4.3">
+        </div>
+
+        <div class="control-group">
+            <label>Accretion Disk Spin <span id="spin-val" class="value-display">1.0x</span></label>
+            <input type="range" id="spin-slider" min="0" max="3" step="0.1" value="1">
+        </div>
+
+        <div class="control-group">
+            <label>Gravitational Lensing <span id="lens-val" class="value-display">High</span></label>
+            <input type="range" id="lens-slider" min="0" max="2" step="1" value="2">
+        </div>
+
+        <div class="control-group">
+            <label>Disk Temperature <span id="temp-val" class="value-display">Dynamic</span></label>
+            <input type="range" id="temp-slider" min="1" max="3" step="1" value="2">
+        </div>
+
+        <div class="telemetry">
+            <div class="telemetry-row">
+                <span>Schwarzschild Radius (Rs):</span>
+                <span id="tel-rs" class="telemetry-value">12.7M km</span>
+            </div>
+            <div class="telemetry-row">
+                <span>Photon Sphere Limit:</span>
+                <span id="tel-photon" class="telemetry-value">19.1M km</span>
+            </div>
+            <div class="telemetry-row">
+                <span>Orbital Velocity:</span>
+                <span id="tel-c" class="telemetry-value">0.42 c</span>
+            </div>
+        </div>
+    </div>
+
+    <button id="hide-ui-btn">Toggle Interface</button>
+
+    <script>
+        const canvas = document.getElementById('simulator');
+        const ctx = canvas.getContext('2d');
+
+        // State variables modulated by UI
+        let CONFIG = {
+            mass: 4.3,
+            spin: 1.0,
+            lensingStrength: 2,
+            tempScheme: 2,
+            bhX: 0,
+            bhY: 0
+        };
+
+        // UI Interactions
+        const uiContainer = document.getElementById('ui-container');
+        document.getElementById('hide-ui-btn').addEventListener('click', () => {
+            uiContainer.style.opacity = uiContainer.style.opacity === '0' ? '1' : '0';
+            uiContainer.style.pointerEvents = uiContainer.style.opacity === '0' ? 'none' : 'auto';
+        });
+
+        document.getElementById('mass-slider').addEventListener('input', (e) => {
+            CONFIG.mass = parseFloat(e.target.value);
+            document.getElementById('mass-val').innerText = CONFIG.mass.toFixed(1) + 'M ☉';
+            updateTelemetry();
+        });
+
+        document.getElementById('spin-slider').addEventListener('input', (e) => {
+            CONFIG.spin = parseFloat(e.target.value);
+            document.getElementById('spin-val').innerText = CONFIG.spin.toFixed(1) + 'x';
+        });
+
+        document.getElementById('lens-slider').addEventListener('input', (e) => {
+            CONFIG.lensingStrength = parseInt(e.target.value);
+            const modes = ['None', 'Standard', 'Extreme Relativistic'];
+            document.getElementById('lens-val').innerText = modes[CONFIG.lensingStrength];
+        });
+
+        document.getElementById('temp-slider').addEventListener('input', (e) => {
+            CONFIG.tempScheme = parseInt(e.target.value);
+            const temps = ['Cool (Infrared)', 'Dynamic (Thermal)', 'Hyper-Ultra (X-Ray)'];
+            document.getElementById('temp-val').innerText = temps[CONFIG.tempScheme - 1];
+        });
+
+        function updateTelemetry() {
+            const rs = CONFIG.mass * 2.95; 
+            document.getElementById('tel-rs').innerText = rs.toFixed(1) + 'M km';
+            document.getElementById('tel-photon').innerText = (rs * 1.5).toFixed(1) + 'M km';
+            document.getElementById('tel-c').innerText = (0.3 + (CONFIG.mass * 0.05)).toFixed(2) + ' c';
+        }
+
+        // Setup Window Size
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            CONFIG.bhX = canvas.width / 2;
+            CONFIG.bhY = canvas.height / 2;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Universe elements: Starfield generator
+        const stars = [];
+        const numStars = 400;
+        for(let i=0; i<numStars; i++) {
+            stars.push({
+                x: Math.random() * window.innerWidth,
+                y: Math.random() * window.innerHeight,
+                baseX: 0, 
+                baseY: 0,
+                size: Math.random() * 1.5 + 0.5,
+                brightness: Math.random() * 0.6 + 0.4
+            });
+        }
+        // Save background baselines for lensing offsets
+        stars.forEach(s => { s.baseX = s.x; s.baseY = s.y; });
+
+        // Accretion Disk Particle Generator
+        const particles = [];
+        const numParticles = 2500;
+
+        function initParticles() {
+            particles.length = 0;
+            for(let i = 0; i < numParticles; i++) {
+                // Generate exponential distribution so more particles cluster close to the event horizon
+                const rand = Math.random();
+                const radius = 60 + Math.pow(rand, 2) * 450;
+                const angle = Math.random() * Math.PI * 2;
+                
+                particles.push({
+                    radius: radius,
+                    angle: angle,
+                    size: Math.random() * 1.5 + 0.5,
+                    speed: Math.sqrt(100 / radius) * 0.03, // Keplerian-like velocity curves
+                    alpha: Math.random() * 0.6 + 0.2,
+                    zShift: (Math.random() - 0.5) * 8 // Disk thickness variations
+                });
+            }
+        }
+        initParticles();
+
+        // Thermal glow gradients helper
+        function getDiskColor(r, factor) {
+            let heat = Math.max(0, 1 - (r - 60) / 400); // Inner is hotter
+            
+            if (CONFIG.tempScheme === 1) { // Cool / IR
+                return `rgba(${130 + heat*125}, ${40 + heat*60}, 20, ${factor})`;
+            } else if (CONFIG.tempScheme === 2) { // Dynamic
+                if (heat > 0.7) {
+                    return `rgba(240, 245, 255, ${factor})`; // Super-heated white/blue core
+                }
+                return `rgba(255, ${100 + heat*155}, ${20 + heat*80}, ${factor})`; // Orange outer
+            } else { // X-Ray Hyper
+                return `rgba(${50 + heat*50}, ${120 + heat*100}, 255, ${factor})`;
+            }
+        }
+
+        // Core Physics Animation Loop
+        function animate() {
+            // Dark Space clear with slight trails
+            ctx.fillStyle = 'rgba(3, 3, 10, 0.25)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const rsRadius = CONFIG.mass * 12; // Dynamic scale of the Event Horizon
+            
+            // --- 1. Draw Background Background Stars (Relativistic Gravitational Lensing) ---
+            stars.forEach(star => {
+                let dx = star.baseX - CONFIG.bhX;
+                let dy = star.baseY - CONFIG.bhY;
+                let dist = Math.sqrt(dx*dx + dy*dy);
+
+                if (CONFIG.lensingStrength > 0 && dist > rsRadius) {
+                    // Einstein Ring distortion algorithm: 
+                    // Light rays bending around the mass shifts apparent star locations outward
+                    let strengthFactor = CONFIG.lensingStrength === 1 ? 400 : 900;
+                    let lensOffset = (strengthFactor * CONFIG.mass) / dist;
+                    
+                    // Singular boundary cutoff to simulate complete photon capture edge
+                    if (dist < rsRadius + 10) lensOffset *= 0.1; 
+
+                    let angle = Math.atan2(dy, dx);
+                    star.x = CONFIG.bhX + Math.cos(angle) * (dist + lensOffset);
+                    star.y = CONFIG.bhY + Math.sin(angle) * (dist + lensOffset);
+                } else {
+                    star.x = star.baseX;
+                    star.y = star.baseY;
+                }
+
+                // Render Background Star if outside Event Horizon
+                let checkDist = Math.sqrt(Math.pow(star.x - CONFIG.bhX, 2) + Math.pow(star.y - CONFIG.bhY, 2));
+                if (checkDist > rsRadius) {
+                    ctx.fillStyle = `rgba(255, 255, 255, ${star.brightness})`;
+                    ctx.fillRect(star.x, star.y, star.size, star.size);
+                }
+            });
+
+            // --- 2. Render Accretion Disk Particles with Relativistic Einstein Ring Overlays ---
+            // Sort particles back-to-front to fake a 3D inclined perspective tilt
+            particles.sort((a, b) => {
+                let yA = Math.sin(a.angle) * a.radius * 0.23; // 0.23 factor skews it to simulate 3D pitch
+                let yB = Math.sin(b.angle) * b.radius * 0.23;
+                return yA - yB; 
+            });
+
+            particles.forEach(p => {
+                // Orbit movement
+                p.angle -= p.speed * CONFIG.spin;
+                
+                // Calculate raw coordinates skewed for flat 3D projection plane
+                let rawX = Math.cos(p.angle) * p.radius;
+                let rawY = Math.sin(p.angle) * p.radius * 0.23 + p.zShift; 
+                
+                // Relativistic Lensing: Double Imaging of the Back-side disk
+                // Light from behind the black hole gets warped over the top and bottom
+                let dx = rawX;
+                let dy = rawY;
+                let dist = Math.sqrt(dx*dx + dy*dy);
+
+                if (CONFIG.lensingStrength > 0 && rawY < 0) {
+                    // Pull back-side particles upward violently to frame the "halo" look seen in Interstellar
+                    let warp = (rsRadius * rsRadius) / (dist * 0.7);
+                    dy -= warp * (CONFIG.lensingStrength * 0.7);
+                }
+
+                let finalX = CONFIG.bhX + dx;
+                let finalY = CONFIG.bhY + dy;
+
+                // Test dynamic capture bounds
+                let finalDist = Math.sqrt(Math.pow(finalX - CONFIG.bhX, 2) + Math.pow(finalY - CONFIG.bhY, 2));
+                
+                if (finalDist > rsRadius) {
+                    // Doppler Boosting effect approximation: 
+                    // Particles moving toward observer (left side) are brighter/bluer, away (right) are dimmer
+                    let isMovingToward = Math.sin(p.angle) > 0;
+                    let doppler = isMovingToward ? 1.4 : 0.55;
+
+                    ctx.fillStyle = getDiskColor(p.radius, p.alpha * doppler);
+                    ctx.fillRect(finalX, finalY, p.size * (1 + (40/p.radius)), p.size * (1 + (40/p.radius)));
+                }
+            });
+
+            // --- 3. The Shadow (Event Horizon Core) ---
+            ctx.beginPath();
+            ctx.arc(CONFIG.bhX, CONFIG.bhY, rsRadius, 0, Math.PI * 2);
+            ctx.fillStyle = '#000000';
+            ctx.shadowBlur = 40;
+            ctx.shadowColor = 'rgba(0, 0, 0, 1)';
+            ctx.fill();
+            ctx.shadowBlur = 0; // Reset canvas glow states
+
+            // --- 4. Photon Sphere Accretion Border Layer ---
+            ctx.beginPath();
+            ctx.arc(CONFIG.bhX, CONFIG.bhY, rsRadius + 3, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(255, 130, 40, 0.4)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            requestAnimationFrame(animate);
+        }
+
+        // Initialize and trigger main loops
+        updateTelemetry();
+        animate();
+    </script>
+</body>
+</html>
