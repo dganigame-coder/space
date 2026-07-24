@@ -403,7 +403,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER1107261844</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER2507260148</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -551,6 +551,9 @@
                 { name: "OMC-2 Molecular Nebula (Cloud of Creation)", x: 25000000,  y: 6000000,  z: -72000000 },
                 { name: "Exoplanet GJ 504b", x: -380000000, y: 120000000, z: 520000000 },
                 { name: "Galaxy SDSS J110546 (Rapid-Growth Black Hole)", x: 450000000, y: -120000000, z: -550000000 },
+                // Add to your telemetry coordinates array:
+                { name: "Exoplanet K2-18b (Hycean Ocean World)",  x: 180000000,   y: 45000000, z: -320000000 },
+
                 // ==========================================
                 // LEVEL 6: COSMOLOGICAL BOUNDARY WALLS
                 // ==========================================
@@ -1352,6 +1355,51 @@ sdssBlackHoleCore.userData = {
     notes: "Prototype galaxy showing 20-fold radio jet amplification. Mimics early universe conditions in nearby space."
 };
      
+// ==========================================
+// 🌊 NEW ASSET: K2-18b (Hycean Ocean World)
+// ==========================================
+const k2x = 180000000;
+const k2y = 45000000;
+const k2z = -320000000;
+
+// Component A: The Deep Ocean World
+const k218bCore = createNebula(engine.scene, {
+    x: k2x,
+    y: k2y,
+    z: k2z,
+    count: 12000,
+    spread: 220000,       // Ocean planet core boundary
+    size: 110000,
+    colors: [
+        0x004488,        // Deep Aquamarine Ocean
+        0x0088aa,        // Tropical Water Swirls
+        0x002244         // Dark Abyssal Depths
+    ],
+    name: "K2-18b Ocean Core"
+});
+
+// Component B: The Dense Hydrogen Atmosphere (Methane & CO2 Shroud)
+const k218bAtmosphere = createNebula(engine.scene, {
+    x: k2x,
+    y: k2y,
+    z: k2z,
+    count: 15000,
+    spread: 380000,       // Large atmospheric envelope
+    size: 140000,
+    colors: [
+        0x00ffcc,        // Methane & Carbon Dioxide Infrared Signature
+        0x00aaff,        // Hydrogen Shell Haze
+        0x050020         // Space Interface Boundary
+    ],
+    name: "K2-18b Atmosphere"
+});
+
+// Attach JWST scientific metadata for HUD tracking
+k218bCore.userData = {
+    name: "K2-18b",
+    type: "Sub-Neptune / Hycean Candidate World",
+    notes: "JWST detected CH4, CO2, and potential DMS signatures. Hydrogen envelope over a potential liquid ocean."
+};
      
            engine.scene.add(starfield); 
     
@@ -1367,7 +1415,8 @@ sdssBlackHoleCore.userData = {
                                 systemA,systemB,proximaSystem,sharedBelt,oumuamua, BornSystem,
                                 planetE,planetF,tauCetiDisk,tauCetiStar,
                                  momCore, momGasCloud,
-                                 cosmicHorizon,omc2Nebula
+                                 cosmicHorizon,omc2Nebula,
+                                k218bCore , k218bAtmosphere
                                 //crabNebula
                                 //,supernova,dynamicSupernova
                                ];
@@ -1920,6 +1969,20 @@ if (sdssBlackHoleCore && sdssRadioJet) {
     sdssBlackHoleCore.updateMatrix();
     sdssRadioJet.updateMatrix();
 }
+            // --- K2-18b ATMOSPHERIC ROTATION & HUD ALERT ---
+if (k218bCore && k218bAtmosphere) {
+    // Atmospheric rotation
+    k218bCore.rotation.y += 0.002;
+    k218bAtmosphere.rotation.y -= 0.001;
+
+    const distToK2 = engine.camera.position.distanceTo(k218bCore.position);
+
+    if (distToK2 < 20000000) {
+        horizonObjElement.innerText = ">> DETECTED: HYCEAN OCEAN WORLD [K2-18b - CH4 / CO2 ATMOSPHERE]";
+        horizonObjElement.style.color = "#00ffcc"; // Signature aquamarine tint
+    }
+}
+
          
             // 1. Tell the universe to check if the pilot entered a new sector chunk
             //universe.update(engine.camera.position);
