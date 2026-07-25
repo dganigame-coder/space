@@ -1,45 +1,63 @@
 export function createExoplanetSystem(scene, config) {
-    // 1. EXTRACT DATA SAFELY
-    const { x = 0, y = 0, z = 0, name = 'Proxima Centauri', type = 'exoplanet' } = config;
+    // 1. EXTRACT DATA SAFELY (Extract all the custom properties!)
+    const { 
+        x = 0, y = 0, z = 0, 
+        name = 'K2-18b System', 
+        type = 'exoplanet',
+        planetRadius = 300000,
+        planetColor = 0x0a2540,
+        atmosColor = 0x00e1ff,
+        starRadius = 100000,
+        starColor = 0xff3300,
+        starOffset = 1200000
+    } = config;
 
-    // 2. CREATE SYSTEM CONTAINER (Defined once)
     const system = new THREE.Group();
-    
-    // 3. SET IDENTITY
     system.name = name;
-    system.userData = {
-        type: type,
-        name: name
-    };
+    system.userData = { type: type, name: name };
     
-    // --- 4. THE STAR ---
-    const starGeo = new THREE.SphereGeometry(5000, 32, 32);
-    const starMat = new THREE.MeshBasicMaterial({ color: 0xff4400 });
+    // --- THE STAR ---
+    const starGeo = new THREE.SphereGeometry(starRadius, 32, 32);
+    const starMat = new THREE.MeshBasicMaterial({ color: starColor });
     const star = new THREE.Mesh(starGeo, starMat);
-    
-    star.name = name + " Star"; // Changed systemName to name
-    star.userData = {
-        type: 'star',
-        name: name,
-        state: 'gas'
-    };
+    star.name = name + " Star";
+    star.userData = { type: 'star', name: name + " Star", state: 'gas' };
     system.add(star);
 
-    // --- 5. THE EARTH-LIKE PLANET ---
-    const planetGeo = new THREE.SphereGeometry(200, 32, 32);
-    const planetMat = new THREE.MeshStandardMaterial({ color: 0x2277ff });
+    // 💡 LIGHT SOURCE (Crucial! MeshStandardMaterial needs a light to be visible)
+    const starLight = new THREE.PointLight(starColor, 3, starOffset * 10);
+    system.add(starLight);
+
+    // --- THE PLANET ---
+    const planetGeo = new THREE.SphereGeometry(planetRadius, 32, 32);
+    const planetMat = new THREE.MeshStandardMaterial({ 
+        color: planetColor,
+        roughness: 0.5 
+    });
     const planet = new THREE.Mesh(planetGeo, planetMat);
-    planet.position.x = 15000;
+    planet.position.x = starOffset; // Uses your custom orbital distance!
     
-    planet.name = name + " b"; // Changed systemName to name
+    planet.name = name;
     planet.userData = {
         type: 'exoplanet_body',
-        name: name + ' b',
-        state: 'solid'
+        name: name,
+        state: 'liquid/solid'
     };
     system.add(planet);
 
-    // 6. GLOBAL POSITIONING
+    // --- ATMOSPHERE SHELL ---
+    const atmosGeo = new THREE.SphereGeometry(planetRadius * 1.05, 32, 32);
+    const atmosMat = new THREE.MeshBasicMaterial({
+        color: atmosColor,
+        transparent: true,
+        opacity: 0.3,
+        side: THREE.BackSide
+    });
+    const atmosphere = new THREE.Mesh(atmosGeo, atmosMat);
+    atmosphere.position.x = starOffset;
+    system.add(atmosphere);
+
+    // GLOBAL POSITIONING
     system.position.set(x, y, z);
     scene.add(system);
     
