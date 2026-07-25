@@ -403,7 +403,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER2607260000</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER2607260017</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -437,7 +437,7 @@
         "voyager":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@02ca7eb/navisoftspace/horizonObjects/voyager.js",
         "heliopause":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@e46bc44/navisoftspace/horizonObjects/heliopause.js",
         "exoplanet":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@fb87615/navisoftspace/horizonObjects/exoplanet.js",
-        "exoplanetsystem":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@8ae3238/navisoftspace/horizonObjects/exoplanetsystem.js",
+        "exoplanetsystem":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@aa365cc/navisoftspace/horizonObjects/exoplanetsystem.js",
         "nebula":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@6e9f516/navisoftspace/horizonObjects/nebula.js",
         "supernova":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@bb19f83/navisoftspace/horizonObjects/supernova.js",
         "protoplanetaryDisk":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@7fe727e/navisoftspace/horizonObjects/protoplanetaryDisk.js"
@@ -1949,6 +1949,20 @@ if (k218bCore && k218bAtmosphere) {
     }
 }
 */
+// Inside your frame() render loop:
+if (k218bSystem) {
+    // Calculates distance from camera to the system center (in scene units / AU)
+    const distanceToK2 = engine.camera.position.distanceTo(k218bSystem.position);
+
+    // Convert scene units to AU or KM for the HUD readout
+    const distanceInAU = (distanceToK2 / 1000000).toFixed(2); 
+
+    // Update your UI HUD elements
+    if (distanceToK2 < 20000000) {
+        horizonObjElement.innerText = `>> DETECTED: HYCEAN OCEAN WORLD [K2-18b] (${distanceInAU} AU)`;
+        horizonObjElement.style.color = "#00ffcc";
+    }
+}
          
             // 1. Tell the universe to check if the pilot entered a new sector chunk
             //universe.update(engine.camera.position);
