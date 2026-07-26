@@ -403,7 +403,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER2607260053</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER2607261003</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -1951,17 +1951,25 @@ if (k218bCore && k218bAtmosphere) {
 */
 
 // =========================================================
-// 🪐 K2-18b ORBIT & AXIAL ROTATION ANIMATION
+// 🪐 K2-18b SYSTEM: SAFE ANIMATION & HUD TELEMETRY
 // =========================================================
 if (k218) {
-    // 1. Star rotates on its own axis (slow solar spin)
-    k218.star.rotation.y += 0.0005;
+    // 1. Safe Rotations using Optional Chaining (?.)
+    if (k218.star) k218.star.rotation.y += 0.0005;
+    if (k218.orbitGroup) k218.orbitGroup.rotation.y += 0.002;
+    if (k218.planet) k218.planet.rotation.y += 0.01;
 
-    // 2. Planet orbits around the host star
-    k218.orbitGroup.rotation.y += 0.002;
+    // 2. HUD Proximity Alert (Safely checking system position)
+    const targetSystem = k218.system || k218; // Fallback if k218 is the group itself
+    if (targetSystem.position) {
+        const distToK2 = engine.camera.position.distanceTo(targetSystem.position);
 
-    // 3. Planet spins on its own axis (day/night cycle)
-    k218.planet.rotation.y += 0.01;
+        if (distToK2 < 20000000) {
+            const distInAU = (distToK2 / 1000000).toFixed(2);
+            horizonObjElement.innerText = `>> DETECTED: HYCEAN OCEAN WORLD [K2-18b] (${distInAU} AU)`;
+            horizonObjElement.style.color = "#00ffcc";
+        }
+    }
 }
 
             // 1. Tell the universe to check if the pilot entered a new sector chunk
