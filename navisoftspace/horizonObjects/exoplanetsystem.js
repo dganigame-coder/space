@@ -1,5 +1,5 @@
 import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
-import { createExoplanet } from './exoplanet.js';
+import { createExoplanet } from 'https://cdn.jsdelivr.net/gh/dganigame-coder/space@5375f6d/navisoftspace/horizonObjects/exoplanet.js';
 
 export function createExoplanetSystem(scene, config = {}) {
     console.group("🪐 [Exoplanet System Builder] Initialization");
