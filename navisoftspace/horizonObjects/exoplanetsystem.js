@@ -1,4 +1,22 @@
-export function createExoplanetSystem(scene, config) {
+export function createExoplanetSystem(scene, config = {}) {
+    console.group("🪐 [K2-18b Builder] System Initialization");
+
+    // 1. Validate Input Dependencies
+    if (!scene) {
+        console.error("❌ ERROR: The 'scene' parameter is undefined or null. Check where you call createExoplanetSystem().");
+        console.groupEnd();
+        return null;
+    }
+
+    if (typeof THREE === 'undefined') {
+        console.error("❌ ERROR: Global 'THREE' object is undefined. Ensure Three.js is imported before calling this function.");
+        console.groupEnd();
+        return null;
+    }
+
+    console.log("✅ Scene verified:", scene);
+    console.log("⚙️ Config parameters applied:", config);
+
     const { 
         x = 0, y = 0, z = 0, 
         name = 'K2-18b System', 
@@ -10,22 +28,26 @@ export function createExoplanetSystem(scene, config) {
         starOffset = 1200000
     } = config;
 
+    // 2. Create Root System Group
     const system = new THREE.Group();
     system.name = name;
     system.position.set(x, y, z);
+    console.log(`📦 Root Group Created -> name: "${system.name}"`, system);
 
-    // 1. BARYCENTER ORBIT PIVOT
+    // 3. Barycenter Orbit Pivot
     const orbitGroup = new THREE.Group();
     orbitGroup.name = 'orbitGroup';
     system.add(orbitGroup);
+    console.log(` ├── 🔄 Group Added -> name: "${orbitGroup.name}"`);
 
-    // 2. THE STAR
+    // 4. The Star
     const starGeo = new THREE.SphereGeometry(starRadius, 32, 32);
     const starMat = new THREE.MeshBasicMaterial({ color: starColor, wireframe: false });
     const star = new THREE.Mesh(starGeo, starMat);
     star.name = 'star';
     star.position.x = -starOffset * 0.1;
     orbitGroup.add(star);
+    console.log(` ├── ☀️ Mesh Added -> name: "${star.name}"`, star);
 
     // Star light
     const starLight = new THREE.PointLight(starColor, 5, starOffset * 10);
@@ -33,7 +55,7 @@ export function createExoplanetSystem(scene, config) {
     starLight.position.copy(star.position);
     orbitGroup.add(starLight);
 
-    // 3. THE PLANET
+    // 5. The Planet
     const planetGeo = new THREE.SphereGeometry(planetRadius, 32, 32);
     const planetMat = new THREE.MeshStandardMaterial({ 
         color: planetColor,
@@ -44,8 +66,9 @@ export function createExoplanetSystem(scene, config) {
     planet.name = 'planet';
     planet.position.x = starOffset;
     orbitGroup.add(planet);
+    console.log(` ├── 🌍 Mesh Added -> name: "${planet.name}"`, planet);
 
-    // 4. ATMOSPHERE
+    // 6. Atmosphere
     const atmosGeo = new THREE.SphereGeometry(planetRadius * 1.06, 32, 32);
     const atmosMat = new THREE.MeshBasicMaterial({
         color: atmosColor,
@@ -56,14 +79,27 @@ export function createExoplanetSystem(scene, config) {
     const atmosphere = new THREE.Mesh(atmosGeo, atmosMat);
     atmosphere.name = 'atmosphere';
     planet.add(atmosphere);
+    console.log(` │    └── 🌫️ Sub-Mesh Added -> name: "${atmosphere.name}"`);
 
-    // Convenience references for local runtime use
+    // Attach convenience references to root group
     system.system = system;
     system.star = star;
     system.planet = planet;
     system.orbitGroup = orbitGroup;
-    
-    scene.add(system);
 
-    return { system, star, planet, orbitGroup };
+    scene.add(system);
+    console.log("✅ System added to main scene hierarchy.");
+
+    // 7. Verification Test: Test getObjectByName immediately
+    console.log("🔍 Internal Search Test (getObjectByName):", {
+        foundStar: system.getObjectByName('star')?.name ?? 'FAILED (undefined)',
+        foundPlanet: system.getObjectByName('planet')?.name ?? 'FAILED (undefined)',
+        foundOrbitGroup: system.getObjectByName('orbitGroup')?.name ?? 'FAILED (undefined)'
+    });
+
+    const result = { system, star, planet, orbitGroup };
+    console.log("🚀 Function Return Object:", result);
+    console.groupEnd();
+
+    return result;
 }
