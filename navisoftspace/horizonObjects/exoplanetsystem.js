@@ -53,6 +53,12 @@ export function createExoplanetSystem(scene, config) {
     const atmosphere = new THREE.Mesh(atmosGeo, atmosMat);
     planet.add(atmosphere); // Attached to planet mesh!
 
+    // Attach properties directly to the system group
+    system.system = system;
+    system.star = star;
+    system.planet = planet;
+    system.orbitGroup = orbitGroup;
+    
     scene.add(system);
 
     return { system, star, planet, orbitGroup };
