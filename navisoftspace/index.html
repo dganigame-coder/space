@@ -403,7 +403,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER2607261953</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER2607262112</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -437,7 +437,7 @@
         "voyager":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@02ca7eb/navisoftspace/horizonObjects/voyager.js",
         "heliopause":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@e46bc44/navisoftspace/horizonObjects/heliopause.js",
         "exoplanet":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@fb87615/navisoftspace/horizonObjects/exoplanet.js",
-        "exoplanetsystem":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@a5b5450/navisoftspace/horizonObjects/exoplanetsystem.js",
+        "exoplanetsystem":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@072697b/navisoftspace/horizonObjects/exoplanetsystem.js",
         "nebula":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@6e9f516/navisoftspace/horizonObjects/nebula.js",
         "supernova":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@bb19f83/navisoftspace/horizonObjects/supernova.js",
         "protoplanetaryDisk":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@7fe727e/navisoftspace/horizonObjects/protoplanetaryDisk.js"
@@ -1953,16 +1953,21 @@ if (k218bCore && k218bAtmosphere) {
 // =========================================================
 // 🪐 K2-18b SYSTEM: SAFE ANIMATION & HUD TELEMETRY
 // =========================================================
-// Inside your frame() render loop:
 if (k218) {
-    // 1. Star rotates on its axis
-    if (k218.star) k218.star.rotation.y += 0.0005;
+    // 1. Mutual Orbit (Revolves star & planet around common barycenter)
+    if (k218.orbitGroup) {
+        k218.orbitGroup.rotation.y += 0.008; // Faster orbit drive
+    }
 
-    // 2. Planet orbits around the star
-    if (k218.orbitGroup) k218.orbitGroup.rotation.y += 0.002;
+    // 2. Star Axial Spin
+    if (k218.star) {
+        k218.star.rotation.y += 0.005;
+    }
 
-    // 3. Planet spins on its own axis (Day/Night cycle)
-    if (k218.planet) k218.planet.rotation.y += 0.01;
+    // 3. Planet + Atmosphere Axial Spin (Day/Night cycle)
+    if (k218.planet) {
+        k218.planet.rotation.y += 0.02; // Visually obvious spin rate
+    }
 
     // 4. Live HUD distance calculation
     if (k218.system) {
