@@ -11,36 +11,36 @@ export function createExoplanetSystem(scene, config) {
         starOffset = 1200000
     } = config;
 
-    // 1. MAIN SYSTEM CONTAINER (Positioned in deep space)
+    // 1. SYSTEM CONTAINER
     const system = new THREE.Group();
     system.name = name;
     system.position.set(x, y, z);
     system.userData = { type: type, name: name };
 
-    // --- 2. THE STAR (Centered at 0,0,0 inside system) ---
+    // --- 2. THE STAR (Center of system) ---
     const starGeo = new THREE.SphereGeometry(starRadius, 32, 32);
     const starMat = new THREE.MeshBasicMaterial({ color: starColor });
     const star = new THREE.Mesh(starGeo, starMat);
     star.name = name + " Star";
     system.add(star);
 
-    // Light source placed directly at the star's core
+    // Light source
     const starLight = new THREE.PointLight(starColor, 4, starOffset * 10);
     system.add(starLight);
 
-    // --- 3. ORBIT PIVOT GROUP ---
-    // Rotating this group makes the planet orbit the star seamlessly!
+    // --- 3. THE ORBIT PIVOT GROUP ---
+    // Rotating this group swings the planet around the star!
     const orbitGroup = new THREE.Group();
     system.add(orbitGroup);
 
-    // --- 4. THE PLANET (Offset along local X axis inside orbitGroup) ---
+    // --- 4. THE PLANET (Offset along local X inside orbitGroup) ---
     const planetGeo = new THREE.SphereGeometry(planetRadius, 32, 32);
     const planetMat = new THREE.MeshStandardMaterial({ 
         color: planetColor,
         roughness: 0.5 
     });
     const planet = new THREE.Mesh(planetGeo, planetMat);
-    planet.position.x = starOffset; // Distance from star
+    planet.position.x = starOffset;
     planet.name = name;
     orbitGroup.add(planet);
 
@@ -53,12 +53,12 @@ export function createExoplanetSystem(scene, config) {
         side: THREE.BackSide
     });
     const atmosphere = new THREE.Mesh(atmosGeo, atmosMat);
-    atmosphere.position.x = starOffset; // Keeps atmosphere locked to the planet
+    atmosphere.position.x = starOffset;
     orbitGroup.add(atmosphere);
 
     scene.add(system);
 
-    // Return object references so you can animate them in your frame loop
+    // 🔥 CRITICAL FIX: Return object containing all references!
     return {
         system,
         star,
