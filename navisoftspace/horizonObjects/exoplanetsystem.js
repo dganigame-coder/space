@@ -11,27 +11,29 @@ export function createExoplanetSystem(scene, config) {
     } = config;
 
     const system = new THREE.Group();
+    system.name = name;
     system.position.set(x, y, z);
 
     // 1. BARYCENTER ORBIT PIVOT
-    // Everything attached to this group rotates around the center of mass
     const orbitGroup = new THREE.Group();
+    orbitGroup.name = 'orbitGroup';
     system.add(orbitGroup);
 
-    // 2. THE STAR (Shifted slightly opposite to the planet for mutual orbit)
+    // 2. THE STAR
     const starGeo = new THREE.SphereGeometry(starRadius, 32, 32);
-    // Wireframe or detail helps you visually SEE the star spinning!
     const starMat = new THREE.MeshBasicMaterial({ color: starColor, wireframe: false });
     const star = new THREE.Mesh(starGeo, starMat);
-    star.position.x = -starOffset * 0.1; // Small wobble offset
+    star.name = 'star';
+    star.position.x = -starOffset * 0.1;
     orbitGroup.add(star);
 
-    // Star light source
+    // Star light
     const starLight = new THREE.PointLight(starColor, 5, starOffset * 10);
+    starLight.name = 'starLight';
     starLight.position.copy(star.position);
     orbitGroup.add(starLight);
 
-    // 3. THE PLANET (Offset on the opposite side)
+    // 3. THE PLANET
     const planetGeo = new THREE.SphereGeometry(planetRadius, 32, 32);
     const planetMat = new THREE.MeshStandardMaterial({ 
         color: planetColor,
@@ -39,21 +41,23 @@ export function createExoplanetSystem(scene, config) {
         metalness: 0.2
     });
     const planet = new THREE.Mesh(planetGeo, planetMat);
+    planet.name = 'planet';
     planet.position.x = starOffset;
     orbitGroup.add(planet);
 
-    // 4. ATMOSPHERE SHELL (Attached DIRECTLY to planet so they spin together)
+    // 4. ATMOSPHERE
     const atmosGeo = new THREE.SphereGeometry(planetRadius * 1.06, 32, 32);
     const atmosMat = new THREE.MeshBasicMaterial({
         color: atmosColor,
         transparent: true,
         opacity: 0.35,
-        wireframe: true // 🔥 Wireframe lets you visually watch the atmosphere spin!
+        wireframe: true
     });
     const atmosphere = new THREE.Mesh(atmosGeo, atmosMat);
-    planet.add(atmosphere); // Attached to planet mesh!
+    atmosphere.name = 'atmosphere';
+    planet.add(atmosphere);
 
-    // Attach properties directly to the system group
+    // Convenience references for local runtime use
     system.system = system;
     system.star = star;
     system.planet = planet;
