@@ -403,7 +403,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER2707262302</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER2707262323</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -1558,7 +1558,7 @@ sdssBlackHoleCore.userData = {
                 } catch (err) {
                     console.error(`💥 [Update Error] "${b.name || 'Unnamed'}" failed inside its onUpdate function:`, err);
                 }
-            
+            /*
                 // 🔍 LOG 3: Check if the position object exists before running distanceTo
                 if (!b.position) {
                     console.error(`❌ [POSITION ERROR] "${b.name || 'Unnamed'}" (Index ${index}) has NO .position property! This will crash distanceTo.`);
@@ -1567,7 +1567,18 @@ sdssBlackHoleCore.userData = {
             
                 // Run the distance calculation safely now
                 const dist = engine.camera.position.distanceTo(b.position);
+              */
+                // 🔍 Extract position whether b is a Mesh, Group, or System Wrapper
+                const targetPosition = b.position || b.system?.position || b.planet?.position;
                 
+                if (!targetPosition) {
+                    console.error(`❌ [POSITION ERROR] "${b.name || 'Unnamed'}" (Index ${index}) has no valid Three.js position!`);
+                    return; // Skip safely
+                }
+
+                // 🎯 Calculate distance using targetPosition instead of b.position
+                const dist = camera.position.distanceTo(targetPosition);
+
                 if (dist < minDistance) {
                     minDistance = dist;
                     closestBody = b;
