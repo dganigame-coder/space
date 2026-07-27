@@ -72,6 +72,7 @@ export function createExoplanetSystem(scene, config = {}) {
     system.star = star;
     system.planet = exoplanet.planetBody;
     system.clouds = exoplanet.clouds;
+    system.planetHalo = exoplanet.planetHalo; 
     system.orbitGroup = orbitGroup;
 
     scene.add(system);
@@ -83,6 +84,7 @@ export function createExoplanetSystem(scene, config = {}) {
         star, 
         planet: exoplanet.planetBody,  // Core terrain mesh for day/night spin
         clouds: exoplanet.clouds,      // Cloud layer for drift animation
+        planetHalo: exoplanet.planetHalo,    
         planetGroup: exoplanet.planetGroup,
         orbitGroup 
     };
