@@ -81,11 +81,16 @@ export function createExoplanet(config = {}) {
     planetGroup.clouds = clouds;
     planetGroup.planetHalo = planetHalo;
 
-    // Return direct references to eliminate 'undefined' issues in loop
+    // Return direct references + forwarded .position getter for distanceTo compatibility
     return {
         planetGroup,
         planetBody,
         clouds,
-        planetHalo
+        planetHalo,
+
+        // 🎯 Forwards target.position directly to planetGroup.position vector
+        get position() {
+            return planetGroup.position;
+        }
     };
 }
