@@ -1,10 +1,3 @@
-import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
-
-/**
- * Creates a standalone exoplanet entity (Terrain + Clouds + Halo Glow)
- * @param {Object} config - Configuration options for textures, radius, and positioning
- * @returns {Object} References to { planetGroup, planetBody, clouds, planetHalo }
- */
 export function createExoplanet(config = {}) {
     const loader = new THREE.TextureLoader();
 
