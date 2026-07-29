@@ -1,3 +1,5 @@
+import * as THREE from 'three';
+
 export function createExoplanetSystem(scene, config) {
     const { 
         x = 0, y = 0, z = 0, 
