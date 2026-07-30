@@ -403,7 +403,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER3007260039</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER3007262239</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -1215,14 +1215,14 @@
     });
 
 
-        // 1. Spawning using your exact, unmodified function block
+// 1. Spawning using your exact, unmodified function block
 const gj504b = createExoplanetSystem(engine.scene, {
     name: "Exoplanet GJ 504b",
     x: -380000000, 
     y: 120000000, 
     z: 520000000
 });
-
+/*
 // 2. Locate the internal meshes by their names from outside
 const hostStar   = gj504b.getObjectByName("Exoplanet GJ 504b Star");
 const planetPivot = gj504b.getObjectByName("exoplanetPivot");
@@ -1275,7 +1275,7 @@ if (planetHalo) {
 gj504b.traverse((child) => {
     if (child.isMesh) child.material.needsUpdate = true;
 });
-
+*/
    // ==========================================
 // 🌌 COMPONENT: OMC-2 Cloud of Creation (Orion Sword)
 // ==========================================
