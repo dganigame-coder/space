@@ -403,7 +403,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER3107262127</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER3107262137</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -1212,8 +1212,39 @@
         name: "Cosmic Microwave Horizon"
     });
 
+// 🌸 GJ 504b: Hyperrealistic Gas Giant Orbiting its G-Type Host Star
+const gj504b = createExoplanetSystem(engine.scene, {
+    name: "Exoplanet GJ 504b",
+    
+    // --- System Coordinates ---
+    x: -380000000, 
+    y: 120000000, 
+    z: 520000000,
 
-        // 1. Spawning using your exact, unmodified function block
+    // --- Host Star (GJ 504 - Sun-like G-Type) ---
+    starRadius: 120000,       // Large glowing stellar core
+    starColor: 0xffdd44,        // Warm solar-yellow light
+    starOffset: 2500000,       // Deep orbital distance
+
+    // --- Gas Giant Aesthetics (Hyperrealism) ---
+    planetRadius: 1800,        // Massive gas giant scale
+    planetColor: 0xe63956,     // Deep magenta/cherry-pink atmospheric tint
+    roughness: 0.35,           // Smooth atmospheric sheen for realistic specular light
+    metalness: 0.05,
+    hasClouds: false,          // Gas giants integrate storm bands into the surface layer
+    
+    // --- Atmospheric Fresnel Glow ---
+    hasAtmosphere: true,
+    atmosColor: 0xff0066,      // Soft neon-magenta scatter ring
+    atmosOpacity: 0.45,        // Strong volumetric horizon scattering
+
+    // --- Orbital Dynamics ---
+    orbitSpeed: 0.0015,        // Smooth, realistic slow planetary revolution
+    rotationSpeed: 0.01        // Axial planetary rotation rate
+});
+        
+/*
+// 1. Spawning using your exact, unmodified function block
 const gj504b = createExoplanetSystem(engine.scene, {
     name: "Exoplanet GJ 504b",
     x: -380000000, 
@@ -1273,7 +1304,8 @@ if (planetHalo) {
 gj504b.traverse((child) => {
     if (child.isMesh) child.material.needsUpdate = true;
 });
-
+*/
+        
    // ==========================================
 // 🌌 COMPONENT: OMC-2 Cloud of Creation (Orion Sword)
 // ==========================================
