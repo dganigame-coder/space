@@ -1,113 +1,131 @@
 import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
 
-export function createExoplanetSystem(scene, config) {
-    const systemGroup = new THREE.Group();
+/**
+ * Single Exoplanet Factory
+ * Builds 1 detailed planet with customizable surface, clouds, and atmosphere.
+ */
+export function createExoplanet(scene, config = {}) {
     const loader = new THREE.TextureLoader();
 
-    // 🎯 Gather configuration fallbacks to keep the tracker loop happy
-    const systemName = config.name || 'Proxima Centauri';
-    const systemType = config.type || 'exoplanet';
-
-    // Set standard properties on the primary system group anchor
-    systemGroup.name = systemName;
-    systemGroup.userData = {
-        type: systemType,
-        innerRadius: config.innerRadius || 0,
-        outerRadius: config.outerRadius || 0,
-        name: systemName
-    };
-
-    // --- 1. THE STAR (Proxima Substitute) ---
-    const starGeo = new THREE.SphereGeometry(5000, 64, 64);
-    const starMat = new THREE.MeshBasicMaterial({ color: 0xff4400 });
-    const star = new THREE.Mesh(starGeo, starMat);
+    // Config fallbacks
+    const planetName = config.name || 'Exoplanet';
+    const radius = config.radius || 600;
+    const segments = config.segments || 64; // Performance-optimized polycount
     
-    // 🎯 STAR IDENTITY LAYER: Named directly, flagged completely as Gas (Plasma)
-    star.name = systemName + " Star";
-    star.userData = {
-        type: 'star',
-        name: systemName,
-        state: 'gas' // Stars are 100% gaseous plasma
-    };
-    systemGroup.add(star);
+    const posX = config.x || 0;
+    const posY = config.y || 0;
+    const posZ = config.z || 0;
 
-    // POINT LIGHT: The "Engine" of the system's visuals
-    const sunLight = new THREE.PointLight(0xffffff, 4, 150000); 
-    systemGroup.add(sunLight);
+    // Rotation speeds
+    const bodyRotationSpeed = config.rotationSpeed ?? 0.001;
+    const cloudRotationSpeed = config.cloudSpeed ?? 0.0014;
 
-    // --- 2. THE EXOPLANET (The 4K World) ---
+    // Main Container Group
     const planetGroup = new THREE.Group();
-    planetGroup.name = "exoplanetPivot";
+    planetGroup.name = `${planetName}_Group`;
+    planetGroup.position.set(posX, posY, posZ);
     planetGroup.userData = {
         type: 'planet_container',
-        name: 'Exoplanet Cluster'
+        name: planetName
     };
+
+    // --- 1. TERRAIN / SURFACE ---
+    const planetGeo = new THREE.SphereGeometry(radius, segments, segments);
     
-    // LAYER A: THE TERRAIN (Pixel-Perfect Detail)
-    const planetGeo = new THREE.SphereGeometry(600, 128, 128); 
-    const planetMat = new THREE.MeshStandardMaterial({ 
-        map: loader.load('https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg'),
-        normalMap: loader.load('https://threejs.org/examples/textures/planets/earth_normal_2048.jpg'),
-        normalScale: new THREE.Vector2(2.0, 2.0), 
-        roughnessMap: loader.load('https://threejs.org/examples/textures/planets/earth_specular_2048.jpg'),
-        roughness: 0.6
-    }); 
+    // Build material dynamically based on whether a solid color or texture map is passed
+    const matOptions = {
+        roughness: config.roughness ?? 0.6,
+        metalness: config.metalness ?? 0.1
+    };
+
+    if (config.color !== undefined) {
+        // Custom solid color (e.g. Pink for GJ 504b)
+        matOptions.color = new THREE.Color(config.color);
+    } else {
+        // Fallback to 4K/2K textures
+        matOptions.map = loader.load(config.textureMap || 'https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg');
+        matOptions.normalMap = loader.load(config.normalMap || 'https://threejs.org/examples/textures/planets/earth_normal_2048.jpg');
+        matOptions.normalScale = new THREE.Vector2(1.5, 1.5);
+        matOptions.roughnessMap = loader.load(config.roughnessMap || 'https://threejs.org/examples/textures/planets/earth_specular_2048.jpg');
+    }
+
+    const planetMat = new THREE.MeshStandardMaterial(matOptions);
     const planetBody = new THREE.Mesh(planetGeo, planetMat);
-    
-    // 🎯 PLANET BODY IDENTITY LAYER: Flagged explicitly as Solid rock/metal core
     planetBody.name = "planetBody";
     planetBody.userData = {
-        type: 'exoplanet_body',
-        name: systemName + ' Prime',
-        state: 'solid' // Terrestrial planet surface is solid rock/crust
+        type: config.type || 'exoplanet_body',
+        name: `${planetName} Prime`,
+        state: config.state || (config.color ? 'gas' : 'solid')
     };
     planetGroup.add(planetBody);
 
-    // LAYER B: THE CLOUDS (Volumetric Atmosphere)
-    const cloudGeo = new THREE.SphereGeometry(618, 128, 128);
-    const cloudMat = new THREE.MeshStandardMaterial({
-        map: loader.load('https://threejs.org/examples/textures/planets/earth_clouds_1024.png'),
-        transparent: true,
-        opacity: 0.7,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false
-    });
-    const clouds = new THREE.Mesh(cloudGeo, cloudMat);
-    
-    // 🎯 CLOUD LAYER IDENTITY LAYER: Flagged completely as gas atmosphere
-    clouds.name = "planetClouds";
-    clouds.userData = {
-        type: 'atmosphere',
-        name: systemName + ' Clouds',
-        state: 'gas' // Clouds and atmospheric layers are gas
+    // --- 2. CLOUDS (Optional) ---
+    let clouds = null;
+    if (config.hasClouds !== false) {
+        const cloudGeo = new THREE.SphereGeometry(radius * 1.02, segments, segments);
+        const cloudMat = new THREE.MeshStandardMaterial({
+            map: loader.load(config.cloudMap || 'https://threejs.org/examples/textures/planets/earth_clouds_1024.png'),
+            transparent: true,
+            opacity: config.cloudOpacity ?? 0.7,
+            blending: THREE.NormalBlending,
+            depthWrite: false
+        });
+        clouds = new THREE.Mesh(cloudGeo, cloudMat);
+        clouds.name = "planetClouds";
+        clouds.userData = {
+            type: 'atmosphere',
+            name: `${planetName} Clouds`,
+            state: 'gas'
+        };
+        planetGroup.add(clouds);
+    }
+
+    // --- 3. ATMOSPHERE HALO (Optional) ---
+    let planetHalo = null;
+    if (config.hasAtmosphere !== false) {
+        const atmosColor = config.atmosColor || 0x00ffff;
+        const atmosGeo = new THREE.SphereGeometry(radius * 1.05, segments, segments);
+        const atmosMat = new THREE.MeshBasicMaterial({
+            color: atmosColor,
+            transparent: true,
+            opacity: config.atmosOpacity ?? 0.25,
+            side: THREE.BackSide,
+            blending: THREE.AdditiveBlending
+        });
+        planetHalo = new THREE.Mesh(atmosGeo, atmosMat);
+        planetHalo.name = "planetHalo";
+        planetHalo.userData = {
+            type: 'fresnel_glow',
+            name: `${planetName} Outer Halo`,
+            state: 'gas'
+        };
+        planetGroup.add(planetHalo);
+    }
+
+    // Auto-add to scene if scene reference was provided
+    if (scene && typeof scene.add === 'function') {
+        scene.add(planetGroup);
+    }
+
+    // Convenience property attachments
+    planetGroup.planetBody = planetBody;
+    planetGroup.clouds = clouds;
+    planetGroup.planetHalo = planetHalo;
+
+    return {
+        planetGroup,
+        planetBody,
+        clouds,
+        planetHalo,
+        get position() {
+            return planetGroup.position;
+        },
+        update(delta = 1) {
+            if (planetBody) planetBody.rotation.y += bodyRotationSpeed * delta;
+            if (clouds) clouds.rotation.y += cloudRotationSpeed * delta;
+        }
     };
-    planetGroup.add(clouds);
-
-    // LAYER C: THE FRESNEL HALO (The Cyan Glow)
-    const atmosGeo = new THREE.SphereGeometry(635, 128, 128);
-    const atmosMat = new THREE.MeshBasicMaterial({
-        color: 0x00ffff,
-        transparent: true,
-        opacity: 0.25,
-        side: THREE.BackSide,
-        blending: THREE.AdditiveBlending
-    });
-    const atmosHalo = new THREE.Mesh(atmosGeo, atmosMat);
-    atmosHalo.name = "planetHalo";
-    atmosHalo.userData = {
-        type: 'fresnel_glow',
-        name: systemName + ' Outer Halo',
-        state: 'gas'
-    };
-    planetGroup.add(atmosHalo);
-
-    // POSITION THE PLANET WITHIN THE SYSTEM
-    planetGroup.position.x = 30000; 
-    systemGroup.add(planetGroup);
-
-    // GLOBAL POSITIONING
-    systemGroup.position.set(config.x, config.y, config.z);
-    scene.add(systemGroup);
-    
-    return systemGroup;
 }
+
+// 🎯 Safe Alias: Prevents existing calls to createExoplanetSystem from breaking during refactoring
+export const createExoplanetSystem = createExoplanet;
