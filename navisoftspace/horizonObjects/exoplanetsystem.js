@@ -3,7 +3,6 @@ import { createExoplanet } from 'exoplanet';
 
 /**
  * Exoplanet System Factory
- * Manages host star, barycenter orbit groups, and one or multiple orbiting planets.
  */
 export function createExoplanetSystem(scene, config = {}) {
     const {
@@ -14,30 +13,49 @@ export function createExoplanetSystem(scene, config = {}) {
         starOffset = 1200000
     } = config;
 
-    // Root Container
+    const mainRadius = config.planetRadius || config.r || starRadius || 300000;
+    const starColorObj = new THREE.Color(starColor);
+    const starMat = new THREE.MeshBasicMaterial({ color: starColor });
+
+    // Root Container Group
     const systemGroup = new THREE.Group();
     systemGroup.name = `${name}_System`;
     systemGroup.position.set(x, y, z);
+    
+    // Attach flight properties directly to container group
+    systemGroup.r = mainRadius;
+    systemGroup.radius = mainRadius;
+    systemGroup.color = starColorObj;
+    systemGroup.material = starMat;
 
-    // 1. BARYCENTER ORBIT PIVOT
+    // 1. Barycenter Orbit Pivot
     const orbitGroup = new THREE.Group();
     orbitGroup.name = `${name}_OrbitGroup`;
+    orbitGroup.r = mainRadius;
+    orbitGroup.radius = mainRadius;
+    orbitGroup.color = starColorObj;
+    orbitGroup.material = starMat;
     systemGroup.add(orbitGroup);
 
-    // 2. HOST STAR
+    // 2. Host Star
     const starGeo = new THREE.SphereGeometry(starRadius, 32, 32);
-    const starMat = new THREE.MeshBasicMaterial({ color: starColor });
     const star = new THREE.Mesh(starGeo, starMat);
     star.name = `${name} Host Star`;
     star.position.x = -starOffset * 0.1;
+    star.r = starRadius;
+    star.radius = starRadius;
+    star.color = starColorObj;
     orbitGroup.add(star);
 
-    // Star Light Engine
+    // Light Engine
     const starLight = new THREE.PointLight(starColor, 5, starOffset * 10);
     starLight.position.copy(star.position);
+    starLight.r = starRadius;
+    starLight.radius = starRadius;
+    starLight.color = starColorObj;
     orbitGroup.add(starLight);
 
-    // 3. PLANET ARRAY PROCESSING
+    // 3. Planets Processing
     const rawPlanets = config.planets || [
         {
             name: config.planetName || name,
@@ -60,12 +78,19 @@ export function createExoplanetSystem(scene, config = {}) {
     rawPlanets.forEach((pConfig, index) => {
         const planetOrbitPivot = new THREE.Group();
         planetOrbitPivot.name = `${pConfig.name || name}_Pivot_${index}`;
+
+        const pRadius = pConfig.radius || pConfig.r || config.planetRadius || 300000;
+        const pColorObj = new THREE.Color(pConfig.color ?? config.planetColor ?? 0x0a2540);
+
+        planetOrbitPivot.r = pRadius;
+        planetOrbitPivot.radius = pRadius;
+        planetOrbitPivot.color = pColorObj;
+        planetOrbitPivot.material = starMat;
         orbitGroup.add(planetOrbitPivot);
 
-        // Instantiate via exoplanet.js factory
         const planetInstance = createExoplanet(null, {
             name: pConfig.name || `${name} ${index + 1}`,
-            radius: pConfig.radius || pConfig.r || config.planetRadius || 300000,
+            radius: pRadius,
             color: pConfig.color ?? config.planetColor ?? 0x0a2540,
             atmosColor: pConfig.atmosColor ?? config.atmosColor ?? 0x00e1ff,
             atmosOpacity: pConfig.atmosOpacity ?? config.atmosOpacity,
@@ -76,7 +101,6 @@ export function createExoplanetSystem(scene, config = {}) {
             rotationSpeed: pConfig.rotationSpeed ?? config.rotationSpeed
         });
 
-        // Distance offset along orbit
         const dist = pConfig.orbitDistance || starOffset;
         planetInstance.planetGroup.position.x = dist;
         planetOrbitPivot.add(planetInstance.planetGroup);
@@ -93,9 +117,6 @@ export function createExoplanetSystem(scene, config = {}) {
         scene.add(systemGroup);
     }
 
-    const mainRadius = config.planetRadius || config.r || starRadius || 300000;
-    const starColorObj = new THREE.Color(starColor);
-
     return {
         name,
         system: systemGroup,
@@ -106,36 +127,19 @@ export function createExoplanetSystem(scene, config = {}) {
         orbitGroup,
         planets: instantiatedPlanets,
 
-        // Legacy & Mesh Aliases
-        get planet() {
-            return instantiatedPlanets[0]?.mesh || null;
-        },
-        get planetBody() {
-            return instantiatedPlanets[0]?.mesh || null;
-        },
-        get mesh() {
-            return instantiatedPlanets[0]?.mesh || null;
-        },
-        get planetPivot() {
-            return instantiatedPlanets[0]?.pivot || null;
-        },
+        get planet() { return instantiatedPlanets[0]?.mesh || null; },
+        get planetBody() { return instantiatedPlanets[0]?.mesh || null; },
+        get mesh() { return instantiatedPlanets[0]?.mesh || null; },
+        get planetPivot() { return instantiatedPlanets[0]?.pivot || null; },
+        material: starMat,
 
-        // Radius Aliases for flight / collision calculations
         radius: mainRadius,
         r: mainRadius,
-
-        // Color object with .r, .g, .b for HUD/flight scripts
         color: starColorObj,
 
-        // Direct position and rotation access
-        get position() {
-            return systemGroup.position;
-        },
-        get rotation() {
-            return systemGroup.rotation;
-        },
+        get position() { return systemGroup.position; },
+        get rotation() { return systemGroup.rotation; },
 
-        // Three.js Scene Graph Pass-Throughs
         traverse(callback) {
             if (systemGroup && typeof systemGroup.traverse === 'function') {
                 systemGroup.traverse(callback);
@@ -145,7 +149,6 @@ export function createExoplanetSystem(scene, config = {}) {
             return systemGroup ? systemGroup.getObjectByName(name) : null;
         },
 
-        // Per-frame system animation update loop
         update(delta = 1) {
             if (orbitGroup) orbitGroup.rotation.y += 0.002 * delta;
             if (star) star.rotation.y += 0.005 * delta;
