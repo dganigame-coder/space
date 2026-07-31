@@ -1,15 +1,17 @@
 import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
 
 /**
- * Single Exoplanet Factory
+ * Single Exoplanet Factory (Returns a THREE.Group)
  */
 export function createExoplanet(scene, config = {}) {
+    const group = new THREE.Group();
     const loader = new THREE.TextureLoader();
 
+    // ⚙️ Extract Parameters
     const planetName = config.name || 'Exoplanet';
     const radius = config.radius || config.r || 600;
     const segments = config.segments || 64;
-    
+
     const posX = config.x || 0;
     const posY = config.y || 0;
     const posZ = config.z || 0;
@@ -17,10 +19,10 @@ export function createExoplanet(scene, config = {}) {
     const bodyRotationSpeed = config.rotationSpeed ?? 0.001;
     const cloudRotationSpeed = config.cloudSpeed ?? 0.0014;
 
-    // Guaranteed THREE.Color instance with .r, .g, .b
+    // Guaranteed THREE.Color instance
     const mainColor = new THREE.Color(config.color !== undefined ? config.color : 0xffffff);
 
-    // Surface Material
+    // 1. Surface Material & Mesh
     const matOptions = {
         roughness: config.roughness ?? 0.6,
         metalness: config.metalness ?? 0.1
@@ -39,31 +41,10 @@ export function createExoplanet(scene, config = {}) {
     const planetGeo = new THREE.SphereGeometry(radius, segments, segments);
     const planetBody = new THREE.Mesh(planetGeo, planetMat);
     planetBody.name = "planetBody";
-    planetBody.r = radius;
-    planetBody.radius = radius;
-    planetBody.color = mainColor;
+    group.add(planetBody);
 
-    // Main Group Container
-    const planetGroup = new THREE.Group();
-    planetGroup.name = `${planetName}_Group`;
-    planetGroup.position.set(posX, posY, posZ);
-
-    // Decorate Group container so pilot.js scene traversals won't fail
-    planetGroup.r = radius;
-    planetGroup.radius = radius;
-    planetGroup.color = mainColor;
-    planetGroup.material = planetMat;
-    planetGroup.userData = {
-        type: 'planet_container',
-        name: planetName,
-        radius: radius,
-        r: radius
-    };
-
-    planetGroup.add(planetBody);
-
-    // Clouds
-    let clouds = null;
+    // 2. Clouds Layer
+    let cloudsMesh = null;
     if (config.hasClouds !== false) {
         const cloudGeo = new THREE.SphereGeometry(radius * 1.02, segments, segments);
         const cloudMat = new THREE.MeshStandardMaterial({
@@ -73,19 +54,15 @@ export function createExoplanet(scene, config = {}) {
             blending: THREE.NormalBlending,
             depthWrite: false
         });
-        clouds = new THREE.Mesh(cloudGeo, cloudMat);
-        clouds.name = "planetClouds";
-        clouds.r = radius * 1.02;
-        clouds.radius = radius * 1.02;
-        clouds.color = mainColor;
-        planetGroup.add(clouds);
+        cloudsMesh = new THREE.Mesh(cloudGeo, cloudMat);
+        cloudsMesh.name = "planetClouds";
+        group.add(cloudsMesh);
     }
 
-    // Atmosphere Halo
-    let planetHalo = null;
+    // 3. Atmosphere Halo
+    let haloMesh = null;
     if (config.hasAtmosphere !== false) {
         const atmosColorHex = config.atmosColor || 0x00ffff;
-        const atmosColorObj = new THREE.Color(atmosColorHex);
         const atmosGeo = new THREE.SphereGeometry(radius * 1.05, segments, segments);
         const atmosMat = new THREE.MeshBasicMaterial({
             color: atmosColorHex,
@@ -94,50 +71,41 @@ export function createExoplanet(scene, config = {}) {
             side: THREE.BackSide,
             blending: THREE.AdditiveBlending
         });
-        planetHalo = new THREE.Mesh(atmosGeo, atmosMat);
-        planetHalo.name = "planetHalo";
-        planetHalo.r = radius * 1.05;
-        planetHalo.radius = radius * 1.05;
-        planetHalo.color = atmosColorObj;
-        planetGroup.add(planetHalo);
+        haloMesh = new THREE.Mesh(atmosGeo, atmosMat);
+        haloMesh.name = "planetHalo";
+        group.add(haloMesh);
     }
 
-    if (scene && typeof scene.add === 'function') {
-        scene.add(planetGroup);
-    }
+    // 📍 Setup Group Position and Attributes
+    group.name = `${planetName}_Group`;
+    group.position.set(posX, posY, posZ);
 
-    return {
+    // 🛡️ Decorate Group directly for pilot.js & HUD compatibility
+    group.r = radius;
+    group.radius = radius;
+    group.color = mainColor;
+    group.material = planetMat;
+    
+    group.userData = {
+        type: 'exoplanet',
         name: planetName,
-        planetGroup,
-        planetBody,
-        clouds,
-        planetHalo,
-        
-        mesh: planetBody,
-        planet: planetBody,
-        material: planetMat,
-        
         radius: radius,
         r: radius,
-        color: mainColor,
-
-        get position() { return planetGroup.position; },
-        get rotation() { return planetGroup.rotation; },
-
-        traverse(callback) {
-            if (planetGroup && typeof planetGroup.traverse === 'function') {
-                planetGroup.traverse(callback);
-            }
-        },
-        getObjectByName(name) {
-            return planetGroup ? planetGroup.getObjectByName(name) : null;
-        },
-
-        update(delta = 1) {
-            if (planetBody) planetBody.rotation.y += bodyRotationSpeed * delta;
-            if (clouds) clouds.rotation.y += cloudRotationSpeed * delta;
-        }
+        color: mainColor
     };
-}
 
-export const createExoplanetSystem = createExoplanet;
+    // 🔄 Unified Update Loop
+    const updateRoutine = (delta = 1) => {
+        if (planetBody) planetBody.rotation.y += bodyRotationSpeed * delta;
+        if (cloudsMesh) cloudsMesh.rotation.y += cloudRotationSpeed * delta;
+    };
+
+    group.onUpdate = updateRoutine;
+    group.update = updateRoutine; // Support both naming styles
+
+    if (scene && typeof scene.add === 'function') {
+        scene.add(group);
+    }
+
+    return group;
+}
