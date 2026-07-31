@@ -45,6 +45,11 @@ export function createExoplanetSystem(scene, config = {}) {
             radius: config.planetRadius || 300000,
             color: config.planetColor ?? 0x0a2540,
             atmosColor: config.atmosColor ?? 0x00e1ff,
+            atmosOpacity: config.atmosOpacity,
+            roughness: config.roughness,
+            metalness: config.metalness,
+            hasClouds: config.hasClouds,
+            hasAtmosphere: config.hasAtmosphere,
             orbitDistance: starOffset,
             orbitSpeed: config.orbitSpeed || 0.008,
             rotationSpeed: config.rotationSpeed || 0.02
@@ -64,8 +69,12 @@ export function createExoplanetSystem(scene, config = {}) {
             radius: pConfig.radius || config.planetRadius || 300000,
             color: pConfig.color ?? config.planetColor ?? 0x0a2540,
             atmosColor: pConfig.atmosColor ?? config.atmosColor ?? 0x00e1ff,
-            hasClouds: pConfig.hasClouds,
-            hasAtmosphere: pConfig.hasAtmosphere
+            atmosOpacity: pConfig.atmosOpacity ?? config.atmosOpacity,
+            roughness: pConfig.roughness ?? config.roughness,
+            metalness: pConfig.metalness ?? config.metalness,
+            hasClouds: pConfig.hasClouds ?? config.hasClouds,
+            hasAtmosphere: pConfig.hasAtmosphere ?? config.hasAtmosphere,
+            rotationSpeed: pConfig.rotationSpeed ?? config.rotationSpeed
         });
 
         // Distance offset along orbit
@@ -87,13 +96,19 @@ export function createExoplanetSystem(scene, config = {}) {
 
     // Return unified system interface
     return {
+        name,
         system: systemGroup,
         systemGroup,
         star,
         starLight,
         orbitGroup,
         planets: instantiatedPlanets,
-        
+
+        // Direct position access for HUD & distance calculations
+        get position() {
+            return systemGroup.position;
+        },
+
         // Legacy Getter: Allows scripts accessing system.planet to work transparently
         get planet() {
             return instantiatedPlanets[0]?.mesh || null;
