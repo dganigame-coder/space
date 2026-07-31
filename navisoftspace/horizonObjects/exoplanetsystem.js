@@ -24,7 +24,7 @@ export function createExoplanetSystem(scene, config = {}) {
     orbitGroup.name = `${name}_OrbitGroup`;
     systemGroup.add(orbitGroup);
 
-    // 2. HOST STAR (Offset slightly for realistic mutual orbit/wobble)
+    // 2. HOST STAR
     const starGeo = new THREE.SphereGeometry(starRadius, 32, 32);
     const starMat = new THREE.MeshBasicMaterial({ color: starColor });
     const star = new THREE.Mesh(starGeo, starMat);
@@ -38,11 +38,10 @@ export function createExoplanetSystem(scene, config = {}) {
     orbitGroup.add(starLight);
 
     // 3. PLANET ARRAY PROCESSING
-    // Uses config.planets array if provided, otherwise creates fallback from single-planet configs
     const rawPlanets = config.planets || [
         {
             name: config.planetName || name,
-            radius: config.planetRadius || 300000,
+            radius: config.planetRadius || config.r || 300000,
             color: config.planetColor ?? 0x0a2540,
             atmosColor: config.atmosColor ?? 0x00e1ff,
             atmosOpacity: config.atmosOpacity,
@@ -66,7 +65,7 @@ export function createExoplanetSystem(scene, config = {}) {
         // Instantiate via exoplanet.js factory
         const planetInstance = createExoplanet(null, {
             name: pConfig.name || `${name} ${index + 1}`,
-            radius: pConfig.radius || config.planetRadius || 300000,
+            radius: pConfig.radius || pConfig.r || config.planetRadius || 300000,
             color: pConfig.color ?? config.planetColor ?? 0x0a2540,
             atmosColor: pConfig.atmosColor ?? config.atmosColor ?? 0x00e1ff,
             atmosOpacity: pConfig.atmosOpacity ?? config.atmosOpacity,
@@ -94,24 +93,56 @@ export function createExoplanetSystem(scene, config = {}) {
         scene.add(systemGroup);
     }
 
-    // Return unified system interface
+    const mainRadius = config.planetRadius || config.r || starRadius || 300000;
+    const starColorObj = new THREE.Color(starColor);
+
     return {
         name,
         system: systemGroup,
         systemGroup,
         star,
+        hostStar: star,
         starLight,
         orbitGroup,
         planets: instantiatedPlanets,
 
-        // Direct position access for HUD & distance calculations
+        // Legacy & Mesh Aliases
+        get planet() {
+            return instantiatedPlanets[0]?.mesh || null;
+        },
+        get planetBody() {
+            return instantiatedPlanets[0]?.mesh || null;
+        },
+        get mesh() {
+            return instantiatedPlanets[0]?.mesh || null;
+        },
+        get planetPivot() {
+            return instantiatedPlanets[0]?.pivot || null;
+        },
+
+        // Radius Aliases for flight / collision calculations
+        radius: mainRadius,
+        r: mainRadius,
+
+        // Color object with .r, .g, .b for HUD/flight scripts
+        color: starColorObj,
+
+        // Direct position and rotation access
         get position() {
             return systemGroup.position;
         },
+        get rotation() {
+            return systemGroup.rotation;
+        },
 
-        // Legacy Getter: Allows scripts accessing system.planet to work transparently
-        get planet() {
-            return instantiatedPlanets[0]?.mesh || null;
+        // Three.js Scene Graph Pass-Throughs
+        traverse(callback) {
+            if (systemGroup && typeof systemGroup.traverse === 'function') {
+                systemGroup.traverse(callback);
+            }
+        },
+        getObjectByName(name) {
+            return systemGroup ? systemGroup.getObjectByName(name) : null;
         },
 
         // Per-frame system animation update loop
