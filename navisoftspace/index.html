@@ -403,7 +403,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER3107262210</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER0108260007</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -991,6 +991,7 @@
             colors: [0x00ffcc, 0xff3300, 0xffff00] // Cyan, Red, and Yellow
         });
 
+        /*
         // --- 0. Supreme Exoplanet System ---
         // Create the Supreme Exoplanet System with properties passed directly in the config object
         const exoSystem = createExoplanetSystem(engine.scene, {
@@ -1007,7 +1008,7 @@
         // The Main Core Coordinates
         const alphaCentauriX = 50000000;
         const alphaCentauriZ = 50000000;
-                
+               
         // 🪐 1. ALPHA CENTAURI A (Using your 4K Detailed Exoplanet file)
         //const systemA = createDetailedSystem(engine.scene, {
         const systemA = createExoplanetSystem(engine.scene, {
@@ -1037,7 +1038,7 @@
             name: "Proxima Centauri",    // 🎯 Set target name
             type: "exoplanet"            // 🎯 Flag performance tier type
         });
-        
+        */
         // ============================================================================
         // 🪨 4. DEBRIS FIELDS (Updated to use your native createBelt factory)
         // ============================================================================
@@ -1145,7 +1146,8 @@
         colors: [0x5d2e1b, 0x4a3c31],
         name: "Tau Ceti Debris Disk"
     });
-    
+
+    /*    
     // 3. THE EXOPLANETS 
     // Pass the EXACT same system center coordinates (tauOffsetX, tauOffsetY, tauOffsetZ).
     // Do NOT manually add +12000 or +28000 here! The planet function internally handles 
@@ -1165,8 +1167,8 @@
         name: "Tau Ceti f",
         type: "exoplanet"
     });       
-
-
+    */
+    
      // 0. The Massive Cosmological Coordinates
     const momX = 900000000;
     const momY = 450000000;
@@ -1212,6 +1214,7 @@
         name: "Cosmic Microwave Horizon"
     });
 
+ /*       
 // 🌸 GJ 504b: Hyperrealistic Gas Giant Orbiting its G-Type Host Star
 const gj504b = createExoplanetSystem(engine.scene, {
     name: "Exoplanet GJ 504b",
@@ -1243,7 +1246,7 @@ const gj504b = createExoplanetSystem(engine.scene, {
     rotationSpeed: 0.01        // Axial planetary rotation rate
 });
 
-        
+*/        
 // ==========================================
 // 🌌 COMPONENT: OMC-2 Cloud of Creation (Orion Sword)
 // ==========================================
@@ -1325,7 +1328,8 @@ sdssBlackHoleCore.userData = {
     type: "Rapid-Growth Lightweight SMBH",
     notes: "Prototype galaxy showing 20-fold radio jet amplification. Mimics early universe conditions in nearby space."
 };
-     const k218 = createExoplanetSystem(engine.scene, {
+/*        
+const k218 = createExoplanetSystem(engine.scene, {
     x: 180000000, y: 45000000, z: -320000000,
     name: "K2-18b",
     planetRadius: 300000,
@@ -1335,7 +1339,7 @@ sdssBlackHoleCore.userData = {
     starColor: 0xff3300,
     starOffset: 1200000
 });
-
+*/
      
            engine.scene.add(starfield); 
     
@@ -1345,14 +1349,14 @@ sdssBlackHoleCore.userData = {
             
             // --- 3. ADD EVERYTHING TO THE COLLISION ARRAY ---
             // This is what allows you to land on them and see their HUD data
-            const bodies = [sun, mercury, venus, earth, moon, mars, jupiter, saturn, titan, uranus, neptune , pluto,gj504b];
+            const bodies = [sun, mercury, venus, earth, moon, mars, jupiter, saturn, titan, uranus, neptune , pluto];
+            const exoplanets = [gj504b,systemA,systemB,proximaSystem,planetE,planetF, k218];
             const horizonObj = [mainBelt,kuiperBelt,oortCloud,orionNebula, 
                                 remnant, andromeda, blackEyeCore,blackEyeDust,molecularCloud, 
-                                systemA,systemB,proximaSystem,sharedBelt,oumuamua, BornSystem,
-                                planetE,planetF,tauCetiDisk,tauCetiStar,
+                                sharedBelt,oumuamua, BornSystem,
+                                tauCetiDisk,tauCetiStar,
                                  momCore, momGasCloud,
-                                 cosmicHorizon,omc2Nebula,
-                                k218
+                                 cosmicHorizon,omc2Nebula
                                 //crabNebula
                                 //,supernova,dynamicSupernova
                                ];
@@ -1366,6 +1370,7 @@ sdssBlackHoleCore.userData = {
             bodies.push(...horizonObj);
             bodies.push(...spaceholes);
             bodies.push(...supernovas);
+            bodies.push(...exoplanets);
             //if(cosmic.length > 0)
            //     bodies.push(...cosmic);
     
@@ -1717,6 +1722,7 @@ sdssBlackHoleCore.userData = {
                                 
                  }
 
+            /*
             if (exoSystem) {
                     // 1. Orbital Rotation: The planet rotates slowly around the Star
                     // This moves the 'exoplanetPivot' group we created in the JS file
@@ -1738,7 +1744,7 @@ sdssBlackHoleCore.userData = {
                         clouds.rotation.z += 0.0002; // Adds a slight tilt to the cloud movement
                     }
                 }
-
+            */
             const time = Date.now();
         
             // Update the wormhole's pulse and rotation
@@ -1924,6 +1930,7 @@ if (k218bCore && k218bAtmosphere) {
 // =========================================================
 // 🪐 K2-18b SYSTEM: SAFE ANIMATION & HUD TELEMETRY
 // =========================================================
+/*
 if (k218) {
     // 1. Mutual Orbit (Revolves star & planet around common barycenter)
     if (k218.orbitGroup) {
@@ -1950,6 +1957,7 @@ if (k218) {
         }
     }
 }
+*/
             // 1. Tell the universe to check if the pilot entered a new sector chunk
             //universe.update(engine.camera.position);
         
