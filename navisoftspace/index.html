@@ -403,7 +403,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER0108260057</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER0108260103</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -1151,12 +1151,13 @@
         name: "Tau Ceti Debris Disk"
     });
 
-    /*    
+       
     // 3. THE EXOPLANETS 
     // Pass the EXACT same system center coordinates (tauOffsetX, tauOffsetY, tauOffsetZ).
     // Do NOT manually add +12000 or +28000 here! The planet function internally handles 
     // putting the planet body at its orbit radius (e.g. planet.position.x = 15000) inside its group.
-    const planetE = createExoplanetSystem(engine.scene, {
+    //const planetE = createExoplanetSystem(engine.scene, {
+   const planetE = createExoplanet(engine.scene, {
         x: tauOffsetX, 
         y: tauOffsetY,
         z: tauOffsetZ,
@@ -1164,14 +1165,15 @@
         type: "exoplanet"
     });
     
-    const planetF = createExoplanetSystem(engine.scene, {
+    //const planetF = createExoplanetSystem(engine.scene, {
+      const planetF = createExoplanet(engine.scene, {
         x: tauOffsetX, 
         y: tauOffsetY,
         z: tauOffsetZ,
         name: "Tau Ceti f",
         type: "exoplanet"
     });       
-    */
+    
     
      // 0. The Massive Cosmological Coordinates
     const momX = 900000000;
@@ -1218,7 +1220,7 @@
         name: "Cosmic Microwave Horizon"
     });
 
- /*       
+        
 // 🌸 GJ 504b: Hyperrealistic Gas Giant Orbiting its G-Type Host Star
 const gj504b = createExoplanetSystem(engine.scene, {
     name: "Exoplanet GJ 504b",
@@ -1250,7 +1252,7 @@ const gj504b = createExoplanetSystem(engine.scene, {
     rotationSpeed: 0.01        // Axial planetary rotation rate
 });
 
-*/        
+   
 // ==========================================
 // 🌌 COMPONENT: OMC-2 Cloud of Creation (Orion Sword)
 // ==========================================
@@ -1332,7 +1334,7 @@ sdssBlackHoleCore.userData = {
     type: "Rapid-Growth Lightweight SMBH",
     notes: "Prototype galaxy showing 20-fold radio jet amplification. Mimics early universe conditions in nearby space."
 };
-/*        
+       
 const k218 = createExoplanetSystem(engine.scene, {
     x: 180000000, y: 45000000, z: -320000000,
     name: "K2-18b",
@@ -1343,7 +1345,7 @@ const k218 = createExoplanetSystem(engine.scene, {
     starColor: 0xff3300,
     starOffset: 1200000
 });
-*/
+
      
            engine.scene.add(starfield); 
     
@@ -1356,11 +1358,13 @@ const k218 = createExoplanetSystem(engine.scene, {
             const bodies = [sun, mercury, venus, earth, moon, mars, jupiter, saturn, titan, uranus, neptune , pluto];
             const exoplanets = [
                                 exoSystem,
-                                //gj504b,
                                 systemA,
                                 systemB,
-                                proximaSystem
-                                //,planetE,planetF, k218
+                                proximaSystem,
+                                planetE,
+                                planetF,
+                                gj504b,
+                                k218
                                 ];
             const horizonObj = [mainBelt,kuiperBelt,oortCloud,orionNebula, 
                                 remnant, andromeda, blackEyeCore,blackEyeDust,molecularCloud, 
