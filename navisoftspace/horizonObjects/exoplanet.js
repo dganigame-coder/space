@@ -2,47 +2,47 @@ import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
 
 /**
  * Single Exoplanet Factory
- * Builds 1 detailed planet with customizable surface, clouds, and atmosphere.
+ * Creates 1 individual planet mesh with full customization options.
  */
 export function createExoplanet(scene, config = {}) {
     const loader = new THREE.TextureLoader();
 
-    // Config fallbacks
+    // 🎯 Configuration & Fallbacks
     const planetName = config.name || 'Exoplanet';
-    const radius = config.radius || 600;
-    const segments = config.segments || 64; // Performance-optimized polycount
+    const radius = config.radius || config.r || 600;
+    const segments = config.segments || 64;
     
     const posX = config.x || 0;
     const posY = config.y || 0;
     const posZ = config.z || 0;
 
-    // Rotation speeds
     const bodyRotationSpeed = config.rotationSpeed ?? 0.001;
     const cloudRotationSpeed = config.cloudSpeed ?? 0.0014;
 
-    // Main Container Group
+    // Main Group Container
     const planetGroup = new THREE.Group();
     planetGroup.name = `${planetName}_Group`;
     planetGroup.position.set(posX, posY, posZ);
     planetGroup.userData = {
         type: 'planet_container',
-        name: planetName
+        name: planetName,
+        radius: radius,
+        r: radius
     };
 
     // --- 1. TERRAIN / SURFACE ---
     const planetGeo = new THREE.SphereGeometry(radius, segments, segments);
     
-    // Build material dynamically based on whether a solid color or texture map is passed
     const matOptions = {
         roughness: config.roughness ?? 0.6,
         metalness: config.metalness ?? 0.1
     };
 
     if (config.color !== undefined) {
-        // Custom solid color (e.g. Pink for GJ 504b)
+        // Custom color (e.g. Pink for GJ 504b)
         matOptions.color = new THREE.Color(config.color);
     } else {
-        // Fallback to 4K/2K textures
+        // Default Earth textures
         matOptions.map = loader.load(config.textureMap || 'https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg');
         matOptions.normalMap = loader.load(config.normalMap || 'https://threejs.org/examples/textures/planets/earth_normal_2048.jpg');
         matOptions.normalScale = new THREE.Vector2(1.5, 1.5);
@@ -55,7 +55,9 @@ export function createExoplanet(scene, config = {}) {
     planetBody.userData = {
         type: config.type || 'exoplanet_body',
         name: `${planetName} Prime`,
-        state: config.state || (config.color ? 'gas' : 'solid')
+        state: config.state || (config.color !== undefined ? 'gas' : 'solid'),
+        radius: radius,
+        r: radius
     };
     planetGroup.add(planetBody);
 
@@ -102,24 +104,49 @@ export function createExoplanet(scene, config = {}) {
         planetGroup.add(planetHalo);
     }
 
-    // Auto-add to scene if scene reference was provided
     if (scene && typeof scene.add === 'function') {
         scene.add(planetGroup);
     }
 
-    // Convenience property attachments
-    planetGroup.planetBody = planetBody;
-    planetGroup.clouds = clouds;
-    planetGroup.planetHalo = planetHalo;
+    const mainColor = planetMat.color || new THREE.Color(config.color || 0xffffff);
 
     return {
+        name: planetName,
         planetGroup,
         planetBody,
         clouds,
         planetHalo,
+        
+        // Target & Mesh Aliases
+        mesh: planetBody,
+        planet: planetBody,
+        
+        // Radius Aliases for flight / collision calculations
+        radius: radius,
+        r: radius,
+        
+        // Color object with .r, .g, .b for HUD/flight scripts
+        color: mainColor,
+
+        // Direct position and rotation access
         get position() {
             return planetGroup.position;
         },
+        get rotation() {
+            return planetGroup.rotation;
+        },
+
+        // Three.js Scene Graph Pass-Throughs
+        traverse(callback) {
+            if (planetGroup && typeof planetGroup.traverse === 'function') {
+                planetGroup.traverse(callback);
+            }
+        },
+        getObjectByName(name) {
+            return planetGroup ? planetGroup.getObjectByName(name) : null;
+        },
+
+        // Per-frame animation loop
         update(delta = 1) {
             if (planetBody) planetBody.rotation.y += bodyRotationSpeed * delta;
             if (clouds) clouds.rotation.y += cloudRotationSpeed * delta;
@@ -127,5 +154,5 @@ export function createExoplanet(scene, config = {}) {
     };
 }
 
-// 🎯 Safe Alias: Prevents existing calls to createExoplanetSystem from breaking during refactoring
+// Safety Alias for transition
 export const createExoplanetSystem = createExoplanet;
