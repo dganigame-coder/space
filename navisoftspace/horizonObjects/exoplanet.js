@@ -2,12 +2,10 @@ import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
 
 /**
  * Single Exoplanet Factory
- * Creates 1 individual planet mesh with full customization options.
  */
 export function createExoplanet(scene, config = {}) {
     const loader = new THREE.TextureLoader();
 
-    // 🎯 Configuration & Fallbacks
     const planetName = config.name || 'Exoplanet';
     const radius = config.radius || config.r || 600;
     const segments = config.segments || 64;
@@ -19,30 +17,18 @@ export function createExoplanet(scene, config = {}) {
     const bodyRotationSpeed = config.rotationSpeed ?? 0.001;
     const cloudRotationSpeed = config.cloudSpeed ?? 0.0014;
 
-    // Main Group Container
-    const planetGroup = new THREE.Group();
-    planetGroup.name = `${planetName}_Group`;
-    planetGroup.position.set(posX, posY, posZ);
-    planetGroup.userData = {
-        type: 'planet_container',
-        name: planetName,
-        radius: radius,
-        r: radius
-    };
+    // Guaranteed THREE.Color instance with .r, .g, .b
+    const mainColor = new THREE.Color(config.color !== undefined ? config.color : 0xffffff);
 
-    // --- 1. TERRAIN / SURFACE ---
-    const planetGeo = new THREE.SphereGeometry(radius, segments, segments);
-    
+    // Surface Material
     const matOptions = {
         roughness: config.roughness ?? 0.6,
         metalness: config.metalness ?? 0.1
     };
 
     if (config.color !== undefined) {
-        // Custom color (e.g. Pink for GJ 504b)
-        matOptions.color = new THREE.Color(config.color);
+        matOptions.color = mainColor;
     } else {
-        // Default Earth textures
         matOptions.map = loader.load(config.textureMap || 'https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg');
         matOptions.normalMap = loader.load(config.normalMap || 'https://threejs.org/examples/textures/planets/earth_normal_2048.jpg');
         matOptions.normalScale = new THREE.Vector2(1.5, 1.5);
@@ -50,18 +36,33 @@ export function createExoplanet(scene, config = {}) {
     }
 
     const planetMat = new THREE.MeshStandardMaterial(matOptions);
+    const planetGeo = new THREE.SphereGeometry(radius, segments, segments);
     const planetBody = new THREE.Mesh(planetGeo, planetMat);
     planetBody.name = "planetBody";
-    planetBody.userData = {
-        type: config.type || 'exoplanet_body',
-        name: `${planetName} Prime`,
-        state: config.state || (config.color !== undefined ? 'gas' : 'solid'),
+    planetBody.r = radius;
+    planetBody.radius = radius;
+    planetBody.color = mainColor;
+
+    // Main Group Container
+    const planetGroup = new THREE.Group();
+    planetGroup.name = `${planetName}_Group`;
+    planetGroup.position.set(posX, posY, posZ);
+
+    // Decorate Group container so pilot.js scene traversals won't fail
+    planetGroup.r = radius;
+    planetGroup.radius = radius;
+    planetGroup.color = mainColor;
+    planetGroup.material = planetMat;
+    planetGroup.userData = {
+        type: 'planet_container',
+        name: planetName,
         radius: radius,
         r: radius
     };
+
     planetGroup.add(planetBody);
 
-    // --- 2. CLOUDS (Optional) ---
+    // Clouds
     let clouds = null;
     if (config.hasClouds !== false) {
         const cloudGeo = new THREE.SphereGeometry(radius * 1.02, segments, segments);
@@ -74,21 +75,20 @@ export function createExoplanet(scene, config = {}) {
         });
         clouds = new THREE.Mesh(cloudGeo, cloudMat);
         clouds.name = "planetClouds";
-        clouds.userData = {
-            type: 'atmosphere',
-            name: `${planetName} Clouds`,
-            state: 'gas'
-        };
+        clouds.r = radius * 1.02;
+        clouds.radius = radius * 1.02;
+        clouds.color = mainColor;
         planetGroup.add(clouds);
     }
 
-    // --- 3. ATMOSPHERE HALO (Optional) ---
+    // Atmosphere Halo
     let planetHalo = null;
     if (config.hasAtmosphere !== false) {
-        const atmosColor = config.atmosColor || 0x00ffff;
+        const atmosColorHex = config.atmosColor || 0x00ffff;
+        const atmosColorObj = new THREE.Color(atmosColorHex);
         const atmosGeo = new THREE.SphereGeometry(radius * 1.05, segments, segments);
         const atmosMat = new THREE.MeshBasicMaterial({
-            color: atmosColor,
+            color: atmosColorHex,
             transparent: true,
             opacity: config.atmosOpacity ?? 0.25,
             side: THREE.BackSide,
@@ -96,19 +96,15 @@ export function createExoplanet(scene, config = {}) {
         });
         planetHalo = new THREE.Mesh(atmosGeo, atmosMat);
         planetHalo.name = "planetHalo";
-        planetHalo.userData = {
-            type: 'fresnel_glow',
-            name: `${planetName} Outer Halo`,
-            state: 'gas'
-        };
+        planetHalo.r = radius * 1.05;
+        planetHalo.radius = radius * 1.05;
+        planetHalo.color = atmosColorObj;
         planetGroup.add(planetHalo);
     }
 
     if (scene && typeof scene.add === 'function') {
         scene.add(planetGroup);
     }
-
-    const mainColor = planetMat.color || new THREE.Color(config.color || 0xffffff);
 
     return {
         name: planetName,
@@ -117,26 +113,17 @@ export function createExoplanet(scene, config = {}) {
         clouds,
         planetHalo,
         
-        // Target & Mesh Aliases
         mesh: planetBody,
         planet: planetBody,
+        material: planetMat,
         
-        // Radius Aliases for flight / collision calculations
         radius: radius,
         r: radius,
-        
-        // Color object with .r, .g, .b for HUD/flight scripts
         color: mainColor,
 
-        // Direct position and rotation access
-        get position() {
-            return planetGroup.position;
-        },
-        get rotation() {
-            return planetGroup.rotation;
-        },
+        get position() { return planetGroup.position; },
+        get rotation() { return planetGroup.rotation; },
 
-        // Three.js Scene Graph Pass-Throughs
         traverse(callback) {
             if (planetGroup && typeof planetGroup.traverse === 'function') {
                 planetGroup.traverse(callback);
@@ -146,7 +133,6 @@ export function createExoplanet(scene, config = {}) {
             return planetGroup ? planetGroup.getObjectByName(name) : null;
         },
 
-        // Per-frame animation loop
         update(delta = 1) {
             if (planetBody) planetBody.rotation.y += bodyRotationSpeed * delta;
             if (clouds) clouds.rotation.y += cloudRotationSpeed * delta;
@@ -154,5 +140,4 @@ export function createExoplanet(scene, config = {}) {
     };
 }
 
-// Safety Alias for transition
 export const createExoplanetSystem = createExoplanet;
