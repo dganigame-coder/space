@@ -1,59 +1,113 @@
-export function createExoplanetSystem(scene, config) {
-    const { 
-        x = 0, y = 0, z = 0, 
-        name = 'K2-18b System', 
-        planetRadius = 300000,
-        planetColor = 0x0a2540,
-        atmosColor = 0x00e1ff,
+import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
+import { createExoplanet } from 'exoplanet';
+
+/**
+ * Exoplanet System Factory
+ * Manages host star, barycenter orbit groups, and one or multiple orbiting planets.
+ */
+export function createExoplanetSystem(scene, config = {}) {
+    const {
+        x = 0, y = 0, z = 0,
+        name = 'Exoplanet System',
         starRadius = 100000,
         starColor = 0xff3300,
         starOffset = 1200000
     } = config;
 
-    const system = new THREE.Group();
-    system.position.set(x, y, z);
+    // Root Container
+    const systemGroup = new THREE.Group();
+    systemGroup.name = `${name}_System`;
+    systemGroup.position.set(x, y, z);
 
     // 1. BARYCENTER ORBIT PIVOT
-    // Everything attached to this group rotates around the center of mass
     const orbitGroup = new THREE.Group();
-    system.add(orbitGroup);
+    orbitGroup.name = `${name}_OrbitGroup`;
+    systemGroup.add(orbitGroup);
 
-    // 2. THE STAR (Shifted slightly opposite to the planet for mutual orbit)
+    // 2. HOST STAR (Offset slightly for realistic mutual orbit/wobble)
     const starGeo = new THREE.SphereGeometry(starRadius, 32, 32);
-    // Wireframe or detail helps you visually SEE the star spinning!
-    const starMat = new THREE.MeshBasicMaterial({ color: starColor, wireframe: false });
+    const starMat = new THREE.MeshBasicMaterial({ color: starColor });
     const star = new THREE.Mesh(starGeo, starMat);
-    star.position.x = -starOffset * 0.1; // Small wobble offset
+    star.name = `${name} Host Star`;
+    star.position.x = -starOffset * 0.1;
     orbitGroup.add(star);
 
-    // Star light source
+    // Star Light Engine
     const starLight = new THREE.PointLight(starColor, 5, starOffset * 10);
     starLight.position.copy(star.position);
     orbitGroup.add(starLight);
 
-    // 3. THE PLANET (Offset on the opposite side)
-    const planetGeo = new THREE.SphereGeometry(planetRadius, 32, 32);
-    const planetMat = new THREE.MeshStandardMaterial({ 
-        color: planetColor,
-        roughness: 0.6,
-        metalness: 0.2
+    // 3. PLANET ARRAY PROCESSING
+    // Uses config.planets array if provided, otherwise creates fallback from single-planet configs
+    const rawPlanets = config.planets || [
+        {
+            name: config.planetName || name,
+            radius: config.planetRadius || 300000,
+            color: config.planetColor ?? 0x0a2540,
+            atmosColor: config.atmosColor ?? 0x00e1ff,
+            orbitDistance: starOffset,
+            orbitSpeed: config.orbitSpeed || 0.008,
+            rotationSpeed: config.rotationSpeed || 0.02
+        }
+    ];
+
+    const instantiatedPlanets = [];
+
+    rawPlanets.forEach((pConfig, index) => {
+        const planetOrbitPivot = new THREE.Group();
+        planetOrbitPivot.name = `${pConfig.name || name}_Pivot_${index}`;
+        orbitGroup.add(planetOrbitPivot);
+
+        // Instantiate via exoplanet.js factory
+        const planetInstance = createExoplanet(null, {
+            name: pConfig.name || `${name} ${index + 1}`,
+            radius: pConfig.radius || config.planetRadius || 300000,
+            color: pConfig.color ?? config.planetColor ?? 0x0a2540,
+            atmosColor: pConfig.atmosColor ?? config.atmosColor ?? 0x00e1ff,
+            hasClouds: pConfig.hasClouds,
+            hasAtmosphere: pConfig.hasAtmosphere
+        });
+
+        // Distance offset along orbit
+        const dist = pConfig.orbitDistance || starOffset;
+        planetInstance.planetGroup.position.x = dist;
+        planetOrbitPivot.add(planetInstance.planetGroup);
+
+        instantiatedPlanets.push({
+            pivot: planetOrbitPivot,
+            orbitSpeed: pConfig.orbitSpeed || 0.008,
+            instance: planetInstance,
+            mesh: planetInstance.planetBody
+        });
     });
-    const planet = new THREE.Mesh(planetGeo, planetMat);
-    planet.position.x = starOffset;
-    orbitGroup.add(planet);
 
-    // 4. ATMOSPHERE SHELL (Attached DIRECTLY to planet so they spin together)
-    const atmosGeo = new THREE.SphereGeometry(planetRadius * 1.06, 32, 32);
-    const atmosMat = new THREE.MeshBasicMaterial({
-        color: atmosColor,
-        transparent: true,
-        opacity: 0.35,
-        wireframe: true // 🔥 Wireframe lets you visually watch the atmosphere spin!
-    });
-    const atmosphere = new THREE.Mesh(atmosGeo, atmosMat);
-    planet.add(atmosphere); // Attached to planet mesh!
+    if (scene && typeof scene.add === 'function') {
+        scene.add(systemGroup);
+    }
 
-    scene.add(system);
+    // Return unified system interface
+    return {
+        system: systemGroup,
+        systemGroup,
+        star,
+        starLight,
+        orbitGroup,
+        planets: instantiatedPlanets,
+        
+        // Legacy Getter: Allows scripts accessing system.planet to work transparently
+        get planet() {
+            return instantiatedPlanets[0]?.mesh || null;
+        },
 
-    return { system, star, planet, orbitGroup };
+        // Per-frame system animation update loop
+        update(delta = 1) {
+            if (orbitGroup) orbitGroup.rotation.y += 0.002 * delta;
+            if (star) star.rotation.y += 0.005 * delta;
+
+            instantiatedPlanets.forEach(p => {
+                p.pivot.rotation.y += p.orbitSpeed * delta;
+                p.instance.update(delta);
+            });
+        }
+    };
 }
