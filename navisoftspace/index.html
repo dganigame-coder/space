@@ -403,7 +403,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER0108262147</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER0108262152</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -1945,8 +1945,9 @@ if (k218bCore && k218bAtmosphere) {
 // =========================================================
 // 🪐 K2-18b SYSTEM: SAFE ANIMATION & HUD TELEMETRY
 // =========================================================
-/*
+
 if (k218) {
+    /*
     // 1. Mutual Orbit (Revolves star & planet around common barycenter)
     if (k218.orbitGroup) {
         k218.orbitGroup.rotation.y += 0.008; // Faster orbit drive
@@ -1961,7 +1962,7 @@ if (k218) {
     if (k218.planet) {
         k218.planet.rotation.y += 0.02; // Visually obvious spin rate
     }
-
+   */
     // 4. Live HUD distance calculation
     if (k218.system) {
         const distToK2 = engine.camera.position.distanceTo(k218.system.position);
@@ -1972,7 +1973,7 @@ if (k218) {
         }
     }
 }
-*/
+
             // 1. Tell the universe to check if the pilot entered a new sector chunk
             //universe.update(engine.camera.position);
         
