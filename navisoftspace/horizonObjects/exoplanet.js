@@ -59,20 +59,45 @@ export function createExoplanet(scene, config = {}) {
         group.add(cloudsMesh);
     }
 
-    // 3. Atmosphere Halo
+    // 3. Atmosphere Halo (Hyper-Realistic Fresnel Shader)
     let haloMesh = null;
     if (config.hasAtmosphere !== false) {
         const atmosColorHex = config.atmosColor || 0x00ffff;
-        const atmosGeo = new THREE.SphereGeometry(radius * 1.05, segments, segments);
-        const atmosMat = new THREE.MeshBasicMaterial({
-            color: atmosColorHex,
-            transparent: true,
-            opacity: config.atmosOpacity ?? 0.25,
+        const atmosGeo = new THREE.SphereGeometry(radius * 1.12, segments, segments);
+
+        const atmosMat = new THREE.ShaderMaterial({
+            vertexShader: `
+                varying vec3 vNormal;
+                void main() {
+                    vNormal = normalize(normalMatrix * normal);
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                varying vec3 vNormal;
+                uniform vec3 color;
+                uniform float opacity;
+                void main() {
+                    // Fresnel intensity curve: smooth volumetric falloff toward edges
+                    float intensity = pow(0.6 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 2.5);
+                    gl_FragColor = vec4(color, 1.0) * intensity * opacity;
+                }
+            `,
+            uniforms: {
+                color: { value: new THREE.Color(atmosColorHex) },
+                opacity: { value: config.atmosOpacity ?? 0.6 }
+            },
+            blending: THREE.AdditiveBlending,
             side: THREE.BackSide,
-            blending: THREE.AdditiveBlending
+            transparent: true,
+            depthWrite: false
         });
+
         haloMesh = new THREE.Mesh(atmosGeo, atmosMat);
         haloMesh.name = "planetHalo";
+        haloMesh.r = radius * 1.12;
+        haloMesh.radius = radius * 1.12;
+        haloMesh.color = new THREE.Color(atmosColorHex);
         group.add(haloMesh);
     }
 
