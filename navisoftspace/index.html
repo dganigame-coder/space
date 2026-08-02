@@ -403,7 +403,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER0308260105</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER0308260145</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -548,7 +548,24 @@
     x: -199515000, y: 80000, z: 150000000
 },
 
-                
+    // =========================================================
+// 🌌 SEXTUPLE SYSTEM: TIC 168789840
+// =========================================================
+{ name: "TIC 168789840 (Quad Core Center)", x: -300000000, y: 150000, z: -400000000 },
+
+// Pair A
+{ name: "Star A1 (White F-Type)", x: -299850000, y: 150000, z: -400000000  },
+{ name: "Star A2 (Red Dwarf)", x: -299838000, y: 150000, z: -400000000 },
+
+// Pair C-
+{ name: "Star C1 (Yellow G-Type)", x: -299780000, y: 150000, z: -400000000 },
+{ name: "Star C2 (Red Dwarf)", x: -299770000, y: 150000, z: -400000000 },
+
+// Pair B & Habitable World
+{ name: "Star B1 (Yellow Host Sun)", x: -299150000, y: 150000, z: -400000000 },
+{ name: "Star B2 (Orange Companion)", x: -299105000, y: 150000, z: -400000000 },
+{ name: "Exoplanet E-1 (Habitable World)", x: -299030000, y: 150000, z: -400000000 },
+
                 { name: "NGC 6302 Outflow", x: 60000000, y: 15000000, z: -95000000 },
                 { name: "Messier 16 / Carina", x: -120000000, y: -45000000, z: -60000000 },
                 { name: "Henize 2-428 / Toroidal Core Collapse", x: 95000000, y: -20000000, z: -110000000 },
@@ -1555,6 +1572,94 @@ const cd352722System = createExoplanetSystem(engine.scene, {
     ]
 });
 
+        // =========================================================
+// 🌌 SEXTUPLE STAR SYSTEM (TYC 7037-89-1 / TIC 168789840)
+// =========================================================
+const sextupleSystem = createExoplanetSystem(engine.scene, {
+    name: "TIC 168789840 (Sextuple System)",
+
+    // World Space Origin (Deep Space Location)
+    x: -300000000,
+    y: 150000,
+    z: -400000000,
+
+    // Primary System Core Center (Placeholder / Barycenter)
+    starRadius: 45000,
+    starColor: 0xffffff,
+
+    // Hierarchical Stars & Planets
+    planets: [
+        // -----------------------------------------------------
+        // BINARY PAIR A (Inner Quad Core - Pair 1)
+        // -----------------------------------------------------
+        {
+            name: "Star A1 (Primary F-Type)",
+            radius: 3200,
+            color: 0xf8f9fa,
+            orbitDistance: 150000,
+            orbitSpeed: 0.012,
+            moons: [
+                {
+                    name: "Star A2 (M-Dwarf Companion)",
+                    radius: 1200,
+                    color: 0xff5733,
+                    orbitDistance: 12000,
+                    orbitSpeed: 0.045
+                }
+            ]
+        },
+        // -----------------------------------------------------
+        // BINARY PAIR C (Inner Quad Core - Pair 2)
+        // -----------------------------------------------------
+        {
+            name: "Star C1 (Yellow Sun-like)",
+            radius: 3000,
+            color: 0xfff4ea,
+            orbitDistance: 220000,
+            orbitSpeed: 0.009,
+            moons: [
+                {
+                    name: "Star C2 (M-Dwarf Companion)",
+                    radius: 1000,
+                    color: 0xff4500,
+                    orbitDistance: 10000,
+                    orbitSpeed: 0.050
+                }
+            ]
+        },
+        // -----------------------------------------------------
+        // BINARY PAIR B (Outer Pair Hosting Exoplanet E-1)
+        // -----------------------------------------------------
+        {
+            name: "Star B1 (Primary Host Sun)",
+            radius: 3500,
+            color: 0xfff8e7,
+            orbitDistance: 850000, // Large 250 AU Gap from Quad Core
+            orbitSpeed: 0.002,
+            moons: [
+                {
+                    name: "Star B2 (Orange-Red Companion)",
+                    radius: 1500,
+                    color: 0xff8c00,
+                    orbitDistance: 45000,
+                    orbitSpeed: 0.020
+                },
+                {
+                    name: "Exoplanet E-1 (Habitable Super-Earth)",
+                    radius: 1200, // 1.15x Earth Radius
+                    color: 0x1d70b8, // Ocean Blue with Violet undertones
+                    orbitDistance: 120000, // ~1.8 AU Scaled Orbit around B1
+                    orbitSpeed: 0.006,
+                    hasClouds: true,
+                    hasAtmosphere: true,
+                    atmosColor: 0x33ccff, // Teal-Cyan Rayleigh scattering
+                    atmosOpacity: 0.5
+                }
+            ]
+        }
+    ]
+});
+
  
            engine.scene.add(starfield); 
     
@@ -1567,7 +1672,7 @@ const cd352722System = createExoplanetSystem(engine.scene, {
             const bodies = [sun, mercury, venus, earth, moon, mars, jupiter, saturn, titan, uranus, neptune , pluto];
             const exoplanets = [exoSystem,systemA,systemB,proximaSystem,
                                 planetE,planetF,gj504b,k218,trappist1System,
-                                lhs1140System,cd352722System
+                                lhs1140System,cd352722System,sextupleSystem
                                ];
             const horizonObj = [mainBelt,kuiperBelt,oortCloud,orionNebula, 
                                 remnant, andromeda, blackEyeCore,blackEyeDust,molecularCloud, 
