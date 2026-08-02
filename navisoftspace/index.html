@@ -403,7 +403,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER0208260836</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER0308260105</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -532,6 +532,23 @@
                 { name: "LHS 1140 Star", x: 150000000, y: -40000, z: 220000000 },
                 { name: "LHS 1140 b (Ocean Super-Earth)", x: 150240000, y: -40000, z: 220000000 },
 
+               // ==========================================
+               // CD-35 2722 EXOMOON SYSTEM
+// ==========================================
+{ 
+    name: "CD-35 2722 A (Red Dwarf)", 
+    x: -200000000, y: 80000, z: 150000000 
+},
+{ 
+    name: "CD-35 2722 B (Brown Dwarf)", 
+    x: -199550000, y: 80000, z: 150000000
+},
+{ 
+    name: "CD-35 2722 B b (Gas-Giant Exomoon)", 
+    x: -199515000, y: 80000, z: 150000000
+},
+
+                
                 { name: "NGC 6302 Outflow", x: 60000000, y: 15000000, z: -95000000 },
                 { name: "Messier 16 / Carina", x: -120000000, y: -45000000, z: -60000000 },
                 { name: "Henize 2-428 / Toroidal Core Collapse", x: 95000000, y: -20000000, z: -110000000 },
@@ -1491,6 +1508,53 @@ const lhs1140System = createExoplanetSystem(engine.scene, {
         }
     ]
 });
+
+        // =========================================================
+// 🪐 CD-35 2722 SYSTEM (Red Dwarf + Brown Dwarf + Gas-Giant Exomoon)
+// =========================================================
+const cd352722System = createExoplanetSystem(engine.scene, {
+    name: "CD-35 2722 System",
+    
+    // World Space Coordinates (approx. 73 ly away)
+    x: -200000000,
+    y: 80000,
+    z: 150000000,
+
+    // Primary Host Star (Red Dwarf - ~0.4 M_Sun)
+    starRadius: 22000,
+    starColor: 0xff3300, 
+    starOffset: 120000,
+
+    planets: [
+        {
+            // The Brown Dwarf (~37 Jupiter masses)
+            name: "CD-35 2722 B (Brown Dwarf Host)",
+            radius: 3500, // Massive substellar body
+            color: 0x8b2200, // Dim reddish-brown glow
+            orbitDistance: 450000, // Wide orbit around main red dwarf
+            orbitSpeed: 0.001,
+            rotationSpeed: 0.008,
+            hasClouds: true,
+            hasAtmosphere: true,
+            atmosColor: 0xff4500,
+            
+            // Sub-satellite / Exomoon configuration
+            // (If your exoplanetsystem.js supports nested moons)
+            moons: [
+                {
+                    name: "CD-35 2722 B b (Exomoon Candidate)",
+                    radius: 1100, // ~0.9 Jupiter mass
+                    color: 0x4682b4,
+                    orbitDistance: 35000, // 0.2 AU scaled
+                    orbitSpeed: 0.012,
+                    hasAtmosphere: true,
+                    atmosColor: 0x87ceeb
+                }
+            ]
+        }
+    ]
+});
+
  
            engine.scene.add(starfield); 
     
@@ -1503,7 +1567,7 @@ const lhs1140System = createExoplanetSystem(engine.scene, {
             const bodies = [sun, mercury, venus, earth, moon, mars, jupiter, saturn, titan, uranus, neptune , pluto];
             const exoplanets = [exoSystem,systemA,systemB,proximaSystem,
                                 planetE,planetF,gj504b,k218,trappist1System,
-                                lhs1140System
+                                lhs1140System,cd352722System
                                ];
             const horizonObj = [mainBelt,kuiperBelt,oortCloud,orionNebula, 
                                 remnant, andromeda, blackEyeCore,blackEyeDust,molecularCloud, 
