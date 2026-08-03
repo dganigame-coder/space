@@ -3,6 +3,7 @@ import { createExoplanet } from 'exoplanet';
 
 /**
  * Exoplanet System Factory (Returns a Root THREE.Group)
+ * Supports Hierarchical Multi-Star Systems, Exoplanets, and Moons
  */
 export function createExoplanetSystem(scene, config = {}) {
     const systemGroup = new THREE.Group();
@@ -18,26 +19,75 @@ export function createExoplanetSystem(scene, config = {}) {
     const mainRadius = config.planetRadius || config.r || starRadius;
     const starColorObj = new THREE.Color(starColor);
 
-    // 1. Host Star (Created directly as an Exoplanet Group)
-    const starGroup = createExoplanet(null, {
-        name: `${name} Host Star`,
-        radius: starRadius,
-        color: starColor,
-        hasClouds: false,
-        hasAtmosphere: true,
-        atmosColor: 0xffaa00,
-        x: -starOffset * 0.1
-    });
-    systemGroup.add(starGroup);
+    const orbitalPivots = [];
+    const allChildNodes = [];
 
-    // Light Source
-    const starLight = new THREE.PointLight(starColor, 5, starOffset * 10);
-    starLight.position.copy(starGroup.position);
-    systemGroup.add(starLight);
+    // 1. Recursive Processor for Hierarchical Bodies (Stars, Planets, Moons)
+    function buildCelestialNode(bodyConfig, parentGroup, depth = 0) {
+        const pivot = new THREE.Group();
+        pivot.name = `${bodyConfig.name}_Pivot`;
+        parentGroup.add(pivot);
 
-    // 2. Process Orbiting Planets
-    const rawPlanets = config.planets || [
-        {
+        // Detect if body is a star vs a planet
+        const isStar = bodyConfig.isStar ?? bodyConfig.name.toLowerCase().includes('star');
+
+        // Create the individual body via exoplanet.js
+        const bodyNode = createExoplanet(null, {
+            name: bodyConfig.name,
+            radius: bodyConfig.radius || 3000,
+            color: bodyConfig.color,
+            isStar: isStar,
+            atmosColor: bodyConfig.atmosColor,
+            atmosOpacity: bodyConfig.atmosOpacity,
+            roughness: bodyConfig.roughness,
+            metalness: bodyConfig.metalness,
+            hasClouds: bodyConfig.hasClouds,
+            hasAtmosphere: bodyConfig.hasAtmosphere ?? !isStar,
+            rotationSpeed: bodyConfig.rotationSpeed || 0.01
+        });
+
+        // Offset relative to parent orbit
+        bodyNode.position.x = bodyConfig.orbitDistance || 0;
+        pivot.add(bodyNode);
+
+        // Track pivot rotation step
+        orbitalPivots.push({
+            pivot,
+            speed: bodyConfig.orbitSpeed || 0.005,
+            node: bodyNode
+        });
+
+        allChildNodes.push(bodyNode);
+
+        // Recursively build nested moons or companion stars
+        if (bodyConfig.moons && Array.isArray(bodyConfig.moons)) {
+            bodyConfig.moons.forEach(childConfig => {
+                buildCelestialNode(childConfig, bodyNode, depth + 1);
+            });
+        }
+
+        return bodyNode;
+    }
+
+    // 2. Build Bodies
+    if (config.planets && config.planets.length > 0) {
+        // Multi-body / Binary / Sextuple System Configuration
+        config.planets.forEach(pConfig => {
+            buildCelestialNode(pConfig, systemGroup);
+        });
+    } else {
+        // Fallback: Default Single Star + Single Planet Setup
+        const defaultStar = createExoplanet(null, {
+            name: `${name} Host Star`,
+            radius: starRadius,
+            color: starColor,
+            isStar: true,
+            x: -starOffset * 0.1
+        });
+        systemGroup.add(defaultStar);
+        allChildNodes.push(defaultStar);
+
+        const defaultPlanetConfig = {
             name: config.planetName || `${name} Planet`,
             radius: config.planetRadius || 3000,
             color: config.planetColor ?? 0x0a2540,
@@ -50,38 +100,12 @@ export function createExoplanetSystem(scene, config = {}) {
             orbitDistance: starOffset,
             orbitSpeed: config.orbitSpeed || 0.008,
             rotationSpeed: config.rotationSpeed || 0.02
-        }
-    ];
+        };
 
-    const orbitalPivots = [];
-    const childPlanetGroups = [];
+        buildCelestialNode(defaultPlanetConfig, systemGroup);
+    }
 
-    rawPlanets.forEach((pConfig, index) => {
-        const pivot = new THREE.Group();
-        pivot.name = `${pConfig.name}_Pivot_${index}`;
-        systemGroup.add(pivot);
-
-        const planetGroup = createExoplanet(null, {
-            name: pConfig.name,
-            radius: pConfig.radius || 3000,
-            color: pConfig.color,
-            atmosColor: pConfig.atmosColor,
-            atmosOpacity: pConfig.atmosOpacity,
-            roughness: pConfig.roughness,
-            metalness: pConfig.metalness,
-            hasClouds: pConfig.hasClouds,
-            hasAtmosphere: pConfig.hasAtmosphere,
-            rotationSpeed: pConfig.rotationSpeed
-        });
-
-        planetGroup.position.x = pConfig.orbitDistance || starOffset;
-        pivot.add(planetGroup);
-
-        orbitalPivots.push({ pivot, speed: pConfig.orbitSpeed || 0.008, planetGroup });
-        childPlanetGroups.push(planetGroup);
-    });
-
-    // 📍 Setup System Root
+    // 📍 Root Setup
     systemGroup.name = name;
     systemGroup.position.set(x, y, z);
 
@@ -94,16 +118,16 @@ export function createExoplanetSystem(scene, config = {}) {
         name: name,
         radius: mainRadius,
         r: mainRadius,
-        targets: [starGroup, ...childPlanetGroups] // Expose sub-targets directly
+        targets: allChildNodes // Fully exposes all sub-targets for pilot/HUD raycasting
     };
 
-    // 🔄 System Update Loop
+    // 🔄 Unified Recursive System Update Loop
     const updateRoutine = (delta = 1) => {
-        if (starGroup.onUpdate) starGroup.onUpdate(delta);
-
         orbitalPivots.forEach(item => {
             item.pivot.rotation.y += item.speed * delta;
-            if (item.planetGroup.onUpdate) item.planetGroup.onUpdate(delta);
+            if (item.node && item.node.onUpdate) {
+                item.node.onUpdate(delta);
+            }
         });
     };
 
