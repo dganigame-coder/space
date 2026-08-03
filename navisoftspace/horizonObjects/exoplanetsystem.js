@@ -1,9 +1,9 @@
 import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
-import { createExoplanet } from 'exoplanet';
+import { createExoplanet } from './exoplanet.js';
 
 /**
  * Exoplanet System Factory (Returns a Root THREE.Group)
- * Supports Hierarchical Multi-Star Systems, Exoplanets, and Moons
+ * Hierarchical Multi-Star Systems, Exoplanets, and Moons
  */
 export function createExoplanetSystem(scene, config = {}) {
     const systemGroup = new THREE.Group();
@@ -22,8 +22,11 @@ export function createExoplanetSystem(scene, config = {}) {
     const orbitalPivots = [];
     const allChildNodes = [];
 
+    // Temporary vector to avoid garbage collection in update loop
+    const _tempVec = new THREE.Vector3();
+
     // 1. Recursive Processor for Hierarchical Bodies (Stars, Planets, Moons)
-    function buildCelestialNode(bodyConfig, parentGroup, depth = 0) {
+    function buildCelestialNode(bodyConfig, parentGroup) {
         const pivot = new THREE.Group();
         pivot.name = `${bodyConfig.name}_Pivot`;
         parentGroup.add(pivot);
@@ -50,7 +53,9 @@ export function createExoplanetSystem(scene, config = {}) {
         bodyNode.position.x = bodyConfig.orbitDistance || 0;
         pivot.add(bodyNode);
 
-        // Track pivot rotation step
+        // Add a worldPosition vector directly onto the THREE.Group for navigation/pilot tracking
+        bodyNode.worldPosition = new THREE.Vector3();
+
         orbitalPivots.push({
             pivot,
             speed: bodyConfig.orbitSpeed || 0.005,
@@ -62,21 +67,20 @@ export function createExoplanetSystem(scene, config = {}) {
         // Recursively build nested moons or companion stars
         if (bodyConfig.moons && Array.isArray(bodyConfig.moons)) {
             bodyConfig.moons.forEach(childConfig => {
-                buildCelestialNode(childConfig, bodyNode, depth + 1);
+                buildCelestialNode(childConfig, bodyNode);
             });
         }
 
         return bodyNode;
     }
 
-    // 2. Build Bodies
+    // 2. Build Bodies Hierarchy
     if (config.planets && config.planets.length > 0) {
-        // Multi-body / Binary / Sextuple System Configuration
         config.planets.forEach(pConfig => {
             buildCelestialNode(pConfig, systemGroup);
         });
     } else {
-        // Fallback: Default Single Star + Single Planet Setup
+        // Fallback for single star + planet setup
         const defaultStar = createExoplanet(null, {
             name: `${name} Host Star`,
             radius: starRadius,
@@ -84,6 +88,7 @@ export function createExoplanetSystem(scene, config = {}) {
             isStar: true,
             x: -starOffset * 0.1
         });
+        defaultStar.worldPosition = new THREE.Vector3();
         systemGroup.add(defaultStar);
         allChildNodes.push(defaultStar);
 
@@ -118,15 +123,24 @@ export function createExoplanetSystem(scene, config = {}) {
         name: name,
         radius: mainRadius,
         r: mainRadius,
-        targets: allChildNodes // Fully exposes all sub-targets for pilot/HUD raycasting
+        targets: allChildNodes // Exposes sub-targets to pilot & HUD
     };
 
-    // 🔄 Unified Recursive System Update Loop
+    // 🔄 Real-Time System Update Loop
     const updateRoutine = (delta = 1) => {
+        // Rotate orbital pivots
         orbitalPivots.forEach(item => {
             item.pivot.rotation.y += item.speed * delta;
             if (item.node && item.node.onUpdate) {
                 item.node.onUpdate(delta);
+            }
+
+            // 🌟 CRITICAL FIX: Continuously sync absolute world position for HUD & Pilot
+            if (item.node && item.node.worldPosition) {
+                item.node.getWorldPosition(item.node.worldPosition);
+                item.node.userData.x = item.node.worldPosition.x;
+                item.node.userData.y = item.node.worldPosition.y;
+                item.node.userData.z = item.node.worldPosition.z;
             }
         });
     };
