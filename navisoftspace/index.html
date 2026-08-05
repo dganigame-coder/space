@@ -403,7 +403,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER0508262310</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER0508262335</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -1106,11 +1106,6 @@
         // --- WORMHOLE 10: Black Eye Deep Rim (Near Black Eye Galaxy) ---
         const wormholeJupiter = createWormhole(engine.scene, { x: 198000000, y: 88000000, z: -398000000 });
 
-       // 1. Keep track of all your individual created wormholes in one place
-       activeWormholesList = [
-                wormholeAlpha, wormholeBeta, wormholeGamma, wormholeDelta, wormholeEpsilon,
-                wormholeZeta, wormholeEta, wormholeTheta, wormholeIota, wormholeJupiter
-            ].filter(wh => wh !== undefined && wh !== null); // Safely filters out any unloaded or uncreated gates
         // Inside your main animation render loop tick:
         if (oumuamua) {
             oumuamua.rotation.x += 0.005; // End-over-end tumble
@@ -1129,6 +1124,11 @@
         if (wormholeTheta) wormholeTheta.rotation.z -= 0.01;
         if (wormholeIota) wormholeIota.rotation.z -= 0.01;
         if (wormholeJupiter) wormholeJupiter.rotation.z -= 0.01;
+               // 1. Keep track of all your individual created wormholes in one place
+       activeWormholesList = [
+                wormholeAlpha, wormholeBeta, wormholeGamma, wormholeDelta, wormholeEpsilon,
+                wormholeZeta, wormholeEta, wormholeTheta, wormholeIota, wormholeJupiter
+            ].filter(wh => wh !== undefined && wh !== null); // Safely filters out any unloaded or uncreated gates
 
         const colors = [0xff4500, 0x00ffff, 0xffaa00]; 
         const positionVector = { x: -80000000, y: 30000000, z: -150000000 }; 
