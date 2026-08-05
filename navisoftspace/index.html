@@ -403,7 +403,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER0508262149</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER0508262259</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -1105,6 +1105,7 @@
         
         // --- WORMHOLE 10: Black Eye Deep Rim (Near Black Eye Galaxy) ---
         const wormholeJupiter = createWormhole(engine.scene, { x: 198000000, y: 88000000, z: -398000000 });
+        initWormholes();
         // Inside your main animation render loop tick:
         if (oumuamua) {
             oumuamua.rotation.x += 0.005; // End-over-end tumble
@@ -1763,8 +1764,19 @@ const sextupleSystem = createExoplanetSystem(engine.scene, {
         document.getElementById('resetBtn').addEventListener('click', () => {
             SaveSystem.clear();
         });
-
         
+       const distanceElementKM = document.getElementById('km-val');
+       const distanceElementLH = document.getElementById('lh-val');
+       const horizonObjElement = document.getElementById('horizon-object-display');
+        let activeWormholesList = [];
+        function initWormholes() {
+            // Call this after you generate them
+            activeWormholesList = [
+                wormholeAlpha, wormholeBeta, wormholeGamma, wormholeDelta, wormholeEpsilon,
+                wormholeZeta, wormholeEta, wormholeTheta, wormholeIota, wormholeJupiter
+            ].filter(wh => wh !== undefined && wh !== null);
+        }
+
         function frame() {                        
             requestAnimationFrame(frame);
 
@@ -1818,10 +1830,12 @@ const sextupleSystem = createExoplanetSystem(engine.scene, {
                 }
             
                 // Run the distance calculation safely now
-                const dist = engine.camera.position.distanceTo(b.position);
-                
-                if (dist < minDistance) {
-                    minDistance = dist;
+                //const dist = engine.camera.position.distanceTo(b.position);
+                const distSq = engine.camera.position.distanceToSquared(b.position);
+                //if (dist < minDistance) {
+                if (distSq < minDistance) {
+                    //minDistance = dist;
+                    minDistance = distSq;
                     closestBody = b;
                 }
             });
@@ -1893,7 +1907,6 @@ const sextupleSystem = createExoplanetSystem(engine.scene, {
             // 7. HORIZON OBJECT DISPLAY
             const shipPos = engine.camera.position;
             const shipDist = shipPos.length();
-            const horizonObjElement = document.getElementById('horizon-object-display');
         
             // Optimized HUD update
             const distToVoyager = engine.camera.position.distanceTo(voyager.position);
@@ -2005,13 +2018,19 @@ const sextupleSystem = createExoplanetSystem(engine.scene, {
             if(sun && sun.position)
             {
                 const distanceUnits = engine.camera.position.distanceTo(sun.position);
-                const distanceElementKM = document.getElementById('km-val');
-                const distanceElementLH = document.getElementById('lh-val');
+
                 const distanceKM = distanceUnits * 2500;
                 const distanceMiles = distanceUnits * 1550;
             
                 const formattedKM = Math.floor(distanceKM).toLocaleString();
-                distanceElementKM.innerText = `${formattedKM}`; 
+
+                // Only update the HTML if the string actually changed
+                if (distanceElementKM._currentText !== formattedKM) {
+                    distanceElementKM.innerText = `${formattedKM}`;
+                    distanceElementKM._currentText =  `${formattedKM}`;
+                }
+                
+                 
                
                 const lightSeconds = distanceKM / 300000;
                 if (lightSeconds > 3600) {
@@ -2053,13 +2072,14 @@ const sextupleSystem = createExoplanetSystem(engine.scene, {
             // ==========================================
             // INSIDE YOUR MAIN ANIMATION/RENDER LOOP TICK:
             // ==========================================
-            
+
+            /*
             // 1. Keep track of all your individual created wormholes in one place
             const activeWormholesList = [
                 wormholeAlpha, wormholeBeta, wormholeGamma, wormholeDelta, wormholeEpsilon,
                 wormholeZeta, wormholeEta, wormholeTheta, wormholeIota, wormholeJupiter
             ].filter(wh => wh !== undefined && wh !== null); // Safely filters out any unloaded or uncreated gates
-            
+            */
             // 2. Loop through the list and update every single wormhole asset dynamically 
             activeWormholesList.forEach((wh) => {
                 // This runs your animation math on each individual gate using the current time frame
