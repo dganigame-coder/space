@@ -403,7 +403,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER0508262350</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER0508262357</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -1862,12 +1862,12 @@ const sextupleSystem = createExoplanetSystem(engine.scene, {
                 }
             
                 // Run the distance calculation safely now
-                //const dist = engine.camera.position.distanceTo(b.position);
-                const distSq = engine.camera.position.distanceToSquared(b.position);
-                //if (dist < minDistance) {
-                if (distSq < minDistance) {
-                    //minDistance = dist;
-                    minDistance = distSq;
+                const dist = engine.camera.position.distanceTo(b.position);
+                //const distSq = engine.camera.position.distanceToSquared(b.position);
+                if (dist < minDistance) {
+                //if (distSq < minDistance) {
+                    minDistance = dist;
+                    //minDistance = distSq;
                     closestBody = b;
                 }
             });
