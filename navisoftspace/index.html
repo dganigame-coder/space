@@ -403,7 +403,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER0508262335</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER0508262347</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -1114,22 +1114,54 @@
         }
 
         // Spin all 10 wormholes individually
-        if (wormholeAlpha) wormholeAlpha.rotation.z -= 0.01;
-        if (wormholeBeta) wormholeBeta.rotation.z -= 0.01;
-        if (wormholeGamma) wormholeGamma.rotation.z -= 0.01;
-        if (wormholeDelta) wormholeDelta.rotation.z -= 0.01;
-        if (wormholeEpsilon) wormholeEpsilon.rotation.z -= 0.01;
-        if (wormholeZeta) wormholeZeta.rotation.z -= 0.01;
-        if (wormholeEta) wormholeEta.rotation.z -= 0.01;
-        if (wormholeTheta) wormholeTheta.rotation.z -= 0.01;
-        if (wormholeIota) wormholeIota.rotation.z -= 0.01;
-        if (wormholeJupiter) wormholeJupiter.rotation.z -= 0.01;
+        // Spin and update all 10 wormholes individually
+        if (wormholeAlpha) {
+            wormholeAlpha.rotation.z -= 0.01;
+            updateWormhole(wormholeAlpha, time);
+        }
+        if (wormholeBeta) {
+            wormholeBeta.rotation.z -= 0.01;
+            updateWormhole(wormholeBeta, time);
+        }
+        if (wormholeGamma) {
+            wormholeGamma.rotation.z -= 0.01;
+            updateWormhole(wormholeGamma, time);
+        }
+        if (wormholeDelta) {
+            wormholeDelta.rotation.z -= 0.01;
+            updateWormhole(wormholeDelta, time);
+        }
+        if (wormholeEpsilon) {
+            wormholeEpsilon.rotation.z -= 0.01;
+            updateWormhole(wormholeEpsilon, time);
+        }
+        if (wormholeZeta) {
+            wormholeZeta.rotation.z -= 0.01;
+            updateWormhole(wormholeZeta, time);
+        }
+        if (wormholeEta) {
+            wormholeEta.rotation.z -= 0.01;
+            updateWormhole(wormholeEta, time);
+        }
+        if (wormholeTheta) {
+            wormholeTheta.rotation.z -= 0.01;
+            updateWormhole(wormholeTheta, time);
+        }
+        if (wormholeIota) {
+            wormholeIota.rotation.z -= 0.01;
+            updateWormhole(wormholeIota, time);
+        }
+        if (wormholeJupiter) {
+            wormholeJupiter.rotation.z -= 0.01;
+            updateWormhole(wormholeJupiter, time);
+        }
+        /*
                // 1. Keep track of all your individual created wormholes in one place
        activeWormholesList = [
                 wormholeAlpha, wormholeBeta, wormholeGamma, wormholeDelta, wormholeEpsilon,
                 wormholeZeta, wormholeEta, wormholeTheta, wormholeIota, wormholeJupiter
             ].filter(wh => wh !== undefined && wh !== null); // Safely filters out any unloaded or uncreated gates
-
+         */
         const colors = [0xff4500, 0x00ffff, 0xffaa00]; 
         const positionVector = { x: -80000000, y: 30000000, z: -150000000 }; 
         
@@ -2074,13 +2106,13 @@ const sextupleSystem = createExoplanetSystem(engine.scene, {
 
             
 
-            
+            /*
             // 2. Loop through the list and update every single wormhole asset dynamically 
             activeWormholesList.forEach((wh) => {
                 // This runs your animation math on each individual gate using the current time frame
                 updateWormhole(wh, time);
             });
-
+            */
 // 3. Existing 'Oumuamua tumbling mechanics (Keep this right below it)
 if (oumuamua) {
     oumuamua.rotation.x += 0.005; // End-over-end tumble
