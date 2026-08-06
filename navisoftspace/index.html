@@ -403,7 +403,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER0608260011</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER0708260204</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -579,7 +579,8 @@
     // ==========================================
     // LEVEL 7: INTERSTELLAR TRANSIT NETWORK (Wormholes)
     // ==========================================
-    { name: "Wormhole Gate: Quantum Anomaly (Random)", x: 0, y: 1000000, z: 12000000, isPureRandom: true },
+/*
+        { name: "Wormhole Gate: Quantum Anomaly (Random)", x: 0, y: 1000000, z: 12000000, isPureRandom: true },
     { name: "Wormhole Gate: Sol Gateway (Delta)", x: 5000, y: -2000, z: 20000000 },
     { name: "Wormhole Gate: Sector Orion (Zeta)", x: 19000000, y: 4800000, z: -69000000 },
     { name: "Wormhole Singularity Anomaly", x: 0, y: 0, z: 70000000, isPureRandom: true },
@@ -590,6 +591,7 @@
     { name: "Wormhole Gate: Sector Vela (Beta)", x: -300000000, y: -95000000, z: 240000000 },
     { name: "Wormhole Gate: Singularity Rift (Alpha)", x: 0, y: 0, z: 450000000 },
     { name: "Wormhole Gate: Black Eye Rim (Jupiter)", x: 198000000, y: 88000000, z: -398000000 }
+*/
 ];
 
         
@@ -1112,6 +1114,7 @@
             oumuamua.rotation.y += 0.002; // Slow lateral twisting
             oumuamua.rotation.z += 0.001; // Chaotic stability wobble
         }
+        /*
 
         // Spin all 10 wormholes individually
         // Spin and update all 10 wormholes individually
@@ -1156,7 +1159,7 @@
             wormholeJupiter.rotation.z -= 0.01;
             updateWormhole(wormholeJupiter, time);
         }
-        /*
+        
                // 1. Keep track of all your individual created wormholes in one place
        activeWormholesList = [
                 wormholeAlpha, wormholeBeta, wormholeGamma, wormholeDelta, wormholeEpsilon,
@@ -1704,9 +1707,10 @@ const sextupleSystem = createExoplanetSystem(engine.scene, {
                                 ,crabPulsar
                                ];
             const spaceholes=[blackHole,
-                              wormholeJupiter, wormholeIota ,wormholeTheta, wormholeEta, 
-                              wormholeZeta, wormholeEpsilon ,wormholeDelta ,wormholeGamma ,
-                              wormholeBeta ,wormholeAlpha,sdssBlackHoleCore ];
+                              //wormholeJupiter, wormholeIota ,wormholeTheta, wormholeEta, 
+                              //wormholeZeta, wormholeEpsilon ,wormholeDelta ,wormholeGamma ,
+                             // wormholeBeta ,wormholeAlpha,
+                              sdssBlackHoleCore ];
             bodies.push(...[voyager] );
             bodies.push(...horizonObj);
             bodies.push(...spaceholes);
