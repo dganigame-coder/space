@@ -1,5 +1,6 @@
 import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
-import { createExoplanet } from 'exoplanet';
+import { createStar } from './star.js';
+import { createExoplanet } from './exoplanet.js';
 
 /**
  * Exoplanet System Factory (Returns a Root THREE.Group)
@@ -10,37 +11,39 @@ export function createExoplanetSystem(scene, config = {}) {
     const {
         x = 0, y = 0, z = 0,
         name = "Exoplanet System",
-        starRadius = 80000,
+        starRadius = 60000,
         starColor = 0xffcc33,
+        starTextureMap = 'https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/planets/texture/2k_sun.jpg',
         starOffset = 1200000
     } = config;
 
     const mainRadius = config.planetRadius || config.r || starRadius;
     const starColorObj = new THREE.Color(starColor);
 
-    // 1. Host Star (Created directly as an Exoplanet Group)
-    const starGroup = createExoplanet(null, {
+    // 1. Host Star (Created using the dedicated star factory with corona, glow sprite, and point light)
+    const starGroup = createStar(null, {
         name: `${name} Host Star`,
         radius: starRadius,
         color: starColor,
-        hasClouds: false,
-        hasAtmosphere: true,
-        atmosColor: 0xffaa00,
-        x: -starOffset * 0.1
+        textureMap: starTextureMap,
+        x: -starOffset * 0.1,
+        castLight: true,
+        lightIntensity: config.starLightIntensity || 3,
+        lightRange: config.starLightRange || starOffset * 10
     });
     systemGroup.add(starGroup);
-
-    // Light Source
-    const starLight = new THREE.PointLight(starColor, 5, starOffset * 10);
-    starLight.position.copy(starGroup.position);
-    systemGroup.add(starLight);
 
     // 2. Process Orbiting Planets
     const rawPlanets = config.planets || [
         {
             name: config.planetName || `${name} Planet`,
             radius: config.planetRadius || 3000,
-            color: config.planetColor ?? 0x0a2540,
+            color: config.planetColor,
+            textureMap: config.textureMap,
+            normalMap: config.normalMap,
+            roughnessMap: config.roughnessMap,
+            cloudMap: config.cloudMap,
+            cloudOpacity: config.cloudOpacity,
             atmosColor: config.atmosColor ?? 0x00e1ff,
             atmosOpacity: config.atmosOpacity,
             roughness: config.roughness,
@@ -49,7 +52,8 @@ export function createExoplanetSystem(scene, config = {}) {
             hasAtmosphere: config.hasAtmosphere,
             orbitDistance: starOffset,
             orbitSpeed: config.orbitSpeed || 0.008,
-            rotationSpeed: config.rotationSpeed || 0.02
+            rotationSpeed: config.rotationSpeed || 0.02,
+            cloudSpeed: config.cloudSpeed
         }
     ];
 
@@ -65,13 +69,19 @@ export function createExoplanetSystem(scene, config = {}) {
             name: pConfig.name,
             radius: pConfig.radius || 3000,
             color: pConfig.color,
+            textureMap: pConfig.textureMap,
+            normalMap: pConfig.normalMap,
+            roughnessMap: pConfig.roughnessMap,
+            cloudMap: pConfig.cloudMap,
+            cloudOpacity: pConfig.cloudOpacity,
             atmosColor: pConfig.atmosColor,
             atmosOpacity: pConfig.atmosOpacity,
             roughness: pConfig.roughness,
             metalness: pConfig.metalness,
             hasClouds: pConfig.hasClouds,
             hasAtmosphere: pConfig.hasAtmosphere,
-            rotationSpeed: pConfig.rotationSpeed
+            rotationSpeed: pConfig.rotationSpeed,
+            cloudSpeed: pConfig.cloudSpeed
         });
 
         planetGroup.position.x = pConfig.orbitDistance || starOffset;
@@ -94,7 +104,7 @@ export function createExoplanetSystem(scene, config = {}) {
         name: name,
         radius: mainRadius,
         r: mainRadius,
-        targets: [starGroup, ...childPlanetGroups] // Expose sub-targets directly
+        targets: [starGroup, ...childPlanetGroups] // Expose sub-targets directly for HUD/Autopilot
     };
 
     // 🔄 System Update Loop
