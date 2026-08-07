@@ -28,13 +28,26 @@ export function createExoplanet(scene, config = {}) {
         metalness: config.metalness ?? 0.1
     };
 
-    if (config.color !== undefined) {
+    // Preserving your original logic flow while routing fallbacks to your local repository files
+    if (config.color !== undefined && !config.textureMap) {
         matOptions.color = mainColor;
     } else {
-        matOptions.map = loader.load(config.textureMap || 'https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg');
-        matOptions.normalMap = loader.load(config.normalMap || 'https://threejs.org/examples/textures/planets/earth_normal_2048.jpg');
-        matOptions.normalScale = new THREE.Vector2(1.5, 1.5);
-        matOptions.roughnessMap = loader.load(config.roughnessMap || 'https://threejs.org/examples/textures/planets/earth_specular_2048.jpg');
+        matOptions.map = loader.load(config.textureMap || 'https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/planets/texture/2k_mars.jpg');
+        
+        // Only load normal and roughness maps if explicitly configured in config
+        // (Prevents 404 errors looking for external Earth maps that aren't in your local folder)
+        if (config.normalMap) {
+            matOptions.normalMap = loader.load(config.normalMap);
+            matOptions.normalScale = new THREE.Vector2(1.5, 1.5);
+        }
+        if (config.roughnessMap) {
+            matOptions.roughnessMap = loader.load(config.roughnessMap);
+        }
+        
+        // Apply color as a tint if both textureMap and color are specified
+        if (config.color !== undefined) {
+            matOptions.color = mainColor;
+        }
     }
 
     const planetMat = new THREE.MeshStandardMaterial(matOptions);
@@ -48,7 +61,7 @@ export function createExoplanet(scene, config = {}) {
     if (config.hasClouds !== false) {
         const cloudGeo = new THREE.SphereGeometry(radius * 1.02, segments, segments);
         const cloudMat = new THREE.MeshStandardMaterial({
-            map: loader.load(config.cloudMap || 'https://threejs.org/examples/textures/planets/earth_clouds_1024.png'),
+            map: loader.load(config.cloudMap || 'https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/planets/texture/2k_venus_atmosphere.jpg'),
             transparent: true,
             opacity: config.cloudOpacity ?? 0.7,
             blending: THREE.NormalBlending,
