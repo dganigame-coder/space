@@ -403,7 +403,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER0808262220</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER0808262225</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -461,7 +461,7 @@
     import { createVoyager } from 'voyager';
     import { createHeliopause } from 'heliopause';
     import { createStar } from 'star';
-    import { createStarSystem } from 'starsystem'; 
+    import { castor } from 'starsystem'; 
     import { createExoplanet } from 'exoplanet';
     import { createExoplanetSystem } from 'exoplanetsystem';    
     import {createNebula } from 'nebula';
@@ -1607,7 +1607,7 @@ const cd352722System = createExoplanetSystem(engine.scene, {
 // =========================================================
 // 🌌 SEXTUPLE STAR SYSTEM (TYC 7037-89-1 / TIC 168789840)
 // =========================================================
-const sextupleSystem = createStarSystem(engine.scene, {
+const sextupleSystem = castor(engine.scene, {
     name: "TIC 168789840 (Sextuple System)",
 
     // World Space Origin (Deep Space Location)
@@ -1699,7 +1699,7 @@ const sextupleSystem = createStarSystem(engine.scene, {
         }
     ]
 });
-    const castorSystem = createStarSystem(scene, {
+    const castorSystem = castor(engine.scene, {
         name: "Castor System",
         x: 0,
         y: 0,
