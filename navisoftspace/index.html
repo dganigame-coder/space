@@ -403,7 +403,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER0808262204</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER0808262210</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -552,12 +552,13 @@
     { name: "TRAPPIST-1 System", x: -50000000, y: 0, z: 300000000 },
     { name: "Exoplanet K2-18b (Hycean Ocean World)", x: 180000000, y: 45000000, z: -320000000 },
 
-    { name: "Castor Aa (Primary)", object: castorSystem.userData.targets[0] },
-    { name: "Castor Ab (Red Dwarf)", object: castorSystem.userData.targets[1] },
-    { name: "Castor Ba (Secondary)", object: castorSystem.userData.targets[2] },
-    { name: "Castor Bb (Red Dwarf)", object: castorSystem.userData.targets[3] },
-    { name: "Castor Ca (Distant Dwarf)", object: castorSystem.userData.targets[4] },
-    { name: "Castor Cb (Distant Dwarf)", object: castorSystem.userData.targets[5] },
+    // Castor System Stars (Calculated from system base z: -80000 + orbit distances)
+    { name: "Castor Aa (Primary)", x: 4000, y: 0, z: -80000 },
+    { name: "Castor Ab (Red Dwarf)", x: 12000, y: 0, z: -80000 },
+    { name: "Castor Ba (Secondary)", x: 25000, y: 0, z: -80000 },
+    { name: "Castor Bb (Red Dwarf)", x: 32000, y: 0, z: -80000 },
+    { name: "Castor Ca (Distant Dwarf)", x: 60000, y: 0, z: -80000 },
+    { name: "Castor Cb (Distant Dwarf)", x: 65000, y: 0, z: -80000 },
 
     // ==========================================
     // LEVEL 5: DEEP GALACTIC & EXTREME DEEP SPACE
