@@ -403,7 +403,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER0808262215</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER0808262220</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -1708,38 +1708,56 @@ const sextupleSystem = createStarSystem(engine.scene, {
         stars: [
             // --- CASTOR A (Pair) ---
             { 
-                name: "Castor Aa (Primary)", radius: 8000, color: 0x99bbff, 
-                orbitDistance: 4000, orbitSpeed: 0.005, 
-                textureMap: '/planets/texture/2k_sun.jpg', lightIntensity: 3 
+                name: "Castor Aa (Primary)", 
+                radius: 8000, 
+                color: 0x99bbff, 
+                orbitDistance: 4000, 
+                orbitSpeed: 0.005, 
+               // textureMap: '/planets/texture/2k_sun.jpg', lightIntensity: 3 
             },
             { 
-                name: "Castor Ab (Red Dwarf)", radius: 2500, color: 0xff4400, 
-                orbitDistance: 12000, orbitSpeed: 0.008, 
-                textureMap: '/planets/texture/2k_sun.jpg', lightIntensity: 0 
+                name: "Castor Ab (Red Dwarf)",
+                radius: 2500,
+                color: 0xff4400, 
+                orbitDistance: 12000,
+                orbitSpeed: 0.008, 
+                //textureMap: '/planets/texture/2k_sun.jpg', lightIntensity: 0 
             },
 
             // --- CASTOR B (Pair) ---
             { 
-                name: "Castor Ba (Secondary)", radius: 7000, color: 0x99bbff, 
-                orbitDistance: 25000, orbitSpeed: 0.003, 
-                textureMap: '/planets/texture/2k_sun.jpg', lightIntensity: 3 
+                name: "Castor Ba (Secondary)",
+                radius: 7000, 
+                color: 0x99bbff, 
+                orbitDistance: 25000,
+                orbitSpeed: 0.003, 
+                //textureMap: '/planets/texture/2k_sun.jpg', lightIntensity: 3 
             },
             { 
-                name: "Castor Bb (Red Dwarf)", radius: 2500, color: 0xff4400, 
-                orbitDistance: 32000, orbitSpeed: 0.004, 
-                textureMap: '/planets/texture/2k_sun.jpg', lightIntensity: 0 
+                name: "Castor Bb (Red Dwarf)", 
+                radius: 2500,
+                color: 0xff4400, 
+                orbitDistance: 32000,
+                orbitSpeed: 0.004, 
+                //textureMap: '/planets/texture/2k_sun.jpg', lightIntensity: 0 
             },
 
             // --- CASTOR C (Pair - Orbiting far away) ---
             { 
-                name: "Castor Ca (Dwarf)", radius: 2500, color: 0xff4400, 
-                orbitDistance: 60000, orbitSpeed: 0.001, 
-                textureMap: '/planets/texture/2k_sun.jpg', lightIntensity: 0 
+                name: "Castor Ca (Dwarf)", 
+                radius: 2500, 
+                color: 0xff4400, 
+                orbitDistance: 60000,
+                orbitSpeed: 0.001, 
+                //textureMap: '/planets/texture/2k_sun.jpg', lightIntensity: 0 
             },
             { 
-                name: "Castor Cb (Dwarf)", radius: 2500, color: 0xff4400, 
-                orbitDistance: 65000, orbitSpeed: 0.0012, 
-                textureMap: '/planets/texture/2k_sun.jpg', lightIntensity: 0 
+                name: "Castor Cb (Dwarf)", 
+                radius: 2500,
+                color: 0xff4400, 
+                orbitDistance: 65000, 
+                orbitSpeed: 0.0012, 
+                //textureMap: '/planets/texture/2k_sun.jpg', lightIntensity: 0 
             }
         ]
     });
