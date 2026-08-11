@@ -403,7 +403,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER1208260041</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER1208260045</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -1073,7 +1073,7 @@
                 }
             ]
         });
-        
+       
         // 🔴 2. PROXIMA CENTAURI (Distant Red Dwarf Star System)
         const proximaSystem = createStarSystem(engine.scene, {
             name: "Proxima Centauri System",
@@ -1093,7 +1093,7 @@
                 }
             ]
         });
-        
+         
         // 🪐 3. PROXIMA CENTAURI b (Actual Habitable-Zone Exoplanet)
         const proximaB = createExoplanet(engine.scene, {
             x: alphaCentauriX + 5000000 + 15000,
@@ -1794,7 +1794,7 @@ const castorSystem = createStarSystem(engine.scene, {
         }
     ]
 });
- 
+                 
            engine.scene.add(starfield); 
     
             console.log("Audio systems initialized via User Gesture.");
@@ -1804,7 +1804,7 @@ const castorSystem = createStarSystem(engine.scene, {
             // --- 3. ADD EVERYTHING TO THE COLLISION ARRAY ---
             // This is what allows you to land on them and see their HUD data
             const bodies = [sun, mercury, venus, earth, moon, mars, jupiter, saturn, titan, uranus, neptune , pluto];
-            const exoplanets = [exoSystem,systemA,systemB,proximaSystem,
+            const exoplanets = [exoSystem,alphaCentauriAB,proximaSystem,proximaB
                                 planetE,planetF,gj504b,k218,trappist1System,
                                 lhs1140System,cd352722System,sextupleSystem,castorSystem
                                ];
