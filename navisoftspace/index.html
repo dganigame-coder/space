@@ -403,7 +403,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER1308260001</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER1308260141</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -592,6 +592,7 @@
     { name: "Exoplanet GJ 504b", x: -380000000, y: 120000000, z: 520000000 },
     { name: "Galaxy SDSS J110546 (Rapid-Growth Black Hole)", x: 450000000, y: -120000000, z: -550000000 },
     { name: "Galaxy MoM-z14 (Cosmic Dawn)", x: 900000000, y: 450000000, z: -900000000 },
+    { name: "Black Hole Star (MoM-BH*-1)", x: 950000000, y: 45000000, z: -950000000 },
     { name: "Cosmic Microwave Horizon", x: 0, y: 0, z: 2000000000 },
 
     
@@ -1794,7 +1795,50 @@ const castorSystem = createStarSystem(engine.scene, {
         }
     ]
 });
-                 
+
+// ============================================================================
+// 🕳️⭐ EXOTIC: BLACK HOLE STAR (QUASI-STAR)
+// ============================================================================
+const blackHoleStarX = 950000000;
+const blackHoleStarY = 45000000;
+const blackHoleStarZ = -950000000; // Placed deep in the early universe (Cosmic Dawn)
+
+const quasiStarSystem = createStarSystem(engine.scene, {
+    name: "Black Hole Star (MoM-BH*-1)",
+    x: blackHoleStarX,
+    y: blackHoleStarY,
+    z: blackHoleStarZ,
+    systemRadius: 1000000,
+    stars: [
+        { 
+            name: "Quasi-Star Envelope", 
+            // Quasi-stars dwarf modern stars, requiring a massive radius
+            radius: 150000, 
+            color: 0xff2200, // Dense, deep-red hydrogen envelope
+            orbitDistance: 0, 
+            orbitSpeed: 0, 
+            //textureMap: '/planets/texture/2k_sun.jpg', 
+            lightIntensity: 6 // Extremely luminous, powered by accretion rather than fusion
+        }
+    ]
+});
+
+// Optional: A superheated accretion disk swirling around the enormous star
+const quasiStarDisk = createBelt(engine.scene, {
+    x: blackHoleStarX,
+    z: blackHoleStarZ, // Use the same Z coordinate
+    count: 3500,
+    innerRadius: 180000,
+    outerRadius: 350000,
+    verticalScatter: 15000,
+    color: 0xcc4411, // Glowing superheated red/orange matter
+    size: { min: 500, max: 2500 },
+    type: 'asteroid_belt',
+    name: 'Quasi-Star Accretion Field',
+    sound: 'ROCKY_DEBRIS'
+});
+
+        
            engine.scene.add(starfield); 
     
             console.log("Audio systems initialized via User Gesture.");
@@ -1811,6 +1855,7 @@ const castorSystem = createStarSystem(engine.scene, {
             const horizonObj = [mainBelt,kuiperBelt,oortCloud,orionNebula, 
                                 remnant, andromeda, blackEyeCore,blackEyeDust,molecularCloud, 
                                 sharedBelt,oumuamua, BornSystem,
+                                quasiStarSystem,quasiStarDisk,
                                 tauCetiDisk,tauCetiStar,
                                  momCore, momGasCloud,
                                  cosmicHorizon,omc2Nebula
