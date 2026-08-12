@@ -403,7 +403,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER1308260141</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER1308260159</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -589,6 +589,8 @@
     // ==========================================
     // LEVEL 6: EXOTIC GALAXIES & COSMOLOGICAL BOUNDARY WALLS
     // ==========================================
+    { name: "Active Galactic Nucleus (SMBH)", x: 500000000, y: -100000000, z: -600000000 },
+    { name: "Blanet Prime", x: 501200000, y: -100000000, z: -598800000 },
     { name: "Exoplanet GJ 504b", x: -380000000, y: 120000000, z: 520000000 },
     { name: "Galaxy SDSS J110546 (Rapid-Growth Black Hole)", x: 450000000, y: -120000000, z: -550000000 },
     { name: "Galaxy MoM-z14 (Cosmic Dawn)", x: 900000000, y: 450000000, z: -900000000 },
@@ -1822,21 +1824,76 @@ const quasiStarSystem = createStarSystem(engine.scene, {
         }
     ]
 });
-
-// Optional: A superheated accretion disk swirling around the enormous star
+// THE GLOWING ACCRETION DISK
 const quasiStarDisk = createBelt(engine.scene, {
     x: blackHoleStarX,
-    z: blackHoleStarZ, // Use the same Z coordinate
+    y: blackHoleStarY, // 🎯 ADDED: This binds the disk to the star's elevation
+    z: blackHoleStarZ,
     count: 3500,
     innerRadius: 180000,
     outerRadius: 350000,
     verticalScatter: 15000,
-    color: 0xcc4411, // Glowing superheated red/orange matter
+    color: 0xcc4411,
     size: { min: 500, max: 2500 },
     type: 'asteroid_belt',
     name: 'Quasi-Star Accretion Field',
     sound: 'ROCKY_DEBRIS'
 });
+
+// ============================================================================
+// 🕳️🪐 EXOTIC: BLANET SYSTEM (Active Galactic Nucleus)
+// ============================================================================
+const blanetSystemX = 500000000;
+const blanetSystemY = -100000000;
+const blanetSystemZ = -600000000; // Deep space coordinates
+
+// 1. THE BLACK HOLE CORE (Acts as the host "star")
+const smbhCore = createStarSystem(engine.scene, {
+    name: "Active Galactic Nucleus (SMBH)",
+    x: blanetSystemX,
+    y: blanetSystemY,
+    z: blanetSystemZ,
+    systemRadius: 5000000, // Massive gravitational influence
+    stars: [
+        { 
+            name: "Event Horizon", 
+            radius: 25000, 
+            color: 0x000000, // Pure pitch-black singularity
+            orbitDistance: 0, 
+            orbitSpeed: 0, 
+            // The singularity is black, but we give it a high light intensity 
+            // to simulate the blinding radiation coming from the accretion disk
+            lightIntensity: 5 
+        }
+    ]
+});
+
+// 2. THE GLOWING ACCRETION DISK (The birthplace of the Blanet)
+const accretionDisk = createBelt(engine.scene, {
+    x: blanetSystemX,
+    y: blanetSystemY, // Align with the Black Hole Y-axis
+    z: blanetSystemZ,
+    count: 8000,
+    innerRadius: 60000, // Starts just outside the event horizon
+    outerRadius: 400000, // Wide, massive disk
+    verticalScatter: 2000, // Keep it flat and disk-like, unlike an Oort cloud
+    color: 0xffaa33, // Superheated glowing orange/white gas and dust
+    size: { min: 500, max: 3000 },
+    type: 'asteroid_belt',
+    name: 'Accretion Disk',
+    sound: 'ROCKY_DEBRIS'
+});
+
+// 3. THE BLANET (Massive Exoplanet orbiting safely outside the disk)
+// Blanets are colossal (up to 3000x Earth), so it should look huge and scorched
+const theoreticalBlanet = createExoplanet(engine.scene, {
+    x: blanetSystemX + 1200000, // Placed far out in the "safe zone"
+    y: blanetSystemY,
+    z: blanetSystemZ + 1200000, 
+    name: "Blanet Prime",
+    type: "exoplanet"
+});
+
 
         
            engine.scene.add(starfield); 
@@ -1856,6 +1913,7 @@ const quasiStarDisk = createBelt(engine.scene, {
                                 remnant, andromeda, blackEyeCore,blackEyeDust,molecularCloud, 
                                 sharedBelt,oumuamua, BornSystem,
                                 quasiStarSystem,quasiStarDisk,
+                                smbhCore,accretionDisk,theoreticalBlanet,
                                 tauCetiDisk,tauCetiStar,
                                  momCore, momGasCloud,
                                  cosmicHorizon,omc2Nebula
