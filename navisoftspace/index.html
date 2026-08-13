@@ -403,7 +403,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER1308260159</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER1308260903</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -1824,11 +1824,8 @@ const quasiStarSystem = createStarSystem(engine.scene, {
         }
     ]
 });
-// THE GLOWING ACCRETION DISK
+
 const quasiStarDisk = createBelt(engine.scene, {
-    x: blackHoleStarX,
-    y: blackHoleStarY, // 🎯 ADDED: This binds the disk to the star's elevation
-    z: blackHoleStarZ,
     count: 3500,
     innerRadius: 180000,
     outerRadius: 350000,
@@ -1839,6 +1836,11 @@ const quasiStarDisk = createBelt(engine.scene, {
     name: 'Quasi-Star Accretion Field',
     sound: 'ROCKY_DEBRIS'
 });
+
+
+if (quasiStarDisk) {
+    quasiStarDisk.position.set(blackHoleStarX, blackHoleStarY, blackHoleStarZ);
+}
 
 // ============================================================================
 // 🕳️🪐 EXOTIC: BLANET SYSTEM (Active Galactic Nucleus)
@@ -1870,19 +1872,21 @@ const smbhCore = createStarSystem(engine.scene, {
 
 // 2. THE GLOWING ACCRETION DISK (The birthplace of the Blanet)
 const accretionDisk = createBelt(engine.scene, {
-    x: blanetSystemX,
-    y: blanetSystemY, // Align with the Black Hole Y-axis
-    z: blanetSystemZ,
     count: 8000,
-    innerRadius: 60000, // Starts just outside the event horizon
-    outerRadius: 400000, // Wide, massive disk
-    verticalScatter: 2000, // Keep it flat and disk-like, unlike an Oort cloud
-    color: 0xffaa33, // Superheated glowing orange/white gas and dust
+    innerRadius: 60000,
+    outerRadius: 400000,
+    verticalScatter: 2000,
+    color: 0xffaa33,
     size: { min: 500, max: 3000 },
     type: 'asteroid_belt',
     name: 'Accretion Disk',
     sound: 'ROCKY_DEBRIS'
 });
+
+if (accretionDisk) {
+    accretionDisk.position.set(blanetSystemX, blanetSystemY, blanetSystemZ);
+}
+
 
 // 3. THE BLANET (Massive Exoplanet orbiting safely outside the disk)
 // Blanets are colossal (up to 3000x Earth), so it should look huge and scorched
