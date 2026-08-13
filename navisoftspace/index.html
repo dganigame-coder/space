@@ -403,7 +403,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER1308262004</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER1308262056</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -1321,584 +1321,618 @@
     });
 
         
-// 🌸 GJ 504b: Hyperrealistic Gas Giant Orbiting its G-Type Host Star
-const gj504b = createExoplanetSystem(engine.scene, {
-    name: "Exoplanet GJ 504b",
-    
-    // --- System Coordinates ---
-    x: -380000000, 
-    y: 120000000, 
-    z: 520000000,
-
-    // --- Host Star (GJ 504 - Sun-like G-Type) ---
-    starRadius: 120000,       // Large glowing stellar core
-    starColor: 0xffdd44,        // Warm solar-yellow light
-    starOffset: 2500000,       // Deep orbital distance
-
-    // --- Gas Giant Aesthetics (Hyperrealism) ---
-    planetRadius: 1800,        // Massive gas giant scale
-    planetColor: 0xe63956,     // Deep magenta/cherry-pink atmospheric tint
-    roughness: 0.35,           // Smooth atmospheric sheen for realistic specular light
-    metalness: 0.05,
-    hasClouds: false,          // Gas giants integrate storm bands into the surface layer
-    
-    // --- Atmospheric Fresnel Glow ---
-    hasAtmosphere: true,
-    atmosColor: 0xff0066,      // Soft neon-magenta scatter ring
-    atmosOpacity: 0.45,        // Strong volumetric horizon scattering
-
-    // --- Orbital Dynamics ---
-    orbitSpeed: 0.0015,        // Smooth, realistic slow planetary revolution
-    rotationSpeed: 0.01        // Axial planetary rotation rate
-});
-
-   
-// ==========================================
-// 🌌 COMPONENT: OMC-2 Cloud of Creation (Orion Sword)
-// ==========================================
-const omcX = 25000000;   
-const omcY = 6000000;
-const omcZ = -72000000;
-
-// Named properly as a Nebula asset
-const omc2Nebula = createNebula(engine.scene, {
-    x: omcX,
-    y: omcY,
-    z: omcZ,
-    count: 45000,         
-    spread: 8000000,      
-    size: 450000,         
-    colors: [
-        0x00ffff,        // Bright Cosmic Cyan
-        0x7cfc00,        // Organic Polycyclic Green
-        0xffaa00,        // Glowing Protostar Amber
-        0x3d2314,        // Dark Obscuring Dust Clumps
-        0x050010         // Deep Void Indigo
-    ],
-    name: "OMC-2 Stellar Nursery"
-});
-
-// HUD Tracking Data Registry
-omc2Nebula.userData = {
-    name: "OMC-2 Molecular Nebula",
-    type: "Stellar Nursery",
-    notes: "Dense dust filament tracking embryonic stars and polycyclic aromatic hydrocarbon emissions."
-};
-
-
-// ==========================================
-// 🕳️ NEW OBJECT: SDSS J110546 Prototype Active Nucleus
-// ==========================================
-const sdsx = 450000000;
-const sdsy = -120000000;
-const sdsz = -550000000;
-
-// Component A: The Hyper-Accreting Light Core
-const sdssBlackHoleCore = createNebula(engine.scene, {
-    x: sdsx,
-    y: sdsy,
-    z: sdsz,
-    count: 8000,
-    spread: 350000,       // Highly compressed, intense accretion disk boundary
-    size: 150000,
-    colors: [
-        0xffffff,        // Pure energetic white core
-        0xffaa00,        // Blazing acceleration amber
-        0x330066         // Highly distorted event horizon violet
-    ],
-    name: "SDSS J110546 Core"
-});
-
-// Component B: The Relativistic Radio Jet (Concentrated Particle Beam)
-const sdssRadioJet = createNebula(engine.scene, {
-    x: sdsx,
-    y: sdsy + 1500000,   // Projected upward on the Y-axis out of the pole
-    z: sdsz,
-    count: 12000,
-    spread: 80000,       // Tight, dense, highly collimated beam
-    size: 90000,
-    colors: [
-        0x00ffff,        // High-energy synchrotron cyan
-        0x0055ff         // Intense radio spectrum blue
-    ],
-    name: "SDSS J110546 Jet"
-});
-
-// Stretch the jet vertically to make it look like a true particle stream
-sdssRadioJet.scale.set(1, 15, 1); 
-sdssRadioJet.updateMatrix();
-
-// Metadata registry for HUD diagnostics
-sdssBlackHoleCore.userData = {
-    name: "SDSS J110546.07+145202.4",
-    type: "Rapid-Growth Lightweight SMBH",
-    notes: "Prototype galaxy showing 20-fold radio jet amplification. Mimics early universe conditions in nearby space."
-};
-       
-const k218 = createExoplanetSystem(engine.scene, {
-    x: 180000000, y: 45000000, z: -320000000,
-    name: "K2-18b",
-    planetRadius: 300000,
-    planetColor: 0x0a2540,
-    atmosColor: 0x00e1ff,
-    starRadius: 100000,
-    starColor: 0xff3300,
-    starOffset: 1200000
-});
-
-
-// =========================================================
-// 🔴 REAL SYSTEM: TRAPPIST-1 (Red Dwarf + 7 Terrestrial Worlds)
-// =========================================================
-const trappist1System = createExoplanetSystem(engine.scene, {
-    name: "TRAPPIST-1 System",
-    
-    // Universe World Coordinates
-    x: -50000000,
-    y: 0,
-    z: 300000000,
-
-    // Central Star (Ultracool Red Dwarf)
-    starRadius: 35000,
-    starColor: 0xff3300,
-    starOffset: 150000,
-
-    // Orbiting Exoplanets (Real planetary parameters scaled for 3D)
-    planets: [
-        {
-            name: "TRAPPIST-1b",
-            radius: 1100,
-            color: 0x8b6508,
-            orbitDistance: 120000,
-            orbitSpeed: 0.015,
-            rotationSpeed: 0.005,
-            hasClouds: false,
-            hasAtmosphere: true,
-            atmosColor: 0xffaa44,
-            atmosOpacity: 0.3
-        },
-        {
-            name: "TRAPPIST-1c",
-            radius: 1050,
-            color: 0xcd853f,
-            orbitDistance: 180000,
-            orbitSpeed: 0.011,
-            rotationSpeed: 0.004,
-            hasClouds: false,
-            hasAtmosphere: true,
-            atmosColor: 0xff7733
-        },
-        {
-            name: "TRAPPIST-1d",
-            radius: 850,
-            color: 0x4682b4,
-            orbitDistance: 250000,
-            orbitSpeed: 0.008,
-            rotationSpeed: 0.006,
-            hasClouds: true,
-            hasAtmosphere: true,
-            atmosColor: 0x87ceeb
-        },
-        {
-            name: "TRAPPIST-1e (Habitable Zone)",
-            radius: 950,
-            color: 0x2e8b57,
-            orbitDistance: 340000,
-            orbitSpeed: 0.006,
-            rotationSpeed: 0.008,
-            hasClouds: true,
-            hasAtmosphere: true,
-            atmosColor: 0x00ff7f
-        },
-        {
-            name: "TRAPPIST-1f (Ocean World)",
-            radius: 1000,
-            color: 0x1e90ff,
-            orbitDistance: 450000,
-            orbitSpeed: 0.004,
-            rotationSpeed: 0.007,
-            hasClouds: true,
-            hasAtmosphere: true,
-            atmosColor: 0x00bfff
-        },
-        {
-            name: "TRAPPIST-1g",
-            radius: 1150,
-            color: 0x4169e1,
-            orbitDistance: 600000,
-            orbitSpeed: 0.0025,
-            rotationSpeed: 0.005,
-            hasClouds: false,
-            hasAtmosphere: true,
-            atmosColor: 0x87cefa
-        },
-        {
-            name: "TRAPPIST-1h (Outer Ice World)",
-            radius: 750,
-            color: 0x708090,
-            orbitDistance: 800000,
-            orbitSpeed: 0.0015,
-            rotationSpeed: 0.003,
-            hasClouds: false,
-            hasAtmosphere: false
-        }
-    ]
-});
-
-    // =========================================================
-// 🔴 LHS 1140 SYSTEM (Red Dwarf + LHS 1140 b Ocean Super-Earth)
-// =========================================================
-const lhs1140System = createExoplanetSystem(engine.scene, {
-    name: "LHS 1140 System",
-    
-    // System Position in World Space
-    x: 150000000,
-    y: -40000,
-    z: 220000000,
-
-    // Central Host Star (M-Dwarf / Red Dwarf)
-    starRadius: 28000,
-    starColor: 0xff4411,
-    starOffset: 100000,
-
-    // System Planets
-    planets: [
-        {
-            name: "LHS 1140 c",
-            radius: 800,
-            color: 0xaa7755,
-            orbitDistance: 90000,
-            orbitSpeed: 0.014,
-            rotationSpeed: 0.005,
-            hasClouds: false,
-            hasAtmosphere: false
-        },
-        {
-            name: "LHS 1140 b (Ocean World)",
-            radius: 1700, // Super-Earth (~1.7x Earth radius)
-            color: 0x1d70b8,
-            orbitDistance: 240000,
-            orbitSpeed: 0.006,
-            rotationSpeed: 0.004,
-            hasClouds: true,
-            hasAtmosphere: true,
-            atmosColor: 0x33ccff, // Cyan atmosphere halo
-            atmosOpacity: 0.4
-        }
-    ]
-});
-
-        // =========================================================
-// 🪐 CD-35 2722 SYSTEM (Red Dwarf + Brown Dwarf + Gas-Giant Exomoon)
-// =========================================================
-const cd352722System = createExoplanetSystem(engine.scene, {
-    name: "CD-35 2722 System",
-    
-    // World Space Coordinates (approx. 73 ly away)
-    x: -200000000,
-    y: 80000,
-    z: 150000000,
-
-    // Primary Host Star (Red Dwarf - ~0.4 M_Sun)
-    starRadius: 22000,
-    starColor: 0xff3300, 
-    starOffset: 120000,
-
-    planets: [
-        {
-            // The Brown Dwarf (~37 Jupiter masses)
-            name: "CD-35 2722 B (Brown Dwarf Host)",
-            radius: 3500, // Massive substellar body
-            color: 0x8b2200, // Dim reddish-brown glow
-            orbitDistance: 450000, // Wide orbit around main red dwarf
-            orbitSpeed: 0.001,
-            rotationSpeed: 0.008,
-            hasClouds: true,
-            hasAtmosphere: true,
-            atmosColor: 0xff4500,
-            
-            // Sub-satellite / Exomoon configuration
-            // (If your exoplanetsystem.js supports nested moons)
-            moons: [
-                {
-                    name: "CD-35 2722 B b (Exomoon Candidate)",
-                    radius: 1100, // ~0.9 Jupiter mass
-                    color: 0x4682b4,
-                    orbitDistance: 35000, // 0.2 AU scaled
-                    orbitSpeed: 0.012,
-                    hasAtmosphere: true,
-                    atmosColor: 0x87ceeb
-                }
-            ]
-        }
-    ]
-});
-
-// =========================================================
-// 🌌 SEXTUPLE STAR SYSTEM (TYC 7037-89-1 / TIC 168789840)
-// =========================================================
-const sextupleSystem = createStarSystem(engine.scene, {
-    name: "TIC 168789840 (Sextuple System)",
-
-    // World Space Origin (Deep Space Location)
-    x: -300000000,
-    y: 150000,
-    z: -400000000,
-    systemRadius: 5000000,
-
-    // Hierarchical Stars & Planets
-    stars: [
-        // -----------------------------------------------------
-        // BINARY PAIR A (Inner Quad Core - Pair 1)
-        // -----------------------------------------------------
-        {
-            name: "Star A1 (Primary F-Type)",
-            radius: 3200,
-            color: 0xaaccff, // ❄️ Crisp Blue-White (F-Class)
-            //textureMap: 'space/navisoftspace/planets/texture/2k_sun.jpg', // Base texture
-            orbitDistance: 150000,
-            orbitSpeed: 0.012,
-            companions: [
-                {
-                    type: 'star',
-                    name: "Star A2 (M-Dwarf Companion)",
-                    radius: 1200,
-                    color: 0xff3300, // 🔴 Crimson Red Dwarf
-                   // textureMap: 'space/navisoftspace/planets/texture/2k_sun.jpg',
-                    orbitDistance: 12000,
-                    orbitSpeed: 0.045
-                }
-            ]
-        },
-        // -----------------------------------------------------
-        // BINARY PAIR C (Inner Quad Core - Pair 2)
-        // -----------------------------------------------------
-        {
-            name: "Star C1 (Yellow Sun-like)",
-            radius: 3000,
-            color: 0xffcc00, // 🟡 Golden Sun (G-Class)
-            //textureMap: 'space/navisoftspace/planets/texture/2k_sun.jpg',
-            orbitDistance: 220000,
-            orbitSpeed: 0.009,
-            companions: [
-                {
-                    type: 'star',
-                    name: "Star C2 (M-Dwarf Companion)",
-                    radius: 1000,
-                    color: 0xff2200, // 🔴 Deep Red Dwarf
-                    //textureMap: 'space/navisoftspace/planets/texture/2k_sun.jpg',
-                    orbitDistance: 10000,
-                    orbitSpeed: 0.050
-                }
-            ]
-        },
-        // -----------------------------------------------------
-        // BINARY PAIR B (Outer Pair Hosting Exoplanet E-1)
-        // -----------------------------------------------------
-        {
-            name: "Star B1 (Primary Host Sun)",
-            radius: 3500,
-            color: 0xffe680, // ☀️ Warm Solar Amber
-            //textureMap: 'space/navisoftspace/planets/texture/2k_sun.jpg',
-            orbitDistance: 850000, 
-            orbitSpeed: 0.002,
-            companions: [
-                {
-                    type: 'star',
-                    name: "Star B2 (Orange-Red Companion)",
-                    radius: 1500,
-                    color: 0xff6600, // 🟠 Vivid Orange Star
-                   // textureMap: 'space/navisoftspace/planets/texture/2k_sun.jpg',
-                    orbitDistance: 45000,
-                    orbitSpeed: 0.020
-                },
-                {
-                    type: 'planet', // 🌍 Crucial: Tells the engine to use the Exoplanet factory!
-                    name: "Exoplanet E-1 (Habitable Super-Earth)",
-                    radius: 1200, 
-                    // No textureMap provided here, so it falls back to your Earth defaults in exoplanet.js!
-                    color: 0x0088ff, // 💙 Rich Ocean Blue
-                    orbitDistance: 120000, 
-                    orbitSpeed: 0.006,
-                    hasClouds: true,
-                    hasAtmosphere: true,
-                    atmosColor: 0x00e1ff, 
-                    atmosOpacity: 0.6
-                }
-            ]
-        }
-    ]
-});
-const castorSystem = createStarSystem(engine.scene, {
-    name: "Castor System",
-    x: 0,
-    y: 0,
-    z: -160000000, // Pushed deep into the cosmos to match deep space scale
-    systemRadius: 100000, // Defines the outer bounds
-    stars: [
-        // --- CASTOR A (Pair) ---
-        { 
-            name: "Castor Aa (Primary)", 
-            radius: 8000, 
-            color: 0xffffff, // Clean white tint for natural texture rendering
-            orbitDistance: 4000, 
-            orbitSpeed: 0.005, 
-            //textureMap: '/planets/texture/2k_sun.jpg', 
-            lightIntensity: 3 
-        },
-        { 
-            name: "Castor Ab (Red Dwarf)",
-            radius: 2500,
-            color: 0xff4400, 
-            orbitDistance: 12000,
-            orbitSpeed: 0.008, 
-            //textureMap: '/planets/texture/2k_sun.jpg', 
-            lightIntensity: 0 // Unlit red dwarf
-        },
-
-        // --- CASTOR B (Pair) ---
-        { 
-            name: "Castor Ba (Secondary)",
-            radius: 7000, 
-            color: 0xffffff, 
-            orbitDistance: 25000,
-            orbitSpeed: 0.003, 
-            //textureMap: '/planets/texture/2k_sun.jpg', 
-            lightIntensity: 3 
-        },
-        { 
-            name: "Castor Bb (Red Dwarf)", 
-            radius: 2500,
-            color: 0xff4400, 
-            orbitDistance: 32000,
-            orbitSpeed: 0.004, 
-            //textureMap: '/planets/texture/2k_sun.jpg', 
-            lightIntensity: 0 // Unlit red dwarf
-        },
-
-        // --- CASTOR C (Pair - Orbiting far away) ---
-        { 
-            name: "Castor Ca (Dwarf)", 
-            radius: 2500, 
-            color: 0xff4400, 
-            orbitDistance: 60000,
-            orbitSpeed: 0.001, 
-            //textureMap: '/planets/texture/2k_sun.jpg', 
-            lightIntensity: 0 // Unlit red dwarf
-        },
-        { 
-            name: "Castor Cb (Dwarf)", 
-            radius: 2500,
-            color: 0xff4400, 
-            orbitDistance: 65000, 
-            orbitSpeed: 0.0012, 
-            //textureMap: '/planets/texture/2k_sun.jpg', 
-            lightIntensity: 0 // Unlit red dwarf
-        }
-    ]
-});
-
-// ============================================================================
-// 🕳️⭐ EXOTIC: BLACK HOLE STAR (QUASI-STAR)
-// ============================================================================
-const blackHoleStarX = 950000000;
-const blackHoleStarY = 45000000;
-const blackHoleStarZ = -950000000; // Placed deep in the early universe (Cosmic Dawn)
-
-const quasiStarSystem = createStarSystem(engine.scene, {
-    name: "Black Hole Star (MoM-BH*-1)",
-    x: blackHoleStarX,
-    y: blackHoleStarY,
-    z: blackHoleStarZ,
-    systemRadius: 1000000,
-    stars: [
-        { 
-            name: "Quasi-Star Envelope", 
-            // Quasi-stars dwarf modern stars, requiring a massive radius
-            radius: 150000, 
-            color: 0xff2200, // Dense, deep-red hydrogen envelope
-            orbitDistance: 0, 
-            orbitSpeed: 0, 
-            //textureMap: '/planets/texture/2k_sun.jpg', 
-            lightIntensity: 6 // Extremely luminous, powered by accretion rather than fusion
-        }
-    ]
-});
-
-const quasiStarDisk = createBelt(engine.scene, {
-    x: blackHoleStarX, // Now it reads this!
-    y: blackHoleStarY, // Now it reads this!
-    z: blackHoleStarZ, // Now it reads this!
-    count: 3500,
-    innerRadius: 180000,
-    outerRadius: 350000,
-    verticalScatter: 15000,
-    color: 0xcc4411,
-    size: { min: 500, max: 2500 },
-    type: 'asteroid_belt',
-    name: 'Quasi-Star Accretion Field',
-    sound: 'ROCKY_DEBRIS'
-});
-
-
-// ============================================================================
-// 🕳️🪐 EXOTIC: BLANET SYSTEM (Active Galactic Nucleus)
-// ============================================================================
-const blanetSystemX = 500000000;
-const blanetSystemY = -100000000;
-const blanetSystemZ = -600000000; // Deep space coordinates
-
-// 1. THE BLACK HOLE CORE (Acts as the host "star")
-const smbhCore = createStarSystem(engine.scene, {
-    name: "Active Galactic Nucleus (SMBH)",
-    x: blanetSystemX,
-    y: blanetSystemY,
-    z: blanetSystemZ,
-    systemRadius: 5000000, // Massive gravitational influence
-    stars: [
-        { 
-            name: "Event Horizon", 
-            radius: 25000, 
-            color: 0x000000, // Pure pitch-black singularity
-            orbitDistance: 0, 
-            orbitSpeed: 0, 
-            // The singularity is black, but we give it a high light intensity 
-            // to simulate the blinding radiation coming from the accretion disk
-            lightIntensity: 5 
-        }
-    ]
-});
-
-// 2. THE GLOWING ACCRETION DISK (The birthplace of the Blanet)
-const accretionDisk = createBelt(engine.scene, {
-    x: blanetSystemX, // 🎯 Binds to SMBH/Blanet X
-    y: blanetSystemY, // 🎯 Binds to SMBH/Blanet Y
-    z: blanetSystemZ, // 🎯 Binds to SMBH/Blanet Z
-    count: 8000,
-    innerRadius: 60000,
-    outerRadius: 400000,
-    verticalScatter: 2000,
-    color: 0xffaa33,
-    size: { min: 500, max: 3000 },
-    type: 'asteroid_belt',
-    name: 'Accretion Disk',
-    sound: 'ROCKY_DEBRIS'
-});
-
-
-// 3. THE BLANET (Massive Exoplanet orbiting safely outside the disk)
-// Blanets are colossal (up to 3000x Earth), so it should look huge and scorched
-const theoreticalBlanet = createExoplanet(engine.scene, {
-    x: blanetSystemX + 1200000, // Placed far out in the "safe zone"
-    y: blanetSystemY,
-    z: blanetSystemZ + 1200000, 
-    name: "Blanet Prime",
-    type: "exoplanet"
-});
-
-
+    // 🌸 GJ 504b: Hyperrealistic Gas Giant Orbiting its G-Type Host Star
+    const gj504b = createExoplanetSystem(engine.scene, {
+        name: "Exoplanet GJ 504b",
         
-           engine.scene.add(starfield); 
+        // --- System Coordinates ---
+        x: -380000000, 
+        y: 120000000, 
+        z: 520000000,
+    
+        // --- Host Star (GJ 504 - Sun-like G-Type) ---
+        starRadius: 120000,       // Large glowing stellar core
+        starColor: 0xffdd44,        // Warm solar-yellow light
+        starOffset: 2500000,       // Deep orbital distance
+    
+        // --- Gas Giant Aesthetics (Hyperrealism) ---
+        planetRadius: 1800,        // Massive gas giant scale
+        planetColor: 0xe63956,     // Deep magenta/cherry-pink atmospheric tint
+        roughness: 0.35,           // Smooth atmospheric sheen for realistic specular light
+        metalness: 0.05,
+        hasClouds: false,          // Gas giants integrate storm bands into the surface layer
+        
+        // --- Atmospheric Fresnel Glow ---
+        hasAtmosphere: true,
+        atmosColor: 0xff0066,      // Soft neon-magenta scatter ring
+        atmosOpacity: 0.45,        // Strong volumetric horizon scattering
+    
+        // --- Orbital Dynamics ---
+        orbitSpeed: 0.0015,        // Smooth, realistic slow planetary revolution
+        rotationSpeed: 0.01        // Axial planetary rotation rate
+    });
+    
+       
+    // ==========================================
+    // 🌌 COMPONENT: OMC-2 Cloud of Creation (Orion Sword)
+    // ==========================================
+    const omcX = 25000000;   
+    const omcY = 6000000;
+    const omcZ = -72000000;
+    
+    // Named properly as a Nebula asset
+    const omc2Nebula = createNebula(engine.scene, {
+        x: omcX,
+        y: omcY,
+        z: omcZ,
+        count: 45000,         
+        spread: 8000000,      
+        size: 450000,         
+        colors: [
+            0x00ffff,        // Bright Cosmic Cyan
+            0x7cfc00,        // Organic Polycyclic Green
+            0xffaa00,        // Glowing Protostar Amber
+            0x3d2314,        // Dark Obscuring Dust Clumps
+            0x050010         // Deep Void Indigo
+        ],
+        name: "OMC-2 Stellar Nursery"
+    });
+    
+    // HUD Tracking Data Registry
+    omc2Nebula.userData = {
+        name: "OMC-2 Molecular Nebula",
+        type: "Stellar Nursery",
+        notes: "Dense dust filament tracking embryonic stars and polycyclic aromatic hydrocarbon emissions."
+    };
+    
+    
+    // ==========================================
+    // 🕳️ NEW OBJECT: SDSS J110546 Prototype Active Nucleus
+    // ==========================================
+    const sdsx = 450000000;
+    const sdsy = -120000000;
+    const sdsz = -550000000;
+    
+    // Component A: The Hyper-Accreting Light Core
+    const sdssBlackHoleCore = createNebula(engine.scene, {
+        x: sdsx,
+        y: sdsy,
+        z: sdsz,
+        count: 8000,
+        spread: 350000,       // Highly compressed, intense accretion disk boundary
+        size: 150000,
+        colors: [
+            0xffffff,        // Pure energetic white core
+            0xffaa00,        // Blazing acceleration amber
+            0x330066         // Highly distorted event horizon violet
+        ],
+        name: "SDSS J110546 Core"
+    });
+    
+    // Component B: The Relativistic Radio Jet (Concentrated Particle Beam)
+    const sdssRadioJet = createNebula(engine.scene, {
+        x: sdsx,
+        y: sdsy + 1500000,   // Projected upward on the Y-axis out of the pole
+        z: sdsz,
+        count: 12000,
+        spread: 80000,       // Tight, dense, highly collimated beam
+        size: 90000,
+        colors: [
+            0x00ffff,        // High-energy synchrotron cyan
+            0x0055ff         // Intense radio spectrum blue
+        ],
+        name: "SDSS J110546 Jet"
+    });
+    
+    // Stretch the jet vertically to make it look like a true particle stream
+    sdssRadioJet.scale.set(1, 15, 1); 
+    sdssRadioJet.updateMatrix();
+    
+    // Metadata registry for HUD diagnostics
+    sdssBlackHoleCore.userData = {
+        name: "SDSS J110546.07+145202.4",
+        type: "Rapid-Growth Lightweight SMBH",
+        notes: "Prototype galaxy showing 20-fold radio jet amplification. Mimics early universe conditions in nearby space."
+    };
+           
+    const k218 = createExoplanetSystem(engine.scene, {
+        x: 180000000, y: 45000000, z: -320000000,
+        name: "K2-18b",
+        planetRadius: 300000,
+        planetColor: 0x0a2540,
+        atmosColor: 0x00e1ff,
+        starRadius: 100000,
+        starColor: 0xff3300,
+        starOffset: 1200000
+    });
+    
+    
+    // =========================================================
+    // 🔴 REAL SYSTEM: TRAPPIST-1 (Red Dwarf + 7 Terrestrial Worlds)
+    // =========================================================
+    const trappist1System = createExoplanetSystem(engine.scene, {
+        name: "TRAPPIST-1 System",
+        
+        // Universe World Coordinates
+        x: -50000000,
+        y: 0,
+        z: 300000000,
+    
+        // Central Star (Ultracool Red Dwarf)
+        starRadius: 35000,
+        starColor: 0xff3300,
+        starOffset: 150000,
+    
+        // Orbiting Exoplanets (Real planetary parameters scaled for 3D)
+        planets: [
+            {
+                name: "TRAPPIST-1b",
+                radius: 1100,
+                color: 0x8b6508,
+                orbitDistance: 120000,
+                orbitSpeed: 0.015,
+                rotationSpeed: 0.005,
+                hasClouds: false,
+                hasAtmosphere: true,
+                atmosColor: 0xffaa44,
+                atmosOpacity: 0.3
+            },
+            {
+                name: "TRAPPIST-1c",
+                radius: 1050,
+                color: 0xcd853f,
+                orbitDistance: 180000,
+                orbitSpeed: 0.011,
+                rotationSpeed: 0.004,
+                hasClouds: false,
+                hasAtmosphere: true,
+                atmosColor: 0xff7733
+            },
+            {
+                name: "TRAPPIST-1d",
+                radius: 850,
+                color: 0x4682b4,
+                orbitDistance: 250000,
+                orbitSpeed: 0.008,
+                rotationSpeed: 0.006,
+                hasClouds: true,
+                hasAtmosphere: true,
+                atmosColor: 0x87ceeb
+            },
+            {
+                name: "TRAPPIST-1e (Habitable Zone)",
+                radius: 950,
+                color: 0x2e8b57,
+                orbitDistance: 340000,
+                orbitSpeed: 0.006,
+                rotationSpeed: 0.008,
+                hasClouds: true,
+                hasAtmosphere: true,
+                atmosColor: 0x00ff7f
+            },
+            {
+                name: "TRAPPIST-1f (Ocean World)",
+                radius: 1000,
+                color: 0x1e90ff,
+                orbitDistance: 450000,
+                orbitSpeed: 0.004,
+                rotationSpeed: 0.007,
+                hasClouds: true,
+                hasAtmosphere: true,
+                atmosColor: 0x00bfff
+            },
+            {
+                name: "TRAPPIST-1g",
+                radius: 1150,
+                color: 0x4169e1,
+                orbitDistance: 600000,
+                orbitSpeed: 0.0025,
+                rotationSpeed: 0.005,
+                hasClouds: false,
+                hasAtmosphere: true,
+                atmosColor: 0x87cefa
+            },
+            {
+                name: "TRAPPIST-1h (Outer Ice World)",
+                radius: 750,
+                color: 0x708090,
+                orbitDistance: 800000,
+                orbitSpeed: 0.0015,
+                rotationSpeed: 0.003,
+                hasClouds: false,
+                hasAtmosphere: false
+            }
+        ]
+    });
+    
+        // =========================================================
+    // 🔴 LHS 1140 SYSTEM (Red Dwarf + LHS 1140 b Ocean Super-Earth)
+    // =========================================================
+    const lhs1140System = createExoplanetSystem(engine.scene, {
+        name: "LHS 1140 System",
+        
+        // System Position in World Space
+        x: 150000000,
+        y: -40000,
+        z: 220000000,
+    
+        // Central Host Star (M-Dwarf / Red Dwarf)
+        starRadius: 28000,
+        starColor: 0xff4411,
+        starOffset: 100000,
+    
+        // System Planets
+        planets: [
+            {
+                name: "LHS 1140 c",
+                radius: 800,
+                color: 0xaa7755,
+                orbitDistance: 90000,
+                orbitSpeed: 0.014,
+                rotationSpeed: 0.005,
+                hasClouds: false,
+                hasAtmosphere: false
+            },
+            {
+                name: "LHS 1140 b (Ocean World)",
+                radius: 1700, // Super-Earth (~1.7x Earth radius)
+                color: 0x1d70b8,
+                orbitDistance: 240000,
+                orbitSpeed: 0.006,
+                rotationSpeed: 0.004,
+                hasClouds: true,
+                hasAtmosphere: true,
+                atmosColor: 0x33ccff, // Cyan atmosphere halo
+                atmosOpacity: 0.4
+            }
+        ]
+    });
+    
+            // =========================================================
+    // 🪐 CD-35 2722 SYSTEM (Red Dwarf + Brown Dwarf + Gas-Giant Exomoon)
+    // =========================================================
+    const cd352722System = createExoplanetSystem(engine.scene, {
+        name: "CD-35 2722 System",
+        
+        // World Space Coordinates (approx. 73 ly away)
+        x: -200000000,
+        y: 80000,
+        z: 150000000,
+    
+        // Primary Host Star (Red Dwarf - ~0.4 M_Sun)
+        starRadius: 22000,
+        starColor: 0xff3300, 
+        starOffset: 120000,
+    
+        planets: [
+            {
+                // The Brown Dwarf (~37 Jupiter masses)
+                name: "CD-35 2722 B (Brown Dwarf Host)",
+                radius: 3500, // Massive substellar body
+                color: 0x8b2200, // Dim reddish-brown glow
+                orbitDistance: 450000, // Wide orbit around main red dwarf
+                orbitSpeed: 0.001,
+                rotationSpeed: 0.008,
+                hasClouds: true,
+                hasAtmosphere: true,
+                atmosColor: 0xff4500,
+                
+                // Sub-satellite / Exomoon configuration
+                // (If your exoplanetsystem.js supports nested moons)
+                moons: [
+                    {
+                        name: "CD-35 2722 B b (Exomoon Candidate)",
+                        radius: 1100, // ~0.9 Jupiter mass
+                        color: 0x4682b4,
+                        orbitDistance: 35000, // 0.2 AU scaled
+                        orbitSpeed: 0.012,
+                        hasAtmosphere: true,
+                        atmosColor: 0x87ceeb
+                    }
+                ]
+            }
+        ]
+    });
+    
+    // =========================================================
+    // 🌌 SEXTUPLE STAR SYSTEM (TYC 7037-89-1 / TIC 168789840)
+    // =========================================================
+    const sextupleSystem = createStarSystem(engine.scene, {
+        name: "TIC 168789840 (Sextuple System)",
+    
+        // World Space Origin (Deep Space Location)
+        x: -300000000,
+        y: 150000,
+        z: -400000000,
+        systemRadius: 5000000,
+    
+        // Hierarchical Stars & Planets
+        stars: [
+            // -----------------------------------------------------
+            // BINARY PAIR A (Inner Quad Core - Pair 1)
+            // -----------------------------------------------------
+            {
+                name: "Star A1 (Primary F-Type)",
+                radius: 3200,
+                color: 0xaaccff, // ❄️ Crisp Blue-White (F-Class)
+                //textureMap: 'space/navisoftspace/planets/texture/2k_sun.jpg', // Base texture
+                orbitDistance: 150000,
+                orbitSpeed: 0.012,
+                companions: [
+                    {
+                        type: 'star',
+                        name: "Star A2 (M-Dwarf Companion)",
+                        radius: 1200,
+                        color: 0xff3300, // 🔴 Crimson Red Dwarf
+                       // textureMap: 'space/navisoftspace/planets/texture/2k_sun.jpg',
+                        orbitDistance: 12000,
+                        orbitSpeed: 0.045
+                    }
+                ]
+            },
+            // -----------------------------------------------------
+            // BINARY PAIR C (Inner Quad Core - Pair 2)
+            // -----------------------------------------------------
+            {
+                name: "Star C1 (Yellow Sun-like)",
+                radius: 3000,
+                color: 0xffcc00, // 🟡 Golden Sun (G-Class)
+                //textureMap: 'space/navisoftspace/planets/texture/2k_sun.jpg',
+                orbitDistance: 220000,
+                orbitSpeed: 0.009,
+                companions: [
+                    {
+                        type: 'star',
+                        name: "Star C2 (M-Dwarf Companion)",
+                        radius: 1000,
+                        color: 0xff2200, // 🔴 Deep Red Dwarf
+                        //textureMap: 'space/navisoftspace/planets/texture/2k_sun.jpg',
+                        orbitDistance: 10000,
+                        orbitSpeed: 0.050
+                    }
+                ]
+            },
+            // -----------------------------------------------------
+            // BINARY PAIR B (Outer Pair Hosting Exoplanet E-1)
+            // -----------------------------------------------------
+            {
+                name: "Star B1 (Primary Host Sun)",
+                radius: 3500,
+                color: 0xffe680, // ☀️ Warm Solar Amber
+                //textureMap: 'space/navisoftspace/planets/texture/2k_sun.jpg',
+                orbitDistance: 850000, 
+                orbitSpeed: 0.002,
+                companions: [
+                    {
+                        type: 'star',
+                        name: "Star B2 (Orange-Red Companion)",
+                        radius: 1500,
+                        color: 0xff6600, // 🟠 Vivid Orange Star
+                       // textureMap: 'space/navisoftspace/planets/texture/2k_sun.jpg',
+                        orbitDistance: 45000,
+                        orbitSpeed: 0.020
+                    },
+                    {
+                        type: 'planet', // 🌍 Crucial: Tells the engine to use the Exoplanet factory!
+                        name: "Exoplanet E-1 (Habitable Super-Earth)",
+                        radius: 1200, 
+                        // No textureMap provided here, so it falls back to your Earth defaults in exoplanet.js!
+                        color: 0x0088ff, // 💙 Rich Ocean Blue
+                        orbitDistance: 120000, 
+                        orbitSpeed: 0.006,
+                        hasClouds: true,
+                        hasAtmosphere: true,
+                        atmosColor: 0x00e1ff, 
+                        atmosOpacity: 0.6
+                    }
+                ]
+            }
+        ]
+    });
+    const castorSystem = createStarSystem(engine.scene, {
+        name: "Castor System",
+        x: 0,
+        y: 0,
+        z: -160000000, // Pushed deep into the cosmos to match deep space scale
+        systemRadius: 100000, // Defines the outer bounds
+        stars: [
+            // --- CASTOR A (Pair) ---
+            { 
+                name: "Castor Aa (Primary)", 
+                radius: 8000, 
+                color: 0xffffff, // Clean white tint for natural texture rendering
+                orbitDistance: 4000, 
+                orbitSpeed: 0.005, 
+                //textureMap: '/planets/texture/2k_sun.jpg', 
+                lightIntensity: 3 
+            },
+            { 
+                name: "Castor Ab (Red Dwarf)",
+                radius: 2500,
+                color: 0xff4400, 
+                orbitDistance: 12000,
+                orbitSpeed: 0.008, 
+                //textureMap: '/planets/texture/2k_sun.jpg', 
+                lightIntensity: 0 // Unlit red dwarf
+            },
+    
+            // --- CASTOR B (Pair) ---
+            { 
+                name: "Castor Ba (Secondary)",
+                radius: 7000, 
+                color: 0xffffff, 
+                orbitDistance: 25000,
+                orbitSpeed: 0.003, 
+                //textureMap: '/planets/texture/2k_sun.jpg', 
+                lightIntensity: 3 
+            },
+            { 
+                name: "Castor Bb (Red Dwarf)", 
+                radius: 2500,
+                color: 0xff4400, 
+                orbitDistance: 32000,
+                orbitSpeed: 0.004, 
+                //textureMap: '/planets/texture/2k_sun.jpg', 
+                lightIntensity: 0 // Unlit red dwarf
+            },
+    
+            // --- CASTOR C (Pair - Orbiting far away) ---
+            { 
+                name: "Castor Ca (Dwarf)", 
+                radius: 2500, 
+                color: 0xff4400, 
+                orbitDistance: 60000,
+                orbitSpeed: 0.001, 
+                //textureMap: '/planets/texture/2k_sun.jpg', 
+                lightIntensity: 0 // Unlit red dwarf
+            },
+            { 
+                name: "Castor Cb (Dwarf)", 
+                radius: 2500,
+                color: 0xff4400, 
+                orbitDistance: 65000, 
+                orbitSpeed: 0.0012, 
+                //textureMap: '/planets/texture/2k_sun.jpg', 
+                lightIntensity: 0 // Unlit red dwarf
+            }
+        ]
+    });
+    
+    // ============================================================================
+    // 🕳️⭐ EXOTIC: BLACK HOLE STAR (QUASI-STAR)
+    // ============================================================================
+    const blackHoleStarX = 950000000;
+    const blackHoleStarY = 45000000;
+    const blackHoleStarZ = -950000000; // Placed deep in the early universe (Cosmic Dawn)
+    
+    const quasiStarSystem = createStarSystem(engine.scene, {
+        name: "Black Hole Star (MoM-BH*-1)",
+        x: blackHoleStarX,
+        y: blackHoleStarY,
+        z: blackHoleStarZ,
+        systemRadius: 1000000,
+        stars: [
+            { 
+                name: "Quasi-Star Envelope", 
+                // Quasi-stars dwarf modern stars, requiring a massive radius
+                radius: 150000, 
+                color: 0xff2200, // Dense, deep-red hydrogen envelope
+                orbitDistance: 0, 
+                orbitSpeed: 0, 
+                //textureMap: '/planets/texture/2k_sun.jpg', 
+                lightIntensity: 6 // Extremely luminous, powered by accretion rather than fusion
+            }
+        ]
+    });
+    
+    const quasiStarDisk = createBelt(engine.scene, {
+        x: blackHoleStarX, // Now it reads this!
+        y: blackHoleStarY, // Now it reads this!
+        z: blackHoleStarZ, // Now it reads this!
+        count: 3500,
+        innerRadius: 180000,
+        outerRadius: 350000,
+        verticalScatter: 15000,
+        color: 0xcc4411,
+        size: { min: 500, max: 2500 },
+        type: 'asteroid_belt',
+        name: 'Quasi-Star Accretion Field',
+        sound: 'ROCKY_DEBRIS'
+    });
+    
+    
+    // ============================================================================
+    // 🕳️🪐 EXOTIC: BLANET SYSTEM (Active Galactic Nucleus)
+    // ============================================================================
+    const blanetSystemX = 500000000;
+    const blanetSystemY = -100000000;
+    const blanetSystemZ = -600000000; // Deep space coordinates
+    
+    // 1. THE BLACK HOLE CORE (Acts as the host "star")
+    const smbhCore = createStarSystem(engine.scene, {
+        name: "Active Galactic Nucleus (SMBH)",
+        x: blanetSystemX,
+        y: blanetSystemY,
+        z: blanetSystemZ,
+        systemRadius: 5000000, // Massive gravitational influence
+        stars: [
+            { 
+                name: "Event Horizon", 
+                radius: 25000, 
+                color: 0x000000, // Pure pitch-black singularity
+                orbitDistance: 0, 
+                orbitSpeed: 0, 
+                // The singularity is black, but we give it a high light intensity 
+                // to simulate the blinding radiation coming from the accretion disk
+                lightIntensity: 5 
+            }
+        ]
+    });
+    
+    // 2. THE GLOWING ACCRETION DISK (The birthplace of the Blanet)
+    const accretionDisk = createBelt(engine.scene, {
+        x: blanetSystemX, // 🎯 Binds to SMBH/Blanet X
+        y: blanetSystemY, // 🎯 Binds to SMBH/Blanet Y
+        z: blanetSystemZ, // 🎯 Binds to SMBH/Blanet Z
+        count: 8000,
+        innerRadius: 60000,
+        outerRadius: 400000,
+        verticalScatter: 2000,
+        color: 0xffaa33,
+        size: { min: 500, max: 3000 },
+        type: 'asteroid_belt',
+        name: 'Accretion Disk',
+        sound: 'ROCKY_DEBRIS'
+    });
+    
+    
+    // 3. THE BLANET (Massive Exoplanet orbiting safely outside the disk)
+    // Blanets are colossal (up to 3000x Earth), so it should look huge and scorched
+    const theoreticalBlanet = createExoplanet(engine.scene, {
+        x: blanetSystemX + 1200000, // Placed far out in the "safe zone"
+        y: blanetSystemY,
+        z: blanetSystemZ + 1200000, 
+        name: "Blanet Prime",
+        type: "exoplanet"
+    });
+    
+    
+       // ============================================================================
+    // 🪐 KEPLER-186 SYSTEM (First Earth-Sized Habitable-Zone Exoplanet)
+    // ============================================================================
+    const kepler186X = 220000000;
+    const kepler186Y = -15000000;
+    const kepler186Z = 180000000;
+    
+    // 🔴 1. Host Red Dwarf Star
+    const kepler186Star = createStarSystem(engine.scene, {
+        name: "Kepler-186 System",
+        x: kepler186X,
+        y: kepler186Y,
+        z: kepler186Z,
+        systemRadius: 300000,
+        stars: [
+            { 
+                name: "Kepler-186 (Red Dwarf)", 
+                radius: 3500, 
+                color: 0xff5522, // Cool red-orange M-dwarf star
+                orbitDistance: 0, 
+                orbitSpeed: 0, 
+                //textureMap: '/planets/texture/2k_sun.jpg', 
+                lightIntensity: 2 
+            }
+        ]
+    });
+    
+    // 🪐 2. Exoplanet Kepler-186f
+    const kepler186f = createExoplanet(engine.scene, {
+        x: kepler186X + 18000,
+        y: kepler186Y,
+        z: kepler186Z + 18000,
+        name: "Kepler-186f",
+        type: "exoplanet"
+    });     
+               engine.scene.add(starfield); 
     
             console.log("Audio systems initialized via User Gesture.");
             // --- 2. ADD EVERYTHING TO THE SCENE ---
@@ -1909,7 +1943,8 @@ const theoreticalBlanet = createExoplanet(engine.scene, {
             const bodies = [sun, mercury, venus, earth, moon, mars, jupiter, saturn, titan, uranus, neptune , pluto];
             const exoplanets = [exoSystem,alphaCentauriAB,proximaSystem,proximaB,
                                 planetE,planetF,gj504b,k218,trappist1System,
-                                lhs1140System,cd352722System,sextupleSystem,castorSystem
+                                lhs1140System,cd352722System,sextupleSystem,castorSystem,
+                                kepler186Star,kepler186f
                                ];
             const horizonObj = [mainBelt,kuiperBelt,oortCloud,orionNebula, 
                                 remnant, andromeda, blackEyeCore,blackEyeDust,molecularCloud, 
