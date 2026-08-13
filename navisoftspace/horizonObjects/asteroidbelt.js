@@ -1,3 +1,5 @@
+import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
+
 export function createBelt(scene, config) {
     const { count, innerRadius, outerRadius, verticalScatter, color, size, x = 0, y = 0, z = 0 } = config; // 🎯 1. Extract x, y, z with defaults to 0
     
