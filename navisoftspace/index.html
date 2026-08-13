@@ -403,7 +403,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER1308262101</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER1308262242</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -433,7 +433,7 @@
         "asteroidbelt":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@30a7bf2/navisoftspace/horizonObjects/asteroidbelt.js",
         "interstellarAnomaly":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@4ff036c/navisoftspace/horizonObjects/interstellarAnomaly.js",
         "blackhole":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@06aa090/navisoftspace/horizonObjects/blackhole.js",
-        "wormhole":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@7112e2f/navisoftspace/horizonObjects/wormhole.js",
+        "wormhole":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@cff8304/navisoftspace/horizonObjects/wormhole.js",
         "voyager":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@02ca7eb/navisoftspace/horizonObjects/voyager.js",
         "heliopause":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@e46bc44/navisoftspace/horizonObjects/heliopause.js",
         "star":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@fcb5d06/navisoftspace/horizonObjects/star.js",
@@ -1122,96 +1122,8 @@
             name: 'Centauri Debris Ring',
             sound: 'ROCKY_DEBRIS'
         });
-        
-        // --- WORMHOLE 1: The Galactic Gate (Your original, near the Black Hole) ---
-        const wormholeAlpha = createWormhole(engine.scene, { x: 0, y: 0, z: 450000000 });
-        
-        // --- WORMHOLE 2: The Deep Nebula Shortcut (Near Vela Remnant) ---
-        const wormholeBeta = createWormhole(engine.scene, { x: -300000000, y: -95000000, z: 240000000 });
-        
-        // --- WORMHOLE 3: The Edge of Time Gate (Near MoM-z14) ---
-        const wormholeGamma = createWormhole(engine.scene, { x: 895000000, y: 450000000, z: -895000000 });
-        
-        // --- WORMHOLE 4: Sol System Boundary Exit (Near Voyager/Heliopause) ---
-        const wormholeDelta = createWormhole(engine.scene, { x: 5000, y: -2000, z: 20000000 });
-        
-        // --- WORMHOLE 5: Centauri Cluster Junction (Near Alpha Centauri) ---
-        const wormholeEpsilon = createWormhole(engine.scene, { x: 49000000, y: 500000, z: 49000000 });
-        
-        // --- WORMHOLE 6: Orion Nursery Gateway (Near Orion Dust Clouds) ---
-        const wormholeZeta = createWormhole(engine.scene, { x: 19000000, y: 4800000, z: -69000000 });
-        
-        // --- WORMHOLE 7: Carina Deep Space Drift (Near Messier 16) ---
-        const wormholeEta = createWormhole(engine.scene, { x: -119000000, y: -44000000, z: -59000000 });
-        
-        // --- WORMHOLE 8: Tau Ceti Core Pipeline (Near Tau Ceti Hub) ---
-        const wormholeTheta = createWormhole(engine.scene, { x: 149000000, y: 9500000, z: 149000000 });
-        
-        // --- WORMHOLE 9: Andromeda Intergalactic Bridge (Near Andromeda Galaxy) ---
-        const wormholeIota = createWormhole(engine.scene, { x: 148000000, y: 79000000, z: -288000000 });
-        
-        // --- WORMHOLE 10: Black Eye Deep Rim (Near Black Eye Galaxy) ---
-        const wormholeJupiter = createWormhole(engine.scene, { x: 198000000, y: 88000000, z: -398000000 });
 
-        // Inside your main animation render loop tick:
-        if (oumuamua) {
-            oumuamua.rotation.x += 0.005; // End-over-end tumble
-            oumuamua.rotation.y += 0.002; // Slow lateral twisting
-            oumuamua.rotation.z += 0.001; // Chaotic stability wobble
-        }
-        /*
-
-        // Spin all 10 wormholes individually
-        // Spin and update all 10 wormholes individually
-        const time = Date.now();
-        if (wormholeAlpha) {
-            wormholeAlpha.rotation.z -= 0.01;
-            updateWormhole(wormholeAlpha, time);
-        }
-        if (wormholeBeta) {
-            wormholeBeta.rotation.z -= 0.01;
-            updateWormhole(wormholeBeta, time);
-        }
-        if (wormholeGamma) {
-            wormholeGamma.rotation.z -= 0.01;
-            updateWormhole(wormholeGamma, time);
-        }
-        if (wormholeDelta) {
-            wormholeDelta.rotation.z -= 0.01;
-            updateWormhole(wormholeDelta, time);
-        }
-        if (wormholeEpsilon) {
-            wormholeEpsilon.rotation.z -= 0.01;
-            updateWormhole(wormholeEpsilon, time);
-        }
-        if (wormholeZeta) {
-            wormholeZeta.rotation.z -= 0.01;
-            updateWormhole(wormholeZeta, time);
-        }
-        if (wormholeEta) {
-            wormholeEta.rotation.z -= 0.01;
-            updateWormhole(wormholeEta, time);
-        }
-        if (wormholeTheta) {
-            wormholeTheta.rotation.z -= 0.01;
-            updateWormhole(wormholeTheta, time);
-        }
-        if (wormholeIota) {
-            wormholeIota.rotation.z -= 0.01;
-            updateWormhole(wormholeIota, time);
-        }
-        if (wormholeJupiter) {
-            wormholeJupiter.rotation.z -= 0.01;
-            updateWormhole(wormholeJupiter, time);
-        }
-        
-               // 1. Keep track of all your individual created wormholes in one place
-       activeWormholesList = [
-                wormholeAlpha, wormholeBeta, wormholeGamma, wormholeDelta, wormholeEpsilon,
-                wormholeZeta, wormholeEta, wormholeTheta, wormholeIota, wormholeJupiter
-            ].filter(wh => wh !== undefined && wh !== null); // Safely filters out any unloaded or uncreated gates
-         */
-        const colors = [0xff4500, 0x00ffff, 0xffaa00]; 
+                const colors = [0xff4500, 0x00ffff, 0xffaa00]; 
         const positionVector = { x: -80000000, y: 30000000, z: -150000000 }; 
         
         const BornSystem = createProtoplanetaryDisk(engine.scene, {
@@ -1933,7 +1845,84 @@
         z: kepler186Z + 18000,
         name: "Kepler-186f",
         type: "exoplanet"
-    });     
+    });   
+        // ============================================================================
+        // 🌀 WORMHOLE NETWORK CONFIGURATION & JUMP DESTINATIONS
+        // ============================================================================
+        const wormholeConfigs = [
+            { 
+                name: "The Galactic Gate", 
+                x: 0, y: 0, z: 450000000, 
+                target: { name: "Active Galactic Nucleus (SMBH)", x: 500000000, y: -100000000, z: -600000000 } 
+            },
+            { 
+                name: "The Deep Nebula Shortcut", 
+                x: -300000000, y: -95000000, z: 240000000, 
+                target: { name: "Vela Remnant", x: -305000000, y: -95000000, z: 245000000 } 
+            },
+            { 
+                name: "The Edge of Time Gate", 
+                x: 895000000, y: 450000000, z: -895000000, 
+                target: { name: "MoM-z14 Deep Galaxy", x: 900000000, y: 450000000, z: -900000000 } 
+            },
+            { 
+                name: "Sol System Boundary Exit", 
+                x: 5000, y: -2000, z: 20000000, 
+                target: { name: "Alpha Centauri System", x: 49000000, y: 500000, z: 49000000 } 
+            },
+            { 
+                name: "Centauri Cluster Junction", 
+                x: 49000000, y: 500000, z: 49000000, 
+                target: { name: "Kepler-186 Star", x: 220000000, y: -15000000, z: 180000000 } 
+            },
+            { 
+                name: "Orion Nursery Gateway", 
+                x: 19000000, y: 4800000, z: -69000000, 
+                target: { name: "Orion Dust Clouds", x: 20000000, y: 5000000, z: -70000000 } 
+            },
+            { 
+                name: "Carina Deep Space Drift", 
+                x: -119000000, y: -44000000, z: -59000000, 
+                target: { name: "Messier 16", x: -120000000, y: -45000000, z: -60000000 } 
+            },
+            { 
+                name: "Tau Ceti Core Pipeline", 
+                x: 149000000, y: 9500000, z: 149000000, 
+                target: { name: "Tau Ceti Hub", x: 150000000, y: 10000000, z: 150000000 } 
+            },
+            { 
+                name: "Andromeda Intergalactic Bridge", 
+                x: 148000000, y: 79000000, z: -288000000, 
+                target: { name: "Andromeda Galaxy", x: 150000000, y: 80000000, z: -290000000 } 
+            },
+            { 
+                name: "Black Eye Deep Rim", 
+                x: 198000000, y: 88000000, z: -398000000, 
+                target: { name: "Black Eye Galaxy", x: 200000000, y: 90000000, z: -400000000 } 
+            }
+        ];
+        
+        // Array to hold initialized wormhole meshes in memory
+        const activeWormholesList = [];
+        
+        // Spawn all wormholes dynamically
+        wormholeConfigs.forEach(cfg => {
+            const wormhole = createWormhole(engine.scene, {
+                x: cfg.x,
+                y: cfg.y,
+                z: cfg.z,
+                name: cfg.name
+            });
+        
+            // 🎯 Store target jump coordinates right inside the mesh's userData
+            if (wormhole) {
+                wormhole.userData.targetDestination = cfg.target;
+                activeWormholesList.push(wormhole);
+            }
+        });
+        
+
+
                engine.scene.add(starfield); 
     
             console.log("Audio systems initialized via User Gesture.");
@@ -2156,6 +2145,12 @@
             checkCollisions(engine.camera, bodies, engine.scene);
             updateFlight(engine.camera, bodies);
 
+            // Inside your main animation render loop tick:
+            if (oumuamua) {
+                oumuamua.rotation.x += 0.005; // End-over-end tumble
+                oumuamua.rotation.y += 0.002; // Slow lateral twisting
+                oumuamua.rotation.z += 0.001; // Chaotic stability wobble
+            }
             // ==========================================
             // 🪐 ACCRETION DISK & BELT ROTATION LOGIC
             // ==========================================
@@ -2193,7 +2188,17 @@
                 accretionDisk.rotation.y += 0.0005; // Faster spin for matter falling into the singularity
                 accretionDisk.updateMatrix();
             }
-  
+
+            // ==========================================
+            // 🌀 UPDATE & ANIMATE WORMHOLES
+            // ==========================================
+            const currentTime = Date.now();
+            
+            for (let i = 0; i < activeWormholesList.length; i++) {
+                const wormhole = activeWormholesList[i];
+                wormhole.rotation.z -= 0.01;
+                updateWormhole(wormhole, currentTime);
+            }
 
             // 6. HUD VISUALS - NEAREST BODY
             if (closestBody && nearestLabel) {
@@ -2391,12 +2396,12 @@
                 updateWormhole(wh, time);
             });
             */
-// 3. Existing 'Oumuamua tumbling mechanics (Keep this right below it)
-if (oumuamua) {
-    oumuamua.rotation.x += 0.005; // End-over-end tumble
-    oumuamua.rotation.y += 0.002; // Slow lateral twisting
-    oumuamua.rotation.z += 0.001; // Chaotic stability wobble
-}
+            // 3. Existing 'Oumuamua tumbling mechanics (Keep this right below it)
+            if (oumuamua) {
+                oumuamua.rotation.x += 0.005; // End-over-end tumble
+                oumuamua.rotation.y += 0.002; // Slow lateral twisting
+                oumuamua.rotation.z += 0.001; // Chaotic stability wobble
+            }
 
             const distToRemnant = phoenixRemnant.position.distanceTo(engine.camera.position);
             // 1. HOIST CONSTANTS: Define these OUTSIDE the loop so they aren't recreated every frame
@@ -2449,12 +2454,12 @@ if (oumuamua) {
                     horizonObjElement._currentText = newText; // Cache it
                 }
             }
-const distToSDSS = engine.camera.position.distanceTo(sdssBlackHoleCore.position);
-
-if (distToSDSS < 25000000) {
-    horizonObjElement.innerText = ">> WARNING: RADIATING ACTIVE NUCLEUS DETECTED [SDSS J110546]";
-    horizonObjElement.style.color = "#00ffff"; // Jet cyan alert color
-}
+            const distToSDSS = engine.camera.position.distanceTo(sdssBlackHoleCore.position);
+            
+            if (distToSDSS < 25000000) {
+                horizonObjElement.innerText = ">> WARNING: RADIATING ACTIVE NUCLEUS DETECTED [SDSS J110546]";
+                horizonObjElement.style.color = "#00ffff"; // Jet cyan alert color
+            }
 /*            
 // --- SDSS J110546 HIGH-ENERGY ANIMATION ---
 if (sdssBlackHoleCore && sdssRadioJet) {
