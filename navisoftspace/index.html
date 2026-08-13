@@ -403,7 +403,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER1308261947</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER1308262004</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -2119,26 +2119,42 @@ const theoreticalBlanet = createExoplanet(engine.scene, {
             checkCollisions(engine.camera, bodies, engine.scene);
             updateFlight(engine.camera, bodies);
 
+            // ==========================================
+            // 🪐 ACCRETION DISK & BELT ROTATION LOGIC
+            // ==========================================
+            
+            // 1. Solar System Belts
             if (mainBelt) {
                 mainBelt.rotation.y += 0.0001;
-                mainBelt.updateMatrix(); // Add this line!
+                mainBelt.updateMatrix();
             }
             
             if (kuiperBelt) {
                 kuiperBelt.rotation.y += 0.00002;
-                kuiperBelt.updateMatrix(); // Add this line!
+                kuiperBelt.updateMatrix();
             }
             
             if (oortCloud) {
-                oortCloud.rotation.y += 0.000005; 
-                oortCloud.updateMatrix(); // Add this line!
+                oortCloud.rotation.y += 0.000005;
+                oortCloud.updateMatrix();
             }
-
-            // in case createBelt defaults it to the solar system center (0,0,0)
-            // Add this alongside your other belt rotation if statements!
+            
+            // 2. Alpha Centauri Ring
             if (sharedBelt) {
-                sharedBelt.rotation.y += 0.00001; // Nice slow cosmic drift
-                sharedBelt.updateMatrix(); 
+                sharedBelt.rotation.y += 0.00001;
+                sharedBelt.updateMatrix();
+            }
+            
+            // 3. Black Hole Star (Quasi-Star) Disk
+            if (quasiStarDisk) {
+                quasiStarDisk.rotation.y += 0.0002; // Glowing, energetic stellar envelope drift
+                quasiStarDisk.updateMatrix();
+            }
+            
+            // 4. SMBH / Blanet Accretion Disk
+            if (accretionDisk) {
+                accretionDisk.rotation.y += 0.0005; // Faster spin for matter falling into the singularity
+                accretionDisk.updateMatrix();
             }
   
 
