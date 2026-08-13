@@ -403,7 +403,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER1308262330</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER1308262338</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -2107,19 +2107,25 @@
             currentNearestObject = null;
         
             for (let i = 0; i < bodies.length; i++) {
-                const b = bodies[i];
-                const d = engine.camera.position.distanceTo(b.position);
-        
-                if (d < minDist) {
-                    minDist = d;
-                    currentNearestObject = b;
+                    const b = bodies[i];
+                    const d = engine.camera.position.distanceTo(b.position);
+            
+                    if (d < minDist) {
+                        minDist = d;
+                        currentNearestObject = b;
+                    }
+            
+                    // 🌀 Wormhole Jump Trigger
+                    if (b.userData && b.userData.type === 'wormhole') {
+                        if (d < b.userData.r && b.userData.isOpen) {
+                            const dest = b.userData.targetDestination;
+                            if (dest) {
+                                console.log(`🌀 ENTERING WORMHOLE: Jumping to ${dest.name}...`);
+                                engine.camera.position.set(dest.x, dest.y, dest.z);
+                            }
+                        }
+                    }
                 }
-            }
-        
-            // Update your HUD UI text
-            if (currentNearestObject) {
-                updateHUDText(currentNearestObject.userData.name, minDist);
-            }
             /********************************************************/
             // 1. INFINITE STARS
             if (engine.stars) {
