@@ -404,7 +404,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER1408262133</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER1408262141</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -443,6 +443,7 @@
         "exoplanetsystem":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@1df0ccb/navisoftspace/horizonObjects/exoplanetsystem.js",
         "nebula":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@6e9f516/navisoftspace/horizonObjects/nebula.js",
         "supernova":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@bb19f83/navisoftspace/horizonObjects/supernova.js",
+        "quasar":"https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/horizonObjects/quasar.js",
         "protoplanetaryDisk":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@7fe727e/navisoftspace/horizonObjects/protoplanetaryDisk.js"
         }
     }
@@ -452,7 +453,7 @@
     <script type="module"> 
     import { initEngine , checkCollisions, bootSystems } from 'engine';
     //import { loadSoundLibrary } from 'audio'
-    import { initPilot, updateFlight , velocity} from 'pilot';
+    import { initPilot, updateFlight , velocity } from 'pilot';
     import { SaveSystem } from 'save';
     import { createBelt } from 'asteroidbelt'; 
     import { createBlackHole } from 'blackhole';
@@ -465,10 +466,11 @@
     import { createStarSystem } from 'starsystem'; 
     import { createExoplanet } from 'exoplanet';
     import { createExoplanetSystem } from 'exoplanetsystem';    
-    import {createNebula } from 'nebula';
-    import {createSupernova } from 'supernova';
-    import {createProtoplanetaryDisk} from 'protoplanetaryDisk';
-    import {createInterstellarAnomaly } from 'interstellarAnomaly';
+    import { createNebula } from 'nebula';
+    import { createSupernova } from 'supernova';
+    import { createQuasar } from 'quasar';
+    import { createProtoplanetaryDisk } from 'protoplanetaryDisk';
+    import { createInterstellarAnomaly } from 'interstellarAnomaly';
     import { createSun } from 'sun';   
     import { createEarth } from 'earth';
     import { createMoon } from 'moon';
@@ -576,6 +578,7 @@
     { name: "Vela Remnant", x: -300000000, y: -100000000, z: 250000000 },
     { name: "Black Eye Galaxy", x: 200000000, y: 90000000, z: -400000000 },
     { name: "Black Hole Singularity", x: 250000, y: 250000, z: 499900000 },
+    { name: "Quasar H1821+643 Core", x: 500000000, y: -100000000, z: -600000000 },
 
     // ==========================================
     // 🌌 SEXTUPLE SYSTEM: TIC 168789840
@@ -1844,6 +1847,19 @@
         name: "Kepler-186f",
         type: "exoplanet"
     });   
+
+        // Instantiate Quasar at deep space coordinates
+        const quasarH1821 = createQuasar(engine.scene, {
+            name: "Quasar H1821+643 Core",
+            x: 500000000, 
+            y: -100000000, 
+            z: -600000000,
+            radius: 200000
+        });
+
+        // Tilt the rotational axis for a dynamic angled view
+        quasarH1821.rotation.x = Math.PI * 0.15;
+        quasarH1821.rotation.z = Math.PI * 0.05;
         // ============================================================================
         // 🌀 WORMHOLE NETWORK CONFIGURATION & JUMP DESTINATIONS
         // ============================================================================
@@ -2010,7 +2026,9 @@
             // Supernovas & Exotic Core Objects
             ngc6302Remnant, messier16Nursery, psrB1509Core, ic434Grave, matrixCollapse, phoenixRemnant, 
             wolfRayet, crabPulsar, blackHole, sdssBlackHoleCore,
-        
+
+            //quasar
+            quasarH1821,
             // Dynamically add all active wormholes from our network
             ...activeWormholesList 
         ];
@@ -2695,6 +2713,15 @@ if (k218) {
                 horizonObjElement.style.color = "#00ffcc";
             }
         }
+    }
+
+    // Pulse the Quasar Relativistic Jets
+    if (quasarH1821 && quasarH1821.userData.northJet) {
+        const time = Date.now() * 0.003;
+        const pulseOpacity = 0.45 + Math.sin(time) * 0.15;
+        
+        quasarH1821.userData.northJet.material.opacity = pulseOpacity;
+        quasarH1821.userData.southJet.material.opacity = pulseOpacity;
     }
 /*
        const delta = clock.getDelta();
