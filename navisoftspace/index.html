@@ -404,7 +404,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER1408262304</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER1408262307</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -2119,7 +2119,7 @@
        const horizonObjElement = document.getElementById('horizon-object-display');
         // Global variable (declared outside the animation loop)
         let currentNearestObject = null;
-        const clock = new THREE.Clock();
+
         function frame() {                        
             requestAnimationFrame(frame);
             /******************************************/
@@ -2718,7 +2718,7 @@ if (k218) {
 
 // Pulse & update Quasar Relativistic Jets
 if (quasarH1821?.userData?.update) {
-    const time = clock ? clock.getElapsedTime() : Date.now() * 0.001;
+    const time = performance.now() * 0.001;
     
     // 1. Drive shader animation flow & disk rotation
     quasarH1821.userData.update(time);
