@@ -40,19 +40,18 @@ export function createWormhole(scene, config = {}) {
     group.add(aura);
 
     // 🎯 3. GAME STATE & DIRECT MESH REFERENCES
+    // Inside createWormhole() in wormhole.js:
     group.userData = {
         type: 'wormhole',
+        name: config.name || 'Wormhole Gate',
+        category: 'EINSTEIN-ROSEN BRIDGE', // 🎯 Fixes UNDEFINED on HUD right panel!
+        subText: 'SPACETIME ANOMALY',
         r: 200000, 
-        name: config.name || 'The Great Gate',
         sound: 'WORMHOLE_WARP',
-        
-        // Direct object references (Avoids getObjectByName in animation loop)
         coreMesh: core,
         auraMesh: aura,
-
-        // Gameplay state tracking for your HUD & Collision engine
-        isOpen: false,        // True when gate is wide enough to enter
-        openProgress: 0.0     // 0.0 (Closed) to 1.0 (Fully Open)
+        isOpen: false,
+        openProgress: 0.0
     };
 
     group.position.set(x, y, z);
