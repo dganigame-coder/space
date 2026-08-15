@@ -404,7 +404,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER1408262307</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER1508262050</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -444,6 +444,7 @@
         "nebula":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@6e9f516/navisoftspace/horizonObjects/nebula.js",
         "supernova":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@bb19f83/navisoftspace/horizonObjects/supernova.js",
         "quasar":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@961dd0e/navisoftspace/horizonObjects/quasar.js",
+        "pulsar":"https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/horizonObjects/pulsar.js",
         "protoplanetaryDisk":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@7fe727e/navisoftspace/horizonObjects/protoplanetaryDisk.js"
         }
     }
@@ -469,6 +470,7 @@
     import { createNebula } from 'nebula';
     import { createSupernova } from 'supernova';
     import { createQuasar } from 'quasar';
+    import { createPulsar } from 'pulsar';
     import { createProtoplanetaryDisk } from 'protoplanetaryDisk';
     import { createInterstellarAnomaly } from 'interstellarAnomaly';
     import { createSun } from 'sun';   
@@ -578,8 +580,8 @@
     { name: "Vela Remnant", x: -300000000, y: -100000000, z: 250000000 },
     { name: "Black Eye Galaxy", x: 200000000, y: 90000000, z: -400000000 },
     { name: "Black Hole Singularity", x: 250000, y: 250000, z: 499900000 },
-    { name: "Quasar H1821+643 Core", x: 500000000, y: -100000000, z: -600000000 },
-
+    //{ name: "Quasar H1821+643 Core", x: 500000000, y: -100000000, z: -600000000 },
+    { name: "Pulsar PSR B1919+21", x: 1200000000,  y: -300000000,  z: -1800000000 },
     // ==========================================
     // 🌌 SEXTUPLE SYSTEM: TIC 168789840
     // ==========================================
@@ -1848,18 +1850,19 @@
         type: "exoplanet"
     });   
 
-        // Instantiate Quasar at deep space coordinates
-        const quasarH1821 = createQuasar(engine.scene, {
-            name: "Quasar H1821+643 Core",
-            x: 500000000, 
-            y: -100000000, 
-            z: -600000000,
-            radius: 200000
-        });
+    // Spawn Pulsar as its own independent stellar object
+    const pulsarB1919 = createPulsar(engine.scene, {
+        name: "Pulsar PSR B1919+21",
+        x: 850000000,   // Moved further out on X
+        y: -150000000,  // Slightly lowered on Y
+        z: -950000000,  // Pushed deep into the -Z sector
+        radius: 5000    // Compact neutron star scale
+    });
+    
+    // Static tilt so the Y-axis spin sweeps the beams through space
+    pulsarB1919.rotation.x = Math.PI * 0.2;
+    pulsarB1919.rotation.z = Math.PI * 0.1;
         
-        // Tilt the rotational axis for a dynamic angled view
-        quasarH1821.rotation.x = Math.PI * 0.15;
-        quasarH1821.rotation.z = Math.PI * 0.05;
         // ============================================================================
         // 🌀 WORMHOLE NETWORK CONFIGURATION & JUMP DESTINATIONS
         // ============================================================================
@@ -2027,8 +2030,8 @@
             ngc6302Remnant, messier16Nursery, psrB1509Core, ic434Grave, matrixCollapse, phoenixRemnant, 
             wolfRayet, crabPulsar, blackHole, sdssBlackHoleCore,
 
-            //quasar
-            quasarH1821,
+            //Pulsar
+            pulsarB1919,
             // Dynamically add all active wormholes from our network
             ...activeWormholesList 
         ];
@@ -2717,18 +2720,10 @@ if (k218) {
     }
 
 // Pulse & update Quasar Relativistic Jets
-if (quasarH1821?.userData?.update) {
+// Drive Pulsar rotation & lighthouse sweep
+if (pulsarB1919?.userData?.update) {
     const time = performance.now() * 0.001;
-    
-    // 1. Drive shader animation flow & disk rotation
-    quasarH1821.userData.update(time);
-
-    // 2. Drive jet pulse opacity
-    const pulseOpacity = 0.45 + Math.sin(time * 3.0) * 0.15;
-    if (quasarH1821.userData.northJetMat) {
-        quasarH1821.userData.northJetMat.opacity = pulseOpacity;
-        quasarH1821.userData.southJetMat.opacity = pulseOpacity;
-    }
+    pulsarB1919.userData.update(time);
 }
 /*
        const delta = clock.getDelta();
