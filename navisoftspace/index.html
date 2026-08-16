@@ -404,7 +404,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER1708260113</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER1708260155</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -486,9 +486,12 @@
     import { createTitan } from 'titan';
     import { createUranus } from 'uranus';
     import { createNeptune } from 'neptune';
-    import { createPluto } from 'pluto'
-
-    let autoPilotActive = false; 
+    import { createPluto } from 'pluto';
+    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+    import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+  
+     let autoPilotActive = false; 
         
 
     const enginePromise = initEngine();
@@ -548,7 +551,7 @@
     { name: "Phoenix-80M", x: -120000000, y: 25000000, z: -165000000 },
     { name: "Molecular Void", x: -150000000, y: -20000000, z: -140000000 },
     { name: "Tau Ceti System", x: 150000000, y: 10000000, z: 150000000 },
-    { name: 'Distant Quasar X-1',x: 150000,y: 25000,z: -300000 },
+    { name: 'Distant Quasar X-1',x: x: 0,y: 0,z: -80000000 },
     // ==========================================
     // LEVEL 4: EXOPLANET SYSTEMS & SUBSTELLAR BODIES
     // ==========================================
@@ -1875,11 +1878,12 @@
 // Initialize and add it directly to the scene
 const quasarX1 = createQuasar(engine.scene, {
     name: 'Distant Quasar X-1',
-    x: 150000,
-    y: 25000,
-    z: -300000,
-    radius: 20000
+    x: 0,
+    y: 0,
+    z: -80000000, // Push it deep into the background (millions of units away)
+    radius: 50000  // Scale it up so it's properly visible at that distance
 });
+
      // Initialize the quasar at your custom coordinates
 //const quasar = createQuasar(scene, { x: 100000, y: 0, z: -200000 });
 
@@ -2750,8 +2754,9 @@ if (k218) {
    const timePulsar = performance.now() * 0.001;
     if (pulsarB1919?.userData?.update) pulsarB1919.userData.update(timePulsar);
     if (crabPulsar?.userData?.update) crabPulsar.userData.update(timePulsar);
+    if (quasarX1?.userData?.update) quasarX1.userData.update(timePulsar);
     
-            
+          
 /*
        const delta = clock.getDelta();
 
