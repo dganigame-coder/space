@@ -100,7 +100,7 @@ export function createPulsar(scene = null, config = {}) {
     spinRig.add(torus);
 
     // ------------------------------------------------------------------------
-    // 5. RELATIVISTIC PLASMA JETS
+    // 5. RELATIVISTIC PLASMA JETS ("Light Sprinkle" Effect)
     // ------------------------------------------------------------------------
     const jetLength = baseRadius * 60;
     // Open-ended cylinder allows us to make it look like a hollow cone of energy
@@ -120,32 +120,45 @@ export function createPulsar(scene = null, config = {}) {
             uniform float uTime;
             varying vec2 vUv;
 
-            // Simple pseudo-random noise for plasma turbulence
-            float hash(float n) { return fract(sin(n) * 1e4); }
-            float noise(float x) {
-                float i = floor(x);
-                float f = fract(x);
-                float u = f * f * (3.0 - 2.0 * f);
-                return mix(hash(i), hash(i + 1.0), u);
+            // High-frequency random hash for the particle effect
+            float random(vec2 st) {
+                return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
             }
 
             void main() {
                 // vUv.y goes from 0 (base) to 1 (tip)
                 // vUv.x goes around the cylinder (0 to 1)
                 
-                // 1. Fade out smoothly at the tips
-                float lengthFade = smoothstep(1.0, 0.3, vUv.y);
+                // 1. Create a dense micro-grid for the scattered particles
+                // Scale X so sprinkles wrap around, scale Y for length
+                // Subtract uTime to make the particles shoot outward continuously at high speed
+                vec2 gridUv = vec2(vUv.x * 120.0, vUv.y * 400.0 - uTime * 80.0);
                 
-                // 2. High-speed plasma turbulence moving outwards
-                float turb = noise(vUv.y * 50.0 - uTime * 20.0 + vUv.x * 10.0);
+                // 2. Isolate individual cells
+                vec2 cell = floor(gridUv);
+                vec2 cellFract = fract(gridUv);
                 
-                // 3. Core beam brightness (brighter in the center, softer on the edges)
-                float edgeGlow = sin(vUv.x * 3.14159);
+                // 3. Generate a random value per cell
+                float rand = random(cell);
                 
-                vec3 jetColor = mix(vec3(0.0, 0.4, 1.0), vec3(0.8, 0.9, 1.0), turb * edgeGlow);
-                float alpha = lengthFade * edgeGlow * (turb * 0.8 + 0.2);
+                // 4. Threshold: Only ~4% of cells get a sprinkle (creates the scattered look)
+                float sprinkle = step(0.96, rand);
                 
-                gl_FragColor = vec4(jetColor * 2.0, alpha);
+                // 5. Make the sprinkle a soft glowing dot rather than a hard square
+                float dist = length(cellFract - vec2(0.5));
+                float sparkGlow = smoothstep(0.5, 0.1, dist) * sprinkle;
+                
+                // 6. Base ambient beam (very faint deep blue so the cone doesn't look entirely empty)
+                float baseBeam = smoothstep(0.0, 0.5, sin(vUv.x * 3.14159)) * 0.05;
+                
+                // 7. Fade everything out smoothly towards the tip of the cone
+                float lengthFade = smoothstep(1.0, 0.1, vUv.y);
+                
+                // Final colors
+                vec3 sparkColor = vec3(0.6, 0.9, 1.0) * sparkGlow * 4.0; // Overblown cyan/white sprinkles
+                vec3 beamColor = vec3(0.0, 0.3, 0.8) * baseBeam;         // Faint background tunnel
+                
+                gl_FragColor = vec4(sparkColor + beamColor, (sparkGlow + baseBeam) * lengthFade);
             }
         `,
         transparent: true,
