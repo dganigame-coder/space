@@ -404,7 +404,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER1708260039</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER1708260113</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -548,7 +548,7 @@
     { name: "Phoenix-80M", x: -120000000, y: 25000000, z: -165000000 },
     { name: "Molecular Void", x: -150000000, y: -20000000, z: -140000000 },
     { name: "Tau Ceti System", x: 150000000, y: 10000000, z: 150000000 },
-
+    { name: 'Distant Quasar X-1',x: 150000,y: 25000,z: -300000 },
     // ==========================================
     // LEVEL 4: EXOPLANET SYSTEMS & SUBSTELLAR BODIES
     // ==========================================
@@ -1871,7 +1871,22 @@
     pulsarB1919.rotation.x = Math.PI * 0.2;
     pulsarB1919.rotation.z = Math.PI * 0.1;
 
-        
+   
+// Initialize and add it directly to the scene
+const quasarX1 = createQuasar(engine.scene, {
+    name: 'Distant Quasar X-1',
+    x: 150000,
+    y: 25000,
+    z: -300000,
+    radius: 20000
+});
+     // Initialize the quasar at your custom coordinates
+//const quasar = createQuasar(scene, { x: 100000, y: 0, z: -200000 });
+
+// Tilt the entire object (including the jets and spray direction) 
+quasarX1.rotation.x = Math.PI * 0.15; // Tilt forward/backward
+quasarX1.rotation.z = Math.PI * 0.25; // Tilt sideways
+
         // ============================================================================
         // 🌀 WORMHOLE NETWORK CONFIGURATION & JUMP DESTINATIONS
         // ============================================================================
@@ -1972,7 +1987,7 @@
                                 smbhCore,accretionDisk,theoreticalBlanet,
                                 tauCetiDisk,tauCetiStar,
                                  momCore, momGasCloud,
-                                 cosmicHorizon,omc2Nebula
+                                 cosmicHorizon,omc2Nebula, quasarX1
                                 //,supernova,dynamicSupernova
                                ];
             const supernovas = [ngc6302Remnant ,messier16Nursery,  psrB1509Core ,ic434Grave,matrixCollapse,phoenixRemnant,
@@ -2040,6 +2055,9 @@
 
             //Pulsar
             pulsarB1919,
+
+            //Quasar
+            quasarX1,
             // Dynamically add all active wormholes from our network
             ...activeWormholesList 
         ];
