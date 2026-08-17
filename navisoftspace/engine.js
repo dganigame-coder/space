@@ -1,5 +1,8 @@
 import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
 import * as Tone from 'https://cdn.skypack.dev/tone@14.8.49';
+import { EffectComposer } from 'https://unpkg.com/three@0.160.0/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'https://unpkg.com/three@0.160.0/examples/jsm/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'https://unpkg.com/three@0.160.0/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { playHighFi, loadSoundLibrary  } from 'audio';
 /**
  * RESPONSIBILITY: 
@@ -35,13 +38,30 @@ export async function initEngine() {
 
     const renderer = new THREE.WebGLRenderer({ 
         antialias: true, 
-        logarithmicDepthBuffer: true // Vital for Pluto's moons!
+        logarithmicDepthBuffer: true, // Vital for Pluto's moons!
+        powerPreference: "high-performance"
     });
     
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    /************************************/
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.3;
     document.body.appendChild(renderer.domElement);
 
+    // Global Post-Processing (Adds Cinematic Glow)
+    const composer = new EffectComposer(renderer);
+    composer.addPass(new RenderPass(scene, camera));
+    
+    const bloomPass = new UnrealBloomPass(
+        new THREE.Vector2(window.innerWidth, window.innerHeight), 
+        1.5,   // Strength
+        0.4,   // Radius
+        0.85   // Threshold
+    );
+    composer.addPass(bloomPass);
+
+    /***********************************/
     // Starfield
     const starGeometry = new THREE.BufferGeometry();
     const starPositions = [];
@@ -72,9 +92,10 @@ export async function initEngine() {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
+        composer.setSize(window.innerWidth, window.innerHeight);
     });
 
-    return { scene, camera, renderer, stars };
+    return { scene, camera, renderer, composer, stars };
 }
 
 /**
