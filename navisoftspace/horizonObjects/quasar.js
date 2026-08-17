@@ -1,17 +1,14 @@
 import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
-import { EffectComposer } from 'https://unpkg.com/three@0.160.0/examples/jsm/postprocessing/EffectComposer.js';
-import { RenderPass } from 'https://unpkg.com/three@0.160.0/examples/jsm/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'https://unpkg.com/three@0.160.0/examples/jsm/postprocessing/UnrealBloomPass.js';
 
 /**
  * Custom ShaderMaterial for Relativistic Plasma Jets
- * Added: Magnetic standing shockwaves (Knots)
+ * Enhanced with FBM multi-octave turbulence and standing shockwaves.
  */
 const JetShaderMaterial = {
     uniforms: {
         uTime: { value: 0 },
         uColorCore: { value: new THREE.Color(0xffffff) },
-        uColorEdge: { value: new THREE.Color(0x0044ff) } // Shifted to X-ray blue for quasars
+        uColorEdge: { value: new THREE.Color(0x0055ff) } // Deep X-ray synchrotron blue
     },
     vertexShader: /* glsl */`
         varying vec2 vUv;
@@ -38,6 +35,7 @@ const JetShaderMaterial = {
         varying vec3 vNormal;
         varying vec3 vViewPosition;
 
+        // High-precision pseudo-noise
         float hash(vec2 p) {
             return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
         }
@@ -45,40 +43,52 @@ const JetShaderMaterial = {
         float noise(vec2 p) {
             vec2 i = floor(p);
             vec2 f = fract(p);
+            f = f * f * (3.0 - 2.0 * f);
             float a = hash(i);
             float b = hash(i + vec2(1.0, 0.0));
             float c = hash(i + vec2(0.0, 1.0));
             float d = hash(i + vec2(1.0, 1.0));
-            vec2 u = f * f * (3.0 - 2.0 * f);
-            return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+            return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+        }
+
+        // Fractal Brownian Motion for realistic turbulent plasma flow
+        float fbm(vec2 p) {
+            float value = 0.0;
+            float amplitude = 0.5;
+            for (int i = 0; i < 4; i++) {
+                value += amplitude * noise(p);
+                p *= 2.0;
+                amplitude *= 0.5;
+            }
+            return value;
         }
 
         void main() {
-            float streamSpeed = 12.0;
-            vec2 movingUv = vec2(vUv.x * 10.0, (vPosition.y * 0.000015) - (uTime * streamSpeed));
+            float streamSpeed = 15.0;
+            vec2 movingUv = vec2(vUv.x * 8.0, (vPosition.y * 0.00002) - (uTime * streamSpeed));
             
-            float streamPattern = noise(movingUv) * 0.65 + noise(movingUv * 2.5) * 0.35;
-            float distanceFade = smoothstep(1.0, 0.0, vUv.y);
+            float turbulence = fbm(movingUv);
+            float distanceFade = smoothstep(1.0, 0.05, vUv.y);
 
             vec3 normal = normalize(vNormal);
             vec3 viewDir = normalize(vViewPosition);
-            float rim = pow(abs(dot(normal, viewDir)), 1.4);
+            float rim = pow(abs(dot(normal, viewDir)), 1.2);
 
-            vec3 finalColor = mix(uColorCore, uColorEdge, pow(1.0 - rim, 0.45));
+            vec3 finalColor = mix(uColorCore, uColorEdge, pow(1.0 - rim, 0.4));
 
-            // NEW: Standing shockwaves (knots) caused by magnetic flux collisions
-            float knots = pow(sin(vUv.y * 50.0 - uTime * 2.0) * 0.5 + 0.5, 18.0);
+            // Magnetic standing shockwaves (knots)
+            float knots = pow(sin(vUv.y * 60.0 - uTime * 3.0) * 0.5 + 0.5, 16.0);
 
-            float alpha = rim * distanceFade * (0.35 + streamPattern * 0.65) + (knots * distanceFade * 0.5);
+            float alpha = rim * distanceFade * (0.3 + turbulence * 0.7) + (knots * distanceFade * 0.6);
 
-            gl_FragColor = vec4(finalColor * (1.0 + knots), alpha);
+            gl_FragColor = vec4(finalColor * (1.0 + knots * 2.0), alpha);
         }
     `
 };
 
 /**
  * Custom ShaderMaterial for the Accretion Disk
- * Added: Relativistic Doppler Beaming
+ * Enhanced with FBM noise and true relativistic Doppler beaming.
  */
 const AccretionDiskMaterial = {
     uniforms: {
@@ -96,36 +106,58 @@ const AccretionDiskMaterial = {
     `,
     fragmentShader: /* glsl */`
         uniform float uTime;
+        uniform vec3 cameraPosition;
         varying vec2 vUv;
         varying vec3 vWorldPosition;
 
+        float hash(vec2 p) {
+            return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+        }
+
+        float noise(vec2 p) {
+            vec2 i = floor(p);
+            vec2 f = fract(p);
+            f = f * f * (3.0 - 2.0 * f);
+            return mix(mix(hash(i + vec2(0.0, 0.0)), hash(i + vec2(1.0, 0.0)), f.x),
+                       mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);
+        }
+
+        float fbm(vec2 p) {
+            float v = 0.0;
+            float a = 0.5;
+            for (int i = 0; i < 3; i++) {
+                v += a * noise(p);
+                p *= 2.5;
+                a *= 0.5;
+            }
+            return v;
+        }
+
         void main() {
-            // Calculate view direction to camera
             vec3 viewDir = normalize(cameraPosition - vWorldPosition);
-            
-            // Calculate orbital tangent vector (assuming disk spins clockwise on XZ plane)
             vec3 tangent = normalize(vec3(-vWorldPosition.z, 0.0, vWorldPosition.x));
             
-            // DOPPLER EFFECT: Dot product of tangent and view direction.
-            // Positive = moving toward camera, Negative = moving away
+            // Relativistic Doppler Beaming
             float doppler = dot(tangent, viewDir);
-            
-            // Exaggerate the beaming effect (approaching is vastly brighter)
-            float beaming = pow(max(doppler + 1.2, 0.0), 3.5);
+            float beaming = pow(max(doppler + 1.1, 0.0), 4.0);
 
-            // Ring fading (vUv.y goes from 0 at inner radius to 1 at outer)
-            float innerFade = smoothstep(0.0, 0.1, vUv.y);
-            float outerFade = smoothstep(1.0, 0.4, vUv.y);
+            // Radial alpha mask
+            float innerFade = smoothstep(0.0, 0.15, vUv.y);
+            float outerFade = smoothstep(1.0, 0.35, vUv.y);
             float radialMask = innerFade * outerFade;
 
-            // Swirling plasma noise based on world position
-            float plasma = sin(vWorldPosition.x * 0.0001 + uTime) * cos(vWorldPosition.z * 0.0001 + uTime);
-            
-            // Base fiery orange, shifting towards X-ray blue/white on the approaching side
-            vec3 baseColor = vec3(1.0, 0.3, 0.0);
-            vec3 shiftColor = mix(baseColor, vec3(0.8, 0.9, 1.0), beaming * 0.3);
+            // Swirling organic plasma turbulence
+            vec2 polarUv = vec2(length(vWorldPosition.xz) * 0.0002 - uTime * 0.2, atan(vWorldPosition.z, vWorldPosition.x) * 0.5);
+            float plasma = fbm(polarUv * 4.0);
 
-            gl_FragColor = vec4(shiftColor * beaming * 1.5, radialMask * (0.5 + plasma * 0.2));
+            // Thermal color grading: Ultra-hot blue core shifting to fiery accretion orange
+            vec3 thermalCore = vec3(0.7, 0.9, 1.8);
+            vec3 thermalOuter = vec3(2.5, 0.8, 0.1);
+            vec3 baseColor = mix(thermalOuter, thermalCore, smoothstep(0.0, 0.6, 1.0 - vUv.y));
+
+            vec3 finalColor = baseColor * beaming * (1.0 + plasma * 0.8);
+
+            gl_FragColor = vec4(finalColor * 2.0, radialMask * (0.6 + plasma * 0.4));
         }
     `
 };
@@ -144,7 +176,7 @@ export function createQuasar(scene = null, config = {}) {
     group.position.set(x, y, z);
 
     // ------------------------------------------------------------------------
-    // 1. THE EVENT HORIZON (Absolute Black)
+    // 1. THE EVENT HORIZON (Absolute Black Core)
     // ------------------------------------------------------------------------
     const coreGeo = new THREE.SphereGeometry(baseRadius, 64, 64);
     const coreMat = new THREE.MeshBasicMaterial({
@@ -155,24 +187,38 @@ export function createQuasar(scene = null, config = {}) {
     group.add(core);
 
     // ------------------------------------------------------------------------
-    // 1b. PHOTON SPHERE (The blistering inner orbit of trapped light)
+    // 1b. PHOTON SPHERE & GRAVITATIONAL LENSING HALO
     // ------------------------------------------------------------------------
-    const photonGeo = new THREE.SphereGeometry(baseRadius * 1.05, 64, 64);
+    const photonGeo = new THREE.SphereGeometry(baseRadius * 1.08, 64, 64);
     const photonMat = new THREE.MeshBasicMaterial({
-        color: 0xffeedd,
+        color: 0xffffff,
         transparent: true,
-        opacity: 0.8,
+        opacity: 0.9,
         blending: THREE.AdditiveBlending,
         side: THREE.BackSide,
+        toneMapped: false,
         depthWrite: false
     });
     const photonSphere = new THREE.Mesh(photonGeo, photonMat);
     group.add(photonSphere);
 
+    // Secondary outer gravitational lensed ring glow
+    const lensGeo = new THREE.SphereGeometry(baseRadius * 1.25, 32, 32);
+    const lensMat = new THREE.MeshBasicMaterial({
+        color: 0x6699ff,
+        transparent: true,
+        opacity: 0.25,
+        blending: THREE.AdditiveBlending,
+        side: THREE.BackSide,
+        depthWrite: false
+    });
+    const gravitationalLens = new THREE.Mesh(lensGeo, lensMat);
+    group.add(gravitationalLens);
+
     // ------------------------------------------------------------------------
-    // 2. ACCRETION DISK (Doppler Beamed)
+    // 2. ACCRETION DISK (Doppler Beamed with FBM Turbulence)
     // ------------------------------------------------------------------------
-    const diskGeo = new THREE.RingGeometry(baseRadius * 1.3, baseRadius * 6.5, 128);
+    const diskGeo = new THREE.RingGeometry(baseRadius * 1.3, baseRadius * 7.0, 128);
     const diskMat = new THREE.ShaderMaterial({
         uniforms: THREE.UniformsUtils.clone(AccretionDiskMaterial.uniforms),
         vertexShader: AccretionDiskMaterial.vertexShader,
@@ -187,13 +233,13 @@ export function createQuasar(scene = null, config = {}) {
     group.add(accretionDisk);
 
     // ------------------------------------------------------------------------
-    // 3. NEBULAR GAS CLOUD (Ionized Envelope)
+    // 3. IONIZED CORONA ENVELOPE
     // ------------------------------------------------------------------------
-    const cloudGeo = new THREE.SphereGeometry(baseRadius * 5.0, 32, 32);
+    const cloudGeo = new THREE.SphereGeometry(baseRadius * 5.5, 32, 32);
     const cloudMat = new THREE.MeshBasicMaterial({
-        color: 0x001144, // Darker, subtler space backdrop to let jets pop
+        color: 0x002266,
         transparent: true,
-        opacity: 0.15,
+        opacity: 0.12,
         blending: THREE.AdditiveBlending,
         side: THREE.BackSide,
         depthWrite: false
@@ -202,17 +248,17 @@ export function createQuasar(scene = null, config = {}) {
     group.add(cloud);
 
     // ------------------------------------------------------------------------
-    // 4. SHADER-DRIVEN RELATIVISTIC PLASMA JETS
+    // 4. RELATIVISTIC PLASMA JETS
     // ------------------------------------------------------------------------
-    const jetLength = baseRadius * 30;
-    const jetRadiusTop = baseRadius * 2.8;
-    const jetRadiusBottom = baseRadius * 0.1;
+    const jetLength = baseRadius * 35;
+    const jetRadiusTop = baseRadius * 3.2;
+    const jetRadiusBottom = baseRadius * 0.08;
 
     const jetGeo = new THREE.CylinderGeometry(
         jetRadiusTop, 
         jetRadiusBottom, 
         jetLength, 
-        48, 64, true // Increased height segments for better knot rendering
+        48, 64, true
     );
     jetGeo.translate(0, jetLength / 2, 0);
 
@@ -236,11 +282,11 @@ export function createQuasar(scene = null, config = {}) {
     group.add(southJet);
 
     // ------------------------------------------------------------------------
-    // 5. INNER HIGH-ENERGY LASER CORE (Collimated spine)
+    // 5. COLLIMATED HIGH-ENERGY SPINE (Core Laser)
     // ------------------------------------------------------------------------
     const innerJetGeo = new THREE.CylinderGeometry(
-        jetRadiusTop * 0.15, 
-        jetRadiusBottom * 0.1, 
+        jetRadiusTop * 0.1, 
+        jetRadiusBottom * 0.05, 
         jetLength * 1.02, 
         24, 1, true
     );
@@ -249,8 +295,9 @@ export function createQuasar(scene = null, config = {}) {
     const innerJetMat = new THREE.MeshBasicMaterial({
         color: 0xffffff,
         transparent: true,
-        opacity: 0.9,
+        opacity: 0.95,
         blending: THREE.AdditiveBlending,
+        toneMapped: false,
         depthWrite: false
     });
 
@@ -262,21 +309,22 @@ export function createQuasar(scene = null, config = {}) {
     group.add(southInner);
 
     // ------------------------------------------------------------------------
-    // 6. HUD METADATA & UPDATE HOOK
+    // 6. METADATA & UPDATE HOOK
     // ------------------------------------------------------------------------
     group.userData = {
         type: 'blackhole',
-        name: config.name || 'Active Galactic Nucleus (Quasar)',
+        name: config.name || 'Distant Quasar X-1',
         category: 'ACTIVE GALACTIC NUCLEUS',
-        subText: 'ENERGY JET: 300,000 LIGHT YEARS',
+        subText: 'RELATIVISTIC JET ENGINE ACTIVE',
         r: baseRadius * 2,
         update(time) {
             northJetMat.uniforms.uTime.value = time;
             southJetMat.uniforms.uTime.value = time;
             diskMat.uniforms.uTime.value = time;
             
-            // Physical spin of the disk geometry
-            accretionDisk.rotation.z = time * -0.5;
+            // Subtle rotation of the disk and corona
+            accretionDisk.rotation.z = time * -0.3;
+            cloud.rotation.y = time * 0.02;
         }
     };
 
