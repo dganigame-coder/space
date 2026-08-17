@@ -404,7 +404,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER18080159</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER18080202</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -1913,16 +1913,8 @@ const bloomPass = new UnrealBloomPass(
 composer.addPass(bloomPass);
 */
 // 3. Instantiate Quasar in Deep Space with Aim Direction
-const quasarX1 = createQuasar(engine.scene, {
-    name: 'Distant Quasar X-1',
-    x: 0,
-    y: 0,
-    z: -80000000,          // Pushed far out to prevent local camera clipping
-    radius: 50000,         // Scaled appropriately for distance
-    rotationX: Math.PI * 0.25 // Tilts the spray stream angle
-});
         // Spawn the quasar deep in the cosmic background (e.g., billions of km away)
-const quasarX1 = createQuasar(scene, {
+const quasarX1 = createQuasar(engine.scene, {
     x: 1500000000, 
     y: 400000000, 
     z: -8000000000, // Far out along the Z-axis
