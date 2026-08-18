@@ -180,10 +180,11 @@ export function createQuasar(scene = null, config = {}) {
 
     group.position.set(x, y, z);
 
-    // ------------------------------------------------------------------------
+// ------------------------------------------------------------------------
     // 1. THE EVENT HORIZON (Absolute Black Core)
     // ------------------------------------------------------------------------
-    const coreGeo = new THREE.SphereGeometry(baseRadius, 64, 64);
+    // Scaled down slightly to leave room for the gravitational lensing optical ring
+    const coreGeo = new THREE.SphereGeometry(baseRadius * 0.95, 64, 64);
     const coreMat = new THREE.MeshBasicMaterial({
         color: 0x000000,
         toneMapped: false
@@ -192,13 +193,14 @@ export function createQuasar(scene = null, config = {}) {
     group.add(core);
 
     // ------------------------------------------------------------------------
-    // 1b. PHOTON SPHERE & GRAVITATIONAL LENSING HALO
+    // 1b. PHOTON SPHERE (The Ultra-Bright Gravitational Lensing Ring)
     // ------------------------------------------------------------------------
-    const photonGeo = new THREE.SphereGeometry(baseRadius * 1.08, 64, 64);
+    // This creates the iconic thin, hyper-bright ring where light orbits the black hole
+    const photonGeo = new THREE.SphereGeometry(baseRadius * 1.02, 64, 64);
     const photonMat = new THREE.MeshBasicMaterial({
         color: 0xffffff,
         transparent: true,
-        opacity: 0.9,
+        opacity: 0.95,
         blending: THREE.AdditiveBlending,
         side: THREE.BackSide,
         toneMapped: false,
@@ -207,12 +209,12 @@ export function createQuasar(scene = null, config = {}) {
     const photonSphere = new THREE.Mesh(photonGeo, photonMat);
     group.add(photonSphere);
 
-    // Secondary outer gravitational lensed ring glow
-    const lensGeo = new THREE.SphereGeometry(baseRadius * 1.25, 32, 32);
+    // Outer distortion halo to simulate light bending around the shadow
+    const lensGeo = new THREE.SphereGeometry(baseRadius * 1.15, 32, 32);
     const lensMat = new THREE.MeshBasicMaterial({
-        color: 0x6699ff,
+        color: 0xffaa44, // Warm lensed photon glow matching the accretion disk
         transparent: true,
-        opacity: 0.25,
+        opacity: 0.35,
         blending: THREE.AdditiveBlending,
         side: THREE.BackSide,
         depthWrite: false
