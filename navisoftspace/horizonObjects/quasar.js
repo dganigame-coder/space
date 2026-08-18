@@ -8,7 +8,7 @@ const JetShaderMaterial = {
     uniforms: {
         uTime: { value: 0 },
         uColorCore: { value: new THREE.Color(0xffffff) },
-        uColorEdge: { value: new THREE.Color(0x0055ff) } // Deep X-ray synchrotron blue
+        uColorEdge: { value: new THREE.Color(0xff5500) } // Fiery orange/red
     },
     vertexShader: /* glsl */`
         varying vec2 vUv;
@@ -150,14 +150,19 @@ const AccretionDiskMaterial = {
             vec2 polarUv = vec2(length(vWorldPosition.xz) * 0.0002 - uTime * 0.2, atan(vWorldPosition.z, vWorldPosition.x) * 0.5);
             float plasma = fbm(polarUv * 4.0);
 
-            // Thermal color grading: Ultra-hot blue core shifting to fiery accretion orange
-            vec3 thermalCore = vec3(0.7, 0.9, 1.8);
-            vec3 thermalOuter = vec3(2.5, 0.8, 0.1);
-            vec3 baseColor = mix(thermalOuter, thermalCore, smoothstep(0.0, 0.6, 1.0 - vUv.y));
+            // Thermal color grading: Superheated white/yellow core shifting to dusty dark orange
+            // Values pushed past 1.0 to trigger intense HDR bloom
+            vec3 thermalCore = vec3(5.0, 3.5, 1.5); 
+            vec3 thermalOuter = vec3(0.6, 0.15, 0.02);
+            vec3 baseColor = mix(thermalOuter, thermalCore, smoothstep(0.1, 0.6, 1.0 - vUv.y));
 
-            vec3 finalColor = baseColor * beaming * (1.0 + plasma * 0.8);
+            vec3 finalColor = baseColor * beaming * (1.0 + plasma * 1.5);
 
-            gl_FragColor = vec4(finalColor * 2.0, radialMask * (0.6 + plasma * 0.4));
+            // Carve out the dust lanes by tying alpha directly to the FBM valleys
+            float dustGaps = smoothstep(0.2, 0.7, plasma);
+            float alpha = radialMask * (0.1 + dustGaps * 0.9);
+
+            gl_FragColor = vec4(finalColor, alpha);
         }
     `
 };
@@ -237,13 +242,13 @@ export function createQuasar(scene = null, config = {}) {
     // ------------------------------------------------------------------------
     const cloudGeo = new THREE.SphereGeometry(baseRadius * 5.5, 32, 32);
     const cloudMat = new THREE.MeshBasicMaterial({
-        color: 0x002266,
-        transparent: true,
-        opacity: 0.12,
-        blending: THREE.AdditiveBlending,
-        side: THREE.BackSide,
-        depthWrite: false
-    });
+            color: 0x1a0a00, // Deep dusty brown
+            transparent: true,
+            opacity: 0.4,    // Increased opacity slightly to catch more dust
+            blending: THREE.AdditiveBlending,
+            side: THREE.BackSide,
+            depthWrite: false
+        });
     const cloud = new THREE.Mesh(cloudGeo, cloudMat);
     group.add(cloud);
 
@@ -312,12 +317,13 @@ export function createQuasar(scene = null, config = {}) {
     // 6. METADATA & UPDATE HOOK
     // ------------------------------------------------------------------------
     group.userData = {
-        type: 'blackhole',
+        type: 'quasar',           
+        sound: 'QUASAR_BEAM',     
         name: config.name || 'Distant Quasar X-1',
         category: 'ACTIVE GALACTIC NUCLEUS',
         subText: 'RELATIVISTIC JET ENGINE ACTIVE',
         r: baseRadius * 2,
-        update(time) {
+        update(time) {    
             northJetMat.uniforms.uTime.value = time;
             southJetMat.uniforms.uTime.value = time;
             diskMat.uniforms.uTime.value = time;
