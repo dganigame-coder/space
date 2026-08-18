@@ -5,10 +5,10 @@ import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
  * Enhanced with FBM multi-octave turbulence and standing shockwaves.
  */
 const JetShaderMaterial = {
-    uniforms: {
+uniforms: {
         uTime: { value: 0 },
-        uColorCore: { value: new THREE.Color(0xffffff) },
-        uColorEdge: { value: new THREE.Color(0xff5500) } // Fiery orange/red
+        uColorCore: { value: new THREE.Color(0xd0ffff) }, // Ice white-blue
+        uColorEdge: { value: new THREE.Color(0x0044ff) }  // Deep high-energy blue
     },
     vertexShader: /* glsl */`
         varying vec2 vUv;
@@ -149,18 +149,16 @@ const AccretionDiskMaterial = {
             // Swirling organic plasma turbulence
             vec2 polarUv = vec2(length(vWorldPosition.xz) * 0.0002 - uTime * 0.2, atan(vWorldPosition.z, vWorldPosition.x) * 0.5);
             float plasma = fbm(polarUv * 4.0);
-
-            // Thermal color grading: Superheated white/yellow core shifting to dusty dark orange
-            // Values pushed past 1.0 to trigger intense HDR bloom
-            vec3 thermalCore = vec3(5.0, 3.5, 1.5); 
-            vec3 thermalOuter = vec3(0.6, 0.15, 0.02);
-            vec3 baseColor = mix(thermalOuter, thermalCore, smoothstep(0.1, 0.6, 1.0 - vUv.y));
+            
+            // Ice-blue synchrotron radiation thermal grading
+            vec3 thermalCore = vec3(4.0, 6.0, 10.0);   // Blinding electric blue core
+            vec3 thermalOuter = vec3(0.05, 0.2, 0.5);  // Deep space azure
+            vec3 baseColor = mix(thermalOuter, thermalCore, smoothstep(0.05, 0.6, 1.0 - vUv.y));
 
             vec3 finalColor = baseColor * beaming * (1.0 + plasma * 1.5);
 
-            // Carve out the dust lanes by tying alpha directly to the FBM valleys
             float dustGaps = smoothstep(0.2, 0.7, plasma);
-            float alpha = radialMask * (0.1 + dustGaps * 0.9);
+            float alpha = radialMask * (0.15 + dustGaps * 0.85);
 
             gl_FragColor = vec4(finalColor, alpha);
         }
@@ -336,6 +334,22 @@ export function createQuasar(scene = null, config = {}) {
         }
     };
 
+    // ------------------------------------------------------------------------
+    // 7. HOST GALAXY STAR-FIELD DISK (Matching reference background)
+    // ------------------------------------------------------------------------
+    const galaxyGeo = new THREE.RingGeometry(baseRadius * 6, baseRadius * 25, 64);
+    const galaxyMat = new THREE.MeshBasicMaterial({
+        color: 0x113366,
+        transparent: true,
+        opacity: 0.3,
+        side: THREE.DoubleSide,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+    });
+    const hostGalaxy = new THREE.Mesh(galaxyGeo, galaxyMat);
+    hostGalaxy.rotation.x = Math.PI / 2;
+    group.add(hostGalaxy);
+    
     if (scene?.add) scene.add(group);
     return group;
 }
