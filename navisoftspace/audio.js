@@ -6,6 +6,14 @@ let alarmSynth, impactNoise, impactThump;
 */
 // 1. Clear, non-duplicated global exports
 export let gasVolume, voidVolume, beltVolume, solarVolume, anomalyVolume, hullRainVolume;
+// NEW: Fix missing exports for existing supernova/corona states
+export let coronaVolume, explosionVolume, nebulaVolume; 
+
+// NEW: Exports for custom config tags
+export let debrisVolume, icyVolume, staticVolume, deepGravityVolume, pulsarVolume;
+
+// NEW: Internal Synths
+let debrisNoise, icyNoise, staticNoise, deepGravityOsc, pulsarSynth;
 
 let gasWind, solarSizzle, beltGranular, anomalyDrone, voidHum;
 let hullRainNoise, hullRainFilter, hullRainModulator, hullRainGain; // Added dedicated Gain node tracking
@@ -66,6 +74,29 @@ export async function loadSoundLibrary() {
 
         voidVolume = new T.Volume(-100).toDestination();
         voidHum = new T.FatOscillator(40, "sine", 40).connect(voidVolume);
+
+        // --- NEW SYNTHS FOR EXOTIC OBJECTS ---
+        
+        // Fixed previously uninitialized volumes
+        coronaVolume = new T.Volume(-100).toDestination();
+        explosionVolume = new T.Volume(-100).toDestination();
+        nebulaVolume = new T.Volume(-100).toDestination();
+
+        // Custom config synths
+        debrisVolume = new T.Volume(-100).toDestination();
+        debrisNoise = new T.Noise("brown").connect(new T.Filter(400, "lowpass").connect(debrisVolume));
+
+        icyVolume = new T.Volume(-100).toDestination();
+        icyNoise = new T.Noise("pink").connect(new T.Filter(6000, "highpass").connect(icyVolume));
+
+        staticVolume = new T.Volume(-100).toDestination();
+        staticNoise = new T.Noise("white").connect(new T.AutoPanner("4n").connect(staticVolume));
+
+        deepGravityVolume = new T.Volume(-100).toDestination();
+        deepGravityOsc = new T.FatOscillator(20, "sine", 60).connect(deepGravityVolume);
+
+        pulsarVolume = new T.Volume(-100).toDestination();
+        pulsarSynth = new T.Oscillator(150, "square").connect(new T.Tremolo(9, 0.75).start().connect(pulsarVolume));
     }
 
     await T.context.resume();
@@ -77,6 +108,13 @@ export async function loadSoundLibrary() {
     //hullRainModulator.start();
     anomalyDrone.start(); 
     voidHum.start();  
+
+    // Start new nodes
+    debrisNoise.start();
+    icyNoise.start();
+    staticNoise.start();
+    deepGravityOsc.start();
+    pulsarSynth.start();
         
     console.log("Audio System State:", T.context.state);
 
@@ -130,6 +168,27 @@ export function playHighFi(key, intensity = 0.5) {
                 navigator.vibrate(vibrationDuration);
             }
             break;
+            // Custom config mappings pulled from the config TXT
+        case 'ROCKY_DEBRIS':
+            debrisVolume.volume.setTargetAtTime(db - 5, now, 0.5);
+            break;
+        case 'ICY_WHISPER':
+            icyVolume.volume.setTargetAtTime(db - 12, now, 0.5);
+            break;
+        case 'DEEP_SPACE_STATIC':
+        case 'ELECTRO_STATIC':
+            staticVolume.volume.setTargetAtTime(db - 20, now, 0.5);
+            break;
+        case 'LOW_RUMBLE_GRAVITY':
+            deepGravityVolume.volume.setTargetAtTime(db, now, 0.5);
+            break;
+        case 'NEBULA_HUM':
+            anomalyVolume.volume.setTargetAtTime(db - 10, now, 0.5); 
+            break;
+        case 'PULSAR_BEAT':
+        case 'QUASAR_BEAM':
+            pulsarVolume.volume.setTargetAtTime(db - 5, now, 0.2);
+            break;
         case 'STELLAR_CORONA':
             coronaVolume.volume.setTargetAtTime(db - 12, now, 0.8);
             break;
@@ -140,9 +199,11 @@ export function playHighFi(key, intensity = 0.5) {
             nebulaVolume.volume.setTargetAtTime(db - 15, now, 0.5);
             break;
         case 'SILENCE':
-            [gasVolume, beltVolume, hullRainVolume, anomalyVolume, voidVolume, solarVolume].forEach(v => {
-                if(v) v.volume.rampTo(-100, 0.5);
-            });
+                    [gasVolume, beltVolume, hullRainVolume, anomalyVolume, voidVolume, 
+                     solarVolume, coronaVolume, explosionVolume, nebulaVolume, 
+                     debrisVolume, icyVolume, staticVolume, deepGravityVolume, pulsarVolume].forEach(v => {
+                        if(v) v.volume.rampTo(-100, 0.5);
+                    });
             break;
     }
 }
