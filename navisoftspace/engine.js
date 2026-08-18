@@ -143,7 +143,7 @@ export function checkCollisions(camera, bodies, scene) {
         bodies.forEach(spaceObject => {
             if (!spaceObject || !spaceObject.userData) return;
             const t = spaceObject.userData.type;
-            if (t === 'nebula' || t === 'supernova' || t === 'blackhole') {
+            if (t === 'nebula' || t === 'supernova' || t === 'blackhole' || t === 'pulsar' || t === 'quasar' || t === 'protoplanetary_disk') {
                 const dist = camera.position.distanceTo(spaceObject.position);
                 console.group(`📡 Long-Range Scanner: ${spaceObject.userData.name || 'Unknown Anomaly'}`);
                 console.log(`Distance: ${Math.round(dist)} units`);
@@ -161,7 +161,8 @@ export function checkCollisions(camera, bodies, scene) {
         const dist = camera.position.distanceTo(spaceObject.position);
         const radius = spaceObject.userData.r || 500; 
         const type = spaceObject.userData.type;
-
+        const customSound = spaceObject.userData.sound;
+        
         // A. Visual Animation Processing Loops (Nebulae & Supernovas)
         if (spaceObject.userData.isBreathing && spaceObject.children) {
             spaceObject.children.forEach((child) => {
@@ -188,7 +189,7 @@ export function checkCollisions(camera, bodies, scene) {
         }
 
         // C. Asteroid Belt Geometric Donut Matrix Math
-        if (type === 'asteroid_belt') {
+        if (type === 'asteroid_belt' || type === 'protoplanetary_disk') {
             const innerRadius = spaceObject.userData.innerRadius || 0;
             const outerRadius = spaceObject.userData.outerRadius || 0;
             const distFromCenter = camera.position.length(); 
@@ -201,7 +202,7 @@ export function checkCollisions(camera, bodies, scene) {
                 const penetration = 1 - (Math.abs(distFromCenter - mid) / halfWidth);
                 const safePenetration = Math.max(0, Math.min(1, penetration)); // Clamp 0-1
         
-                playHighFi('ASTEROID_BELT', safePenetration);
+                playHighFi(customSound || 'ASTEROID_BELT', safePenetration);
         
                 let currentSpeed = 0;
                 // Safe Engine Variable Tracking Accessor
@@ -282,7 +283,7 @@ export function checkCollisions(camera, bodies, scene) {
                 }
             }
             // Rigid Mesh Collisions (Asteroids / Planets Surfaces)
-            else if (type === 'solid') {
+            else if (type === 'solid' || type === 'exoplanet' || type === 'exoplanet_system') {
                 if (typeof window.isColliding === 'undefined') window.isColliding = false;
                 if (!window.isColliding) {
                     updateRightMonitor(spaceObject);
@@ -292,6 +293,19 @@ export function checkCollisions(camera, bodies, scene) {
                     window.isColliding = true;
                     setTimeout(() => window.isColliding = false, 1000); 
                 }
+            }
+            // NEW: Pulsars (Rapid Spin & Intense Pushback)
+            else if (type === 'pulsar') {
+                updateRightMonitor(spaceObject);
+                triggerSolarFlare(camera, spaceObject); 
+                playHighFi(customSound || 'PULSAR_BEAT', penetration);
+                spaceObject.rotation.y += 0.05; 
+            }
+            // NEW: Quasars (Extreme Event Horizon Pushback)
+            else if (type === 'quasar') {
+                updateRightMonitor(spaceObject);
+                triggerSolarFlare(camera, spaceObject);
+                playHighFi(customSound || 'QUASAR_BEAM', penetration);
             }
         }
     });
