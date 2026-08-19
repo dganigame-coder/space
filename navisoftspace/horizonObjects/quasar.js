@@ -377,4 +377,3 @@ export function createQuasar(scene = null, config = {}) {
     if (scene?.add) scene.add(group);
     return group;
 }
-}
