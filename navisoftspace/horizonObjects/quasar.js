@@ -179,17 +179,17 @@ export function createQuasar(scene = null, config = {}) {
 
     group.position.set(x, y, z);
 
-// ------------------------------------------------------------------------
-    // 1. THE EVENT HORIZON (Absolute Black Core)
     // ------------------------------------------------------------------------
-    // Scaled down slightly to leave room for the gravitational lensing optical ring
-    const coreGeo = new THREE.SphereGeometry(baseRadius * 0.95, 64, 64);
+    // 1. THE TRUE 3D EVENT HORIZON (Pure Solid Black Sphere)
+    // ------------------------------------------------------------------------
+    const coreGeo = new THREE.SphereGeometry(baseRadius * 1.0, 64, 64);
     const coreMat = new THREE.MeshBasicMaterial({
         color: 0x000000,
         toneMapped: false
     });
     const core = new THREE.Mesh(coreGeo, coreMat);
     group.add(core);
+
 
     // ------------------------------------------------------------------------
     // 1b. PHOTON SPHERE (The Ultra-Bright Gravitational Lensing Ring)
