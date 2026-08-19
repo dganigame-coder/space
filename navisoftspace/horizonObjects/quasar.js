@@ -354,13 +354,15 @@ export function createQuasar(scene = null, config = {}) {
     };
 
     // ------------------------------------------------------------------------
-    // 7. HOST GALAXY STAR-FIELD DISK (Matching reference background)
+    // 7. HOST GALAXY STAR-FIELD DISK
     // ------------------------------------------------------------------------
-    const galaxyGeo = new THREE.RingGeometry(baseRadius * 6, baseRadius * 25, 64);
+    const galaxyGeo = new THREE.RingGeometry(baseRadius * 4, baseRadius * 30, 64);
+    
+    // Custom shader or richer material for a soft, fading galactic plane
     const galaxyMat = new THREE.MeshBasicMaterial({
-        color: 0x113366,
+        color: 0x1b3a6b,       // Rich deep galactic blue
         transparent: true,
-        opacity: 0.3,
+        opacity: 0.25,
         side: THREE.DoubleSide,
         blending: THREE.AdditiveBlending,
         depthWrite: false
