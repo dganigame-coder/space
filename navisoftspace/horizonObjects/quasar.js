@@ -26,62 +26,62 @@ uniforms: {
         }
     `,
     fragmentShader: /* glsl */`
-        uniform float uTime;
-        uniform vec3 uColorCore;
-        uniform vec3 uColorEdge;
-
+    uniform float uTime;
+        uniform vec3 cameraPosition;
         varying vec2 vUv;
-        varying vec3 vPosition;
-        varying vec3 vNormal;
-        varying vec3 vViewPosition;
+        varying vec3 vWorldPosition;
 
-        // High-precision pseudo-noise
         float hash(vec2 p) {
-            return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+            return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
         }
 
         float noise(vec2 p) {
             vec2 i = floor(p);
             vec2 f = fract(p);
             f = f * f * (3.0 - 2.0 * f);
-            float a = hash(i);
-            float b = hash(i + vec2(1.0, 0.0));
-            float c = hash(i + vec2(0.0, 1.0));
-            float d = hash(i + vec2(1.0, 1.0));
-            return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+            return mix(mix(hash(i + vec2(0.0, 0.0)), hash(i + vec2(1.0, 0.0)), f.x),
+                       mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);
         }
 
-        // Fractal Brownian Motion for realistic turbulent plasma flow
         float fbm(vec2 p) {
-            float value = 0.0;
-            float amplitude = 0.5;
-            for (int i = 0; i < 4; i++) {
-                value += amplitude * noise(p);
-                p *= 2.0;
-                amplitude *= 0.5;
+            float v = 0.0;
+            float a = 0.5;
+            for (int i = 0; i < 3; i++) {
+                v += a * noise(p);
+                p *= 2.5;
+                a *= 0.5;
             }
-            return value;
+            return v;
         }
 
         void main() {
-            float streamSpeed = 15.0;
-            vec2 movingUv = vec2(vUv.x * 8.0, (vPosition.y * 0.00002) - (uTime * streamSpeed));
+            vec3 viewDir = normalize(cameraPosition - vWorldPosition);
+            vec3 tangent = normalize(vec3(-vWorldPosition.z, 0.0, vWorldPosition.x));
             
-            float turbulence = fbm(movingUv);
-            float distanceFade = smoothstep(1.0, 0.05, vUv.y);
+            // Relativistic Doppler Beaming
+            float doppler = dot(tangent, viewDir);
+            float beaming = pow(max(doppler + 1.2, 0.0), 4.0); // Increased beaming
 
-            vec3 normal = normalize(vNormal);
-            vec3 viewDir = normalize(vViewPosition);
-            float rim = pow(abs(dot(normal, viewDir)), 1.2);
+            // Radial alpha mask
+            float innerFade = smoothstep(0.0, 0.05, vUv.y); 
+            float outerFade = smoothstep(1.0, 0.2, vUv.y);
+            float radialMask = innerFade * outerFade;
 
-            vec3 finalColor = mix(uColorCore, uColorEdge, pow(1.0 - rim, 0.4));
+            // Swirling organic plasma turbulence
+            vec2 polarUv = vec2(length(vWorldPosition.xz) * 0.0002 - uTime * 0.3, atan(vWorldPosition.z, vWorldPosition.x) * 0.5);
+            float plasma = fbm(polarUv * 5.0);
+            
+            // MASSIVE ENERGY SPIKE: Pushing values to 30.0+ to violently trigger HDR Bloom
+            vec3 thermalCore = vec3(30.0, 45.0, 80.0);   // Blinding electric blue/white
+            vec3 thermalOuter = vec3(0.1, 0.5, 2.0);     // Deep space azure
+            
+            vec3 baseColor = mix(thermalOuter, thermalCore, pow(1.0 - vUv.y, 3.0));
+            vec3 finalColor = baseColor * beaming * (1.0 + plasma * 2.0);
 
-            // Magnetic standing shockwaves (knots)
-            float knots = pow(sin(vUv.y * 60.0 - uTime * 3.0) * 0.5 + 0.5, 16.0);
+            // Thicker opacity at the core
+            float alpha = radialMask * (0.6 + plasma * 0.8);
 
-            float alpha = rim * distanceFade * (0.3 + turbulence * 0.7) + (knots * distanceFade * 0.6);
-
-            gl_FragColor = vec4(finalColor * (1.0 + knots * 2.0), alpha);
+            gl_FragColor = vec4(finalColor, alpha);
         }
     `
 };
@@ -221,6 +221,21 @@ export function createQuasar(scene = null, config = {}) {
     group.add(gravitationalLens);
 
     // ------------------------------------------------------------------------
+    // 1c. EXTREME ENERGY HALO (Blinding Core Bleed)
+    // ------------------------------------------------------------------------
+    const haloGeo = new THREE.SphereGeometry(baseRadius * 1.8, 32, 32);
+    const haloMat = new THREE.MeshBasicMaterial({
+        color: 0x4488ff, // Bright electric blue
+        transparent: true,
+        opacity: 0.8,    // High opacity to blow out the center
+        blending: THREE.AdditiveBlending,
+        side: THREE.BackSide,
+        depthWrite: false
+    });
+    const energyHalo = new THREE.Mesh(haloGeo, haloMat);
+    group.add(energyHalo);
+
+    // ------------------------------------------------------------------------
     // 2. ACCRETION DISK (Doppler Beamed with FBM Turbulence)
     // ------------------------------------------------------------------------
     const diskGeo = new THREE.RingGeometry(baseRadius * 1.3, baseRadius * 7.0, 128);
@@ -242,13 +257,13 @@ export function createQuasar(scene = null, config = {}) {
     // ------------------------------------------------------------------------
     const cloudGeo = new THREE.SphereGeometry(baseRadius * 5.5, 32, 32);
     const cloudMat = new THREE.MeshBasicMaterial({
-            color: 0x1a0a00, // Deep dusty brown
-            transparent: true,
-            opacity: 0.4,    // Increased opacity slightly to catch more dust
-            blending: THREE.AdditiveBlending,
-            side: THREE.BackSide,
-            depthWrite: false
-        });
+        color: 0x001133, // Shifted to dark cosmic blue to match synchrotron energy
+        transparent: true,
+        opacity: 0.4,
+        blending: THREE.AdditiveBlending,
+        side: THREE.BackSide,
+        depthWrite: false
+    });
     const cloud = new THREE.Mesh(cloudGeo, cloudMat);
     group.add(cloud);
 
@@ -257,7 +272,7 @@ export function createQuasar(scene = null, config = {}) {
     // ------------------------------------------------------------------------
     const jetLength = baseRadius * 35;
     const jetRadiusTop = baseRadius * 3.2;
-    const jetRadiusBottom = baseRadius * 0.08;
+    const jetRadiusBottom = baseRadius * 1.1; // Widened to wrap around the event horizon
 
     const jetGeo = new THREE.CylinderGeometry(
         jetRadiusTop, 
@@ -350,6 +365,16 @@ export function createQuasar(scene = null, config = {}) {
     hostGalaxy.rotation.x = Math.PI / 2;
     group.add(hostGalaxy);
     
+   // ------------------------------------------------------------------------
+    // FIX: PREVENT DISAPPEARING WHEN PANNING CAMERA
+    // ------------------------------------------------------------------------
+    group.traverse((child) => {
+        if (child.isMesh) {
+            child.frustumCulled = false;
+        }
+    });
+    
     if (scene?.add) scene.add(group);
     return group;
+}
 }
