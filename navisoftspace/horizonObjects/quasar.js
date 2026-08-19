@@ -96,19 +96,19 @@ const AccretionDiskMaterial = {
     },
     vertexShader: /* glsl */`
         varying vec2 vUv;
-        varying vec3 vWorldPosition;
+        varying vec3 vLocalPosition;
+        
         void main() {
             vUv = uv;
-            vec4 worldPos = modelMatrix * vec4(position, 1.0);
-            vWorldPosition = worldPos.xyz;
-            gl_Position = projectionMatrix * viewMatrix * worldPos;
+            // Use local position so turbulence doesn't break when the group rotates
+            vLocalPosition = position; 
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
         }
     `,
     fragmentShader: /* glsl */`
         uniform float uTime;
-        uniform vec3 cameraPosition;
         varying vec2 vUv;
-        varying vec3 vWorldPosition;
+        varying vec3 vLocalPosition;
 
         float hash(vec2 p) {
             return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
@@ -127,38 +127,40 @@ const AccretionDiskMaterial = {
             float a = 0.5;
             for (int i = 0; i < 3; i++) {
                 v += a * noise(p);
-                p *= 2.5;
+                p *= 2.0;
                 a *= 0.5;
             }
             return v;
         }
 
         void main() {
-            vec3 viewDir = normalize(cameraPosition - vWorldPosition);
-            vec3 tangent = normalize(vec3(-vWorldPosition.z, 0.0, vWorldPosition.x));
+            // RingGeometry local positions are on the XY plane
+            float radius = length(vLocalPosition.xy);
+            float angle = atan(vLocalPosition.y, vLocalPosition.x);
             
-            // Relativistic Doppler Beaming
-            float doppler = dot(tangent, viewDir);
-            float beaming = pow(max(doppler + 1.1, 0.0), 4.0);
+            // Swirling turbulence
+            vec2 polar = vec2(radius * 0.00005 - uTime * 0.3, angle * 0.8);
+            float plasma = fbm(polar * 4.0);
 
-            // Radial alpha mask
-            float innerFade = smoothstep(0.0, 0.15, vUv.y);
-            float outerFade = smoothstep(1.0, 0.35, vUv.y);
+            // Smooth fading on the inner and outer edges
+            float innerFade = smoothstep(0.0, 0.08, vUv.y);
+            float outerFade = smoothstep(1.0, 0.3, vUv.y);
             float radialMask = innerFade * outerFade;
 
-            // Swirling organic plasma turbulence
-            vec2 polarUv = vec2(length(vWorldPosition.xz) * 0.0002 - uTime * 0.2, atan(vWorldPosition.z, vWorldPosition.x) * 0.5);
-            float plasma = fbm(polarUv * 4.0);
-            
-            // Ice-blue synchrotron radiation thermal grading
-            vec3 thermalCore = vec3(4.0, 6.0, 10.0);   // Blinding electric blue core
-            vec3 thermalOuter = vec3(0.05, 0.2, 0.5);  // Deep space azure
-            vec3 baseColor = mix(thermalOuter, thermalCore, smoothstep(0.05, 0.6, 1.0 - vUv.y));
+            // Standard color gradient (Looks great without Bloom)
+            vec3 coreColor = vec3(1.0, 1.0, 1.0); // Blinding white at the center
+            vec3 midColor = vec3(0.2, 0.5, 1.0);  // Bright electric blue
+            vec3 edgeColor = vec3(0.0, 0.1, 0.4); // Dark space blue at the rim
 
-            vec3 finalColor = baseColor * beaming * (1.0 + plasma * 1.5);
+            // Mix colors based on distance from the black hole
+            vec3 baseColor = mix(midColor, coreColor, pow(1.0 - vUv.y, 2.5));
+            baseColor = mix(edgeColor, baseColor, outerFade);
 
-            float dustGaps = smoothstep(0.2, 0.7, plasma);
-            float alpha = radialMask * (0.15 + dustGaps * 0.85);
+            // Add bright plasma streaks
+            vec3 finalColor = baseColor * (1.0 + plasma * 1.5);
+
+            // Soft, glowing alpha blending instead of harsh opacity
+            float alpha = radialMask * (0.15 + plasma * 0.85);
 
             gl_FragColor = vec4(finalColor, alpha);
         }
@@ -223,6 +225,7 @@ export function createQuasar(scene = null, config = {}) {
     // ------------------------------------------------------------------------
     // 1c. EXTREME ENERGY HALO (Blinding Core Bleed)
     // ------------------------------------------------------------------------
+        /*
     const haloGeo = new THREE.SphereGeometry(baseRadius * 1.8, 32, 32);
     const haloMat = new THREE.MeshBasicMaterial({
         color: 0x4488ff, // Bright electric blue
@@ -234,7 +237,7 @@ export function createQuasar(scene = null, config = {}) {
     });
     const energyHalo = new THREE.Mesh(haloGeo, haloMat);
     group.add(energyHalo);
-
+*/
     // ------------------------------------------------------------------------
     // 2. ACCRETION DISK (Doppler Beamed with FBM Turbulence)
     // ------------------------------------------------------------------------
@@ -272,7 +275,9 @@ export function createQuasar(scene = null, config = {}) {
     // ------------------------------------------------------------------------
     const jetLength = baseRadius * 35;
     const jetRadiusTop = baseRadius * 3.2;
-    const jetRadiusBottom = baseRadius * 1.1; // Widened to wrap around the event horizon
+    
+    // Change this back to 0.9 (Hugs the event horizon perfectly)
+    const jetRadiusBottom = baseRadius * 0.9;
 
     const jetGeo = new THREE.CylinderGeometry(
         jetRadiusTop, 
