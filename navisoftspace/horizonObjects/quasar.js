@@ -182,6 +182,7 @@ export function createQuasar(scene = null, config = {}) {
     // ------------------------------------------------------------------------
     // 1. THE TRUE 3D EVENT HORIZON (Pure Solid Black Sphere)
     // ------------------------------------------------------------------------
+    /*
     const coreGeo = new THREE.SphereGeometry(baseRadius * 1.0, 64, 64);
     const coreMat = new THREE.MeshBasicMaterial({
         color: 0x000000,
@@ -190,11 +191,12 @@ export function createQuasar(scene = null, config = {}) {
     const core = new THREE.Mesh(coreGeo, coreMat);
     group.add(core);
 
-
+     */
     // ------------------------------------------------------------------------
     // 1b. PHOTON SPHERE (The Ultra-Bright Gravitational Lensing Ring)
     // ------------------------------------------------------------------------
     // This creates the iconic thin, hyper-bright ring where light orbits the black hole
+    /*
     const photonGeo = new THREE.SphereGeometry(baseRadius * 1.02, 64, 64);
     const photonMat = new THREE.MeshBasicMaterial({
         color: 0xffffff,
@@ -220,7 +222,7 @@ export function createQuasar(scene = null, config = {}) {
     });
     const gravitationalLens = new THREE.Mesh(lensGeo, lensMat);
     group.add(gravitationalLens);
-
+*/
     // ------------------------------------------------------------------------
     // 1c. EXTREME ENERGY HALO (Blinding Core Bleed)
     // ------------------------------------------------------------------------
@@ -240,6 +242,8 @@ export function createQuasar(scene = null, config = {}) {
     // ------------------------------------------------------------------------
     // 2. ACCRETION DISK (Doppler Beamed with FBM Turbulence)
     // ------------------------------------------------------------------------
+
+    /*
     const diskGeo = new THREE.RingGeometry(baseRadius * 1.3, baseRadius * 7.0, 128);
     const diskMat = new THREE.ShaderMaterial({
         uniforms: THREE.UniformsUtils.clone(AccretionDiskMaterial.uniforms),
@@ -252,6 +256,37 @@ export function createQuasar(scene = null, config = {}) {
     });
     const accretionDisk = new THREE.Mesh(diskGeo, diskMat);
     accretionDisk.rotation.x = Math.PI / 2;
+    group.add(accretionDisk);
+    */
+
+        // ------------------------------------------------------------------------
+    // 1. THE TRUE 3D BLACK HOLE CORE (Solid Black Sphere, No Halos)
+    // ------------------------------------------------------------------------
+    const coreGeo = new THREE.SphereGeometry(baseRadius * 1.2, 64, 64);
+    const coreMat = new THREE.MeshBasicMaterial({
+        color: 0x000000,
+        toneMapped: false
+    });
+    const core = new THREE.Mesh(coreGeo, coreMat);
+    core.renderOrder = 10; // Ensure it draws cleanly over background elements
+    group.add(core);
+
+    // ------------------------------------------------------------------------
+    // 2. ACCRETION DISK (Clean inner radius matching the core)
+    // ------------------------------------------------------------------------
+    const diskGeo = new THREE.RingGeometry(baseRadius * 1.25, baseRadius * 7.0, 128);
+    const diskMat = new THREE.ShaderMaterial({
+        uniforms: THREE.UniformsUtils.clone(AccretionDiskMaterial.uniforms),
+        vertexShader: AccretionDiskMaterial.vertexShader,
+        fragmentShader: AccretionDiskMaterial.fragmentShader,
+        side: THREE.DoubleSide,
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+    });
+    const accretionDisk = new THREE.Mesh(diskGeo, diskMat);
+    accretionDisk.rotation.x = Math.PI / 2;
+    accretionDisk.renderOrder = 5;
     group.add(accretionDisk);
 
     // ------------------------------------------------------------------------
