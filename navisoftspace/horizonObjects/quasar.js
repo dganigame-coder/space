@@ -5,20 +5,21 @@ import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
  * Enhanced with FBM multi-octave turbulence and standing shockwaves.
  */
 const JetShaderMaterial = {
-uniforms: {
+    uniforms: {
         uTime: { value: 0 },
         uColorCore: { value: new THREE.Color(0xd0ffff) }, // Ice white-blue
         uColorEdge: { value: new THREE.Color(0x0044ff) }  // Deep high-energy blue
     },
     vertexShader: /* glsl */`
         varying vec2 vUv;
-        varying vec3 vPosition;
+        varying vec3 vWorldPosition;
         varying vec3 vNormal;
         varying vec3 vViewPosition;
 
         void main() {
             vUv = uv;
-            vPosition = position;
+            vec4 worldPos = modelMatrix * vec4(position, 1.0);
+            vWorldPosition = worldPos.xyz;
             vNormal = normalize(normalMatrix * normal);
             vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
             vViewPosition = -mvPosition.xyz;
@@ -26,66 +27,64 @@ uniforms: {
         }
     `,
     fragmentShader: /* glsl */`
-    uniform float uTime;
-        uniform vec3 cameraPosition;
+        uniform float uTime;
+        uniform vec3 uColorCore;
+        uniform vec3 uColorEdge;
+
         varying vec2 vUv;
         varying vec3 vWorldPosition;
+        varying vec3 vNormal;
+        varying vec3 vViewPosition;
 
         float hash(vec2 p) {
-            return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+            return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
         }
 
         float noise(vec2 p) {
             vec2 i = floor(p);
             vec2 f = fract(p);
             f = f * f * (3.0 - 2.0 * f);
-            return mix(mix(hash(i + vec2(0.0, 0.0)), hash(i + vec2(1.0, 0.0)), f.x),
-                       mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);
+            float a = hash(i);
+            float b = hash(i + vec2(1.0, 0.0));
+            float c = hash(i + vec2(0.0, 1.0));
+            float d = hash(i + vec2(1.0, 1.0));
+            return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
         }
 
         float fbm(vec2 p) {
-            float v = 0.0;
-            float a = 0.5;
-            for (int i = 0; i < 3; i++) {
-                v += a * noise(p);
-                p *= 2.5;
-                a *= 0.5;
+            float value = 0.0;
+            float amplitude = 0.5;
+            for (int i = 0; i < 4; i++) {
+                value += amplitude * noise(p);
+                p *= 2.0;
+                amplitude *= 0.5;
             }
-            return v;
+            return value;
         }
 
         void main() {
-            vec3 viewDir = normalize(cameraPosition - vWorldPosition);
-            vec3 tangent = normalize(vec3(-vWorldPosition.z, 0.0, vWorldPosition.x));
+            float streamSpeed = 15.0;
+            // Using vWorldPosition.y instead of vPosition.y for stable stream movement
+            vec2 movingUv = vec2(vUv.x * 8.0, (vWorldPosition.y * 0.00002) - (uTime * streamSpeed));
             
-            // Relativistic Doppler Beaming
-            float doppler = dot(tangent, viewDir);
-            float beaming = pow(max(doppler + 1.2, 0.0), 4.0); // Increased beaming
+            float turbulence = fbm(movingUv);
+            float distanceFade = smoothstep(1.0, 0.05, vUv.y);
 
-            // Radial alpha mask
-            float innerFade = smoothstep(0.0, 0.05, vUv.y); 
-            float outerFade = smoothstep(1.0, 0.2, vUv.y);
-            float radialMask = innerFade * outerFade;
+            vec3 normal = normalize(vNormal);
+            vec3 viewDir = normalize(vViewPosition);
+            float rim = pow(abs(dot(normal, viewDir)), 1.2);
 
-            // Swirling organic plasma turbulence
-            vec2 polarUv = vec2(length(vWorldPosition.xz) * 0.0002 - uTime * 0.3, atan(vWorldPosition.z, vWorldPosition.x) * 0.5);
-            float plasma = fbm(polarUv * 5.0);
-            
-            // MASSIVE ENERGY SPIKE: Pushing values to 30.0+ to violently trigger HDR Bloom
-            vec3 thermalCore = vec3(30.0, 45.0, 80.0);   // Blinding electric blue/white
-            vec3 thermalOuter = vec3(0.1, 0.5, 2.0);     // Deep space azure
-            
-            vec3 baseColor = mix(thermalOuter, thermalCore, pow(1.0 - vUv.y, 3.0));
-            vec3 finalColor = baseColor * beaming * (1.0 + plasma * 2.0);
+            vec3 finalColor = mix(uColorCore, uColorEdge, pow(1.0 - rim, 0.4));
 
-            // Thicker opacity at the core
-            float alpha = radialMask * (0.6 + plasma * 0.8);
+            // Magnetic standing shockwave energy pulses (knots)
+            float knots = pow(sin(vUv.y * 50.0 - uTime * 6.0) * 0.5 + 0.5, 12.0);
 
-            gl_FragColor = vec4(finalColor, alpha);
+            float alpha = rim * distanceFade * (0.4 + turbulence * 0.6) + (knots * distanceFade * 0.8);
+
+            gl_FragColor = vec4(finalColor * (1.0 + knots * 3.0), alpha);
         }
     `
 };
-
 /**
  * Custom ShaderMaterial for the Accretion Disk
  * Enhanced with FBM noise and true relativistic Doppler beaming.
