@@ -340,8 +340,7 @@ export function createQuasar(scene = null, config = {}) {
         type: 'quasar',
         name: 'Distant Quasar X-1',
         update(time) {    
-            northVolumetricMat.uniforms.uTime.value = time;
-            southVolumetricMat.uniforms.uTime.value = time;
+            jetMat.uniforms.uTime.value = time;
             diskMat.uniforms.uTime.value = time;
             
             accretionDisk.rotation.z = time * -0.3;
