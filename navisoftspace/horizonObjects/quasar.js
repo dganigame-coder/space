@@ -276,22 +276,17 @@ export function createQuasar(scene = null, config = {}) {
     group.add(cloud);
 
     // ------------------------------------------------------------------------
-    // 4. VOLUMETRIC RAYMARCHED PLASMA JETS
+    // 4. REFACTORED VOLUMETRIC PLASMA JETS
     // ------------------------------------------------------------------------
     const jetLength = baseRadius * 35;
-    const jetRadiusTop = baseRadius * 3.6;
-    const jetRadiusBottom = baseRadius * 1.0;
+    const jetRadiusTop = baseRadius * 4.5;    // Wide expanding cone tip
+    const jetRadiusBottom = baseRadius * 1.2; // Wide core anchor
 
-    // Bounding volume box cylinder for raymarching
-    const jetGeo = new THREE.CylinderGeometry(jetRadiusTop, jetRadiusBottom, jetLength, 32, 1, true);
+    const jetGeo = new THREE.CylinderGeometry(jetRadiusTop, jetRadiusBottom, jetLength, 48, 32, true);
     jetGeo.translate(0, jetLength / 2, 0);
 
-    const jetUniforms = THREE.UniformsUtils.clone(VolumetricJetMaterial.uniforms);
-    jetUniforms.uBaseRadius.value = baseRadius;
-    jetUniforms.uJetLength.value = jetLength;
-
-    const northVolumetricMat = new THREE.ShaderMaterial({
-        uniforms: jetUniforms,
+    const jetMat = new THREE.ShaderMaterial({
+        uniforms: THREE.UniformsUtils.clone(VolumetricJetMaterial.uniforms),
         vertexShader: VolumetricJetMaterial.vertexShader,
         fragmentShader: VolumetricJetMaterial.fragmentShader,
         transparent: true,
@@ -300,12 +295,10 @@ export function createQuasar(scene = null, config = {}) {
         depthWrite: false
     });
 
-    const southVolumetricMat = northVolumetricMat.clone();
-
-    const northJet = new THREE.Mesh(jetGeo, northVolumetricMat);
+    const northJet = new THREE.Mesh(jetGeo, jetMat);
     northJet.renderOrder = 8;
 
-    const southJet = new THREE.Mesh(jetGeo, southVolumetricMat);
+    const southJet = new THREE.Mesh(jetGeo, jetMat.clone());
     southJet.rotation.z = Math.PI;
     southJet.renderOrder = 8;
 
