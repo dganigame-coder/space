@@ -89,82 +89,111 @@ const JetShaderMaterial = {
  * Custom ShaderMaterial for the Accretion Disk
  * Enhanced with FBM noise and true relativistic Doppler beaming.
  */
-const AccretionDiskMaterial = {
+vec3 edgeColor = vec3(0.0, 0.1, 0.4); // Dark space blue at the rim
+
+            // Mix colors based on distance from the black hole
+            
+// ------------------------------------------------------------------------
+// PHASE 1: RELATIVISTIC ACCRETION DISK (Doppler Beaming)
+// ------------------------------------------------------------------------
+const AccretionDiskMaterial = new THREE.ShaderMaterial({
     uniforms: {
-        uTime: { value: 0 }
+        uTime: { value: 0 },
+        // Adjust these to match your exact inner/outer ring geometry values
+        uInnerRadius: { value: baseRadius * 1.25 }, 
+        uOuterRadius: { value: baseRadius * 7.0 }
     },
     vertexShader: /* glsl */`
         varying vec2 vUv;
+        varying vec3 vWorldPosition;
         varying vec3 vLocalPosition;
-        
+
         void main() {
             vUv = uv;
-            // Use local position so turbulence doesn't break when the group rotates
-            vLocalPosition = position; 
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            vLocalPosition = position; // Local geometry for calculating exact disk rings
+            
+            // Calculate true world position for camera angles
+            vec4 worldPos = modelMatrix * vec4(position, 1.0);
+            vWorldPosition = worldPos.xyz;
+            
+            gl_Position = projectionMatrix * viewMatrix * worldPos;
         }
     `,
     fragmentShader: /* glsl */`
         uniform float uTime;
+        uniform float uInnerRadius;
+        uniform float uOuterRadius;
+
         varying vec2 vUv;
+        varying vec3 vWorldPosition;
         varying vec3 vLocalPosition;
 
+        // Standard 3D Hash & Noise for the plasma texture
         float hash(vec2 p) {
-            return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+            return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
         }
-
         float noise(vec2 p) {
-            vec2 i = floor(p);
-            vec2 f = fract(p);
+            vec2 i = floor(p); vec2 f = fract(p);
             f = f * f * (3.0 - 2.0 * f);
-            return mix(mix(hash(i + vec2(0.0, 0.0)), hash(i + vec2(1.0, 0.0)), f.x),
+            return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), 
                        mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);
         }
-
         float fbm(vec2 p) {
-            float v = 0.0;
-            float a = 0.5;
-            for (int i = 0; i < 3; i++) {
-                v += a * noise(p);
-                p *= 2.0;
-                a *= 0.5;
-            }
+            float v = 0.0; float a = 0.5;
+            for(int i=0; i<5; i++) { v += a * noise(p); p *= 2.0; a *= 0.5; }
             return v;
         }
 
         void main() {
-            // RingGeometry local positions are on the XY plane
-            float radius = length(vLocalPosition.xy);
+            // 1. DISK GEOMETRY & SWIRL
+            // RingGeometry is typically built on the XY plane before we rotate it in Three.js
+            float radius = length(vLocalPosition.xy); 
             float angle = atan(vLocalPosition.y, vLocalPosition.x);
             
-            // Swirling turbulence
-            vec2 polar = vec2(radius * 0.00005 - uTime * 0.3, angle * 0.8);
-            float plasma = fbm(polar * 4.0);
+            // Normalize radius from 0.0 (inner) to 1.0 (outer)
+            float nRadius = (radius - uInnerRadius) / (uOuterRadius - uInnerRadius);
+            
+            // Create a swirling UV layout that speeds up near the center
+            vec2 swirlUV = vec2(nRadius * 3.0, angle * 2.0 - (uTime * 15.0 / (nRadius + 0.1)));
+            float plasma = fbm(swirlUV * 4.0);
 
-            // Smooth fading on the inner and outer edges
-            float innerFade = smoothstep(0.0, 0.08, vUv.y);
-            float outerFade = smoothstep(1.0, 0.3, vUv.y);
-            float radialMask = innerFade * outerFade;
+            // 2. RELATIVISTIC DOPPLER BEAMING
+            // Vector pointing from the pixel to the camera (cameraPosition is a built-in ThreeJS uniform)
+            vec3 viewDir = normalize(cameraPosition - vWorldPosition);
+            
+            // Tangent vector of the spinning disk in world space
+            // Assuming the disk rotates counter-clockwise around the Y axis
+            vec3 tangent = normalize(vec3(-vWorldPosition.z, 0.0, vWorldPosition.x));
+            
+            // Alignment: 1.0 = straight at you, -1.0 = straight away
+            float alignment = dot(viewDir, tangent);
+            
+            // Doppler Factor approximation (Lorentz beaming)
+            float beta = 0.85; // Speed of the disk as a fraction of the speed of light
+            float doppler = (1.0 + beta * alignment) / sqrt(1.0 - beta * beta);
+            
+            // Dramatically curve the intensity so the approaching side is blinding
+            float beamingIntensity = pow(doppler, 3.5) * 0.15; 
 
-            // Standard color gradient (Looks great without Bloom)
-            vec3 coreColor = vec3(1.0, 1.0, 1.0); // Blinding white at the center
-            vec3 midColor = vec3(0.2, 0.5, 1.0);  // Bright electric blue
-            vec3 edgeColor = vec3(0.0, 0.1, 0.4); // Dark space blue at the rim
+            // 3. COLOR SHIFTING (Blueshift vs Redshift)
+            vec3 colorApproaching = vec3(0.7, 0.9, 1.0); // Intense hot blue/white
+            vec3 colorRetreating = vec3(1.0, 0.2, 0.05); // Dim, stretched deep red
+            
+            // Map the alignment (-1.0 to 1.0) to a 0.0 to 1.0 mix factor
+            float shiftMix = (alignment + 1.0) * 0.5; 
+            vec3 baseColor = mix(colorRetreating, colorApproaching, shiftMix);
 
-            // Mix colors based on distance from the black hole
-            vec3 baseColor = mix(midColor, coreColor, pow(1.0 - vUv.y, 2.5));
-            baseColor = mix(edgeColor, baseColor, outerFade);
+            // 4. FINAL COMPOSITION
+            // Fade out smoothly at the inner and outer edges
+            float edgeFade = smoothstep(0.0, 0.05, nRadius) * smoothstep(1.0, 0.7, nRadius);
+            
+            vec3 finalColor = baseColor * plasma * beamingIntensity;
+            float finalAlpha = plasma * beamingIntensity * edgeFade;
 
-            // Add bright plasma streaks
-            vec3 finalColor = baseColor * (1.0 + plasma * 1.5);
-
-            // Soft, glowing alpha blending instead of harsh opacity
-            float alpha = radialMask * (0.15 + plasma * 0.85);
-
-            gl_FragColor = vec4(finalColor, alpha);
+            gl_FragColor = vec4(finalColor, finalAlpha);
         }
     `
-};
+});
 
 /**
  * Creates an Active Galactic Nucleus / Quasar
