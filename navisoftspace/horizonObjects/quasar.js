@@ -89,10 +89,7 @@ const JetShaderMaterial = {
  * Custom ShaderMaterial for the Accretion Disk
  * Enhanced with FBM noise and true relativistic Doppler beaming.
  */
-vec3 edgeColor = vec3(0.0, 0.1, 0.4); // Dark space blue at the rim
 
-            // Mix colors based on distance from the black hole
-            
 // ------------------------------------------------------------------------
 // PHASE 1: RELATIVISTIC ACCRETION DISK (Doppler Beaming)
 // ------------------------------------------------------------------------
