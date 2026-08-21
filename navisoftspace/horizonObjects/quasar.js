@@ -128,6 +128,101 @@ const AccretionDiskMaterial = {
     `
 };
 
+
+const VolumetricJetMaterial = {
+    uniforms: {
+        uTime: { value: 0 },
+        uBaseRadius: { value: 0.0 },
+        uJetLength: { value: 0.0 }
+    },
+    vertexShader: /* glsl */`
+        varying vec3 vWorldPosition;
+        varying vec3 vLocalPosition;
+
+        void main() {
+            vLocalPosition = position;
+            vec4 worldPos = modelMatrix * vec4(position, 1.0);
+            vWorldPosition = worldPos.xyz;
+            gl_Position = projectionMatrix * viewMatrix * worldPos;
+        }
+    `,
+    fragmentShader: /* glsl */`
+        uniform float uTime;
+        uniform float uBaseRadius;
+        uniform float uJetLength;
+
+        varying vec3 vWorldPosition;
+        varying vec3 vLocalPosition;
+
+        float hash(vec3 p) {
+            p = fract(p * vec3(443.897, 441.423, 437.195));
+            p += dot(p, p.yxz + 19.19);
+            return fract((p.x + p.y) * p.z);
+        }
+
+        float noise3D(vec3 p) {
+            vec3 i = floor(p); vec3 f = fract(p);
+            f = f * f * (3.0 - 2.0 * f);
+            return mix(
+                mix(mix(hash(i + vec3(0,0,0)), hash(i + vec3(1,0,0)), f.x),
+                    mix(hash(i + vec3(0,1,0)), hash(i + vec3(1,1,0)), f.x), f.y),
+                mix(mix(hash(i + vec3(0,0,1)), hash(i + vec3(1,0,1)), f.x),
+                    mix(hash(i + vec3(0,1,1)), hash(i + vec3(1,1,1)), f.x), f.y),
+                f.z
+            );
+        }
+
+        float fbm(vec3 p) {
+            float v = 0.0; float a = 0.5;
+            for (int i = 0; i < 3; i++) {
+                v += a * noise3D(p); p *= 2.02; a *= 0.5;
+            }
+            return v;
+        }
+
+        void main() {
+            // Raymarching setup: shoot ray from current camera position
+            vec3 rayDir = normalize(vWorldPosition - cameraPosition);
+            vec3 rayStep = rayDir * (uJetLength / 20.0);
+            vec3 currentPos = vLocalPosition;
+
+            float accumDensity = 0.0;
+            vec3 accumColor = vec3(0.0);
+
+            // 16 Raymarch steps through the bounding volume
+            for (int i = 0; i < 16; i++) {
+                float heightRatio = clamp(currentPos.y / uJetLength, 0.0, 1.0);
+                float distFromAxis = length(currentPos.xz);
+                float allowedRadius = mix(uBaseRadius * 0.8, uBaseRadius * 3.5, heightRatio);
+
+                float radialFade = smoothstep(allowedRadius, allowedRadius * 0.1, distFromAxis);
+                float heightFade = smoothstep(1.0, 0.2, heightRatio) * smoothstep(0.0, 0.03, heightRatio);
+
+                if (radialFade > 0.0 && heightFade > 0.0) {
+                    vec3 noiseCoord = vec3(
+                        currentPos.x * 0.000004,
+                        currentPos.y * 0.0000015 - uTime * 1.8,
+                        currentPos.z * 0.000004
+                    );
+                    
+                    float density = fbm(noiseCoord) * radialFade * heightFade;
+
+                    vec3 coreColor = vec3(0.9, 0.98, 1.0);
+                    vec3 edgeColor = vec3(0.02, 0.35, 1.0);
+                    vec3 stepColor = mix(edgeColor, coreColor, pow(radialFade, 1.8));
+
+                    accumDensity += density * 0.18;
+                    accumColor += stepColor * density * 0.22;
+                }
+
+                currentPos += rayStep;
+            }
+
+            gl_FragColor = vec4(accumColor, clamp(accumDensity, 0.0, 1.0));
+        }
+    `
+};
+
 // ============================================================================
 // QUASAR FACTORY INSTANCE
 // ============================================================================
@@ -183,30 +278,43 @@ export function createQuasar(scene = null, config = {}) {
     cloud.renderOrder = 6;
     group.add(cloud);
 
-    // 4. PLASMA JETS
+    // ------------------------------------------------------------------------
+    // 4. VOLUMETRIC RAYMARCHED PLASMA JETS
+    // ------------------------------------------------------------------------
     const jetLength = baseRadius * 35;
-    const jetRadiusTop = baseRadius * 3.2;
-    const jetRadiusBottom = baseRadius * 0.9;
-    const jetGeo = new THREE.CylinderGeometry(jetRadiusTop, jetRadiusBottom, jetLength, 48, 64, true);
+    const jetRadiusTop = baseRadius * 3.6;
+    const jetRadiusBottom = baseRadius * 1.0;
+
+    // Bounding volume box cylinder for raymarching
+    const jetGeo = new THREE.CylinderGeometry(jetRadiusTop, jetRadiusBottom, jetLength, 32, 1, true);
     jetGeo.translate(0, jetLength / 2, 0);
 
-    const northJetMat = new THREE.ShaderMaterial({
-        uniforms: THREE.UniformsUtils.clone(JetShaderMaterial.uniforms),
-        vertexShader: JetShaderMaterial.vertexShader,
-        fragmentShader: JetShaderMaterial.fragmentShader,
-        transparent: true, blending: THREE.AdditiveBlending,
-        side: THREE.DoubleSide, depthWrite: false
-    });
-    const southJetMat = northJetMat.clone();
+    const jetUniforms = THREE.UniformsUtils.clone(VolumetricJetMaterial.uniforms);
+    jetUniforms.uBaseRadius.value = baseRadius;
+    jetUniforms.uJetLength.value = jetLength;
 
-    const northJet = new THREE.Mesh(jetGeo, northJetMat);
+    const northVolumetricMat = new THREE.ShaderMaterial({
+        uniforms: jetUniforms,
+        vertexShader: VolumetricJetMaterial.vertexShader,
+        fragmentShader: VolumetricJetMaterial.fragmentShader,
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide,
+        depthWrite: false
+    });
+
+    const southVolumetricMat = northVolumetricMat.clone();
+
+    const northJet = new THREE.Mesh(jetGeo, northVolumetricMat);
     northJet.renderOrder = 8;
-    const southJet = new THREE.Mesh(jetGeo, southJetMat);
+
+    const southJet = new THREE.Mesh(jetGeo, southVolumetricMat);
     southJet.rotation.z = Math.PI;
     southJet.renderOrder = 8;
+
     group.add(northJet);
     group.add(southJet);
-
+    
     // 5. INNER SPINE (CORE LASER)
     const innerJetGeo = new THREE.CylinderGeometry(jetRadiusTop * 0.1, jetRadiusBottom * 0.05, jetLength * 1.02, 24, 1, true);
     innerJetGeo.translate(0, (jetLength * 1.02) / 2, 0);
@@ -239,18 +347,18 @@ export function createQuasar(scene = null, config = {}) {
 
     // 8. METADATA & UPDATE HOOK
     group.userData = {
-            type: 'quasar',
-            name: 'Distant Quasar X-1', // <--- ADD THIS LINE
-            update(time) {    
-                northJetMat.uniforms.uTime.value = time;
-                southJetMat.uniforms.uTime.value = time;
-                diskMat.uniforms.uTime.value = time; 
-                
-                accretionDisk.rotation.z = time * -0.3;
-                cloud.rotation.y = time * 0.02;
-            }
-        };
-
+        type: 'quasar',
+        name: 'Distant Quasar X-1',
+        update(time) {    
+            northVolumetricMat.uniforms.uTime.value = time;
+            southVolumetricMat.uniforms.uTime.value = time;
+            diskMat.uniforms.uTime.value = time;
+            
+            accretionDisk.rotation.z = time * -0.3;
+            cloud.rotation.y = time * 0.02;
+        }
+    };
+    
     if (scene?.add) scene.add(group);
     return group;
 }
