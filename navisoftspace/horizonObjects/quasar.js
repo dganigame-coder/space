@@ -239,16 +239,17 @@ export function createQuasar(scene = null, config = {}) {
 
     // 8. METADATA & UPDATE HOOK
     group.userData = {
-        type: 'quasar',
-        update(time) {    
-            northJetMat.uniforms.uTime.value = time;
-            southJetMat.uniforms.uTime.value = time;
-            diskMat.uniforms.uTime.value = time; // Successfully bound to the closure
-            
-            accretionDisk.rotation.z = time * -0.3;
-            cloud.rotation.y = time * 0.02;
-        }
-    };
+            type: 'quasar',
+            name: 'Distant Quasar X-1', // <--- ADD THIS LINE
+            update(time) {    
+                northJetMat.uniforms.uTime.value = time;
+                southJetMat.uniforms.uTime.value = time;
+                diskMat.uniforms.uTime.value = time; 
+                
+                accretionDisk.rotation.z = time * -0.3;
+                cloud.rotation.y = time * 0.02;
+            }
+        };
 
     if (scene?.add) scene.add(group);
     return group;
