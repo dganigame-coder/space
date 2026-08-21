@@ -131,95 +131,70 @@ const AccretionDiskMaterial = {
 
 const VolumetricJetMaterial = {
     uniforms: {
-        uTime: { value: 0 },
-        uBaseRadius: { value: 0.0 },
-        uJetLength: { value: 0.0 }
+        uTime: { value: 0 }
     },
     vertexShader: /* glsl */`
-        varying vec3 vWorldPosition;
-        varying vec3 vLocalPosition;
+        varying vec2 vUv;
+        varying vec3 vNormal;
+        varying vec3 vViewPosition;
 
         void main() {
-            vLocalPosition = position;
-            vec4 worldPos = modelMatrix * vec4(position, 1.0);
-            vWorldPosition = worldPos.xyz;
-            gl_Position = projectionMatrix * viewMatrix * worldPos;
+            vUv = uv;
+            vNormal = normalize(normalMatrix * normal);
+            vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+            vViewPosition = -mvPosition.xyz;
+            gl_Position = projectionMatrix * mvPosition;
         }
     `,
     fragmentShader: /* glsl */`
         uniform float uTime;
-        uniform float uBaseRadius;
-        uniform float uJetLength;
+        varying vec2 vUv;
+        varying vec3 vNormal;
+        varying vec3 vViewPosition;
 
-        varying vec3 vWorldPosition;
-        varying vec3 vLocalPosition;
-
-        float hash(vec3 p) {
-            p = fract(p * vec3(443.897, 441.423, 437.195));
-            p += dot(p, p.yxz + 19.19);
-            return fract((p.x + p.y) * p.z);
-        }
-
-        float noise3D(vec3 p) {
-            vec3 i = floor(p); vec3 f = fract(p);
+        float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+        float noise(vec2 p) {
+            vec2 i = floor(p); vec2 f = fract(p);
             f = f * f * (3.0 - 2.0 * f);
-            return mix(
-                mix(mix(hash(i + vec3(0,0,0)), hash(i + vec3(1,0,0)), f.x),
-                    mix(hash(i + vec3(0,1,0)), hash(i + vec3(1,1,0)), f.x), f.y),
-                mix(mix(hash(i + vec3(0,0,1)), hash(i + vec3(1,0,1)), f.x),
-                    mix(hash(i + vec3(0,1,1)), hash(i + vec3(1,1,1)), f.x), f.y),
-                f.z
-            );
+            return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), 
+                       mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);
         }
-
-        float fbm(vec3 p) {
+        float fbm(vec2 p) {
             float v = 0.0; float a = 0.5;
-            for (int i = 0; i < 4; i++) {
-                v += a * noise3D(p); p *= 2.05; a *= 0.5;
-            }
+            for(int i=0; i<3; i++) { v += a * noise(p); p *= 2.5; a *= 0.5; }
             return v;
         }
 
         void main() {
-            // Normalize local positions by baseRadius for scale independence
-            vec3 normPos = vLocalPosition / uBaseRadius;
-            float heightRatio = clamp(vLocalPosition.y / uJetLength, 0.0, 1.0);
-            float distFromAxis = length(vLocalPosition.xz);
+            // View angle intensity (Fresnel)
+            vec3 normal = normalize(vNormal);
+            vec3 viewDir = normalize(vViewPosition);
+            float rim = pow(1.0 - abs(dot(normal, viewDir)), 2.0);
 
-            // Expand maximum jet radius dynamically along its length
-            float maxRadius = mix(uBaseRadius * 1.0, uBaseRadius * 3.6, heightRatio);
+            // Fast moving plasma turbulence
+            vec2 uv = vec2(vUv.x * 4.0, vUv.y * 10.0 - uTime * 6.0);
+            float plasma = fbm(uv);
 
-            // Broad radial falloff to fill the entire cone volume
-            float radialFade = smoothstep(maxRadius, 0.0, distFromAxis);
-            float heightFade = smoothstep(1.0, 0.6, heightRatio) * smoothstep(0.0, 0.01, heightRatio);
+            // Traveling energy pulses
+            float pulse = pow(sin(vUv.y * 25.0 - uTime * 12.0) * 0.5 + 0.5, 4.0);
 
-            // Animated noise field creating dynamic plasma vapors
-            vec3 noiseCoord = vec3(
-                normPos.x * 0.4,
-                normPos.y * 0.15 - uTime * 2.5,
-                normPos.z * 0.4
-            );
+            // Length fade (taper off at ends)
+            float lengthFade = smoothstep(0.0, 0.1, vUv.y) * smoothstep(1.0, 0.4, vUv.y);
+
+            // High-contrast energy colors: Bright cyan/white core, electric blue body
+            vec3 coreColor = vec3(0.8, 0.95, 1.0);
+            vec3 plasmaColor = vec3(0.0, 0.5, 1.0);
             
-            float turbulence = fbm(noiseCoord);
+            vec3 finalColor = mix(plasmaColor, coreColor, plasma + pulse * 0.5);
             
-            // Traveling shockwave knots along the core axis
-            float shockPulse = pow(sin(heightRatio * 30.0 - uTime * 6.0) * 0.5 + 0.5, 6.0);
+            // Force high brightness so it pops against deep space
+            float alpha = (rim + plasma * 0.8 + pulse * 0.6) * lengthFade * 1.5;
 
-            // Combine energy layers
-            float plasmaDensity = (turbulence * 0.75 + shockPulse * 0.4) * radialFade * heightFade;
-
-            // Color gradient: White core -> Cyan energy vapors -> Deep blue/purple shear
-            vec3 coreColor = vec3(1.0, 1.0, 1.0) * 2.0;
-            vec3 vaporColor = vec3(0.0, 0.6, 1.0);
-            vec3 outerShear = vec3(0.2, 0.05, 0.6);
-
-            vec3 finalColor = mix(outerShear, vaporColor, radialFade);
-            finalColor = mix(finalColor, coreColor, pow(radialFade, 2.5));
-
-            gl_FragColor = vec4(finalColor * plasmaDensity * 1.5, clamp(plasmaDensity * 1.2, 0.0, 1.0));
+            gl_FragColor = vec4(finalColor * 3.0, clamp(alpha, 0.0, 1.0));
         }
     `
 };
+
 // ============================================================================
 // QUASAR FACTORY INSTANCE
 // ============================================================================
@@ -279,10 +254,11 @@ export function createQuasar(scene = null, config = {}) {
     // 4. REFACTORED VOLUMETRIC PLASMA JETS
     // ------------------------------------------------------------------------
     const jetLength = baseRadius * 35;
-    const jetRadiusTop = baseRadius * 4.5;    // Wide expanding cone tip
-    const jetRadiusBottom = baseRadius * 1.2; // Wide core anchor
+    const jetRadiusTop = baseRadius * 5.0;     // Wider plume tip
+    const jetRadiusBottom = baseRadius * 1.8;  // Thick anchor matching the core/disk interface
 
-    const jetGeo = new THREE.CylinderGeometry(jetRadiusTop, jetRadiusBottom, jetLength, 48, 32, true);
+    // Create a robust cylinder geometry and translate it outward from the center
+    const jetGeo = new THREE.CylinderGeometry(jetRadiusTop, jetRadiusBottom, jetLength, 64, 64, true);
     jetGeo.translate(0, jetLength / 2, 0);
 
     const jetMat = new THREE.ShaderMaterial({
@@ -298,6 +274,7 @@ export function createQuasar(scene = null, config = {}) {
     const northJet = new THREE.Mesh(jetGeo, jetMat);
     northJet.renderOrder = 8;
 
+    // Clone the material so the southern jet can run independent animation offsets if needed
     const southJet = new THREE.Mesh(jetGeo, jetMat.clone());
     southJet.rotation.z = Math.PI;
     southJet.renderOrder = 8;
