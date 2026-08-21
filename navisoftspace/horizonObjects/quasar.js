@@ -80,52 +80,50 @@ const AccretionDiskMaterial = {
             gl_Position = projectionMatrix * viewMatrix * worldPos;
         }
     `,
-    fragmentShader: /* glsl */`
-        uniform float uTime;
-        uniform float uInnerRadius;
-        uniform float uOuterRadius;
-        varying vec2 vUv;
-        varying vec3 vWorldPosition;
-        varying vec3 vLocalPosition;
+  fragmentShader: /* glsl */`
+            uniform float uTime;
+            varying vec2 vUv;
+            varying vec3 vNormal;
+            varying vec3 vViewPosition;
 
-        float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
-        float noise(vec2 p) {
-            vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 * f);
-            return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);
-        }
-        float fbm(vec2 p) {
-            float v = 0.0; float a = 0.5;
-            for(int i=0; i<5; i++) { v += a * noise(p); p *= 2.0; a *= 0.5; } return v;
-        }
+            float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+            float noise(vec2 p) {
+                vec2 i = floor(p); vec2 f = fract(p);
+                f = f * f * (3.0 - 2.0 * f);
+                return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), 
+                           mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);
+            }
+            float fbm(vec2 p) {
+                float v = 0.0; float a = 0.5;
+                for(int i=0; i<3; i++) { v += a * noise(p); p *= 2.5; a *= 0.5; }
+                return v;
+            }
 
-        void main() {
-            float radius = length(vLocalPosition.xy); 
-            float angle = atan(vLocalPosition.y, vLocalPosition.x);
-            float nRadius = (radius - uInnerRadius) / (uOuterRadius - uInnerRadius);
-            
-            vec2 swirlUV = vec2(nRadius * 3.0, angle * 2.0 - (uTime * 15.0 / (nRadius + 0.1)));
-            float plasma = fbm(swirlUV * 4.0);
+            void main() {
+                // View angle intensity (Fresnel core glow)
+                vec3 normal = normalize(vNormal);
+                vec3 viewDir = normalize(vViewPosition);
+                float rim = pow(1.0 - abs(dot(normal, viewDir)), 1.5);
 
-            vec3 viewDir = normalize(cameraPosition - vWorldPosition);
-            vec3 tangent = normalize(vec3(-vWorldPosition.z, 0.0, vWorldPosition.x));
-            float alignment = dot(viewDir, tangent);
-            
-            float beta = 0.85; 
-            float doppler = (1.0 + beta * alignment) / sqrt(1.0 - beta * beta);
-            float beamingIntensity = pow(doppler, 3.5) * 0.15; 
+                // Moving plasma turbulence
+                vec2 uv = vec2(vUv.x * 4.0, vUv.y * 8.0 - uTime * 4.0);
+                float plasma = fbm(uv);
 
-            vec3 colorApproaching = vec3(0.7, 0.9, 1.0); 
-            vec3 colorRetreating = vec3(1.0, 0.2, 0.05); 
-            float shiftMix = (alignment + 1.0) * 0.5; 
-            vec3 baseColor = mix(colorRetreating, colorApproaching, shiftMix);
+                // Length fade (soft taper at base and tip)
+                float lengthFade = smoothstep(0.0, 0.15, vUv.y) * smoothstep(1.0, 0.3, vUv.y);
 
-            float edgeFade = smoothstep(0.0, 0.05, nRadius) * smoothstep(1.0, 0.7, nRadius);
-            vec3 finalColor = baseColor * plasma * beamingIntensity;
-            float finalAlpha = plasma * beamingIntensity * edgeFade;
+                // Rich energy colors: Electric cyan outer, vibrant blue body, soft white core
+                vec3 outerColor = vec3(0.05, 0.3, 0.8);
+                vec3 coreColor = vec3(0.6, 0.9, 1.0);
+                
+                vec3 finalColor = mix(outerColor, coreColor, rim + plasma * 0.4);
+                
+                // Controlled alpha so it stays translucent and gaseous
+                float alpha = (rim * 0.6 + plasma * 0.5) * lengthFade;
 
-            gl_FragColor = vec4(finalColor, finalAlpha);
-        }
-    `
+                gl_FragColor = vec4(finalColor * 1.2, clamp(alpha, 0.0, 0.85));
+            }
+        `    `
 };
 
 
