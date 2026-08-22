@@ -234,22 +234,64 @@ export function createQuasar(scene = null, config = {}) {
     hostGalaxy.renderOrder = 0;
     group.add(hostGalaxy);
 
-    // 7. PREVENT DISAPPEARING ON CAMERA PAN
+    // ========================================================================
+    // 🚀 PHASE 2: ORBITING EXOPLANET / COMPANION
+    // ========================================================================
+    
+    // 7. THE PIVOT & PLANET
+    const planetPivot = new THREE.Group();
+    group.add(planetPivot); // Add pivot to the center of the Quasar
+
+    // Calculate a safe orbital distance far outside the accretion disk (diskOuter is baseRadius * 7)
+    const orbitalRadius = baseRadius * 15.0; 
+
+    // Create a scorched, rocky exoplanet
+    const planetGeo = new THREE.SphereGeometry(baseRadius * 0.4, 64, 64);
+    const planetMat = new THREE.MeshStandardMaterial({ 
+        color: 0x441111,    // Dark, scorched rock
+        roughness: 0.9, 
+        metalness: 0.2
+    });
+    const orbitingPlanet = new THREE.Mesh(planetGeo, planetMat);
+    
+    // Position the planet outward from the pivot center
+    orbitingPlanet.position.set(orbitalRadius, 0, 0); 
+    planetPivot.add(orbitingPlanet);
+
+    // 8. DYNAMIC LIGHTING (So the Quasar illuminates the planet)
+    // A massive light emitting from the center to light up the planet's day-side
+    const quasarLight = new THREE.PointLight(0xd0ffff, 3.5, orbitalRadius * 3);
+    group.add(quasarLight);
+
+    // ========================================================================
+
+    // 9. PREVENT DISAPPEARING ON CAMERA PAN
     group.traverse((child) => { if (child.isMesh) child.frustumCulled = false; });
 
-    // 8. METADATA & UPDATE HOOK
+    // 10. METADATA & UPDATE HOOK
     group.userData = {
-            type: 'quasar',
-            name: 'Distant Quasar X-1', // <--- ADD THIS LINE
-            update(time) {    
-                northJetMat.uniforms.uTime.value = time;
-                southJetMat.uniforms.uTime.value = time;
-                diskMat.uniforms.uTime.value = time; 
-                
-                accretionDisk.rotation.z = time * -0.3;
-                cloud.rotation.y = time * 0.02;
-            }
-        };
+        type: 'quasar',
+        name: 'Distant Quasar X-1',
+        update(time) {    
+            // Update Shaders
+            northJetMat.uniforms.uTime.value = time;
+            southJetMat.uniforms.uTime.value = time;
+            diskMat.uniforms.uTime.value = time; 
+            
+            accretionDisk.rotation.z = time * -0.3;
+            cloud.rotation.y = time * 0.02;
+
+            // 🚀 Phase 2: Drive the orbital mechanics
+            const orbitSpeed = 0.05; 
+            const planetRotationSpeed = 0.5;
+
+            // Rotate the pivot to swing the planet around the Quasar
+            planetPivot.rotation.y = time * orbitSpeed; 
+            
+            // Rotate the planet on its own local axis
+            orbitingPlanet.rotation.y = time * planetRotationSpeed;
+        }
+    };
 
     if (scene?.add) scene.add(group);
     return group;
