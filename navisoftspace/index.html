@@ -404,7 +404,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER2208262348</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER2208262354</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -796,13 +796,26 @@
             color: 0xffd700
         });
         
+        // If Earth is positioned at x: 150000 (for example)
+        const earthDistance = 150000;
+        
+        // The Heliopause radius MUST be ~120x larger than Earth's orbit
+        const heliopauseRadius = earthDistance * 120; 
+        
+        const heliopause = createHeliopause(engine.scene, {
+            radius: heliopauseRadius, // <--- Massively increase this!
+            colorInner: 0x0044ff, 
+            colorOuter: 0xff1166, 
+            opacity: 0.8
+        });
+        /*
         // 120 AU = ~18,000,000 units
         const heliopause = createHeliopause(engine.scene, {
             radius: 18000000,
             color: 0x4400ff,
             opacity: 0.1
         });
-
+        */
          const blackHole = createBlackHole(engine.scene, {
             size: 25000, // Increase this! Make it 5x larger than your planets
             position: { x: 0, y: 0, z: 500000000 }
