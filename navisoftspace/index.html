@@ -404,7 +404,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER2308262314</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER2308262328</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -1268,21 +1268,27 @@
 
         
 // 🌸 GJ 504b: Hyperrealistic Gas Giant Orbiting its G-Type Host Star
-        const gj504b = createExoplanetSystem(engine.scene, {
+    const gj504b = createExoplanetSystem(engine.scene, {
         name: "Exoplanet GJ 504b",
         
         x: -380000000, 
         y: 120000000, 
         z: 520000000,
     
+        // --- Host Star ---
         starRadius: 120000,        
         starColor: 0xffdd44,         
-        starOffset: 1500000, 
-    
-        // 1. MAKE IT BIGGER: 1800 is too small to see from millions of units away
-        planetRadius: 45000,          
-        planetColor: 0xe63956, // This pink color will now render!
+        starOffset: 1500000, // Brought in slightly so it's easier to find
         
+        // 🚀 THE LIGHTING FIX: 1e14 (100 trillion) is required to push light 1.5 million units in r160!
+        starLightIntensity: 1e14, 
+    
+        // --- Gas Giant Aesthetics & Texture ---
+        // 🚀 THE SCALE FIX: Boosted to 45,000 so it renders visibly on screen
+        planetRadius: 45000,          
+        planetColor: 0xe63956,       
+        
+        // Your NASA texture is safe to use!
         textureMap: "https://eyes.nasa.gov/apps/exo/assets/image/exoplanet/GJ_504_b.jpg", 
         
         roughness: 0.35,            
@@ -1293,11 +1299,9 @@
         atmosColor: 0xff0066,       
         atmosOpacity: 0.45,         
     
-        // 3. SPEED IT UP: Make it move fast so you can spot it immediately
-        orbitSpeed: 0.05,         
+        orbitSpeed: 0.05, // Sped up temporarily so you can see it moving!    
         rotationSpeed: 0.01         
     });
-        
        
     // ==========================================
     // 🌌 COMPONENT: OMC-2 Cloud of Creation (Orion Sword)
