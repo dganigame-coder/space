@@ -21,12 +21,14 @@ export function createExoplanetSystem(scene, config = {}) {
     const starColorObj = new THREE.Color(starColor);
 
     // 1. Host Star (Created using the dedicated star factory with corona, glow sprite, and point light)
-    const starGroup = createStar(null, {
+       const starGroup = createStar(null, {
         name: `${name} Host Star`,
         radius: starRadius,
         color: starColor,
         textureMap: starTextureMap,
-        x: -starOffset * 0.1,
+        
+        x: 0, // <--- CHANGE THIS: It must be exactly 0
+        
         castLight: true,
         lightIntensity: config.starLightIntensity || 3,
         lightRange: config.starLightRange || starOffset * 10
