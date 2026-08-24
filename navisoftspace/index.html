@@ -1155,7 +1155,7 @@
             sound: 'ROCKY_DEBRIS'
         });
 
-                const colors = [0xff4500, 0x00ffff, 0xffaa00]; 
+       const colors = [0xff4500, 0x00ffff, 0xffaa00]; 
         const positionVector = { x: -80000000, y: 30000000, z: -150000000 }; 
         
         const BornSystem = createProtoplanetaryDisk(engine.scene, {
@@ -1267,7 +1267,7 @@
     });
 
         
-// 🌸 GJ 504b: Hyperrealistic Gas Giant Orbiting its G-Type Host Star
+   // 🌸 GJ 504b: Hyperrealistic Gas Giant Orbiting its G-Type Host Star
     const gj504b = createExoplanetSystem(engine.scene, {
         name: "Exoplanet GJ 504b",
         
@@ -1301,7 +1301,7 @@
 
         // --- Orbital Dynamics ---
         orbitSpeed: 0.08,    // Active, clearly visible orbit
-        rotationSpeed: 0.04   // Smooth planetary spin
+        rotationSpeed: 0.02   // Smooth planetary spin
 
         // --- Orbital Dynamics ---
         //orbitSpeed: 0.0004,     // Slow, noticeable orbit around the star
@@ -1946,7 +1946,7 @@ const quasarX1 = createQuasar(engine.scene, {
 });
      // Initialize the quasar at your custom coordinates
 //const quasar = createQuasar(scene, { x: 100000, y: 0, z: -200000 });
-
+  
 // Tilt the entire object (including the jets and spray direction) 
 quasarX1.rotation.x = Math.PI * 0.15; // Tilt forward/backward
 quasarX1.rotation.z = Math.PI * 0.25; // Tilt sideways
