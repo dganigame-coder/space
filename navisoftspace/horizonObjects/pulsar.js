@@ -21,9 +21,12 @@ export function createPulsar(scene = null, config = {}) {
 
     // --- SHARED NOISE FUNCTION FOR SHADERS ---
     // Simplex 3D noise to create organic, boiling plasma instead of rigid sine waves
-    const fbmNoise = `
+        const fbmNoise = `
+        precision highp float; 
+        
         vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
         vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+        
         vec4 permute(vec4 x) { return mod289(((x*34.0)+1.0)*x); }
         vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
         float snoise(vec3 v) {
@@ -231,10 +234,13 @@ export function createPulsar(scene = null, config = {}) {
             ${fbmNoise}
 
             void main() {
-                // 1. High-speed upward moving noise for the beam energy
-                vec3 noiseCoord = vec3(vUv.x * 10.0, vUv.y * 5.0 - uTime * 10.0, uTime);
-                float noise = snoise(noiseCoord) * 0.5 + 0.5;
-                
+            vec3 noiseCoord = vec3(vUv.x * 10.0, vUv.y * 5.0 - uTime * 10.0, uTime);
+            
+            // FIX: Clamp the noise so it can never drop below zero on mobile GPUs
+            float rawNoise = snoise(noiseCoord) * 0.5 + 0.5;
+            float noise = max(rawNoise, 0.0); 
+    
+
                 // 2. Fades
                 float lengthFade = smoothstep(1.0, 0.0, vUv.y); // Fade out at the tip
                 float edgeFade = smoothstep(0.0, 0.5, sin(vUv.x * 3.14159)); // Cylindrical fade
