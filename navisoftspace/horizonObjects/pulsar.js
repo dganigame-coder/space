@@ -14,19 +14,16 @@ export function createPulsar(scene = null, config = {}) {
     const spinRig = new THREE.Group();
     group.add(spinRig);
 
-    // 2. MAGNETIC RIG (Tilted)
+    // 2. MAGNETIC RIG (Tilted just like the GIF)
     const magneticRig = new THREE.Group();
-    magneticRig.rotation.z = Math.PI * 0.15; // 27-degree offset (more realistic for known pulsars)
+    magneticRig.rotation.z = Math.PI * 0.2; // ~36 degree tilt
     spinRig.add(magneticRig);
 
-    // --- SHARED NOISE FUNCTION FOR SHADERS ---
-    // Simplex 3D noise to create organic, boiling plasma instead of rigid sine waves
-        const fbmNoise = `
-        precision highp float; 
-        
+    // --- SHARED HIGH-PRECISION NOISE (Mobile Safe) ---
+    const fbmNoise = `
+        precision highp float;
         vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
         vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
-        
         vec4 permute(vec4 x) { return mod289(((x*34.0)+1.0)*x); }
         vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
         float snoise(vec3 v) {
@@ -72,144 +69,50 @@ export function createPulsar(scene = null, config = {}) {
     `;
 
     // ------------------------------------------------------------------------
-    // 3. HYPER-HOT NEUTRON STAR CORE (Boiling Plasma)
+    // 3. CORE (Glowing Purple-White Orb)
     // ------------------------------------------------------------------------
     const coreGeo = new THREE.SphereGeometry(baseRadius, 64, 64);
     const coreMat = new THREE.ShaderMaterial({
-        uniforms: { uTime: { value: 0 } },
         vertexShader: `
             varying vec3 vNormal;
-            varying vec3 vPosition;
             varying vec3 vViewPosition;
             void main() {
                 vNormal = normalize(normalMatrix * normal);
-                vPosition = position;
                 vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
                 vViewPosition = -mvPosition.xyz;
                 gl_Position = projectionMatrix * mvPosition;
             }
         `,
         fragmentShader: `
-            uniform float uTime;
+            precision highp float;
             varying vec3 vNormal;
-            varying vec3 vPosition;
             varying vec3 vViewPosition;
-            ${fbmNoise}
             
             void main() {
                 vec3 normal = normalize(vNormal);
                 vec3 viewDir = normalize(vViewPosition);
                 
-                // Turbulent boiling surface
-                float noiseVal = snoise(vPosition * 0.0005 + uTime * 2.0) * 0.5 + 0.5;
-                
-                // Rim lighting
                 float rim = 1.0 - max(dot(viewDir, normal), 0.0);
                 float glow = smoothstep(0.0, 1.0, rim);
                 
-                vec3 coreColor = vec3(1.0, 1.0, 1.0); // Blinding white
-                vec3 edgeColor = vec3(0.1, 0.6, 1.0); // Cyan plasma
-                vec3 darkSpots = vec3(0.0, 0.2, 0.6); // Slightly cooler spots
+                vec3 coreColor = vec3(1.0, 1.0, 1.0); // Blinding white center
+                vec3 edgeColor = vec3(0.5, 0.2, 0.9); // Deep violet edge
                 
-                vec3 baseSurface = mix(darkSpots, coreColor, noiseVal);
-                vec3 finalColor = mix(baseSurface, edgeColor, pow(glow, 2.0));
-                
-                gl_FragColor = vec4(finalColor * 2.5, 1.0);
+                vec3 finalColor = mix(coreColor, edgeColor, pow(glow, 3.0));
+                gl_FragColor = vec4(finalColor * 2.0, 1.0);
             }
         `
     });
     const core = new THREE.Mesh(coreGeo, coreMat);
-    group.add(core); // Core doesn't need to spin mechanically, the shader handles the boiling
+    group.add(core); 
 
     // ------------------------------------------------------------------------
-    // 4. OPTICAL HALO (Simulates Bloom/Glare without post-processing)
+    // 4. VOLUMETRIC DUST BEAMS (The majestic light shafts from the GIF)
     // ------------------------------------------------------------------------
-    const haloGeo = new THREE.PlaneGeometry(baseRadius * 12, baseRadius * 12);
-    const haloMat = new THREE.ShaderMaterial({
-        vertexShader: `
-            varying vec2 vUv;
-            void main() {
-                vUv = uv;
-                // Billboard effect: force plane to always face the camera
-                vec4 modelViewPosition = modelViewMatrix * vec4(0.0, 0.0, 0.0, 1.0);
-                modelViewPosition.xy += position.xy;
-                gl_Position = projectionMatrix * modelViewPosition;
-            }
-        `,
-        fragmentShader: `
-            varying vec2 vUv;
-            void main() {
-                float dist = length(vUv - vec2(0.5));
-                float glow = 0.05 / (dist + 0.01) - 0.1; // Inverse square falloff
-                glow = clamp(glow, 0.0, 1.0);
-                vec3 color = vec3(0.2, 0.6, 1.0); // Cyan aura
-                gl_FragColor = vec4(color, glow * 0.8);
-            }
-        `,
-        transparent: true,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false
-    });
-    const halo = new THREE.Mesh(haloGeo, haloMat);
-    group.add(halo);
-
-    // ------------------------------------------------------------------------
-    // 5. ACCRETION DISC / PULSAR WIND (Swirling Volumetric Plasma)
-    // ------------------------------------------------------------------------
-    const torusGeo = new THREE.PlaneGeometry(baseRadius * 25.0, baseRadius * 25.0, 64, 64);
-    const torusMat = new THREE.ShaderMaterial({
-        uniforms: { uTime: { value: 0 } },
-        vertexShader: `
-            varying vec2 vUv;
-            varying vec3 vWorldPosition;
-            void main() {
-                vUv = uv;
-                vec4 worldPosition = modelMatrix * vec4(position, 1.0);
-                vWorldPosition = worldPosition.xyz;
-                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-            }
-        `,
-        fragmentShader: `
-            uniform float uTime;
-            varying vec2 vUv;
-            varying vec3 vWorldPosition;
-            ${fbmNoise}
-            
-            void main() {
-                vec2 uv = (vUv - 0.5) * 2.0;
-                float r = length(uv);
-                
-                // Rotational UVs for swirling effect
-                float angle = atan(uv.y, uv.x) + uTime * 2.0;
-                vec3 noiseCoord = vec3(cos(angle)*r, sin(angle)*r, uTime * 0.5) * 10.0;
-                
-                float noise = snoise(noiseCoord) * 0.5 + 0.5;
-                
-                // Cutout inner hole and fade outer edge
-                float ringMask = smoothstep(0.1, 0.3, r) * smoothstep(1.0, 0.6, r);
-                
-                // Inject noise into the ring mask
-                float plasma = ringMask * noise;
-                
-                vec3 color = vec3(0.1, 0.4, 0.9) * (plasma * 2.0);
-                gl_FragColor = vec4(color, plasma * 0.7);
-            }
-        `,
-        transparent: true,
-        blending: THREE.AdditiveBlending,
-        side: THREE.DoubleSide,
-        depthWrite: false
-    });
-    const torus = new THREE.Mesh(torusGeo, torusMat);
-    torus.rotation.x = Math.PI * 0.5; 
-    group.add(torus);
-
-    // ------------------------------------------------------------------------
-    // 6. VOLUMETRIC RELATIVISTIC JETS (Flared cones with intense cores)
-    // ------------------------------------------------------------------------
-    const jetLength = baseRadius * 80;
-    // Flared cone: wide at the top, tight at the bottom
-    const jetGeo = new THREE.CylinderGeometry(baseRadius * 12.0, baseRadius * 0.8, jetLength, 64, 1, true);
+    const jetLength = baseRadius * 120; // Extremely long beams
+    
+    // Very wide at the top, tight at the bottom to match the volumetric cone look
+    const jetGeo = new THREE.CylinderGeometry(baseRadius * 20.0, baseRadius * 0.5, jetLength, 64, 1, true);
     jetGeo.translate(0, jetLength / 2, 0);
 
     const jetMat = new THREE.ShaderMaterial({
@@ -227,42 +130,48 @@ export function createPulsar(scene = null, config = {}) {
             }
         `,
         fragmentShader: `
+            ${fbmNoise}
             uniform float uTime;
             uniform vec3 uViewVector;
             varying vec2 vUv;
             varying vec3 vWorldNormal;
-            ${fbmNoise}
 
             void main() {
-            vec3 noiseCoord = vec3(vUv.x * 10.0, vUv.y * 5.0 - uTime * 10.0, uTime);
-            
-            // FIX: Clamp the noise so it can never drop below zero on mobile GPUs
-            float rawNoise = snoise(noiseCoord) * 0.5 + 0.5;
-            float noise = max(rawNoise, 0.0); 
-    
-
-                // 2. Fades
-                float lengthFade = smoothstep(1.0, 0.0, vUv.y); // Fade out at the tip
-                float edgeFade = smoothstep(0.0, 0.5, sin(vUv.x * 3.14159)); // Cylindrical fade
+                // 1. Length and Edge fading (Creates the soft "spotlight" cone)
+                // vUv.y is 0 at the star, 1 at the far tip
+                float lengthFade = pow(1.0 - vUv.y, 2.0); 
+                float edgeFade = pow(sin(vUv.x * 3.14159265), 3.0); // Soft, blurred edges
                 
-                // 3. Core beam (intense center) vs Outer scatter
-                float isCore = pow(edgeFade, 4.0); 
-                vec3 coreColor = vec3(1.0, 1.0, 1.0) * isCore * 2.0;
-                vec3 scatterColor = vec3(0.0, 0.5, 1.0) * noise;
+                // 2. Simulated Illuminated Space Dust
+                // Slow moving noise to look like cosmic dust caught in the headlight
+                vec3 noiseCoord = vec3(vUv.x * 15.0, vUv.y * 5.0 - uTime * 0.5, uTime * 0.2);
+                float rawNoise = snoise(noiseCoord) * 0.5 + 0.5;
+                float dust = max(rawNoise, 0.0); // Clamp for mobile safety
                 
-                // 4. THE LIGHTHOUSE EFFECT (View Dot Product)
-                // If the jet cylinder normal points toward the camera, it flares brightly
+                // Keep the dust subtle, mostly acting as a texture multiplier
+                float beamDensity = edgeFade * lengthFade * mix(0.6, 1.0, dust);
+                
+                // 3. GIF Color Palette
+                vec3 coreGlow = vec3(1.0, 0.9, 1.0);   // White-pink hot center
+                vec3 midGlow = vec3(0.6, 0.4, 0.9);    // Lavender/Purple
+                vec3 outerGlow = vec3(0.1, 0.0, 0.3);  // Deep indigo void
+                
+                // Mix colors based on how dense the beam is at this pixel
+                vec3 finalColor = mix(outerGlow, midGlow, beamDensity * 2.0);
+                finalColor = mix(finalColor, coreGlow, pow(beamDensity, 3.0) * 2.5);
+                
+                // 4. Lighthouse Flash
+                // Flares up slightly when pointed directly at the camera
                 float viewDot = max(dot(vWorldNormal, uViewVector), 0.0);
-                float flash = pow(viewDot, 8.0) * 5.0; // Extreme exponential curve for a sharp flash
+                float flash = pow(viewDot, 10.0) * 2.0; 
                 
-                vec3 finalColor = coreColor + scatterColor + (vec3(0.5, 0.8, 1.0) * flash);
-                float alpha = (noise * 0.5 + isCore * 0.8 + flash) * lengthFade;
-                
-                gl_FragColor = vec4(finalColor, alpha);
+                // Final output (Additive Blending requires pre-multiplied alpha style)
+                float alpha = (beamDensity + flash * lengthFade) * 0.8;
+                gl_FragColor = vec4(finalColor + (vec3(0.8, 0.6, 1.0) * flash), alpha);
             }
         `,
         transparent: true,
-        blending: THREE.AdditiveBlending,
+        blending: THREE.AdditiveBlending, // Crucial for volumetric light
         side: THREE.DoubleSide,
         depthWrite: false
     });
@@ -275,26 +184,22 @@ export function createPulsar(scene = null, config = {}) {
     magneticRig.add(southJet);
 
     // ------------------------------------------------------------------------
-    // 7. UPDATE LOOP
+    // 5. UPDATE LOOP
     // ------------------------------------------------------------------------
     group.userData = {
         type: 'pulsar',
-        name: config.name || 'Pulsar PSR B1919+21',
+        name: config.name || 'Pulsar',
         category: 'PULSATING NEUTRON STAR',
         
-        // Ensure you pass the camera into your engine's update loop!
         update(time, camera = null) {
-            // Mechanical rotation
-            spinRig.rotation.y = time * 20.0; 
+            // Smooth, sweeping rotation (adjusted speed to match the majestic GIF feel)
+            spinRig.rotation.y = time * 3.5; 
             
-            // Sync time to shaders
-            coreMat.uniforms.uTime.value = time;
-            torusMat.uniforms.uTime.value = time;
+            // Sync time to shaders for the dust movement
             jetMat.uniforms.uTime.value = time;
 
-            // Sync the camera vector for the Lighthouse Flash
+            // Sync the camera vector for the flash
             if (camera) {
-                // Get a vector pointing from the pulsar to the camera
                 const viewVec = new THREE.Vector3().subVectors(camera.position, group.position).normalize();
                 jetMat.uniforms.uViewVector.value.copy(viewVec);
             }
