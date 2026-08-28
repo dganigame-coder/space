@@ -9,47 +9,83 @@ export function createSupernova(scene, config) {
     const spread = config.spread !== undefined ? config.spread : 50;
     const colors = config.colors && config.colors.length > 0 ? config.colors : [0xffaa00, 0xff4400];
     
-    // Internal 10-minute defaults
-    const CYCLE_DURATION = 600.0; 
-    const STABLE_END = 500.0;
-    const EXPLOSION_END = 550.0;
+    // ⏱️ 60-Second Total Cycle (20 seconds per phase)
+    const CYCLE_DURATION = 60.0; 
+    const STABLE_END = 20.0;
+    const EXPLOSION_END = 40.0;
 
-    // 🎨 Canvas Texture Generator (For Gas Filaments)
+    // 🎨 4K Canvas Texture Generator (For Gas Filaments)
     const canvas = document.createElement('canvas');
-    canvas.width = 128; canvas.height = 128;
+    canvas.width = 2048; canvas.height = 2048; // Upgraded to 4K fidelity
     const ctx = canvas.getContext('2d');
-    const gradient = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+    const gradient = ctx.createRadialGradient(1024, 1024, 0, 1024, 1024, 1024);
     gradient.addColorStop(0, 'rgba(255,255,255,1)');
     gradient.addColorStop(0.2, 'rgba(255,100,0,0.8)');
     gradient.addColorStop(0.5, 'rgba(255,0,0,0.2)');
     gradient.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, 128, 128);
+    ctx.fillRect(0, 0, 2048, 2048);
     const dynamicTexture = new THREE.CanvasTexture(canvas);
 
-    // ☀️ Procedural 3D Star Surface Texture Generator
-    const starSurfaceCanvas = document.createElement('canvas');
-    starSurfaceCanvas.width = 256; starSurfaceCanvas.height = 256;
-    const sCtx = starSurfaceCanvas.getContext('2d');
-    for (let x = 0; x < 256; x += 2) {
-        for (let y = 0; y < 256; y += 2) {
-            const noise = Math.floor(Math.random() * 75) + 180;
-            sCtx.fillStyle = `rgb(${noise}, ${Math.floor(noise * 0.45)}, ${Math.floor(noise * 0.05)})`;
-            sCtx.fillRect(x, y, 2, 2);
-        }
-    }
-    const starSurfaceTexture = new THREE.CanvasTexture(starSurfaceCanvas);
-    starSurfaceTexture.wrapS = THREE.RepeatWrapping;
-    starSurfaceTexture.wrapT = THREE.RepeatWrapping;
-
     // 🛑 1. Central Star (Hyper-Realistic Double Shell Overhaul)
-    const coreGeo = new THREE.SphereGeometry(size * 0.5, 64, 64); 
+    // Upgraded segments to 256 for perfectly smooth 4K silhouettes
+    const coreGeo = new THREE.SphereGeometry(size * 0.5, 256, 256); 
     
-    // LAYER A: The Liquid Plasma Surface Core
-    const coreMat = new THREE.MeshBasicMaterial({ 
-        map: starSurfaceTexture, 
-        transparent: true, 
-        opacity: 1.0 
+    // 💥 HYPERREALISTIC UPGRADE: GPU-Accelerated fBM Plasma Shader
+    const coreMat = new THREE.ShaderMaterial({
+        uniforms: {
+            time: { value: 0.0 },
+            baseColor: { value: new THREE.Color(colors[0]) },
+            opacity: { value: 1.0 }
+        },
+        transparent: true,
+        vertexShader: `
+            varying vec2 vUv;
+            void main() {
+                vUv = uv;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `,
+        fragmentShader: `
+            uniform float time;
+            uniform vec3 baseColor;
+            uniform float opacity;
+            varying vec2 vUv;
+
+            // Random hash function
+            float hash(vec2 p) { 
+                return fract(1e4 * sin(17.0 * p.x + p.y * 0.1) * (0.1 + abs(sin(p.y * 13.0 + p.x)))); 
+            }
+            // 2D Noise
+            float noise(vec2 x) {
+                vec2 i = floor(x);
+                vec2 f = fract(x);
+                vec2 u = f * f * (3.0 - 2.0 * f);
+                return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), u.x),
+                           mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);
+            }
+            // Fractional Brownian Motion (fBM)
+            float fbm(vec2 p) {
+                float v = 0.0; float a = 0.5;
+                mat2 rot = mat2(cos(0.5), sin(0.5), -sin(0.5), cos(0.5));
+                for (int i = 0; i < 6; ++i) {
+                    v += a * noise(p); 
+                    p = rot * p * 2.0 + 100.0; 
+                    a *= 0.5;
+                }
+                return v;
+            }
+
+            void main() {
+                vec2 uv = vUv * 4.0; // Scale plasma
+                float n = fbm(uv + time * 0.2);
+                float n2 = fbm(uv * 2.0 - time * 0.3);
+                float fire = pow(n * n2, 0.6) * 2.5; // Create intense heat spots
+                
+                // Final color composition
+                gl_FragColor = vec4(baseColor * fire, opacity);
+            }
+        `
     });
     const coreMesh = new THREE.Mesh(coreGeo, coreMat);
     group.add(coreMesh);
@@ -81,7 +117,6 @@ export function createSupernova(scene, config) {
     const spritesArray = [];
     for (let i = 0; i < count; i++) {
         const baseMat = sharedMaterials[Math.floor(Math.random() * sharedMaterials.length)];
-        // REMOVED .clone() -> Sprites now point to the master materials directly
         const sprite = new THREE.Sprite(baseMat); 
         
         const phi = Math.random() * Math.PI * 2;
@@ -107,18 +142,18 @@ export function createSupernova(scene, config) {
         state: 'MAIN_SEQUENCE' 
     };
   
-    // 3. 10-Minute Lifecycle Update Loop
+    // 3. Lifecycle Update Loop
     group.onUpdate = () => {
-        group.userData.age = (group.userData.age + 0.01) % CYCLE_DURATION;
+        // 0.0166 assumes 60fps, meaning age counts up by ~1.0 per real-world second
+        group.userData.age = (group.userData.age + 0.0166) % CYCLE_DURATION;
         const age = group.userData.age;
 
-        // 🔥 ANIMATION ENGINE FOR THE CORE TEXTURE
-        starSurfaceTexture.offset.x += 0.0008;
-        starSurfaceTexture.offset.y += 0.0004;
+        // 🔥 ANIMATION ENGINE
+        coreMat.uniforms.time.value += 0.01; // Drive the shader plasma animation
         coreMesh.rotation.y += 0.001;
         coronaMesh.rotation.z -= 0.0005; 
 
-        // --- STAGE 1: STABLE STAR (0s - 500s) ---
+        // --- STAGE 1: STABLE STAR (0s - 20s) ---
         if (age < STABLE_END) {
             group.userData.state = 'STABLE';
             group.userData.timeToChange = (STABLE_END - age).toFixed(1) + 's';
@@ -127,37 +162,37 @@ export function createSupernova(scene, config) {
             coronaMesh.visible = true;
             coreMesh.scale.setScalar(1.0);
             coronaMesh.scale.setScalar(1.08);
-            coreMat.opacity = 1.0;
+            
+            coreMat.uniforms.opacity.value = 1.0;
             coronaMat.opacity = 0.5;
 
-            // Global material change (Ultra fast!)
+            // Global material change (Ultra fast batching)
             sharedMaterials.forEach(m => m.opacity = 0.0);
             spritesArray.forEach(s => { 
                 s.position.set(0, 0, 0); 
             });
         } 
 
-        // --- STAGE 2: EXPLOSION (500s - 550s) ---
+        // --- STAGE 2: EXPLOSION (20s - 40s) ---
         else if (age >= STABLE_END && age < EXPLOSION_END) {
             group.userData.state = 'EXPLODING';
             group.userData.timeToChange = (EXPLOSION_END - age).toFixed(1) + 's';
             
-            const p = (age - STABLE_END) / 50.0; 
+            const p = (age - STABLE_END) / 20.0; // Scaled to the 20-second duration
             
             coreMesh.scale.setScalar(1.0 + (p * 8)); 
             coronaMesh.scale.setScalar((1.0 + (p * 8)) * 1.08);
             
-            coreMat.opacity = 1.0 - p;
+            coreMat.uniforms.opacity.value = 1.0 - p;
             coronaMat.opacity = (1.0 - p) * 0.5;
 
-            // Global material change
             sharedMaterials.forEach(m => m.opacity = p * 0.8);
             spritesArray.forEach(s => {
                 s.position.copy(s.userData.direction).multiplyScalar(spread * p);
             });
         } 
 
-        // --- STAGE 3: LINGERING NEBULA (550s - 600s) ---
+        // --- STAGE 3: LINGERING NEBULA (40s - 60s) ---
         else {
             group.userData.state = 'NEBULA';
             group.userData.timeToChange = (CYCLE_DURATION - age).toFixed(1) + 's';
@@ -167,7 +202,6 @@ export function createSupernova(scene, config) {
 
             const nebulaAge = age - EXPLOSION_END; 
 
-            // Global material change
             sharedMaterials.forEach(m => m.opacity = 0.25);
             spritesArray.forEach((s) => {
                 const drift = Math.sin(nebulaAge * 0.1) * (spread * 0.1);
