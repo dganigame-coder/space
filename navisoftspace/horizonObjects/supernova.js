@@ -1,4 +1,4 @@
-import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
+ import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
 
 export function createSupernova(scene, config) {
     const group = new THREE.Group();
@@ -9,83 +9,47 @@ export function createSupernova(scene, config) {
     const spread = config.spread !== undefined ? config.spread : 50;
     const colors = config.colors && config.colors.length > 0 ? config.colors : [0xffaa00, 0xff4400];
     
-    // ⏱️ 60-Second Total Cycle (20 seconds per phase)
+    // ⏱️ NEW: 60-Second Total Cycle (20 seconds per phase)
     const CYCLE_DURATION = 60.0; 
     const STABLE_END = 20.0;
     const EXPLOSION_END = 40.0;
 
-    // 🎨 4K Canvas Texture Generator (For Gas Filaments)
+    // 🎨 Canvas Texture Generator (For Gas Filaments)
     const canvas = document.createElement('canvas');
-    canvas.width = 2048; canvas.height = 2048; // Upgraded to 4K fidelity
+    canvas.width = 128; canvas.height = 128;
     const ctx = canvas.getContext('2d');
-    const gradient = ctx.createRadialGradient(1024, 1024, 0, 1024, 1024, 1024);
+    const gradient = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
     gradient.addColorStop(0, 'rgba(255,255,255,1)');
     gradient.addColorStop(0.2, 'rgba(255,100,0,0.8)');
     gradient.addColorStop(0.5, 'rgba(255,0,0,0.2)');
     gradient.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, 2048, 2048);
+    ctx.fillRect(0, 0, 128, 128);
     const dynamicTexture = new THREE.CanvasTexture(canvas);
 
+    // ☀️ Procedural 3D Star Surface Texture Generator
+    const starSurfaceCanvas = document.createElement('canvas');
+    starSurfaceCanvas.width = 256; starSurfaceCanvas.height = 256;
+    const sCtx = starSurfaceCanvas.getContext('2d');
+    for (let x = 0; x < 256; x += 2) {
+        for (let y = 0; y < 256; y += 2) {
+            const noise = Math.floor(Math.random() * 75) + 180;
+            sCtx.fillStyle = `rgb(${noise}, ${Math.floor(noise * 0.45)}, ${Math.floor(noise * 0.05)})`;
+            sCtx.fillRect(x, y, 2, 2);
+        }
+    }
+    const starSurfaceTexture = new THREE.CanvasTexture(starSurfaceCanvas);
+    starSurfaceTexture.wrapS = THREE.RepeatWrapping;
+    starSurfaceTexture.wrapT = THREE.RepeatWrapping;
+
     // 🛑 1. Central Star (Hyper-Realistic Double Shell Overhaul)
-    // Upgraded segments to 256 for perfectly smooth 4K silhouettes
-    const coreGeo = new THREE.SphereGeometry(size * 0.5, 256, 256); 
+    const coreGeo = new THREE.SphereGeometry(size * 0.5, 64, 64); 
     
-    // 💥 HYPERREALISTIC UPGRADE: GPU-Accelerated fBM Plasma Shader
-    const coreMat = new THREE.ShaderMaterial({
-        uniforms: {
-            time: { value: 0.0 },
-            baseColor: { value: new THREE.Color(colors[0]) },
-            opacity: { value: 1.0 }
-        },
-        transparent: true,
-        vertexShader: `
-            varying vec2 vUv;
-            void main() {
-                vUv = uv;
-                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-            }
-        `,
-        fragmentShader: `
-            uniform float time;
-            uniform vec3 baseColor;
-            uniform float opacity;
-            varying vec2 vUv;
-
-            // Random hash function
-            float hash(vec2 p) { 
-                return fract(1e4 * sin(17.0 * p.x + p.y * 0.1) * (0.1 + abs(sin(p.y * 13.0 + p.x)))); 
-            }
-            // 2D Noise
-            float noise(vec2 x) {
-                vec2 i = floor(x);
-                vec2 f = fract(x);
-                vec2 u = f * f * (3.0 - 2.0 * f);
-                return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), u.x),
-                           mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);
-            }
-            // Fractional Brownian Motion (fBM)
-            float fbm(vec2 p) {
-                float v = 0.0; float a = 0.5;
-                mat2 rot = mat2(cos(0.5), sin(0.5), -sin(0.5), cos(0.5));
-                for (int i = 0; i < 6; ++i) {
-                    v += a * noise(p); 
-                    p = rot * p * 2.0 + 100.0; 
-                    a *= 0.5;
-                }
-                return v;
-            }
-
-            void main() {
-                vec2 uv = vUv * 4.0; // Scale plasma
-                float n = fbm(uv + time * 0.2);
-                float n2 = fbm(uv * 2.0 - time * 0.3);
-                float fire = pow(n * n2, 0.6) * 2.5; // Create intense heat spots
-                
-                // Final color composition
-                gl_FragColor = vec4(baseColor * fire, opacity);
-            }
-        `
+    // LAYER A: The Liquid Plasma Surface Core
+    const coreMat = new THREE.MeshBasicMaterial({ 
+        map: starSurfaceTexture, 
+        transparent: true, 
+        opacity: 1.0 
     });
     const coreMesh = new THREE.Mesh(coreGeo, coreMat);
     group.add(coreMesh);
@@ -144,12 +108,13 @@ export function createSupernova(scene, config) {
   
     // 3. Lifecycle Update Loop
     group.onUpdate = () => {
-        // 0.0166 assumes 60fps, meaning age counts up by ~1.0 per real-world second
+        // 🔥 NEW: 0.0166 assumes 60fps. This adds ~1.0 to age per second.
         group.userData.age = (group.userData.age + 0.0166) % CYCLE_DURATION;
         const age = group.userData.age;
 
-        // 🔥 ANIMATION ENGINE
-        coreMat.uniforms.time.value += 0.01; // Drive the shader plasma animation
+        // 🔥 ANIMATION ENGINE FOR THE CORE TEXTURE
+        starSurfaceTexture.offset.x += 0.0008;
+        starSurfaceTexture.offset.y += 0.0004;
         coreMesh.rotation.y += 0.001;
         coronaMesh.rotation.z -= 0.0005; 
 
@@ -162,11 +127,10 @@ export function createSupernova(scene, config) {
             coronaMesh.visible = true;
             coreMesh.scale.setScalar(1.0);
             coronaMesh.scale.setScalar(1.08);
-            
-            coreMat.uniforms.opacity.value = 1.0;
+            coreMat.opacity = 1.0;
             coronaMat.opacity = 0.5;
 
-            // Global material change (Ultra fast batching)
+            // Global material change (Ultra fast!)
             sharedMaterials.forEach(m => m.opacity = 0.0);
             spritesArray.forEach(s => { 
                 s.position.set(0, 0, 0); 
@@ -178,14 +142,16 @@ export function createSupernova(scene, config) {
             group.userData.state = 'EXPLODING';
             group.userData.timeToChange = (EXPLOSION_END - age).toFixed(1) + 's';
             
-            const p = (age - STABLE_END) / 20.0; // Scaled to the 20-second duration
+            // 🔥 NEW: Divisor changed to 20.0 to match the 20-second duration of this phase
+            const p = (age - STABLE_END) / 20.0; 
             
             coreMesh.scale.setScalar(1.0 + (p * 8)); 
             coronaMesh.scale.setScalar((1.0 + (p * 8)) * 1.08);
             
-            coreMat.uniforms.opacity.value = 1.0 - p;
+            coreMat.opacity = 1.0 - p;
             coronaMat.opacity = (1.0 - p) * 0.5;
 
+            // Global material change
             sharedMaterials.forEach(m => m.opacity = p * 0.8);
             spritesArray.forEach(s => {
                 s.position.copy(s.userData.direction).multiplyScalar(spread * p);
@@ -202,6 +168,7 @@ export function createSupernova(scene, config) {
 
             const nebulaAge = age - EXPLOSION_END; 
 
+            // Global material change
             sharedMaterials.forEach(m => m.opacity = 0.25);
             spritesArray.forEach((s) => {
                 const drift = Math.sin(nebulaAge * 0.1) * (spread * 0.1);
@@ -213,3 +180,4 @@ export function createSupernova(scene, config) {
     scene.add(group);
     return group;
 }
+         
