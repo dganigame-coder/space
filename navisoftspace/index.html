@@ -549,7 +549,7 @@
     // LEVEL 2: SOLAR BOUNDARIES & LOCAL STELLAR NEIGHBORHOOD
     // ==========================================
     { name: "Oort Cloud", x: 0, y: 0, z: 65000000 },
-    { name: "'Oumuamua", x: 48000000, y: 20000, z: 49000000 },
+    { name: "'Oumuamua", x: 44000000, y: 100000, z: 52000000,
     { name: "Alpha Centauri Cluster Core", x: 50000000, y: 0, z: 50000000 },
     { name: "Alpha Centauri A", x: 50000000, y: 0, z: 50000000 },
     { name: "Alpha Centauri B", x: 50800000, y: 0, z: 50800000 },
@@ -813,11 +813,10 @@
             sound: 'DEEP_SPACE_STATIC'
               });
 
-
         const oumuamua = createInterstellarAnomaly(engine.scene, {
-                x: 48000000, // Positioned near the Alpha Centauri sector boundaries
-                y: 20000,
-                z: 49000000,
+                x: 44000000,
+                y: 100000,
+                z: 52000000,
                 name: "'Oumuamua / Interstellar Wanderer"
             });
         
