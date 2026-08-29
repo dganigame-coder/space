@@ -1868,7 +1868,7 @@
         sound: 'ROCKY_DEBRIS'
     });
     
-    
+    /*
     // ============================================================================
     // 🕳️🪐 EXOTIC: BLANET SYSTEM (Active Galactic Nucleus)
     // ============================================================================
@@ -1923,9 +1923,38 @@
         name: "Blanet Prime",
         type: "exoplanet"
     });
+    */
+
+    // ============================================================================
+    // 🕳️🪐 EXOTIC: BLANET SYSTEM (Active Galactic Nucleus)
+    // ============================================================================
+    const blanetSystemX = 500000000;
+    const blanetSystemY = -100000000;
+    const blanetSystemZ = -600000000; 
     
+    // 1 & 2. THE BLACK HOLE CORE AND DISK (Combined into the new shader)
+    const smbhCore = createBlackHole(engine.scene, {
+        name: "Active Galactic Nucleus (SMBH)",
+        size: 50000, // Made it bigger to reflect Supermassive status
+        x: blanetSystemX,
+        y: blanetSystemY,
+        z: blanetSystemZ
+    });
+    // Add to updatables so the shader spins
+    if (engine.updatables) engine.updatables.push(smbhCore);
     
-       // ============================================================================
+    // (You can delete the old createBelt accretionDisk completely!)
+    
+    // 3. THE BLANET (Keep exactly as is, orbiting the new shader)
+    const theoreticalBlanet = createExoplanet(engine.scene, {
+        x: blanetSystemX + 1200000, 
+        y: blanetSystemY,
+        z: blanetSystemZ + 1200000, 
+        name: "Blanet Prime",
+        type: "exoplanet"
+    });
+    
+    // ============================================================================
     // 🪐 KEPLER-186 SYSTEM (First Earth-Sized Habitable-Zone Exoplanet)
     // ============================================================================
     const kepler186X = 220000000;
