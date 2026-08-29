@@ -292,24 +292,6 @@
 </div>
     
 <script>
-
-    /* set file time */
-    // 1. Get the last modified date of the current HTML file
-    const modifiedDate = new Date(document.lastModified);
-    
-    // 2. Extract and pad the components to always be 2 digits (e.g., '9' becomes '09')
-    const day = String(modifiedDate.getDate()).padStart(2, '0');
-    const month = String(modifiedDate.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
-    const year = String(modifiedDate.getFullYear()).slice(-2); // Get last 2 digits of year
-    const hours = String(modifiedDate.getHours()).padStart(2, '0');
-    const minutes = String(modifiedDate.getMinutes()).padStart(2, '0');
-    
-    // 3. Assemble the string to match your exact format
-    const versionString = `NAVISOFT-VER${day}${month}${year}${hours}${minutes}`;
-    
-    // 4. Inject it into the HTML
-    document.getElementById('version-header').innerText = versionString;
-    /* */
     const debugBox = document.getElementById('mobile-debug');
 
     function toggleDebug() {
@@ -514,7 +496,23 @@
     import { createPluto } from 'pluto';
   
      let autoPilotActive = false; 
-        
+    /* set file time */
+    // 1. Get the last modified date of the current HTML file
+    const modifiedDate = new Date(document.lastModified);
+    
+    // 2. Extract and pad the components to always be 2 digits (e.g., '9' becomes '09')
+    const day = String(modifiedDate.getDate()).padStart(2, '0');
+    const month = String(modifiedDate.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+    const year = String(modifiedDate.getFullYear()).slice(-2); // Get last 2 digits of year
+    const hours = String(modifiedDate.getHours()).padStart(2, '0');
+    const minutes = String(modifiedDate.getMinutes()).padStart(2, '0');
+    
+    // 3. Assemble the string to match your exact format
+    const versionString = `NAVISOFT-VER${day}${month}${year}${hours}${minutes}`;
+    
+    // 4. Inject it into the HTML
+    document.getElementById('version-header').innerText = versionString;
+    /* */
 
     const enginePromise = initEngine();
     // --- 1. INITIALIZE ALL BODIES ---
