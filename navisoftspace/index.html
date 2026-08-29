@@ -292,6 +292,24 @@
 </div>
     
 <script>
+
+    /* set file time */
+    // 1. Get the last modified date of the current HTML file
+    const modifiedDate = new Date(document.lastModified);
+    
+    // 2. Extract and pad the components to always be 2 digits (e.g., '9' becomes '09')
+    const day = String(modifiedDate.getDate()).padStart(2, '0');
+    const month = String(modifiedDate.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+    const year = String(modifiedDate.getFullYear()).slice(-2); // Get last 2 digits of year
+    const hours = String(modifiedDate.getHours()).padStart(2, '0');
+    const minutes = String(modifiedDate.getMinutes()).padStart(2, '0');
+    
+    // 3. Assemble the string to match your exact format
+    const versionString = `NAVISOFT-VER${day}${month}${year}${hours}${minutes}`;
+    
+    // 4. Inject it into the HTML
+    document.getElementById('version-header').innerText = versionString;
+    /* */
     const debugBox = document.getElementById('mobile-debug');
 
     function toggleDebug() {
@@ -404,7 +422,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER2908260801</h1>
+        <h1 id="version-header" style="letter-spacing: 10px;"></h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -445,7 +463,7 @@
         "exoplanet":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@fd692ae/navisoftspace/horizonObjects/exoplanet.js",
         "exoplanetsystem":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@8bee183/navisoftspace/horizonObjects/exoplanetsystem.js",
         "nebula":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@6e9f516/navisoftspace/horizonObjects/nebula.js",
-        "supernova":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@98a6f5a/navisoftspace/horizonObjects/supernova.js",
+        "supernova":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@3930fc6/navisoftspace/horizonObjects/supernova.js",
         "quasar":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@4477840/navisoftspace/horizonObjects/quasar.js",
         "pulsar":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@0273a7b/navisoftspace/horizonObjects/pulsar.js",
         "protoplanetaryDisk":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@7fe727e/navisoftspace/horizonObjects/protoplanetaryDisk.js"
