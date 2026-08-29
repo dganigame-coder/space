@@ -1925,27 +1925,41 @@
     });
     */
 
-    // ============================================================================
+// ============================================================================
     // 🕳️🪐 EXOTIC: BLANET SYSTEM (Active Galactic Nucleus)
     // ============================================================================
     const blanetSystemX = 500000000;
     const blanetSystemY = -100000000;
     const blanetSystemZ = -600000000; 
     
-    // 1 & 2. THE BLACK HOLE CORE AND DISK (Combined into the new shader)
+    // 1. THE HOST: Supermassive Black Hole (Inner Plasma Disk)
     const smbhCore = createBlackHole(engine.scene, {
         name: "Active Galactic Nucleus (SMBH)",
-        size: 50000, // Made it bigger to reflect Supermassive status
+        size: 50000, 
         x: blanetSystemX,
         y: blanetSystemY,
         z: blanetSystemZ
     });
-    // Add to updatables so the shader spins
     if (engine.updatables) engine.updatables.push(smbhCore);
     
-    // (You can delete the old createBelt accretionDisk completely!)
+    // 2. THE DEBRIS TORUS: Rocky Accretion Belt (Where the Blanet forms)
+    const accretionDisk = createBelt(engine.scene, {
+        x: blanetSystemX, 
+        y: blanetSystemY, 
+        z: blanetSystemZ, 
+        count: 8000,
+        // 🎯 Pushed outward so it wraps around the outside of the glowing plasma shader!
+        innerRadius: 350000, 
+        outerRadius: 800000, 
+        verticalScatter: 15000, // Made it a bit thicker for depth
+        color: 0xffaa33,
+        size: { min: 500, max: 3000 },
+        type: 'asteroid_belt',
+        name: 'Outer Rocky Accretion Torus',
+        sound: 'ROCKY_DEBRIS'
+    });
     
-    // 3. THE BLANET (Keep exactly as is, orbiting the new shader)
+    // 3. THE BLANET (Massive Exoplanet orbiting safely outside the rocky debris)
     const theoreticalBlanet = createExoplanet(engine.scene, {
         x: blanetSystemX + 1200000, 
         y: blanetSystemY,
@@ -2318,7 +2332,7 @@ quasarX1.rotation.z = Math.PI * 0.25; // Tilt sideways
                                 sharedBelt,oumuamua, BornSystem,
                                 quasiStarSystem,quasiStarDisk,
                                 smbhCore,
-                                //accretionDisk,
+                                accretionDisk,
                                 theoreticalBlanet,
                                 tauCetiDisk,tauCetiStar,
                                  momCore, momGasCloud,
@@ -2672,13 +2686,13 @@ quasarX1.rotation.z = Math.PI * 0.25; // Tilt sideways
                 quasiStarDisk.rotation.y += 0.0002; // Glowing, energetic stellar envelope drift
                 quasiStarDisk.updateMatrix();
             }
-            /*
+            
             // 4. SMBH / Blanet Accretion Disk
             if (accretionDisk) {
                 accretionDisk.rotation.y += 0.0005; // Faster spin for matter falling into the singularity
                 accretionDisk.updateMatrix();
             }
-            */
+            
             // ==========================================
             // 🌀 UPDATE & ANIMATE WORMHOLES
             // ==========================================
