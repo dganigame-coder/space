@@ -1377,7 +1377,7 @@
         notes: "Dense dust filament tracking embryonic stars and polycyclic aromatic hydrocarbon emissions."
     };
     
-    
+    /*
     // ==========================================
     // 🕳️ NEW OBJECT: SDSS J110546 Prototype Active Nucleus
     // ==========================================
@@ -1426,7 +1426,42 @@
         type: "Rapid-Growth Lightweight SMBH",
         notes: "Prototype galaxy showing 20-fold radio jet amplification. Mimics early universe conditions in nearby space."
     };
-           
+      */
+
+        // ==========================================
+    // 🕳️ NEW OBJECT: SDSS J110546 Prototype Active Nucleus
+    // ==========================================
+    const sdsx = 450000000;
+    const sdsy = -120000000;
+    const sdsz = -550000000;
+    
+    // Component A: The TRUE Black Hole Core (Using your new shader)
+    const sdssBlackHoleCore = createBlackHole(engine.scene, {
+        name: "SDSS J110546 Core",
+        size: 25000, 
+        x: sdsx,
+        y: sdsy,
+        z: sdsz
+    });
+    // Add to updatables so the shader spins
+    if (engine.updatables) engine.updatables.push(sdssBlackHoleCore);
+    
+    // Component B: The Relativistic Radio Jet (Keep this exactly as is!)
+    const sdssRadioJet = createNebula(engine.scene, {
+        x: sdsx,
+        y: sdsy + 150000,   // Notice I reduced this slightly so it connects to the disk better
+        z: sdsz,
+        count: 12000,
+        spread: 80000,       
+        size: 90000,
+        colors: [ 0x00ffff, 0x0055ff ],
+        name: "SDSS J110546 Jet"
+    });
+    sdssRadioJet.scale.set(1, 15, 1); 
+    sdssRadioJet.updateMatrix();
+
+
+        /*...................*/
     const k218 = createExoplanetSystem(engine.scene, {
         x: 180000000, y: 45000000, z: -320000000,
         name: "K2-18b",
