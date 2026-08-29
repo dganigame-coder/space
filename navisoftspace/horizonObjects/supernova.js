@@ -96,7 +96,8 @@ export function createSupernova(scene, config) {
         transparent: true,
         opacity: 0.5,
         blending: THREE.AdditiveBlending, 
-        side: THREE.BackSide 
+        side: THREE.BackSide ,
+        depthWrite: false
     });
     const coronaMesh = new THREE.Mesh(coreGeo.clone(), coronaMat);
     coronaMesh.scale.setScalar(1.08); 
@@ -109,7 +110,8 @@ export function createSupernova(scene, config) {
             color: color,
             transparent: true,
             opacity: 0.0,
-            blending: THREE.AdditiveBlending
+            blending: THREE.AdditiveBlending,
+            depthWrite: false
         });
     });
 
