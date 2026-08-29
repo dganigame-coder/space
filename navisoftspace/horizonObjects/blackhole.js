@@ -166,7 +166,7 @@ export function createBlackHole(scene, config) {
         }
     };
 
-    group.position.set(config.position.x, config.position.y, config.position.z);
+    group.position.set(config.x, config.y, config.z);
     scene.add(group);
 
     return group;
