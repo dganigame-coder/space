@@ -2317,7 +2317,9 @@ quasarX1.rotation.z = Math.PI * 0.25; // Tilt sideways
                                 remnant, andromeda, blackEyeCore,blackEyeDust,molecularCloud, 
                                 sharedBelt,oumuamua, BornSystem,
                                 quasiStarSystem,quasiStarDisk,
-                                smbhCore,accretionDisk,theoreticalBlanet,
+                                smbhCore,
+                                //accretionDisk,
+                                theoreticalBlanet,
                                 tauCetiDisk,tauCetiStar,
                                  momCore, momGasCloud,
                                  cosmicHorizon,omc2Nebula, quasarX1
@@ -2670,13 +2672,13 @@ quasarX1.rotation.z = Math.PI * 0.25; // Tilt sideways
                 quasiStarDisk.rotation.y += 0.0002; // Glowing, energetic stellar envelope drift
                 quasiStarDisk.updateMatrix();
             }
-            
+            /*
             // 4. SMBH / Blanet Accretion Disk
             if (accretionDisk) {
                 accretionDisk.rotation.y += 0.0005; // Faster spin for matter falling into the singularity
                 accretionDisk.updateMatrix();
             }
-
+            */
             // ==========================================
             // 🌀 UPDATE & ANIMATE WORMHOLES
             // ==========================================
