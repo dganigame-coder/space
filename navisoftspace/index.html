@@ -404,7 +404,7 @@
     <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
 
     <div id="overlay">
-        <h1 style="letter-spacing: 10px;">NAVISOFT-VER2908260727</h1>
+        <h1 style="letter-spacing: 10px;">NAVISOFT-VER2908260738</h1>
         <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
         <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
     </div>
@@ -1009,23 +1009,27 @@
             type:"supernova"
         });
         
-        // 🎯 THE FIX: Force the material color shift if the factory function ignored it
+        // 🎯 THE FIX: Safely force the material color shift
+        /*
         if (ic434Grave) {
             ic434Grave.name = "IC 434 / Keplerian Ghost Filament";
                 
-            // Traverse the supernova object to find its meshes and force the green/gold palette
             ic434Grave.traverse((child) => {
-                if (child.isMesh && child.material) {
-                    // Change the mesh directly to a ghost emerald green
-                    child.material.color.setHex(0x00ff66); 
+                // We check if it has a material (this applies to both Meshes and Sprites)
+                if (child.material) {
                     
-                    // If it uses a custom shader material with uniforms:
-                    if (child.material.uniforms && child.material.uniforms.uColor) {
-                        child.material.uniforms.uColor.value.setHex(0x00ff66);
+                    // 1. If it's a standard material with a native color property:
+                    if (child.material.color) {
+                        child.material.color.setHex(0x00ff66); 
+                    }
+                    
+                    // 2. If it's our new 4K ShaderMaterial (uses 'baseColor' instead of 'uColor'):
+                    if (child.material.uniforms && child.material.uniforms.baseColor) {
+                        child.material.uniforms.baseColor.value.setHex(0x00ff66);
                     }
                 }
             });
-        }
+        }*/
 
         
         // 1. Create the surrounding Crab Nebula expansion cloud
