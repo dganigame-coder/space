@@ -160,8 +160,11 @@ export function createSupernova(scene, config) {
             group.userData.state = 'STABLE';
             group.userData.timeToChange = (STABLE_END - age).toFixed(1) + 's';
             
-            coreMesh.visible = true;
-            coronaMesh.visible = true;
+            //coreMesh.visible = true;
+            //coronaMesh.visible = true;
+            coreMesh.visible = false;   
+            coronaMesh.visible = false;
+            
             coreMesh.scale.setScalar(1.0);
             coronaMesh.scale.setScalar(1.08);
             
