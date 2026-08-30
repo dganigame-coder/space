@@ -141,7 +141,7 @@ export function createBlackHole(scene, config) {
     lensingHalo.rotation.y = 0.15; // Slight offset so it bends around the sphere
     group.add(lensingHalo);
 
-    // =========================================================
+    /    // =========================================================
     // 5. LIGHTING & DATA EXPORT
     // =========================================================
     const light = new THREE.PointLight(0xffaa55, 15, radius * 200);
@@ -168,6 +168,15 @@ export function createBlackHole(scene, config) {
 
     group.position.set(config.x, config.y, config.z);
     scene.add(group);
+
+    // 🎯 ADD THIS RIGHT HERE: 
+    // This tells Three.js to NEVER hide any part of the black hole, 
+    // stopping it from disappearing when you look at it or move the camera.
+    group.traverse((child) => {
+        if (child.isMesh) {
+            child.frustumCulled = false;
+        }
+    });
 
     return group;
 }
