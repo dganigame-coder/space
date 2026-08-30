@@ -141,7 +141,7 @@ export function createBlackHole(scene, config) {
     lensingHalo.rotation.y = 0.15; // Slight offset so it bends around the sphere
     group.add(lensingHalo);
 
-    /    // =========================================================
+    // =========================================================
     // 5. LIGHTING & DATA EXPORT
     // =========================================================
     const light = new THREE.PointLight(0xffaa55, 15, radius * 200);
