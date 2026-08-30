@@ -2303,12 +2303,24 @@ quasarX1.rotation.z = Math.PI * 0.25; // Tilt sideways
                 z: cfg.z,
                 name: cfg.name
             });
-        
+        /*
             // 🎯 Store target jump coordinates right inside the mesh's userData
             if (wormhole) {
                 wormhole.userData.targetDestination = cfg.target;
                 activeWormholesList.push(wormhole);
             }
+            */
+            // Check the exact state your updateWormhole function calculates
+    if (wormhole.userData.isOpen === true) {
+    
+    // If it's open, fire the 4K tunnel effect!
+    triggerWormholeTransition(engine.scene, engine.camera, () => {
+         // Teleport the ship here
+    });
+} else {
+    console.log("The gate is currently closed/unstable!");
+}
+
         });
         
 
