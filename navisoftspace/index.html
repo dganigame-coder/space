@@ -2691,14 +2691,46 @@ quasarX1.rotation.z = Math.PI * 0.25; // Tilt sideways
             }
             
             // ==========================================
-            // 🌀 UPDATE & ANIMATE WORMHOLES
+            // 🌀 UPDATE, ANIMATE & JUMP WORMHOLES
             // ==========================================
             const currentTime = Date.now();
             
             for (let i = 0; i < activeWormholesList.length; i++) {
                 const wormhole = activeWormholesList[i];
+                
+                // 1. Existing animations
                 wormhole.rotation.z -= 0.01;
                 updateWormhole(wormhole, currentTime);
+            
+                // 2. 🎯 ADD THIS: Dynamic proximity check
+                const currentRadius = 12000 * wormhole.scale.x; 
+                const distance = engine.camera.position.distanceTo(wormhole.position);
+            
+                // If the camera enters the active radius and we aren't already warping
+                if (distance < currentRadius && !window.isWarping) {
+                    if (wormhole.userData.isOpen === true) {
+                        window.isWarping = true; // Lock to prevent multiple triggers
+                        const dest = wormhole.userData.targetDestination;
+                        
+                        console.log(`Entering ${wormhole.userData.name} -> Jumping to ${dest.name}`);
+            
+                        // 🚀 FIRE THE 4K TRANSITION EFFECT
+                        triggerWormholeTransition(engine.scene, engine.camera, () => {
+                            // 🎯 TELEPORT: Move camera and ship to destination coordinates
+                            engine.camera.position.set(dest.x, dest.y, dest.z);
+                            if (typeof ship !== 'undefined' && ship) {
+                                ship.position.set(dest.x, dest.y, dest.z);
+                            }
+            
+                            // Unlock warping after a brief cooldown
+                            setTimeout(() => {
+                                window.isWarping = false;
+                            }, 2000);
+                        });
+                    } else {
+                        console.log(`${wormhole.userData.name} is currently closed/unstable!`);
+                    }
+                }
             }
 
             // 6. HUD VISUALS - NEAREST BODY
