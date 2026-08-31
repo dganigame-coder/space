@@ -461,7 +461,7 @@
     import { SaveSystem } from 'save';
     import { createBelt } from 'asteroidbelt'; 
     import { createBlackHole } from 'blackhole';
-    import { createWormhole, updateWormhole } from 'wormhole';
+    import { createWormhole, updateWormhole , triggerWormholeTransition } from 'wormhole';
     import { createStars } from 'stars';
     import { UniverseGenerator } from 'universe';
     import { createVoyager } from 'voyager';
@@ -2234,94 +2234,79 @@ quasarX1.rotation.z = Math.PI * 0.25; // Tilt sideways
     });
 
         
-        // ============================================================================
-        // 🌀 WORMHOLE NETWORK CONFIGURATION & JUMP DESTINATIONS
-        // ============================================================================
-        // Setup block in index.html
-        const wormholeConfigs = [
-            { 
-                name: "Sol System Boundary Exit", 
-                x: 5000, y: -2000, z: 20000000, 
-                target: { name: "Centauri Cluster Junction", x: 49000000, y: 500000, z: 49000000 } 
-            },
-            { 
-                name: "Centauri Cluster Junction", 
-                x: 49000000, y: 500000, z: 49000000, 
-                target: { name: "Orion Nursery Gateway", x: 19000000, y: 4800000, z: -69000000 } 
-            },
-            { 
-                name: "Orion Nursery Gateway", 
-                x: 19000000, y: 4800000, z: -69000000, 
-                target: { name: "Carina Deep Space Drift", x: -119000000, y: -44000000, z: -59000000 } 
-            },
-            { 
-                name: "Carina Deep Space Drift", 
-                x: -119000000, y: -44000000, z: -59000000, 
-                target: { name: "Tau Ceti Core Pipeline", x: 149000000, y: 9500000, z: 149000000 } 
-            },
-            { 
-                name: "Tau Ceti Core Pipeline", 
-                x: 149000000, y: 9500000, z: 149000000, 
-                target: { name: "Andromeda Intergalactic Bridge", x: 148000000, y: 79000000, z: -288000000 } 
-            },
-            { 
-                name: "Andromeda Intergalactic Bridge", 
-                x: 148000000, y: 79000000, z: -288000000, 
-                target: { name: "Black Eye Deep Rim", x: 198000000, y: 88000000, z: -398000000 } 
-            },
-            { 
-                name: "Black Eye Deep Rim", 
-                x: 198000000, y: 88000000, z: -398000000, 
-                target: { name: "The Deep Nebula Shortcut", x: -300000000, y: -95000000, z: 240000000 } 
-            },
-            { 
-                name: "The Deep Nebula Shortcut", 
-                x: -300000000, y: -95000000, z: 240000000, 
-                target: { name: "The Galactic Gate", x: 0, y: 0, z: 450000000 } 
-            },
-            { 
-                name: "The Galactic Gate", 
-                x: 0, y: 0, z: 450000000, 
-                target: { name: "The Edge of Time Gate", x: 895000000, y: 450000000, z: -895000000 } 
-            },
-            { 
-                name: "The Edge of Time Gate", 
-                x: 895000000, y: 450000000, z: -895000000, 
-                // 🌀 Loop back to Sol Exit across the entire map
-                target: { name: "Sol System Boundary Exit", x: 5000, y: -2000, z: 20000000 } 
-            }
-        ];
-        
-        // Array to hold initialized wormhole meshes in memory
-        const activeWormholesList = [];
-        
-        // Spawn all wormholes dynamically
-        wormholeConfigs.forEach(cfg => {
-            const wormhole = createWormhole(engine.scene, {
-                x: cfg.x,
-                y: cfg.y,
-                z: cfg.z,
-                name: cfg.name
-            });
-        /*
-            // 🎯 Store target jump coordinates right inside the mesh's userData
-            if (wormhole) {
-                wormhole.userData.targetDestination = cfg.target;
-                activeWormholesList.push(wormhole);
-            }
-            */
-            // Check the exact state your updateWormhole function calculates
-    if (wormhole.userData.isOpen === true) {
+    // ============================================================================
+    // 🌀 WORMHOLE NETWORK CONFIGURATION & JUMP DESTINATIONS
+    // ============================================================================
+    const wormholeConfigs = [
+        { 
+            name: "Sol System Boundary Exit", 
+            x: 5000, y: -2000, z: 20000000, 
+            target: { name: "Centauri Cluster Junction", x: 49000000, y: 500000, z: 49000000 } 
+        },
+        { 
+            name: "Centauri Cluster Junction", 
+            x: 49000000, y: 500000, z: 49000000, 
+            target: { name: "Orion Nursery Gateway", x: 19000000, y: 4800000, z: -69000000 } 
+        },
+        { 
+            name: "Orion Nursery Gateway", 
+            x: 19000000, y: 4800000, z: -69000000, 
+            target: { name: "Carina Deep Space Drift", x: -119000000, y: -44000000, z: -59000000 } 
+        },
+        { 
+            name: "Carina Deep Space Drift", 
+            x: -119000000, y: -44000000, z: -59000000, 
+            target: { name: "Tau Ceti Core Pipeline", x: 149000000, y: 9500000, z: 149000000 } 
+        },
+        { 
+            name: "Tau Ceti Core Pipeline", 
+            x: 149000000, y: 9500000, z: 149000000, 
+            target: { name: "Andromeda Intergalactic Bridge", x: 148000000, y: 79000000, z: -288000000 } 
+        },
+        { 
+            name: "Andromeda Intergalactic Bridge", 
+            x: 148000000, y: 79000000, z: -288000000, 
+            target: { name: "Black Eye Deep Rim", x: 198000000, y: 88000000, z: -398000000 } 
+        },
+        { 
+            name: "Black Eye Deep Rim", 
+            x: 198000000, y: 88000000, z: -398000000, 
+            target: { name: "The Deep Nebula Shortcut", x: -300000000, y: -95000000, z: 240000000 } 
+        },
+        { 
+            name: "The Deep Nebula Shortcut", 
+            x: -300000000, y: -95000000, z: 240000000, 
+            target: { name: "The Galactic Gate", x: 0, y: 0, z: 450000000 } 
+        },
+        { 
+            name: "The Galactic Gate", 
+            x: 0, y: 0, z: 450000000, 
+            target: { name: "The Edge of Time Gate", x: 895000000, y: 450000000, z: -895000000 } 
+        },
+        { 
+            name: "The Edge of Time Gate", 
+            x: 895000000, y: 450000000, z: -895000000, 
+            target: { name: "Sol System Boundary Exit", x: 5000, y: -2000, z: 20000000 } 
+        }
+    ];
     
-    // If it's open, fire the 4K tunnel effect!
-    triggerWormholeTransition(engine.scene, engine.camera, () => {
-         // Teleport the ship here
-    });
-} else {
-    console.log("The gate is currently closed/unstable!");
-}
-
+    // Array to hold initialized wormhole meshes in memory
+    const activeWormholesList = [];
+    
+    // Spawn all wormholes dynamically
+    wormholeConfigs.forEach(cfg => {
+        const wormhole = createWormhole(engine.scene, {
+            x: cfg.x,
+            y: cfg.y,
+            z: cfg.z,
+            name: cfg.name
         });
+        
+        if (wormhole) {
+            wormhole.userData.targetDestination = cfg.target;
+            activeWormholesList.push(wormhole);
+        }
+    }); // 🎯 Clean closing bracket for the forEach loop
         
 
 
