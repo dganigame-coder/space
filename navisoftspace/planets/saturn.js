@@ -33,23 +33,25 @@ export function createSaturn() {
         const y = pos.getY(i);
         const distance = Math.sqrt(x * x + y * y);
         const u = (distance - innerRadius) / (outerRadius - innerRadius);
-        uv.setXY(i, u, 0); 
+        
+        // CHANGE THIS LINE: use 0.5 instead of 0
+        uv.setXY(i, u, 0.5); 
     }
     uv.needsUpdate = true;
 
     const ringTexture = loader.load('https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/planets/texture/2k_saturn_ring_alpha.png');
-    
+
     const ringMat = new THREE.MeshStandardMaterial({
-        map: ringTexture,
-        alphaMap: ringTexture,
-        transparent: true,
-        side: THREE.DoubleSide, // Visible from top and bottom
-        depthWrite: false,      // CRITICAL: Prevents ring transparency from cutting holes in the planet
-        roughness: 0.6,
-        metalness: 0,
-        alphaTest: 0.01 
+    map: ringTexture,
+    // REMOVED: alphaMap: ringTexture,
+    transparent: true,
+    side: THREE.DoubleSide, 
+    depthWrite: false,      
+    roughness: 0.6,
+    metalness: 0,
+    alphaTest: 0.05 // Slightly increased to cleanly cut out completely empty pixels
     });
-    
+
     const rings = new THREE.Mesh(ringGeo, ringMat);
     // Orient rings to the planet's equator
     rings.rotation.x = -Math.PI / 2; 
