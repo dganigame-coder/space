@@ -20,24 +20,6 @@ export function createWormhole(scene, config = {}) {
         ior: 2.0,            // Diamond-like warp
         color: 0x00d4ff,     // Deep space cyan tint
         transparent: true,
-        opacity: 0.8
-    });
-
-    const core = new THREE.Mesh(wormholeGeo, wormholeMat);
-    core.name = "wormholeCore";
-    group.add(core);
-
-    // 2. THE GLOW: Additive aura
-    const auraGeo = new THREE.SphereGeometry(12600, 32, 32);
-        // 1. THE CORE: Reduced geometry complexity (48x48) for smooth mobile FPS
-    const wormholeGeo = new THREE.SphereGeometry(12000, 48, 48);
-    const wormholeMat = new THREE.MeshPhysicalMaterial({
-        transmission: 0.9,   // Glass-like transparency
-        thickness: 35.0,     // Balanced refraction depth
-        roughness: 0.05,     
-        ior: 2.0,            // Diamond-like warp
-        color: 0x00d4ff,     // Deep space cyan tint
-        transparent: true,
         opacity: 0.8,
         depthWrite: false,   // 🎯 FIX: Prevents the core from blocking background depth sorting
         side: THREE.DoubleSide
@@ -59,7 +41,7 @@ export function createWormhole(scene, config = {}) {
     });
     const aura = new THREE.Mesh(auraGeo, auraMat);
     group.add(aura);
-
+     
 
     // 🎯 3. GAME STATE & DIRECT MESH REFERENCES
     group.userData = {
