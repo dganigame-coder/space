@@ -1989,7 +1989,7 @@
                 radius: 3500, 
                 color: 0xff5522, // Cool red-orange M-dwarf star
                 orbitDistance: 0, 
-                orbitSpeed: 0, 
+                orbitSpeed: 0.001, 
                 //textureMap: '/planets/texture/2k_sun.jpg', 
                 lightIntensity: 2 
             }
@@ -2002,7 +2002,8 @@
         y: kepler186Y,
         z: kepler186Z + 18000,
         name: "Kepler-186f",
-        type: "exoplanet"
+        type: "exoplanet",
+        orbitSpeed: 0.008
     });   
 
     // Spawn Pulsar as its own independent stellar object
