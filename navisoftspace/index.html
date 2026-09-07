@@ -2061,6 +2061,17 @@ const quasarX1 = createQuasar(engine.scene, {
     radius: 500000,   // Scale it up to match its massive distance
     name: 'Distant Quasar X-1'
 });
+
+// 2. Pass the quasarX1 group directly as the "scene" container
+// This automatically nests the black hole right at the center [0,0,0] of the quasar group
+const quasarCoreBlackHole = createBlackHole(quasarX1, {
+    x: 0, 
+    y: 0, 
+    z: 0,
+    radius: 400000,        // Scaled to fit neatly inside the quasar
+    diskColor: 0xd0ffff,   // Matches the hot blue-white core glow
+    name: 'Quasar X-1 True Core'
+});
      // Initialize the quasar at your custom coordinates
 //const quasar = createQuasar(scene, { x: 100000, y: 0, z: -200000 });
   
@@ -2346,7 +2357,9 @@ quasarX1.rotation.z = Math.PI * 0.25; // Tilt sideways
                               //wormholeJupiter, wormholeIota ,wormholeTheta, wormholeEta, 
                               //wormholeZeta, wormholeEpsilon ,wormholeDelta ,wormholeGamma ,
                              // wormholeBeta ,wormholeAlpha,
-                              sdssBlackHoleCore ];
+                              sdssBlackHoleCore,
+                              quasarCoreBlackHole
+                             ];
            /*********************************
             bodies.push(...[voyager] );
             bodies.push(...horizonObj);
