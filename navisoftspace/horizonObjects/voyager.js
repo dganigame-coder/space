@@ -97,7 +97,7 @@ export function createVoyager(scene, config) {
     const glint = new THREE.PointLight(color, 2, 500); 
     group.add(glint);
 
-    group.position.set(position.x, position.y, position.z);
+    //group.position.set(position.x, position.y, position.z);
     
     // Critical for maintaining rendering in massive cosmological scales
     group.traverse((obj) => { 
