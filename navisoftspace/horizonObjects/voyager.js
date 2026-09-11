@@ -1,8 +1,20 @@
 import * as THREE from 'three';
 
 export function createVoyager(scene, config) {
-    const { position, color } = config;
+    // 1. Extract flat coordinates, color, and name
+    const { x, y, z, color, name } = config; 
+    
     const group = new THREE.Group();
+    
+    // 2. Set position
+    group.position.set(x, y, z);
+    
+    // 3. Attach the hub identifier data
+    group.name = name;
+    group.userData = { 
+        isTargetable: true,
+        type: 'spacecraft'
+    };
 
     // 1. Advanced PBR Materials
     // Kapton Foil (Multi-Layer Insulation) requires clearcoat to look like crinkled plastic over metal
