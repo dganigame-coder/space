@@ -2303,26 +2303,24 @@ quasarX1.rotation.z = Math.PI * 0.25; // Tilt sideways
         }
     ];
     
-    // Array to hold initialized wormhole meshes in memory
-    const activeWormholesList = [];
-    
-    // Spawn all wormholes dynamically
-    wormholeConfigs.forEach(cfg => {
-        const wormhole = createWormhole(engine.scene, {
-            x: cfg.x,
-            y: cfg.y,
-            z: cfg.z,
-            name: cfg.name
-        });
+        // Array to hold initialized wormhole meshes in memory
+        const activeWormholesList = [];
         
-        if (wormhole) {
-            wormhole.userData.targetDestination = cfg.target;
-            activeWormholesList.push(wormhole);
-        }
-    }); // 🎯 Clean closing bracket for the forEach loop
-        
-
-
+        // Spawn all wormholes dynamically
+        wormholeConfigs.forEach(cfg => {
+            const wormhole = createWormhole(engine.scene, {
+                x: cfg.x,
+                y: cfg.y,
+                z: cfg.z,
+                name: cfg.name
+            });
+            
+            if (wormhole) {
+                wormhole.userData.targetDestination = cfg.target;
+                activeWormholesList.push(wormhole);
+            }
+        }); // 🎯 Clean closing bracket for the forEach loop
+            
                engine.scene.add(starfield); 
     
             console.log("Audio systems initialized via User Gesture.");
@@ -2363,7 +2361,7 @@ quasarX1.rotation.z = Math.PI * 0.25; // Tilt sideways
                              ];
 
         
-           /*********************************/
+           /*********************************
             bodies.push(...[voyager] );
             bodies.push(...horizonObj);
             bodies.push(...spaceholes);
@@ -2398,10 +2396,10 @@ quasarX1.rotation.z = Math.PI * 0.25; // Tilt sideways
             console.log("Locked on to " + closest.userData.name);
         }
         });
-        /*************************************/
+        *************************************/
         // --- 3. COMBINE ALL TARGETABLE BODIES ---
         // Collect all bodies into one flat array and filter out null/undefined entries
-        /*
+        
         const rawBodies = [
             sun, mercury, venus, earth, moon, mars, jupiter, saturn, titan, uranus, neptune, pluto, voyager,
             
@@ -2427,14 +2425,14 @@ quasarX1.rotation.z = Math.PI * 0.25; // Tilt sideways
             // Dynamically add all active wormholes from our network
             ...activeWormholesList 
         ];
-*/
+
         let lastJumpTime = 0;
         const JUMP_COOLDOWN_MS = 3000; // 3-second lockout buffer
         // Safely filter out null/undefined objects and ensure they have a valid position
-    //    const bodies = rawBodies.filter(b => b && b.position && b.userData && b.userData.name);
+        const bodies = rawBodies.filter(b => b && b.position && b.userData && b.userData.name);
 
         // --- HUD CLICK LOCK-ON LOGIC ---
-        /*
+        
         const nearestLabel = document.getElementById('nearest-display');
         nearestLabel.style.cursor = "pointer";
         
@@ -2448,7 +2446,7 @@ quasarX1.rotation.z = Math.PI * 0.25; // Tilt sideways
                 console.warn("No valid target in range to lock onto.");
             }
         });
-        */
+        
         // 3. Initialize Control Module
         initPilot();
 
