@@ -644,7 +644,7 @@
     { name: "Black Hole Star (MoM-BH*-1)", x: 950000000, y: 45000000, z: -950000000 },
     { name: "Cosmic Microwave Horizon", x: 0, y: 0, z: 2000000000 },
 
-    
+    /*
     // ==========================================
     // LEVEL 7: INTERSTELLAR TRANSIT NETWORK (Wormholes)
     // ==========================================
@@ -658,6 +658,7 @@
     { name: "Wormhole: The Deep Nebula Shortcut", x: -300000000, y: -95000000, z: 240000000 },
     { name: "Wormhole: The Galactic Gate", x: 0, y: 0, z: 450000000 },
     { name: "Wormhole: The Edge of Time Gate", x: 895000000, y: 450000000, z: -895000000 },
+    */
 ];
 
         
@@ -2421,9 +2422,10 @@ quasarX1.rotation.z = Math.PI * 0.25; // Tilt sideways
             pulsarB1919,
 
             //Quasar
-            quasarX1,
+            quasarX1
+            //,
             // Dynamically add all active wormholes from our network
-            ...activeWormholesList 
+            //...activeWormholesList 
         ];
 
         let lastJumpTime = 0;
