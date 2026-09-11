@@ -105,6 +105,8 @@ export function createVoyager(scene, config) {
             obj.frustumCulled = false;
             obj.castShadow = true;
             obj.receiveShadow = true;
+            obj.name = name; 
+          obj.userData = group.userData; 
         }
     });
 
