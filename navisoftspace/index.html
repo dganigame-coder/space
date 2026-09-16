@@ -1847,17 +1847,14 @@
         systemRadius: 1000000,
         stars: [
             { 
-                name: "Quasi-Star Envelope", 
-                // Quasi-stars dwarf modern stars, requiring a massive radius
+                name: "Event Horizon", 
                 radius: 150000, 
-                color: 0xff2200, // Dense, deep-red hydrogen envelope
+                color: 0x000000, // Pitch black!
                 orbitDistance: 0, 
                 orbitSpeed: 0, 
-                //textureMap: '/planets/texture/2k_sun.jpg', 
-                lightIntensity: 6 // Extremely luminous, powered by accretion rather than fusion
+                lightIntensity: 0 // Emit no light from the center!
             }
-        ]
-    });
+        ]    });
     
     const quasiStarDisk = createBelt(engine.scene, {
         x: blackHoleStarX, // Now it reads this!
