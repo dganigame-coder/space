@@ -1872,76 +1872,74 @@
     });
 
    */
-    // ============================================================================
-    // 🕳️⭐ EXOTIC: QUASI-STAR (X-RAY DIAGRAM VIEW)
+// ============================================================================
+    // 🕳️⭐ EXOTIC: QUASI-STAR (MoM-QS-1 Core & Envelope Composition)
     // ============================================================================
     const quasiX = 950000000;
     const quasiY = 45000000;
-    const quasiZ = -950000000; 
-    
-    // 1. The Core & The Envelope
+    const quasiZ = -950000000; // Deep in the early universe
+
+    // 1. THE CORE SINGULARITY (True Black Hole core using your new shader/physics)
+    const quasiBlackHoleCore = createBlackHole(engine.scene, {
+        name: "Quasi-Star Central Singularity",
+        size: 10000, // Scaled down relative to the 150k stellar envelope
+        x: quasiX,
+        y: quasiY,
+        z: quasiZ
+    });
+    if (engine.updatables) engine.updatables.push(quasiBlackHoleCore);
+
+    // 2. THE CORE ACCRETION DISK (Hot plasma trapped inside the star near the core)
+    const quasiCoreDisk = createBelt(engine.scene, {
+        x: quasiX, 
+        y: quasiY, 
+        z: quasiZ, 
+        count: 12000,
+        innerRadius: 12000, // Starts right outside the 10,000 unit singularity
+        outerRadius: 35000, // Stays well inside the 150,000 unit envelope
+        verticalScatter: 200,
+        color: 0xffdd88,     // Bright white-hot plasma
+        size: { min: 800, max: 2000 },
+        type: 'asteroid_belt',
+        name: 'Quasi-Star Core Accretion Disk'
+    });
+
+    // 3. THE GIANT PLASMA ENVELOPE (Semi-transparent X-Ray view shell)
     const quasiStarSystem = createStarSystem(engine.scene, {
-        name: "Quasi-Star (MoM-QS-1)",
+        name: "Quasi-Star Envelope (MoM-QS-1)",
         x: quasiX,
         y: quasiY,
         z: quasiZ,
         systemRadius: 1000000,
         stars: [
-            { 
-                // THE INSIDE: The Hidden Black Hole
-                name: "Core Singularity", 
-                radius: 10000,   // Tiny compared to the star
-                color: 0x000000, // Pitch black
-                orbitDistance: 0, 
-                orbitSpeed: 0, 
-                lightIntensity: 0 
-            },
             {
-                // THE OUTSIDE: The Giant Plasma Envelope
-                name: "Stellar Envelope",
-                radius: 150000,  // Massive!
-                color: 0xff2200, // Deep Red
+                name: "Stellar Envelope Shell",
+                radius: 150000,  // Massive envelope surrounding the core
+                color: 0xff2200, // Deep primordial red
                 orbitDistance: 0,
                 orbitSpeed: 0,
                 lightIntensity: 4,
-                // **CRITICAL FOR THE FACTORY**: Your createSun/createStarSystem factory 
-                // needs to support transparency so we can see through this red shell!
                 transparent: true,
-                opacity: 0.35 
+                opacity: 0.35    // Allows viewing the internal black hole core
             }
         ]
     });
-    
-    // 2. THE INSIDE: The Core Accretion Disk (Swirling into the black hole)
-    const coreDisk = createBelt(engine.scene, {
-        x: quasiX, 
-        y: quasiY, 
-        z: quasiZ, 
-        count: 12000,
-        innerRadius: 11000, // Starts right outside the 10,000 radius black hole
-        outerRadius: 35000, // Stays entirely INSIDE the 150,000 radius red star
-        verticalScatter: 200, // Flat!
-        color: 0xffdd88,      // Bright yellow/white hot plasma
-        size: { min: 800, max: 2000 },
-        type: 'asteroid_belt',
-        name: 'Core Accretion Disk'
-    });
 
-    // 3. THE OUTSIDE: The Stellar Wind / Outer Debris (Optional)
-    const outerDebris = createBelt(engine.scene, {
+    // 4. THE EXTERNAL STELLAR WIND (Outer gas cloud ejected into space)
+    const quasiOuterDebris = createBelt(engine.scene, {
         x: quasiX, 
         y: quasiY, 
         z: quasiZ, 
         count: 8000,
-        innerRadius: 160000, // Starts outside the red star
+        innerRadius: 160000, // Starts outside the red plasma envelope
         outerRadius: 250000,
-        verticalScatter: 15000, // Puffy and chaotic
+        verticalScatter: 15000,
         color: 0xcc4411,
         size: { min: 500, max: 2500 },
         type: 'asteroid_belt',
-        name: 'Outer Stellar Wind'
-    });
-    
+        name: 'Quasi-Star Outer Wind'
+    });    
+        
     /*
     // ============================================================================
     // 🕳️🪐 EXOTIC: BLANET SYSTEM (Active Galactic Nucleus)
@@ -2432,7 +2430,8 @@ quasarX1.rotation.z = Math.PI * 0.25; // Tilt sideways
                               //wormholeZeta, wormholeEpsilon ,wormholeDelta ,wormholeGamma ,
                              // wormholeBeta ,wormholeAlpha,
                               sdssBlackHoleCore,
-                              quasarCoreBlackHole
+                              quasarCoreBlackHole,
+                              quasiBlackHoleCore
                              ];
 
         
