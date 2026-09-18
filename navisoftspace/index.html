@@ -2780,6 +2780,22 @@ quasarX1.rotation.z = Math.PI * 0.25; // Tilt sideways
                 quasiStarDisk.updateMatrix();
             }
             */
+            // 1. The Core Accretion Disk (Spins very fast near the singularity)
+            if (coreDisk) {
+                coreDisk.rotation.y += 0.002; // 10x faster than the old drift
+                coreDisk.updateMatrix();
+            }
+        
+            // 2. The Outer Stellar Wind (Slow, lazy drift on the edge of the star)
+            if (outerDebris) {
+                outerDebris.rotation.y += 0.0002; // Keeps the original slow speed
+                outerDebris.updateMatrix();
+            }
+            
+            // 3. Optional: Slowly rotate the massive star envelope itself
+            if (quasiStarSystem) {
+                quasiStarSystem.rotation.y += 0.00005; 
+            }
             
             // 4. SMBH / Blanet Accretion Disk
             if (accretionDisk) {
