@@ -1880,7 +1880,6 @@
     const quasiZ = -950000000; // Deep in the early universe
 
     // 1. THE CORE SINGULARITY (True Black Hole core using your new shader/physics)
-    /*
     const quasiBlackHoleCore = createBlackHole(engine.scene, {
         name: "Quasi-Star Central Singularity",
         size: 10000, // Scaled down relative to the 150k stellar envelope
@@ -1888,7 +1887,7 @@
         y: quasiY,
         z: quasiZ
     });
-    */
+    /*
     // Temporary test coordinates close to the camera
     const quasiBlackHoleCore = createBlackHole(engine.scene, {
         name: "Quasi-Star Central Singularity",
@@ -1897,6 +1896,7 @@
         y: 0,
         z: -50000
     });
+    */
     if (engine.updatables) engine.updatables.push(quasiBlackHoleCore);
 
     // 2. THE CORE ACCRETION DISK (Hot plasma trapped inside the star near the core)
@@ -2422,7 +2422,8 @@ quasarX1.rotation.z = Math.PI * 0.25; // Tilt sideways
                                 sharedBelt,oumuamua, BornSystem,
                                 quasiStarSystem,
                                 //quasiStarDisk,
-                                coreDisk, outerDebris,
+                                //coreDisk, outerDebris,
+                                quasiCoreDisk, quasiOuterDebris,
                                 smbhCore,
                                 accretionDisk,
                                 theoreticalBlanet,
@@ -2790,17 +2791,27 @@ quasarX1.rotation.z = Math.PI * 0.25; // Tilt sideways
             }
             */
             // 1. The Core Accretion Disk (Spins very fast near the singularity)
+            /*
             if (coreDisk) {
                 coreDisk.rotation.y += 0.002; // 10x faster than the old drift
                 coreDisk.updateMatrix();
             }
-        
+            */
+            if (quasiCoreDisk) {
+                quasiCoreDisk.rotation.y += 0.002; // 10x faster than the old drift
+                quasiCoreDisk.updateMatrix();
+            }
             // 2. The Outer Stellar Wind (Slow, lazy drift on the edge of the star)
+            /*
             if (outerDebris) {
                 outerDebris.rotation.y += 0.0002; // Keeps the original slow speed
                 outerDebris.updateMatrix();
             }
-            
+            */
+            if (quasiOuterDebris) {
+                quasiOuterDebris.rotation.y += 0.0002; // Keeps the original slow speed
+                quasiOuterDebris.updateMatrix();
+            }
             // 3. Optional: Slowly rotate the massive star envelope itself
             if (quasiStarSystem) {
                 quasiStarSystem.rotation.y += 0.00005; 
