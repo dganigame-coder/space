@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Deep Space Simulator - Singularity Trajectory</title>
+  <title>Deep Space Simulator - Sector X-99</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body, html { width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Courier New', monospace; }
@@ -15,20 +15,23 @@
     .hud-title { font-size: 16px; font-weight: bold; letter-spacing: 2px; margin-bottom: 8px; }
     .hud-stat { font-size: 12px; line-height: 1.6; }
     .warning { color: #ff3344; text-shadow: 0 0 8px rgba(255, 51, 68, 0.8); animation: pulse 1s infinite alternate; }
+    .controls-hint { margin-top: 15px; font-size: 11px; color: #aaa; text-shadow: none; }
     @keyframes pulse { from { opacity: 0.4; } to { opacity: 1.0; } }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <!-- 1. Imported OrbitControls for navigation -->
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <!-- Imported FlyControls for True Spacecraft Navigation -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/FlyControls.js"></script>
 </head>
 <body>
   <div id="hud">
-    <div class="hud-title">[ NAV-COMPUTER TELEMETRY ]</div>
-    <div class="hud-stat">OBJECT: Gargantua Singularity</div>
-    <div class="hud-stat">VELOCITY: 0.88 c</div>
-    <!-- Fixed LaTeX formatting bug -->
-    <div class="hud-stat">SCHWARZSCHILD RADIUS (r<sub>s</sub>): 2.95 km</div>
-    <div class="hud-stat warning">GRAVITATIONAL TIDE: EXTREME</div>
+    <div class="hud-title">[ NAV-COMPUTER: SECTOR X-99 ]</div>
+    <div class="hud-stat">SINGULARITY MASS: 1.5 Solar Masses</div>
+    <div class="hud-stat">EXOPLANET STATUS: Volatile Orbit</div>
+    <div class="hud-stat warning">FLIGHT ASSIST: OFF</div>
+    <div class="controls-hint">
+      THRUST: W A S D | ELEVATE: R F | ROLL: Q E<br>
+      HEADING: Click & Drag Mouse
+    </div>
   </div>
   <canvas id="space-canvas"></canvas>
 
@@ -40,12 +43,14 @@
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(0, 1.5, 8); // Moved closer
+    camera.position.set(0, 2, 15); // Start further back to see the system
 
-    // 2. Initialize Navigation Controls
-    const controls = new THREE.OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.05;
+    // Initialize 6-DOF Spacecraft Controls
+    const controls = new THREE.FlyControls(camera, renderer.domElement);
+    controls.movementSpeed = 4.0; // Units per second
+    controls.rollSpeed = Math.PI / 4;
+    controls.autoForward = false;
+    controls.dragToLook = true; // Requires clicking to turn the ship
 
     const fragmentShader = `
       uniform float u_time;
@@ -53,9 +58,8 @@
       uniform vec3 u_cameraPos;
       uniform mat4 u_cameraWorldMatrix;
 
-      // 3. Increased Ray Steps so light reaches the black hole
       #define MAX_STEPS 200
-      #define MAX_DIST 50.0
+      #define MAX_DIST 60.0
 
       float hash(float n) { return fract(sin(n) * 43758.5453); }
       float noise(vec3 x) {
@@ -69,43 +73,86 @@
                        mix(hash(n+170.0), hash(n+171.0), f.x), f.y), f.z);
       }
 
+      // Fractional Brownian Motion for Nebulae and Atmosphere
+      float fbm(vec3 p) {
+        float f = 0.0;
+        f += 0.5000 * noise(p); p = p * 2.02;
+        f += 0.2500 * noise(p); p = p * 2.03;
+        f += 0.1250 * noise(p); p = p * 2.01;
+        f += 0.0625 * noise(p);
+        return f;
+      }
+
       void main() {
         vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution.xy) / u_resolution.y;
         vec3 ro = u_cameraPos;
-        
-        // 4. Bind Ray Direction to the OrbitControls Camera Matrix
         vec3 rdView = normalize(vec3(uv, -1.0));
         vec3 rd = (u_cameraWorldMatrix * vec4(rdView, 0.0)).xyz;
         
         vec3 col = vec3(0.0);
+        
+        // System Objects
         vec3 bhPos = vec3(0.0, 0.0, 0.0);
-        float rs = 1.5;
-        float dt = 0.1; // Increased step distance
+        float rs = 1.5; // Event Horizon
+        
+        // Orbiting Exoplanet (Radius 1.2, orbiting at distance 6.0)
+        vec3 planetPos = vec3(6.0 * cos(u_time * 0.2), 0.0, 6.0 * sin(u_time * 0.2));
+        float planetRadius = 1.2;
+
+        float dt = 0.15; // Ray step size
         vec3 pos = ro;
         vec3 diskColor = vec3(0.0);
 
         for(int i = 0; i < MAX_STEPS; i++) {
           vec3 toBH = bhPos - pos;
-          float distSq = dot(toBH, toBH);
-          float dist = sqrt(distSq);
+          float distSqBH = dot(toBH, toBH);
+          float distBH = sqrt(distSqBH);
 
-          if(dist < rs) { col = vec3(0.0); break; }
+          // 1. Black Hole Collision
+          if(distBH < rs) { 
+              col = vec3(0.0); 
+              break; 
+          }
 
-          vec3 gravityPull = normalize(toBH) * (1.2 / distSq);
+          // Gravitational Lensing (Bends the ray direction)
+          vec3 gravityPull = normalize(toBH) * (1.2 / distSqBH);
           rd = normalize(rd + gravityPull * dt);
 
-          if (abs(pos.y) < 0.15 && dist > rs + 0.3 && dist < rs + 5.0) {
-            float temp = 1.0 / (dist - rs);
+          // 2. Exoplanet Collision
+          float distPlanet = length(pos - planetPos) - planetRadius;
+          if (distPlanet < 0.0) {
+              // Surface normal
+              vec3 normal = normalize(pos - planetPos);
+              // Atmospheric FBM noise
+              float n = fbm(normal * 4.0 + u_time * 0.05);
+              // Gas giant colors (Cyan/Azure)
+              vec3 planetBase = mix(vec3(0.0, 0.4, 0.6), vec3(0.6, 0.9, 1.0), n);
+              
+              // Shadow side facing away from the accretion disk
+              float lighting = max(0.1, dot(normal, normalize(bhPos - pos)));
+              col = planetBase * lighting;
+              break;
+          }
+
+          // 3. Accretion Disk Rendering
+          if (abs(pos.y) < 0.15 && distBH > rs + 0.3 && distBH < rs + 7.0) {
+            float temp = 1.0 / (distBH - rs);
             vec3 colorGrad = mix(vec3(1.0, 0.3, 0.05), vec3(0.1, 0.5, 1.0), temp);
             float n = noise(pos * 2.5 - vec3(u_time * 0.8, 0.0, u_time * 0.8));
-            diskColor += colorGrad * n * 0.08;
+            diskColor += colorGrad * n * 0.06;
           }
 
           pos += rd * dt;
 
-          if(dist > MAX_DIST) {
-            float stars = pow(noise(rd * 120.0), 16.0) * 4.0;
-            col += vec3(stars);
+          // 4. Background Nebula and Stars
+          if(distBH > MAX_DIST) {
+            // Starfield
+            float stars = pow(noise(rd * 150.0), 18.0) * 5.0;
+            // Deep space Nebula cloud based on viewing angle
+            float nebulaNoise = fbm(rd * 3.0);
+            vec3 nebulaColor = mix(vec3(0.1, 0.0, 0.2), vec3(0.4, 0.1, 0.3), nebulaNoise);
+            
+            col += vec3(stars) + (nebulaColor * nebulaNoise * 2.0);
             break;
           }
         }
@@ -116,9 +163,7 @@
     `;
 
     const vertexShader = `
-      void main() {
-        gl_Position = vec4(position, 1.0);
-      }
+      void main() { gl_Position = vec4(position, 1.0); }
     `;
 
     const material = new THREE.ShaderMaterial({
@@ -145,10 +190,12 @@
     const clock = new THREE.Clock();
     function animate() {
       requestAnimationFrame(animate);
+      const delta = clock.getDelta();
       
-      controls.update(); // Process mouse inputs
+      // Update Flight Controls
+      controls.update(delta);
       
-      // Update Uniforms with current camera position/rotation
+      // Pass Telemetry to Shaders
       camera.updateMatrixWorld();
       material.uniforms.u_cameraPos.value.copy(camera.position);
       material.uniforms.u_cameraWorldMatrix.value.copy(camera.matrixWorld);
