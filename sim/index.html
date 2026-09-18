@@ -3,39 +3,164 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Deep Space Simulator - Sector X-99</title>
+  <title>Astronaut Flight Academy - Deep Space Simulator</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body, html { width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Courier New', monospace; }
+    body, html { width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Courier New', monospace; color: #00f0ff; }
     #space-canvas { width: 100vw; height: 100vh; display: block; }
+    
+    /* Flight Telemetry HUD */
     #hud {
-      position: absolute; top: 24px; left: 24px; color: #00f0ff;
+      position: absolute; top: 20px; left: 20px;
       pointer-events: none; text-shadow: 0 0 8px rgba(0, 240, 255, 0.7); z-index: 10;
     }
-    .hud-title { font-size: 16px; font-weight: bold; letter-spacing: 2px; margin-bottom: 8px; }
+    .hud-header { font-size: 18px; font-weight: bold; letter-spacing: 2px; color: #fff; margin-bottom: 6px; }
+    .hud-rank { font-size: 14px; color: #ffd700; margin-bottom: 12px; font-weight: bold; }
+    .hud-box { background: rgba(0, 20, 40, 0.65); border: 1px solid #00f0ff; padding: 12px; border-radius: 4px; max-width: 380px; }
     .hud-stat { font-size: 12px; line-height: 1.6; }
-    .warning { color: #ff3344; text-shadow: 0 0 8px rgba(255, 51, 68, 0.8); animation: pulse 1s infinite alternate; }
-    .controls-hint { margin-top: 15px; font-size: 11px; color: #aaa; text-shadow: none; }
-    @keyframes pulse { from { opacity: 0.4; } to { opacity: 1.0; } }
+    .hud-objective { color: #00ffaa; font-weight: bold; margin-top: 6px; }
+    .warning { color: #ff3344; text-shadow: 0 0 8px rgba(255, 51, 68, 0.8); }
+    .controls-hint { margin-top: 10px; font-size: 10px; color: #888; }
+
+    /* Mission Overlay Modals (Pass / Fail / Diploma) */
+    .modal-overlay {
+      position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center;
+      z-index: 100; flex-direction: column; text-align: center; display: none;
+    }
+    .modal-card {
+      background: #050b14; border: 2px solid #00f0ff; padding: 30px 40px; border-radius: 8px;
+      box-shadow: 0 0 30px rgba(0, 240, 255, 0.4); max-width: 500px;
+    }
+    .modal-title { font-size: 24px; font-weight: bold; margin-bottom: 10px; letter-spacing: 3px; }
+    .modal-title.pass { color: #00ffaa; }
+    .modal-title.fail { color: #ff3344; }
+    .modal-title.grad { color: #ffd700; text-shadow: 0 0 15px #ffd700; }
+    .modal-desc { font-size: 13px; color: #ccc; margin-bottom: 20px; line-height: 1.6; }
+    .btn {
+      background: #00f0ff; color: #000; border: none; padding: 10px 24px; font-family: inherit;
+      font-weight: bold; font-size: 14px; cursor: pointer; border-radius: 4px; transition: 0.2s;
+    }
+    .btn:hover { background: #fff; box-shadow: 0 0 15px #00f0ff; }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <!-- Imported FlyControls for True Spacecraft Navigation -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/FlyControls.js"></script>
 </head>
 <body>
+
+  <!-- Flight HUD -->
   <div id="hud">
-    <div class="hud-title">[ NAV-COMPUTER: SECTOR X-99 ]</div>
-    <div class="hud-stat">SINGULARITY MASS: 1.5 Solar Masses</div>
-    <div class="hud-stat">EXOPLANET STATUS: Volatile Orbit</div>
-    <div class="hud-stat warning">FLIGHT ASSIST: OFF</div>
+    <div class="hud-header">[ ASTRONAUT FLIGHT EVALUATOR ]</div>
+    <div id="hud-rank" class="hud-rank">CURRENT RANK: FLIGHT CADET</div>
+    <div class="hud-box">
+      <div id="hud-level" class="hud-stat" style="color: #fff; font-weight:bold;">STAGE 1 / 4</div>
+      <div id="hud-objective" class="hud-stat hud-objective">OBJECTIVE: Initiate Warp</div>
+      <hr style="border-color: #00f0ff; margin: 8px 0; opacity: 0.3;">
+      <div id="hud-timer" class="hud-stat">TIME REMAINING: --s</div>
+      <div id="hud-speed" class="hud-stat">SPEED: 0.00 u/s</div>
+      <div id="hud-target-dist" class="hud-stat">WAYPOINT DIST: -- u</div>
+      <div id="hud-bh-dist" class="hud-stat warning">SINGULARITY DIST: -- u</div>
+    </div>
     <div class="controls-hint">
-      THRUST: W A S D | ELEVATE: R F | ROLL: Q E<br>
-      HEADING: Click & Drag Mouse
+      THRUST: W/S | STRAFE: A/D | ELEVATE: R/F | ROLL: Q/E<br>
+      PITCH/YAW: Click & Drag Mouse
     </div>
   </div>
+
+  <!-- Pass / Fail Modals -->
+  <div id="modal-screen" class="modal-overlay">
+    <div class="modal-card">
+      <div id="modal-title" class="modal-title">MISSION STATUS</div>
+      <div id="modal-desc" class="modal-desc">Details...</div>
+      <button id="modal-btn" class="btn" onclick="nextAction()">CONTINUE</button>
+    </div>
+  </div>
+
   <canvas id="space-canvas"></canvas>
 
   <script>
+    // --- 1. LEVEL & EVALUATION DEFINITIONS ---
+    const STAGES = [
+      {
+        id: 1,
+        title: "STAGE 1: EXOPLANET RENDEZVOUS",
+        rank: "FLIGHT CADET",
+        objective: "Fly to the Orbiting Exoplanet (Cyan Planet) and hold within 3.5 units for 3 seconds.",
+        timeLimit: 40,
+        type: "HOLD_TARGET",
+        check: (state) => {
+          if (state.distPlanet < 3.5) {
+            state.holdTimer += state.dt;
+            if (state.holdTimer >= 3.0) return "PASS";
+          } else {
+            state.holdTimer = 0;
+          }
+          if (state.timeLeft <= 0) return "FAIL_TIME";
+          return "RUNNING";
+        }
+      },
+      {
+        id: 2,
+        title: "STAGE 2: GRAVITATIONAL SLINGSHOT",
+        rank: "FLIGHT ENGINEER",
+        objective: "Perform gravity assist! Dip close to Black Hole (<3.5 u) to reach Speed >6.5 u/s, then escape beyond 18 units.",
+        timeLimit: 35,
+        type: "SLINGSHOT",
+        slingshotAchieved: false,
+        check: (state, stage) => {
+          if (state.distBH < 3.5 && state.speed >= 6.5) {
+            stage.slingshotAchieved = true;
+          }
+          if (stage.slingshotAchieved && state.distBH > 18.0) {
+            return "PASS";
+          }
+          if (state.timeLeft <= 0) return "FAIL_TIME";
+          return "RUNNING";
+        }
+      },
+      {
+        id: 3,
+        title: "STAGE 3: ACCRETION PROBE RECON",
+        rank: "COMMAND PILOT",
+        objective: "Scan the 3 Research Probes deployed around the Accretion Disk by approaching each within 2.0 units.",
+        timeLimit: 50,
+        type: "MULTI_WAYPOINT",
+        probesCollected: 0,
+        check: (state, stage) => {
+          if (state.timeLeft <= 0) return "FAIL_TIME";
+          if (stage.probesCollected >= 3) return "PASS";
+          return "RUNNING";
+        }
+      },
+      {
+        id: 4,
+        title: "STAGE 4: EXTRACTION PORTAL DOCKING",
+        rank: "DEEP SPACE ASTRONAUT CANDIDATE",
+        objective: "Navigate high gravity flux and dock inside the Moving Extraction Portal ring.",
+        timeLimit: 45,
+        type: "DOCKING",
+        check: (state) => {
+          if (state.distPortal < 2.0) return "GRADUATE";
+          if (state.timeLeft <= 0) return "FAIL_TIME";
+          return "RUNNING";
+        }
+      }
+    ];
+
+    let currentStageIndex = 0;
+    let gameState = {
+      dt: 0,
+      timeLeft: 0,
+      speed: 0,
+      distBH: 0,
+      distPlanet: 0,
+      distTarget: 0,
+      distPortal: 0,
+      holdTimer: 0,
+      active: true
+    };
+
+    // --- 2. THREE.JS & CONTROL SETUP ---
     const canvas = document.getElementById('space-canvas');
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -43,28 +168,45 @@
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(0, 2, 15); // Start further back to see the system
+    camera.position.set(0, 3, 18);
 
-    // Initialize 6-DOF Spacecraft Controls
     const controls = new THREE.FlyControls(camera, renderer.domElement);
-    controls.movementSpeed = 4.0; // Units per second
+    controls.movementSpeed = 5.0;
     controls.rollSpeed = Math.PI / 4;
     controls.autoForward = false;
-    controls.dragToLook = true; // Requires clicking to turn the ship
+    controls.dragToLook = true;
 
+    // --- 3. 3D WAYPOINT & MARKER GEOMETRIES ---
+    // Waypoint Marker for Stage 3 & 4
+    const waypointGeo = new THREE.TorusGeometry(1.2, 0.05, 16, 32);
+    const waypointMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff, wireframe: true });
+    const waypointMesh = new THREE.Mesh(waypointGeo, waypointMat);
+    scene.add(waypointMesh);
+
+    // 3 Probe Objects for Stage 3
+    const probes = [];
+    const probeGeo = new THREE.OctahedronGeometry(0.5);
+    const probeMat = new THREE.MeshBasicMaterial({ color: 0xffd700, wireframe: true });
+    for (let i = 0; i < 3; i++) {
+      const p = new THREE.Mesh(probeGeo, probeMat);
+      p.visible = false;
+      scene.add(p);
+      probes.push({ mesh: p, collected: false });
+    }
+
+    // --- 4. GLSL RAYMARCHING SHADER BACKGROUND ---
     const fragmentShader = `
       uniform float u_time;
       uniform vec2 u_resolution;
       uniform vec3 u_cameraPos;
       uniform mat4 u_cameraWorldMatrix;
 
-      #define MAX_STEPS 200
+      #define MAX_STEPS 180
       #define MAX_DIST 60.0
 
       float hash(float n) { return fract(sin(n) * 43758.5453); }
       float noise(vec3 x) {
-        vec3 p = floor(x);
-        vec3 f = fract(x);
+        vec3 p = floor(x); vec3 f = fract(x);
         f = f * f * (3.0 - 2.0 * f);
         float n = p.x + p.y * 57.0 + 113.0 * p.z;
         return mix(mix(mix(hash(n+0.0), hash(n+1.0), f.x),
@@ -73,13 +215,11 @@
                        mix(hash(n+170.0), hash(n+171.0), f.x), f.y), f.z);
       }
 
-      // Fractional Brownian Motion for Nebulae and Atmosphere
       float fbm(vec3 p) {
         float f = 0.0;
         f += 0.5000 * noise(p); p = p * 2.02;
         f += 0.2500 * noise(p); p = p * 2.03;
-        f += 0.1250 * noise(p); p = p * 2.01;
-        f += 0.0625 * noise(p);
+        f += 0.1250 * noise(p);
         return f;
       }
 
@@ -90,16 +230,13 @@
         vec3 rd = (u_cameraWorldMatrix * vec4(rdView, 0.0)).xyz;
         
         vec3 col = vec3(0.0);
-        
-        // System Objects
         vec3 bhPos = vec3(0.0, 0.0, 0.0);
-        float rs = 1.5; // Event Horizon
+        float rs = 1.5;
         
-        // Orbiting Exoplanet (Radius 1.2, orbiting at distance 6.0)
-        vec3 planetPos = vec3(6.0 * cos(u_time * 0.2), 0.0, 6.0 * sin(u_time * 0.2));
+        vec3 planetPos = vec3(7.0 * cos(u_time * 0.25), 0.0, 7.0 * sin(u_time * 0.25));
         float planetRadius = 1.2;
 
-        float dt = 0.15; // Ray step size
+        float dt = 0.15;
         vec3 pos = ro;
         vec3 diskColor = vec3(0.0);
 
@@ -108,34 +245,26 @@
           float distSqBH = dot(toBH, toBH);
           float distBH = sqrt(distSqBH);
 
-          // 1. Black Hole Collision
-          if(distBH < rs) { 
-              col = vec3(0.0); 
-              break; 
-          }
+          // Event Horizon Collision
+          if(distBH < rs) { col = vec3(0.0); break; }
 
-          // Gravitational Lensing (Bends the ray direction)
+          // Gravitational Bending
           vec3 gravityPull = normalize(toBH) * (1.2 / distSqBH);
           rd = normalize(rd + gravityPull * dt);
 
-          // 2. Exoplanet Collision
+          // Exoplanet Hit
           float distPlanet = length(pos - planetPos) - planetRadius;
           if (distPlanet < 0.0) {
-              // Surface normal
               vec3 normal = normalize(pos - planetPos);
-              // Atmospheric FBM noise
               float n = fbm(normal * 4.0 + u_time * 0.05);
-              // Gas giant colors (Cyan/Azure)
-              vec3 planetBase = mix(vec3(0.0, 0.4, 0.6), vec3(0.6, 0.9, 1.0), n);
-              
-              // Shadow side facing away from the accretion disk
-              float lighting = max(0.1, dot(normal, normalize(bhPos - pos)));
+              vec3 planetBase = mix(vec3(0.0, 0.5, 0.8), vec3(0.7, 0.95, 1.0), n);
+              float lighting = max(0.15, dot(normal, normalize(bhPos - pos)));
               col = planetBase * lighting;
               break;
           }
 
-          // 3. Accretion Disk Rendering
-          if (abs(pos.y) < 0.15 && distBH > rs + 0.3 && distBH < rs + 7.0) {
+          // Accretion Disk
+          if (abs(pos.y) < 0.15 && distBH > rs + 0.3 && distBH < rs + 7.5) {
             float temp = 1.0 / (distBH - rs);
             vec3 colorGrad = mix(vec3(1.0, 0.3, 0.05), vec3(0.1, 0.5, 1.0), temp);
             float n = noise(pos * 2.5 - vec3(u_time * 0.8, 0.0, u_time * 0.8));
@@ -144,15 +273,12 @@
 
           pos += rd * dt;
 
-          // 4. Background Nebula and Stars
+          // Stars & Background Nebula
           if(distBH > MAX_DIST) {
-            // Starfield
             float stars = pow(noise(rd * 150.0), 18.0) * 5.0;
-            // Deep space Nebula cloud based on viewing angle
-            float nebulaNoise = fbm(rd * 3.0);
-            vec3 nebulaColor = mix(vec3(0.1, 0.0, 0.2), vec3(0.4, 0.1, 0.3), nebulaNoise);
-            
-            col += vec3(stars) + (nebulaColor * nebulaNoise * 2.0);
+            float nebulaNoise = fbm(rd * 2.5);
+            vec3 nebulaColor = mix(vec3(0.05, 0.0, 0.2), vec3(0.3, 0.05, 0.35), nebulaNoise);
+            col += vec3(stars) + (nebulaColor * nebulaNoise * 2.2);
             break;
           }
         }
@@ -162,10 +288,6 @@
       }
     `;
 
-    const vertexShader = `
-      void main() { gl_Position = vec4(position, 1.0); }
-    `;
-
     const material = new THREE.ShaderMaterial({
       uniforms: {
         u_time: { value: 0 },
@@ -173,12 +295,149 @@
         u_cameraPos: { value: camera.position },
         u_cameraWorldMatrix: { value: camera.matrixWorld }
       },
-      vertexShader,
+      vertexShader: `void main() { gl_Position = vec4(position, 1.0); }`,
       fragmentShader
     });
 
-    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material);
-    scene.add(mesh);
+    const bgMesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material);
+    bgMesh.renderOrder = -1;
+    scene.add(bgMesh);
+
+    // --- 5. STAGE MANAGEMENT & FLOW ---
+    function loadStage(index) {
+      currentStageIndex = index;
+      const stage = STAGES[index];
+      gameState.timeLeft = stage.timeLimit;
+      gameState.holdTimer = 0;
+      gameState.active = true;
+      if (stage.slingshotAchieved) stage.slingshotAchieved = false;
+
+      // Update HUD
+      document.getElementById('hud-rank').innerText = `CURRENT RANK: ${stage.rank}`;
+      document.getElementById('hud-level').innerText = `STAGE ${stage.id} / ${STAGES.length}: ${stage.title}`;
+      document.getElementById('hud-objective').innerText = `OBJECTIVE: ${stage.objective}`;
+
+      // Reset Positions
+      camera.position.set(0, 3, 18);
+      camera.lookAt(0, 0, 0);
+
+      // Configure Waypoints
+      if (stage.id === 3) {
+        stage.probesCollected = 0;
+        probes[0].mesh.position.set(4.0, 0.5, 2.0);
+        probes[1].mesh.position.set(-3.5, -0.5, -3.5);
+        probes[2].mesh.position.set(1.0, 2.5, -4.5);
+        probes.forEach(p => { p.mesh.visible = true; p.collected = false; });
+        waypointMesh.visible = false;
+      } else {
+        probes.forEach(p => p.mesh.visible = false);
+        waypointMesh.visible = (stage.id === 4);
+      }
+
+      document.getElementById('modal-screen').style.display = 'none';
+    }
+
+    function showModal(title, desc, btnText, isPass, isGrad = false) {
+      gameState.active = false;
+      const modal = document.getElementById('modal-screen');
+      const titleEl = document.getElementById('modal-title');
+      titleEl.innerText = title;
+      titleEl.className = 'modal-title ' + (isGrad ? 'grad' : (isPass ? 'pass' : 'fail'));
+      document.getElementById('modal-desc').innerText = desc;
+      document.getElementById('modal-btn').innerText = btnText;
+      modal.style.display = 'flex';
+    }
+
+    function nextAction() {
+      const modalTitle = document.getElementById('modal-title').innerText;
+      if (modalTitle.includes("GRADUATED") || modalTitle.includes("FAILED")) {
+        loadStage(currentStageIndex); // Retry or restart stage
+      } else {
+        loadStage(currentStageIndex + 1); // Advance to next stage
+      }
+    }
+
+    // --- 6. ANIMATION & EVALUATION LOOP ---
+    const clock = new THREE.Clock();
+    let prevPos = camera.position.clone();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const delta = clock.getDelta();
+      const time = clock.getElapsedTime();
+
+      if (gameState.active) {
+        controls.update(delta);
+        gameState.dt = delta;
+        gameState.timeLeft -= delta;
+
+        // Calculate Speeds and Distances
+        gameState.speed = camera.position.distanceTo(prevPos) / (delta || 0.001);
+        prevPos.copy(camera.position);
+
+        const bhPos = new THREE.Vector3(0, 0, 0);
+        const planetPos = new THREE.Vector3(7.0 * Math.cos(time * 0.25), 0, 7.0 * Math.sin(time * 0.25));
+        
+        gameState.distBH = camera.position.distanceTo(bhPos);
+        gameState.distPlanet = camera.position.distanceTo(planetPos);
+
+        // Update Dynamic Waypoint for Stage 4
+        if (STAGES[currentStageIndex].id === 4) {
+          waypointMesh.position.set(5.0 * Math.cos(time * 0.4), 2.0 * Math.sin(time * 0.3), -8.0);
+          waypointMesh.rotation.x = time;
+          waypointMesh.rotation.y = time * 0.5;
+          gameState.distPortal = camera.position.distanceTo(waypointMesh.position);
+        }
+
+        // Handle Stage 3 Probes Collection
+        if (STAGES[currentStageIndex].id === 3) {
+          probes.forEach(p => {
+            if (!p.collected && camera.position.distanceTo(p.mesh.position) < 2.0) {
+              p.collected = true;
+              p.mesh.visible = false;
+              STAGES[3].probesCollected++;
+            }
+          });
+        }
+
+        // Global Catastrophic Fail Check: Event Horizon Breach
+        if (gameState.distBH <= 1.5) {
+          showModal("MISSION FAILED", "CRITICAL ERROR: Event Horizon breached! Ship spaghettified by tidal gravity.", "RETRY STAGE", false);
+        }
+
+        // Evaluate Current Stage Pass/Fail Conditions
+        const currentStage = STAGES[currentStageIndex];
+        const status = currentStage.check(gameState, currentStage);
+
+        if (status === "PASS") {
+          showModal("STAGE CLEARED!", `Qualifications verified. You have demonstrated mastery of ${currentStage.title}.`, "PROCEED TO NEXT STAGE", true);
+        } else if (status === "GRADUATE") {
+          showModal("OFFICIALLY GRADUATED!", "CONGRATULATIONS CAPTAIN! You have completed all flight tests near the Gargantua Singularity and are hereby awarded the DEEP SPACE ASTRONAUT CERTIFICATION.", "RESTART ACADEMY", true, true);
+        } else if (status === "FAIL_TIME") {
+          showModal("MISSION FAILED", "OUT OF TIME: Life support / fuel depleted before mission objective was completed.", "RETRY STAGE", false);
+        }
+
+        // Update HUD Values
+        document.getElementById('hud-timer').innerText = `TIME REMAINING: ${Math.max(0, gameState.timeLeft).toFixed(1)}s`;
+        document.getElementById('hud-speed').innerText = `SPEED: ${gameState.speed.toFixed(2)} u/s`;
+        document.getElementById('hud-bh-dist').innerText = `SINGULARITY DIST: ${gameState.distBH.toFixed(2)} u`;
+
+        let targetDistText = "-- u";
+        if (currentStage.id === 1) targetDistText = `${gameState.distPlanet.toFixed(2)} u (Hold: ${gameState.holdTimer.toFixed(1)}s/3.0s)`;
+        if (currentStage.id === 2) targetDistText = currentStage.slingshotAchieved ? "SLINGSHOT ACHIEVED! ESCAPE TO >18u" : "DIP <3.5u FOR SPEED >6.5u/s";
+        if (currentStage.id === 3) targetDistText = `PROBES SCANNED: ${currentStage.probesCollected} / 3`;
+        if (currentStage.id === 4) targetDistText = `${gameState.distPortal.toFixed(2)} u`;
+        document.getElementById('hud-target-dist').innerText = `OBJECTIVE METRIC: ${targetDistText}`;
+      }
+
+      // Render Shader & Scene
+      camera.updateMatrixWorld();
+      material.uniforms.u_cameraPos.value.copy(camera.position);
+      material.uniforms.u_cameraWorldMatrix.value.copy(camera.matrixWorld);
+      material.uniforms.u_time.value = time;
+
+      renderer.render(scene, camera);
+    }
 
     window.addEventListener('resize', () => {
       renderer.setSize(window.innerWidth, window.innerHeight);
@@ -187,22 +446,8 @@
       camera.updateProjectionMatrix();
     });
 
-    const clock = new THREE.Clock();
-    function animate() {
-      requestAnimationFrame(animate);
-      const delta = clock.getDelta();
-      
-      // Update Flight Controls
-      controls.update(delta);
-      
-      // Pass Telemetry to Shaders
-      camera.updateMatrixWorld();
-      material.uniforms.u_cameraPos.value.copy(camera.position);
-      material.uniforms.u_cameraWorldMatrix.value.copy(camera.matrixWorld);
-      material.uniforms.u_time.value = clock.getElapsedTime();
-      
-      renderer.render(scene, camera);
-    }
+    // Start Stage 1
+    loadStage(0);
     animate();
   </script>
 </body>
