@@ -2811,7 +2811,15 @@ quasarX1.rotation.z = Math.PI * 0.25; // Tilt sideways
                 accretionDisk.rotation.y += 0.0005; // Faster spin for matter falling into the singularity
                 accretionDisk.updateMatrix();
             }
-            
+
+            if (engine.updatables) {
+                engine.updatables.forEach(item => {
+                    const updateFn = item.update || item.userData?.update;
+                    if (typeof updateFn === 'function') {
+                        updateFn(currentTime);
+                    }
+                });
+            }
             // ==========================================
             // 🌀 UPDATE, ANIMATE & JUMP WORMHOLES
             // ==========================================
