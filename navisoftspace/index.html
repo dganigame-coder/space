@@ -2412,7 +2412,9 @@ quasarX1.rotation.z = Math.PI * 0.25; // Tilt sideways
             const horizonObj = [mainBelt,kuiperBelt,oortCloud,orionNebula, 
                                 remnant, andromeda, blackEyeCore,blackEyeDust,molecularCloud, 
                                 sharedBelt,oumuamua, BornSystem,
-                                quasiStarSystem,quasiStarDisk,
+                                quasiStarSystem,
+                                //quasiStarDisk,
+                                coreDisk, outerDebris,
                                 smbhCore,
                                 accretionDisk,
                                 theoreticalBlanet,
@@ -2770,12 +2772,14 @@ quasarX1.rotation.z = Math.PI * 0.25; // Tilt sideways
                 sharedBelt.rotation.y += 0.00001;
                 sharedBelt.updateMatrix();
             }
-            
+
+            /*
             // 3. Black Hole Star (Quasi-Star) Disk
             if (quasiStarDisk) {
                 quasiStarDisk.rotation.y += 0.0002; // Glowing, energetic stellar envelope drift
                 quasiStarDisk.updateMatrix();
             }
+            */
             
             // 4. SMBH / Blanet Accretion Disk
             if (accretionDisk) {
