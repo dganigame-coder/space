@@ -1880,12 +1880,22 @@
     const quasiZ = -950000000; // Deep in the early universe
 
     // 1. THE CORE SINGULARITY (True Black Hole core using your new shader/physics)
+    /*
     const quasiBlackHoleCore = createBlackHole(engine.scene, {
         name: "Quasi-Star Central Singularity",
         size: 10000, // Scaled down relative to the 150k stellar envelope
         x: quasiX,
         y: quasiY,
         z: quasiZ
+    });
+    */
+    // Temporary test coordinates close to the camera
+    const quasiBlackHoleCore = createBlackHole(engine.scene, {
+        name: "Quasi-Star Central Singularity",
+        size: 10000,
+        x: 0,
+        y: 0,
+        z: -50000
     });
     if (engine.updatables) engine.updatables.push(quasiBlackHoleCore);
 
