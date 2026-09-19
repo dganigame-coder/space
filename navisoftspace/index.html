@@ -2336,7 +2336,7 @@ quasarX1.rotation.z = Math.PI * 0.25; // Tilt sideways
     const r136y = 120000000;
     const r136z = -400000000;
     
-    // 1. THE HYPERGIANT CORE & HIGH-INTENSITY EMISSION
+    // 1. Initialize star system with electric blue parameters
     const r136a1StarSystem = createStarSystem(engine.scene, {
         name: "R136a1 Hypergiant",
         x: r136x,
@@ -2346,19 +2346,31 @@ quasarX1.rotation.z = Math.PI * 0.25; // Tilt sideways
         stars: [
             {
                 name: "R136a1 Core",
-                radius: 40000,          // Large physical stellar radius
-                color: 0x77d8ff,        // Extreme surface temp (~50,000 K) blue-white
+                radius: 40000,
+                color: 0x00d5ff,        // Electric blue-cyan surface
+                emissive: 0x0044ff,     // Intense deep blue glow
+                lightIntensity: 15,
                 orbitDistance: 0,
-                orbitSpeed: 0,
-                lightIntensity: 12,     // Extremely high luminosity (~5+ million Suns)
-                emissive: 0x33aaff
+                orbitSpeed: 0
             }
         ]
     });
     
-    // Explicitly attach root name so HUD proximity scanners detect it
+    // 2. Override default yellow textures/materials on all child meshes
     if (r136a1StarSystem) {
         r136a1StarSystem.name = "R136a1 Hypergiant";
+        
+        r136a1StarSystem.traverse((child) => {
+            if (child.isMesh && child.material) {
+                // Force core color to high-energy cyan-blue
+                child.material.color.setHex(0x00d5ff);
+                
+                if ('emissive' in child.material) {
+                    child.material.emissive.setHex(0x0055ff);
+                    child.material.emissiveIntensity = 3.5;
+                }
+            }
+        });
     }
     
     // 2. VIOLENT WOLF-RAYET STELLAR WIND (Extreme mass-loss shroud)
