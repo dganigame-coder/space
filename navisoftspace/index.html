@@ -2329,52 +2329,59 @@ quasarX1.rotation.z = Math.PI * 0.25; // Tilt sideways
         ]
     });
 
-// ============================================================================
-// 🌟 EXOTIC: R136a1 (Most Massive & Luminous Known Wolf-Rayet Star)
-// ============================================================================
-const r136x = -600000000;
-const r136y = 120000000;
-const r136z = -400000000;
-
-// 1. THE HYPERGIANT CORE & HIGH-INTENSITY EMISSION
-const r136a1StarSystem = createStarSystem(engine.scene, {
-    name: "R136a1 Hypergiant",
-    x: r136x,
-    y: r136y,
-    z: r136z,
-    systemRadius: 500000,
-    stars: [
-        {
-            name: "R136a1 Core",
-            radius: 40000,          // Large physical stellar radius
-            color: 0x77d8ff,        // Extreme surface temp (~50,000 K) blue-white
-            orbitDistance: 0,
-            orbitSpeed: 0,
-            lightIntensity: 12,     // Extremely high luminosity (~5+ million Suns)
-            emissive: 0x33aaff
-        }
-    ]
-});
-
-// Ensure array exists before pushing
-if (!engine.updatables) engine.updatables = [];
-if (r136a1StarSystem) engine.updatables.push(r136a1StarSystem);
-
-// 2. VIOLENT WOLF-RAYET STELLAR WIND (Extreme mass-loss shroud)
-const r136StellarWind = createBelt(engine.scene, {
-    x: r136x,
-    y: r136y,
-    z: r136z,
-    count: 6000,
-    innerRadius: 45000,             // Starts right at the stellar surface
-    outerRadius: 180000,            // Outward-expanding radiation pressure cloud
-    verticalScatter: 40000,
-    color: 0x33aaff,                // Ionized gas glow
-    size: { min: 400, max: 1800 },
-    type: 'asteroid_belt',
-    name: 'R136a1 Stellar Wind Outflow'
-});
+    // ============================================================================
+    // 🌟 EXOTIC: R136a1 (Most Massive & Luminous Known Wolf-Rayet Star)
+    // ============================================================================
+    const r136x = -600000000;
+    const r136y = 120000000;
+    const r136z = -400000000;
     
+    // 1. THE HYPERGIANT CORE & HIGH-INTENSITY EMISSION
+    const r136a1StarSystem = createStarSystem(engine.scene, {
+        name: "R136a1 Hypergiant",
+        x: r136x,
+        y: r136y,
+        z: r136z,
+        systemRadius: 500000,
+        stars: [
+            {
+                name: "R136a1 Core",
+                radius: 40000,          // Large physical stellar radius
+                color: 0x77d8ff,        // Extreme surface temp (~50,000 K) blue-white
+                orbitDistance: 0,
+                orbitSpeed: 0,
+                lightIntensity: 12,     // Extremely high luminosity (~5+ million Suns)
+                emissive: 0x33aaff
+            }
+        ]
+    });
+    
+    // Explicitly attach root name so HUD proximity scanners detect it
+    if (r136a1StarSystem) {
+        r136a1StarSystem.name = "R136a1 Hypergiant";
+    }
+    
+    // 2. VIOLENT WOLF-RAYET STELLAR WIND (Extreme mass-loss shroud)
+    const r136StellarWind = createBelt(engine.scene, {
+        x: r136x,
+        y: r136y,
+        z: r136z,
+        count: 6000,
+        innerRadius: 45000,             // Starts right at the stellar surface
+        outerRadius: 180000,            // Outward-expanding radiation pressure cloud
+        verticalScatter: 40000,
+        color: 0x33aaff,                // Ionized gas glow
+        size: { min: 400, max: 1800 },
+        type: 'asteroid_belt',
+        name: 'R136a1 Stellar Wind Outflow'
+    });
+    
+    // 3. REGISTER BOTH OBJECTS TO ENGINE UPDATABLES
+    if (!engine.updatables) engine.updatables = [];
+    
+    if (r136a1StarSystem) engine.updatables.push(r136a1StarSystem);
+    if (r136StellarWind) engine.updatables.push(r136StellarWind); // Added missing push    
+        
     // ============================================================================
     // 🌀 WORMHOLE NETWORK CONFIGURATION & JUMP DESTINATIONS
     // ============================================================================
