@@ -2356,18 +2356,32 @@ quasarX1.rotation.z = Math.PI * 0.25; // Tilt sideways
         ]
     });
     
-    // 2. Override default yellow textures/materials on all child meshes
+    // 2. Override default yellow textures safely
     if (r136a1StarSystem) {
         r136a1StarSystem.name = "R136a1 Hypergiant";
         
         r136a1StarSystem.traverse((child) => {
             if (child.isMesh && child.material) {
-                // Force core color to high-energy cyan-blue
-                child.material.color.setHex(0x00d5ff);
                 
-                if ('emissive' in child.material) {
+                // 1. Handle Standard/Phong/Basic Materials
+                if (child.material.color && typeof child.material.color.setHex === 'function') {
+                    child.material.color.setHex(0x00d5ff);
+                }
+                
+                if (child.material.emissive && typeof child.material.emissive.setHex === 'function') {
                     child.material.emissive.setHex(0x0055ff);
                     child.material.emissiveIntensity = 3.5;
+                }
+    
+                // 2. Handle ShaderMaterials (if the star uses custom shaders for halos)
+                if (child.material.uniforms) {
+                    // Adjust these uniform names based on your specific shader setup
+                    if (child.material.uniforms.color) {
+                        child.material.uniforms.color.value.setHex(0x00d5ff);
+                    }
+                    if (child.material.uniforms.glowColor) {
+                        child.material.uniforms.glowColor.value.setHex(0x0055ff);
+                    }
                 }
             }
         });
