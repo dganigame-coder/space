@@ -2335,7 +2335,18 @@ quasarX1.rotation.z = Math.PI * 0.25; // Tilt sideways
     const r136x = -600000000;
     const r136y = 120000000;
     const r136z = -400000000;
-    
+
+        const r136a1 = createStar(engine.scene, {
+                x: -449900000,
+                y: 80000,
+                z: -200000000,
+                name: "R136a1 Hypergiant",
+                color: 0xaaccff,
+                size: 3000000,
+                type: "hypergiant"
+            });
+
+        /*
     // 1. Initialize star system with electric blue parameters
     const r136a1StarSystem = createStarSystem(engine.scene, {
         name: "R136a1 Hypergiant",
@@ -2386,7 +2397,7 @@ quasarX1.rotation.z = Math.PI * 0.25; // Tilt sideways
             }
         });
     }
-    
+    */
     // 2. VIOLENT WOLF-RAYET STELLAR WIND (Extreme mass-loss shroud)
     const r136StellarWind = createBelt(engine.scene, {
         x: r136x,
@@ -2405,7 +2416,7 @@ quasarX1.rotation.z = Math.PI * 0.25; // Tilt sideways
     // 3. REGISTER BOTH OBJECTS TO ENGINE UPDATABLES
     if (!engine.updatables) engine.updatables = [];
     
-    if (r136a1StarSystem) engine.updatables.push(r136a1StarSystem);
+    //if (r136a1StarSystem) engine.updatables.push(r136a1StarSystem);
     if (r136StellarWind) engine.updatables.push(r136StellarWind); // Added missing push    
         
     // ============================================================================
@@ -2510,7 +2521,7 @@ quasarX1.rotation.z = Math.PI * 0.25; // Tilt sideways
                                 tauCetiDisk,tauCetiStar,
                                  momCore, momGasCloud,
                                  cosmicHorizon,omc2Nebula, quasarX1,
-                                r136StellarWind,r136a1StarSystem
+                                r136StellarWind,r136a1StarSystem,r136a1
                                 //,supernova,dynamicSupernova
                                ];
             const supernovas = [ngc6302Remnant ,messier16Nursery,  psrB1509Core ,ic434Grave,matrixCollapse,phoenixRemnant,
