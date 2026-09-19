@@ -2870,15 +2870,7 @@ const r136StellarWind = createBelt(engine.scene, {
                 accretionDisk.rotation.y += 0.0005; // Faster spin for matter falling into the singularity
                 accretionDisk.updateMatrix();
             }
-
-            if (engine.updatables) {
-                engine.updatables.forEach(item => {
-                    const updateFn = item.update || item.userData?.update;
-                    if (typeof updateFn === 'function') {
-                        updateFn(currentTime);
-                    }
-                });
-            }
+            
             // ==========================================
             // 🌀 UPDATE, ANIMATE & JUMP WORMHOLES
             // ==========================================
@@ -2922,6 +2914,15 @@ const r136StellarWind = createBelt(engine.scene, {
                 }
             }
 
+            if (engine.updatables) {
+                engine.updatables.forEach(item => {
+                    const updateFn = item.update || item.userData?.update;
+                    if (typeof updateFn === 'function') {
+                        // 2. Now currentTime exists and can be passed safely
+                        updateFn(currentTime); 
+                    }
+                });
+            }
             // 6. HUD VISUALS - NEAREST BODY
             if (closestBody && nearestLabel) {
                 const auDist = (minDistance / 60000).toFixed(2);
