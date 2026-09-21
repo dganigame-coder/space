@@ -636,8 +636,8 @@
     // ==========================================//
     // LEVEL 6: EXOTIC GALAXIES & COSMOLOGICAL BOUNDARY WALLS
     // ==========================================//
-        
-    { name: "R136a1 Hypergiant", x: -449900000, y: 80000, z: -200000000 },
+    { name: "Rigel System (Blue Supergiant)", x: -500000000, y: 0, z: -300000000 },
+    { name: "R136a1 Hypergiant - not active", x: -449900000, y: 80000, z: -200000000 },
     { name: "Active Galactic Nucleus (SMBH)", x: 500000000, y: -100000000, z: -600000000 },
     { name: "Blanet Prime", x: 501200000, y: -100000000, z: -598800000 },
     { name: "Exoplanet GJ 504b", x: -380000000, y: 120000000, z: 520000000 },
@@ -2413,6 +2413,39 @@ quasarX1.rotation.z = Math.PI * 0.25; // Tilt sideways
         name: 'R136a1 Stellar Wind Outflow'
     });
      
+
+        // ============================================================================
+        // 🌌 NEIGHBOR SYSTEM: RIGEL (BLUE SUPERGIANT)
+        // ============================================================================ 
+        const rigelX = -500000000;
+        const rigelY = 0;
+        const rigelZ = -300000000;
+    
+        const rigelSystem = createStarSystem(engine.scene, {
+            name: "Rigel System",
+            x: rigelX,
+            y: rigelY,
+            z: rigelZ,
+            systemRadius: 4000000,
+            stars: [
+                { 
+                    name: "Rigel A", 
+                    radius: 79000,  // Roughly 79x the radius of our Sun
+                    color: 0xaaccff, // Brilliant B-type blue-white spectrum
+                    orbitDistance: 0, 
+                    orbitSpeed: 0.0001, 
+                    lightIntensity: 12 // Massively bright
+                },
+                { 
+                    name: "Rigel B", 
+                    radius: 3500,  // Smaller main-sequence companion
+                    color: 0xbbddff, 
+                    orbitDistance: 1500000, 
+                    orbitSpeed: 0.002, 
+                    lightIntensity: 2 
+                }
+            ]
+        });
         
     // ============================================================================
     // 🌀 WORMHOLE NETWORK CONFIGURATION & JUMP DESTINATIONS
