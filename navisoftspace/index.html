@@ -1579,8 +1579,9 @@
             }
         ]
     });
-    
-        // =========================================================
+
+        /*
+    // =========================================================
     // 🔴 LHS 1140 SYSTEM (Red Dwarf + LHS 1140 b Ocean Super-Earth)
     // =========================================================
     const lhs1140System = createExoplanetSystem(engine.scene, {
@@ -1622,7 +1623,49 @@
 }
         ]
     });
+    */
+    // =========================================================
+    // 🔴 LHS 1140 SYSTEM (Red Dwarf + LHS 1140 b Ocean Super-Earth)
+    // =========================================================
+    const lhs1140System = createExoplanetSystem(engine.scene, {
+        name: "LHS 1140 System",
+        
+        // System Position in World Space
+        x: 150000000,
+        y: -40000,
+        z: 220000000,
     
+        // Central Host Star (M-Dwarf / Red Dwarf)
+        starRadius: 28000,
+        starColor: 0xff4411,
+        starOffset: 100000,
+    
+        // System Planets
+        planets: [
+            {
+                name: "LHS 1140 c",
+                radius: 800,
+                color: 0xaa7755,
+                orbitDistance: 90000,
+                orbitSpeed: 0.014,
+                rotationSpeed: 0.005,
+                hasClouds: false,
+                hasAtmosphere: false
+            },
+            {
+                name: "LHS 1140 b (Eyeball World)",
+                radius: 1700,
+                baseColor: 0xe0f6ff,      // Dominant icy shell color (white/cyan-ice)
+                oceanColor: 0x1d70b8,     // Central sub-stellar ocean ("iris") color
+                isTidallyLocked: true,    // Sub-stellar ocean must always face the host star
+                rotationSpeed: 0.0,       // Fixed relative to host star alignment
+                hasClouds: true,
+                hasAtmosphere: true,
+                atmosColor: 0x33ccff,     // Nitrogen-rich atmosphere halo
+                atmosOpacity: 0.4
+}
+        ]
+    });
      // =========================================================
     // 🪐 CD-35 2722 SYSTEM (Red Dwarf + Brown Dwarf + Gas-Giant Exomoon)
     // =========================================================
