@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deep Space Telemetry & Exploration Engine</title>
+    <style>
+        * { box-sizing: border-box; }
+        body, html { 
+            margin: 0; padding: 0; width: 100%; height: 100%; 
+            overflow: hidden; background: #000; 
+            font-family: 'Courier New', Courier, monospace; 
+        }
+        #webgl-container { width: 100%; height: 100%; display: block; }
+        
+        /* High-End Sci-Fi Glassmorphism HUD */
+        #hud {
+            position: absolute;
+            top: 30px;
+            left: 30px;
+            color: #00ffcc;
+            background: rgba(0, 20, 30, 0.6);
+            border: 1px solid rgba(0, 255, 204, 0.4);
+            padding: 20px;
+            border-radius: 8px;
+            backdrop-filter: blur(6px);
+            pointer-events: none;
+            box-shadow: 0 0 20px rgba(0, 255, 204, 0.15);
+            max-width: 320px;
+        }
+        #hud h2 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            letter-spacing: 2px;
+            color: #fff;
+            border-bottom: 1px solid rgba(0, 255, 204, 0.3);
+            padding-bottom: 5px;
+        }
+        .telemetry-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            margin-bottom: 6px;
+            color: #88ccff;
+        }
+        .telemetry-row span { color: #fff; font-weight: bold; }
+        #status-alert {
+            margin-top: 12px;
+            font-size: 13px;
+            color: #00ffcc;
+            text-shadow: 0 0 8px rgba(0,255,204,0.6);
+        }
+
+        /* Center Crosshair */
+        #crosshair {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px; height: 20px;
+            border: 1px solid rgba(0, 255, 204, 0.3);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        #crosshair::after {
+            content: ''; position: absolute; top: 9px; left: 9px;
+            width: 2px; height: 2px; background: #00ffcc;
+        }
+    </style>
+
+    <!-- Import Three.js and OrbitControls via Modern ES Modules -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+
+    <div id="webgl-container"></div>
+    <div id="crosshair"></div>
+
+    <div id="hud">
+        <h2>STELLAR TELEMETRY</h2>
+        <div class="telemetry-row">TARGET: <span>RIGEL SYSTEM</span></div>
+        <div class="telemetry-row">DIST: <span id="dist-val">0.00 LY</span></div>
+        <div class="telemetry-row">SPEED: <span id="speed-val">Sublight</span></div>
+        <div id="status-alert">> STATUS: STABLE ORBITAL DRIFT</div>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // 1. SCENE, CAMERA & RENDERER INITIALIZATION
+        const container = document.getElementById('webgl-container');
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x000000, 0.0000005);
+
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 500000000);
+        camera.position.set(0, 50000, 300000);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        
+        // Cinematic Tone Mapping for high-intensity emissive glow rendering
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
+        container.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+
+        // 2. LIGHTING
+        const ambientLight = new THREE.AmbientLight(0x050811, 2.0);
+        scene.add(ambientLight);
+
+        const sunLight = new THREE.PointLight(0x2266ff, 5.0, 20000000, 0.5);
+        sunLight.position.set(0, 0, 0);
+        scene.add(sunLight);
+
+        // 3. GENERATE IMMERSIVE AMBIENT STARFIELD (Using your custom approach)
+        function createStars() {
+            const vertices = [];
+            for (let i = 0; i < 20000; i++) {
+                const x = THREE.MathUtils.randFloatSpread(80000000);
+                const y = THREE.MathUtils.randFloatSpread(80000000);
+                const z = THREE.MathUtils.randFloatSpread(80000000);
+                vertices.push(x, y, z);
+            }
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+
+            const material = new THREE.PointsMaterial({
+                color: 0xffffff,
+                size: 1200,
+                sizeAttenuation: true
+            });
+            return new THREE.Points(geometry, material);
+        }
+        scene.add(createStars());
+
+        // 4. CREATE THE BLUE SUPERGIANT (Rigel A)
+        const starGeometry = new THREE.SphereGeometry(79000, 64, 64);
+        const starMaterial = new THREE.MeshStandardMaterial({
+            color: 0x2266ff,
+            emissive: 0x0044ff,
+            emissiveIntensity: 2.5,
+            roughness: 0.4,
+            metalness: 0.1
+        });
+        const rigelA = new THREE.Mesh(starGeometry, starMaterial);
+        scene.add(rigelA);
+
+        // Add a soft outer corona glow shell
+        const coronaGeometry = new THREE.SphereGeometry(95000, 32, 32);
+        const coronaMaterial = new THREE.MeshBasicMaterial({
+            color: 0x00aaff,
+            transparent: true,
+            opacity: 0.15,
+            side: THREE.BackSide,
+            blending: THREE.AdditiveBlending
+        });
+        const rigelCorona = new THREE.Mesh(coronaGeometry, coronaMaterial);
+        rigelA.add(rigelCorona);
+
+        // 5. ANIMATION & TELEMETRY UPDATE LOOP
+        const distValElement = document.getElementById('dist-val');
+        const statusAlertElement = document.getElementById('status-alert');
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Gentle rotation for life-like star dynamics
+            rigelA.rotation.y += 0.0005;
+
+            controls.update();
+
+            // Calculate live telemetry distance from camera to Rigel A
+            const distance = camera.position.distanceTo(rigelA.position);
+            const lightYears = (distance / 9460730472580).toFixed(4); // Arbitrary scale representation
+            distValElement.innerText = `${lightYears} UNITS`;
+
+            // Dynamic HUD proximity trigger checks
+            if (distance < 200000) {
+                statusAlertElement.innerText = ">> WARNING: EXTREME STELLAR RADIATION";
+                statusAlertElement.style.color = "#ff3300";
+            } else {
+                statusAlertElement.innerText = ">> STATUS: STABLE ORBITAL DRIFT";
+                statusAlertElement.style.color = "#00ffcc";
+            }
+
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // 6. RESPONSIVE WINDOW RESIZING
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
