@@ -825,12 +825,12 @@
         
          // 150 AU = ~22,500,000 units
         const voyager = createVoyager(engine.scene, {
-    x: 10000, 
-    y: 2000, 
-    z: 22505000,
-    color: 0xffd700,
-    name: "Voyager Probe"
-});
+            x: 10000, 
+            y: 2000, 
+            z: 22505000,
+            color: 0xffd700,
+            name: "Voyager Probe"
+        });
 
         
         // If Earth is positioned at x: 150000 (for example)
@@ -2329,93 +2329,49 @@ quasarX1.rotation.z = Math.PI * 0.25; // Tilt sideways
         ]
     });
 
-    // ============================================================================
-    // 🌟 EXOTIC: R136a1 (Most Massive & Luminous Known Wolf-Rayet Star)
-    // ============================================================================
-    const r136x = -600000000;
-    const r136y = 120000000;
-    const r136z = -400000000;
+// ============================================================================
+        // 🌟 EXOTIC: R136a1 (Most Massive & Luminous Known Wolf-Rayet Star)
+        // ============================================================================
+        const r136x = -600000000;
+        const r136y = 120000000;
+        const r136z = -400000000;
 
-        const r136a1 = createStar(engine.scene, {
-                x: -449900000,
-                y: 80000,
-                z: -200000000,
-                name: "R136a1 Hypergiant",
-                color: 0xaaccff,
-                size: 3000000,
-                type: "hypergiant"
-            });
-
-        /*
-    // 1. Initialize star system with electric blue parameters
-    const r136a1StarSystem = createStarSystem(engine.scene, {
-        name: "R136a1 Hypergiant",
-        x: r136x,
-        y: r136y,
-        z: r136z,
-        systemRadius: 500000,
-        stars: [
-            {
-                name: "R136a1 Core",
-                radius: 40000,
-                color: 0x00d5ff,        // Electric blue-cyan surface
-                emissive: 0x0044ff,     // Intense deep blue glow
-                lightIntensity: 15,
-                orbitDistance: 0,
-                orbitSpeed: 0
-            }
-        ]
-    });
-    
-    // 2. Override default yellow textures safely
-    if (r136a1StarSystem) {
-        r136a1StarSystem.name = "R136a1 Hypergiant";
-        
-        r136a1StarSystem.traverse((child) => {
-            if (child.isMesh && child.material) {
-                
-                // 1. Handle Standard/Phong/Basic Materials
-                if (child.material.color && typeof child.material.color.setHex === 'function') {
-                    child.material.color.setHex(0x00d5ff);
+        const r136a1System = createStarSystem(engine.scene, {
+            name: "R136a1 Hypergiant",
+            x: r136x,
+            y: r136y,
+            z: r136z,
+            systemRadius: 1000000,
+            stars: [
+                {
+                    name: "R136a1 Core",
+                    radius: 35000, // Accurate scale: ~35x Solar Radius
+                    color: 0x2266ff, // Deep saturated blue to force a brilliant blue glow
+                    orbitDistance: 0,
+                    orbitSpeed: 0,
+                    textureMap: "https://raw.githubusercontent.com/dganigame-coder/space/master/navisoftspace/planets/texture/blue_giant.jpg",
+                    lightIntensity: 20 // Blindingly bright, higher than Rigel
                 }
-                
-                if (child.material.emissive && typeof child.material.emissive.setHex === 'function') {
-                    child.material.emissive.setHex(0x0055ff);
-                    child.material.emissiveIntensity = 3.5;
-                }
-    
-                // 2. Handle ShaderMaterials (if the star uses custom shaders for halos)
-                if (child.material.uniforms) {
-                    // Adjust these uniform names based on your specific shader setup
-                    if (child.material.uniforms.color) {
-                        child.material.uniforms.color.value.setHex(0x00d5ff);
-                    }
-                    if (child.material.uniforms.glowColor) {
-                        child.material.uniforms.glowColor.value.setHex(0x0055ff);
-                    }
-                }
-            }
+            ]
         });
-    }
-    */
-    // 2. VIOLENT WOLF-RAYET STELLAR WIND (Extreme mass-loss shroud)
-    const r136StellarWind = createBelt(engine.scene, {
-        x: r136x,
-        y: r136y,
-        z: r136z,
-        count: 6000,
-        innerRadius: 45000,             // Starts right at the stellar surface
-        outerRadius: 180000,            // Outward-expanding radiation pressure cloud
-        verticalScatter: 40000,
-        color: 0x33aaff,                // Ionized gas glow
-        size: { min: 400, max: 1800 },
-        type: 'asteroid_belt',
-        name: 'R136a1 Stellar Wind Outflow'
-    });
-     
+
+        // VIOLENT WOLF-RAYET STELLAR WIND (Extreme mass-loss shroud)
+        const r136StellarWind = createBelt(engine.scene, {
+            x: r136x,
+            y: r136y, // Now perfectly aligned with the star
+            z: r136z,
+            count: 6000,
+            innerRadius: 45000,  // Starts safely just outside the 35,000 star radius
+            outerRadius: 180000, 
+            verticalScatter: 40000,
+            color: 0x33aaff,     // Ionized gas glow matching the star
+            size: { min: 400, max: 1800 },
+            type: 'asteroid_belt',
+            name: 'R136a1 Stellar Wind Outflow'
+        });     
 
         // ============================================================================
-        // 🌌 NEIGHBOR SYSTEM: RIGEL (BLUE SUPERGIANT)
+        // 🌌 NEIGHBOR SYSTEM: RIGEL (QUADRUPLE STAR SYSTEM)
         // ============================================================================ 
         const rigelX = -500000000;
         const rigelY = 0;
@@ -2428,26 +2384,48 @@ quasarX1.rotation.z = Math.PI * 0.25; // Tilt sideways
             z: rigelZ,
             systemRadius: 4000000,
             stars: [
+                // 1. The Primary: Rigel A (Blue Supergiant)
                 { 
                     name: "Rigel A", 
                     radius: 79000,  
-                    color: 0x2266ff, // <-- Much deeper, saturated blue for a richer glow
+                    color: 0x2266ff, 
                     orbitDistance: 0, 
                     orbitSpeed: 0.0001, 
                     textureMap: "https://raw.githubusercontent.com/dganigame-coder/space/master/navisoftspace/planets/texture/blue_giant.jpg",
-                    lightIntensity: 15 // Bumped up slightly to compensate for the darker hex color
+                    lightIntensity: 15 
                 },
+                // 2. The Primary Companion: Rigel Ba
                 { 
-                    name: "Rigel B", 
-                    radius: 3500,  // Smaller main-sequence companion
+                    name: "Rigel Ba", 
+                    radius: 3000,  
                     color: 0xbbddff, 
                     orbitDistance: 1500000, 
                     orbitSpeed: 0.002, 
+                    textureMap: "https://raw.githubusercontent.com/dganigame-coder/space/master/navisoftspace/planets/texture/blue_giant.jpg",
                     lightIntensity: 2 
+                },
+                // 3. The Spectroscopic Twin: Rigel Bb
+                { 
+                    name: "Rigel Bb", 
+                    radius: 2500,  // Slightly smaller than Ba
+                    color: 0xbbddff, 
+                    orbitDistance: 1515000, // Orbiting incredibly close to Ba
+                    orbitSpeed: 0.002, // Matching Ba's speed so they travel together around Rigel A
+                    textureMap: "https://raw.githubusercontent.com/dganigame-coder/space/master/navisoftspace/planets/texture/blue_giant.jpg",
+                    lightIntensity: 1.5 
+                },
+                // 4. The Outer Companion: Rigel C
+                { 
+                    name: "Rigel C", 
+                    radius: 2500,  
+                    color: 0xaaccff, 
+                    orbitDistance: 1600000, // Spaced further out from the Ba/Bb pair
+                    orbitSpeed: 0.0018, // Slightly slower orbit because it is further from the center
+                    textureMap: "https://raw.githubusercontent.com/dganigame-coder/space/master/navisoftspace/planets/texture/blue_giant.jpg",
+                    lightIntensity: 1.5 
                 }
             ]
         });
-        
     // ============================================================================
     // 🌀 WORMHOLE NETWORK CONFIGURATION & JUMP DESTINATIONS
     // ============================================================================
@@ -2611,7 +2589,9 @@ quasarX1.rotation.z = Math.PI * 0.25; // Tilt sideways
         // Collect all bodies into one flat array and filter out null/undefined entries
         
         const rawBodies = [
-            sun, mercury, venus, earth, moon, mars, jupiter, saturn, titan, uranus, neptune, pluto, voyager,
+            sun, mercury, venus, earth, moon, mars, jupiter, saturn, titan, uranus, neptune, pluto, 
+            
+            voyager,
             
             // Exoplanets
             exoSystem, alphaCentauriAB, proximaSystem, proximaB, planetE, planetF, gj504b, k218, 
@@ -2619,7 +2599,6 @@ quasarX1.rotation.z = Math.PI * 0.25; // Tilt sideways
             arCassiopeiaeSystem,nuScorpiiSystem,
             rigelSystem,r136a1,
 
-            voyager,
             // Major Celestial Bodies (Excluding giant center-origin belts)
             orionNebula, remnant, andromeda, blackEyeCore, blackEyeDust, molecularCloud, sharedBelt, 
             oumuamua, BornSystem, quasiStarSystem, smbhCore, theoreticalBlanet, tauCetiStar, 
