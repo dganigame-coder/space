@@ -1609,17 +1609,17 @@
                 hasAtmosphere: false
             },
             {
-                name: "LHS 1140 b (Ocean World)",
-                radius: 1700, // Super-Earth (~1.7x Earth radius)
-                color: 0x1d70b8,
-                orbitDistance: 240000,
-                orbitSpeed: 0.006,
-                rotationSpeed: 0.004,
+                name: "LHS 1140 b (Eyeball World)",
+                radius: 1700,
+                baseColor: 0xe0f6ff,      // Dominant icy shell color (white/cyan-ice)
+                oceanColor: 0x1d70b8,     // Central sub-stellar ocean ("iris") color
+                isTidallyLocked: true,    // Sub-stellar ocean must always face the host star
+                rotationSpeed: 0.0,       // Fixed relative to host star alignment
                 hasClouds: true,
                 hasAtmosphere: true,
-                atmosColor: 0x33ccff, // Cyan atmosphere halo
+                atmosColor: 0x33ccff,     // Nitrogen-rich atmosphere halo
                 atmosOpacity: 0.4
-            }
+}
         ]
     });
     
