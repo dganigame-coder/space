@@ -8,7 +8,10 @@ export function createVoyager(scene, config) {
     
     // 2. Set position
     group.position.set(x, y, z);
+
+    group.updateMatrixWorld(true);
     
+    group.frustumCulled = false;
     // 3. Attach the hub identifier data
     group.name = name;
     group.userData = { 
