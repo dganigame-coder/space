@@ -3100,9 +3100,10 @@ quasarX1.rotation.z = Math.PI * 0.25; // Tilt sideways
             // 7. HORIZON OBJECT DISPLAY
             const shipPos = engine.camera.position;
             const shipDist = shipPos.length();
-        
-            // Optimized HUD update
             const distToVoyager = engine.camera.position.distanceTo(voyager.position);
+            
+            // Default state for this frame (resets colors from previous frames)
+            horizonObjElement.style.color = "#00ccff"; 
             
             if (shipDist >= 15000 && shipDist <= 30000) {
                 horizonObjElement.innerText = ">> PASSING: MAIN ASTEROID BELT";
@@ -3110,21 +3111,21 @@ quasarX1.rotation.z = Math.PI * 0.25; // Tilt sideways
             else if (shipDist >= 2000000 && shipDist <= 3500000) {
                 horizonObjElement.innerText = ">> PASSING: KUIPER BELT";
             } 
-            // NEW: Heliopause Boundary (approx 120 AU)
             else if (Math.abs(shipDist - 18000000) < 200000) {
                 horizonObjElement.innerText = ">> PASSING: HELIOPAUSE BOUNDARY";
-                horizonObjElement.style.color = "#bb00ff"; // Optional: Purple tint for plasma
+                horizonObjElement.style.color = "#bb00ff"; // Overrides with Purple
             }
-            // NEW: Voyager 1 Encounter (approx 160 AU)
             else if (distToVoyager < 50000) {
                 horizonObjElement.innerText = ">> SIGNAL DETECTED: VOYAGER 1";
-                horizonObjElement.style.color = "#ffd700"; // Optional: Gold tint for the probe
+                horizonObjElement.style.color = "#ffd700"; // Overrides with Gold
             }
             else if (shipDist >= 60000000 && shipDist <= 85000000) {
-                // Reset color if you used the tints above
-                horizonObjElement.style.color = "#00ccff"; 
                 horizonObjElement.innerText = ">> PASSING: OORT CLOUD";
             } 
+            else {
+                // We are in deep, empty space between zones. Clear the HUD!
+                horizonObjElement.innerText = ""; 
+            }
                 /*
             else if (shipDist > 85000000) {
                 horizonObjElement.innerText = ">> STATUS: INTERSTELLAR SPACE";
