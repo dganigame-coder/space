@@ -226,7 +226,9 @@
     <button id="nav-trigger" style="background: #000; color: #00ffcc; border: 1px solid #00ffcc; padding: 10px 15px; font-family: monospace; cursor: pointer; text-transform: uppercase;">
         NAVIGATION HUB
     </button>
-
+    <button id="help-btn" style="background: rgba(0, 20, 30, 0.8); color: #00ffcc; border: 1px solid #00ffcc; padding: 10px 15px; font-family: monospace; cursor: pointer; text-transform: uppercase;">
+        FLIGHT MANUAL
+    </button>
     <button id="saveBtn" style="background: rgba(0, 255, 255, 0.1); color: #00ffff; border: 1px solid #00ffff; padding: 10px 15px; font-family: monospace; cursor: pointer; text-transform: uppercase;">
         Log Position
     </button>
@@ -457,6 +459,7 @@
     </script>
     <script type="module"> 
     import { initEngine , checkCollisions, bootSystems } from 'engine';
+    import { manualContent } from 'instructions';
     //import { loadSoundLibrary } from 'audio'
     import { initPilot, updateFlight , velocity } from 'pilot';
     import { SaveSystem } from 'save';
@@ -746,7 +749,57 @@
                     container.appendChild(btn);
                 });
             }
+
+            // --- FLIGHT MANUAL UI ---
+            function initFlightManual() {
+                const helpButton = document.getElementById('help-btn');
+            
+                if (!helpButton) {
+                    console.warn('Flight Manual button was not found.');
+                    return;
+                }
+            
+                // Insert the manual HTML from instructions.js
+                document.body.insertAdjacentHTML('beforeend', manualContent);
+            
+                const helpModal = document.getElementById('help-modal');
+                const closeHelpButton = document.getElementById('close-help');
+            
+                if (!helpModal || !closeHelpButton) {
+                    console.warn('Flight Manual modal elements were not found.');
+                    return;
+                }
+            
+                // Open Manual
+                helpButton.addEventListener('pointerdown', (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
                     
+                    // Freeze ship controls
+                    window.blockShipControls = true;
+            
+                    helpModal.style.display = 'block';
+                    helpModal.style.position = 'fixed'; // Overrides absolute to ensure it stays centered
+                    helpModal.style.zIndex = '10000';
+                    helpModal.style.pointerEvents = 'auto';
+                });
+            
+                // Close Manual
+                closeHelpButton.addEventListener('pointerdown', (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+            
+                    helpModal.style.display = 'none';
+            
+                    // Tiny delay before unblocking controls so the user doesn't accidentally shoot/move when clicking close
+                    setTimeout(() => {
+                        window.blockShipControls = false;
+                    }, 120);
+                });
+            }
+            
+            initFlightManual();
+        
             window.addEventListener('DOMContentLoaded', initNavHub);
 
         //const universe = new UniverseGenerator(engine.scene);
