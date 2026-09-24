@@ -113,6 +113,17 @@ export function createVoyager(scene, config) {
         }
     });
 
+    // --- DEBUG BUBBLE: REMOVE LATER ---
+    // This creates a massive 100-unit red wireframe bubble that ignores darkness
+    const debugGeo = new THREE.SphereGeometry(100, 16, 16);
+    const debugMat = new THREE.MeshBasicMaterial({ 
+        color: 0xff0000, 
+        wireframe: true 
+    });
+    const debugBubble = new THREE.Mesh(debugGeo, debugMat);
+    group.add(debugBubble);
+    // ----------------------------------
+    
     scene.add(group);
     return group;
 }
