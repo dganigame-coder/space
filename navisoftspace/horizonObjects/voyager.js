@@ -113,16 +113,14 @@ export function createVoyager(scene, config) {
         }
     });
 
-    // --- DEBUG BUBBLE: REMOVE LATER ---
-    // This creates a massive 100-unit red wireframe bubble that ignores darkness
-    const debugGeo = new THREE.SphereGeometry(100, 16, 16);
-    const debugMat = new THREE.MeshBasicMaterial({ 
-        color: 0xff0000, 
-        wireframe: true 
-    });
-    const debugBubble = new THREE.Mesh(debugGeo, debugMat);
-    group.add(debugBubble);
-    // ----------------------------------
+    // Attach a powerful directional light to the camera (acts like a ship headlight)
+    const headlight = new THREE.DirectionalLight(0xffffff, 3.0);
+    // Position it slightly offset from the lens so it casts good shadows
+    headlight.position.set(5, 5, 10); 
+    engine.camera.add(headlight);
+    
+    // CRITICAL: The camera itself must be added to the scene for attached lights to work
+    engine.scene.add(engine.camera);
     
     scene.add(group);
     return group;
