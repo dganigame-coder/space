@@ -113,14 +113,17 @@ export function createVoyager(scene, config) {
         }
     });
 
-    // Attach a powerful directional light to the camera (acts like a ship headlight)
-    const headlight = new THREE.DirectionalLight(0xffffff, 3.0);
-    // Position it slightly offset from the lens so it casts good shadows
-    headlight.position.set(5, 5, 10); 
-    engine.camera.add(headlight);
+    // Add a local light directly to Voyager so it is never perfectly camouflaged
+    const probeLight = new THREE.DirectionalLight(0xffffff, 3.0);
+    probeLight.position.set(5, 5, 5); // Offset so it creates 3D shadows on the dish
+    group.add(probeLight);
     
-    // CRITICAL: The camera itself must be added to the scene for attached lights to work
-    engine.scene.add(engine.camera);
+    // Add a soft ambient light so the dark side isn't pitch black
+    const ambientGlow = new THREE.AmbientLight(0xffffff, 0.5);
+    group.add(ambientGlow);
+    
+    scene.add(group);
+    return group;
     
     scene.add(group);
     return group;
