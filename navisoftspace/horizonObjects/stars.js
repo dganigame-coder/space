@@ -1,14 +1,15 @@
-import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
+import * as THREE from 'three';
 
 export function createStars() {
     const vertices = [];
-    // Create 15,000 stars
-    for (let i = 0; i < 15000; i++) {
-        // Place stars in a massive sphere far beyond Pluto
-        // Random position between -5,000,000 and 5,000,000
-        const x = THREE.MathUtils.randFloatSpread(10000000);
-        const y = THREE.MathUtils.randFloatSpread(10000000);
-        const z = THREE.MathUtils.randFloatSpread(10000000);
+    
+    // 50,000 stars provides a gorgeous, dense sky without lagging the browser
+    for (let i = 0; i < 50000; i++) {
+        // A 4-million-unit bubble. Large enough for perfect parallax depth, 
+        // but small enough to avoid floating-point math glitches.
+        const x = THREE.MathUtils.randFloatSpread(4000000);
+        const y = THREE.MathUtils.randFloatSpread(4000000);
+        const z = THREE.MathUtils.randFloatSpread(4000000);
         vertices.push(x, y, z);
     }
 
@@ -17,14 +18,17 @@ export function createStars() {
 
     const material = new THREE.PointsMaterial({
         color: 0xffffff,
-        size: 1500, // Large size because they are very far away
-        sizeAttenuation: true // Makes closer stars look bigger
+        size: 1500, 
+        sizeAttenuation: true,
+        transparent: true,
+        opacity: 0.8 // Softens the light for realism
     });
 
     const starField = new THREE.Points(geometry, material);
     
-    // We don't need logic for this in onUpdate usually, 
-    // it just sits there looking beautiful.
+    // CRITICAL: Prevents the engine from making the sky blink out of existence
+    starField.frustumCulled = false;
+    
     starField.userData = { name: "STARFIELD" }; 
 
     return starField;
