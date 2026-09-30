@@ -2875,14 +2875,16 @@ quasarX1.rotation.z = Math.PI * 0.25; // Tilt sideways
             // 1. INFINITE STARS
             if (engine.stars) {
                 engine.stars.position.copy(engine.camera.position);
-            
+                /*
                 const speed = velocity.length();
             
                 if (speed > 0.5) {
                     engine.stars.scale.z = 1 + (speed * 0.005); 
                 } else {
-                    engine.stars.scale.z = 1;
+                   engine.stars.scale.z = 1;
                 }
+                */
+                engine.stars.scale.z = 1;
             }
             
             // 2. HUD & TARGETING DATA
