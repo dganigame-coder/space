@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-async function fetchVoyagerLivePosition() {
+export async function fetchVoyagerLivePosition() {
     try {
         // The exact NASA URL you were using
         //const nasaUrl = "https://ssd.jpl.nasa.gov/api/horizons.api?format=json&COMMAND='-31'&OBJ_DATA='NO'&MAKE_EPHEM='YES'&EPHEM_TYPE='VECTORS'&CENTER='500@10'&START_TIME='2026-10-02'&STOP_TIME='2026-10-02'&STEP_SIZE='1d'";
