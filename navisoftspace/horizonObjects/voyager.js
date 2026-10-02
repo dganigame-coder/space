@@ -1,17 +1,54 @@
 import * as THREE from 'three';
 
+async function fetchVoyagerLivePosition() {
+    try {
+        // The exact NASA URL you were using
+        //const nasaUrl = "https://ssd.jpl.nasa.gov/api/horizons.api?format=json&COMMAND='-31'&OBJ_DATA='NO'&MAKE_EPHEM='YES'&EPHEM_TYPE='VECTORS'&CENTER='500@10'&START_TIME='2026-10-02'&STOP_TIME='2026-10-02'&STEP_SIZE='1d'";
+         const today = new Date().toISOString().split('T')[0];
+        // NASA JPL Horizons ID for Voyager 1 is -31 (Sun-centered)
+        const nasaUrl = `https://ssd.jpl.nasa.gov/api/horizons.api?format=json&COMMAND='-31'&OBJ_DATA='NO'&MAKE_EPHEM='YES'&EPHEM_TYPE='VECTORS'&CENTER='500@10'&START_TIME='${today}'&STOP_TIME='${today}'&STEP_SIZE='1d'`;
+
+        // Wrap the NASA URL in the AllOrigins CORS proxy so GitHub Pages is allowed to read it
+        const proxyUrl = "https://api.allorigins.win/raw?url=" + encodeURIComponent(nasaUrl);
+
+        const response = await fetch(proxyUrl);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        console.log("Successfully fetched live Voyager 1 position from NASA!");
+        
+        // *** PUT YOUR EXISTING POSITION PARSING CODE HERE ***
+        // Example: extract X, Y, Z from 'data' and return it
+        return data; 
+
+    } catch (error) {
+        console.warn("NASA API blocked or offline. Using fallback coordinates so the app doesn't crash.", error);
+        
+        // Fallback approximate position (in AU) for Oct 2026 so your game keeps running
+        return {
+            x: -2, 
+            y: 110, 
+            z: 120 
+        };
+    }
+}
+
 // -------------------------------------------------------------
 // 1. LIVE NASA JPL HORIZONS TELEMETRY FETCH
 // -------------------------------------------------------------
 export async function fetchVoyagerLivePosition() {
-    const today = new Date().toISOString().split('T')[0];
+    //const today = new Date().toISOString().split('T')[0];
     // NASA JPL Horizons ID for Voyager 1 is -31 (Sun-centered)
-    const url = `https://ssd.jpl.nasa.gov/api/horizons.api?format=json&COMMAND='-31'&OBJ_DATA='NO'&MAKE_EPHEM='YES'&EPHEM_TYPE='VECTORS'&CENTER='500@10'&START_TIME='${today}'&STOP_TIME='${today}'&STEP_SIZE='1d'`;
+    //const url = `https://ssd.jpl.nasa.gov/api/horizons.api?format=json&COMMAND='-31'&OBJ_DATA='NO'&MAKE_EPHEM='YES'&EPHEM_TYPE='VECTORS'&CENTER='500@10'&START_TIME='${today}'&STOP_TIME='${today}'&STEP_SIZE='1d'`;
 
     try {
-        const response = await fetch(url);
-        const data = await response.json();
-        
+        //const response = await fetch(url);
+        //const data = await response.json();
+        const data = fetchVoyagerLivePosition();
         // Parse JPL Vector Output (X, Y, Z in AU)
         const resultText = data.result;
         const xMatch = resultText.match(/X\s*=\s*(-?\d+\.\d+E[+-]?\d+)/);
