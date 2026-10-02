@@ -1,0 +1,53 @@
+name: Update Voyager Position
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Runs automatically every day at midnight UTC
+  workflow_dispatch: # Allows you to manually trigger it from the GitHub UI
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Required to commit the new JSON file back to your repo
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Fetch NASA Horizons Data
+        run: |
+          node -e "
+            (async () => {
+              const fs = require('fs');
+              const today = new Date();
+              const tomorrow = new Date(today);
+              tomorrow.setDate(tomorrow.getDate() + 1);
+
+              const startStr = today.toISOString().split('T')[0];
+              const stopStr = tomorrow.toISOString().split('T')[0];
+
+              const url = \`https://ssd.jpl.nasa.gov/api/horizons.api?format=json&COMMAND='-31'&OBJ_DATA='NO'&MAKE_EPHEM='YES'&EPHEM_TYPE='VECTORS'&CENTER='500@10'&START_TIME='\${startStr}'&STOP_TIME='\${stopStr}'&STEP_SIZE='1d'\`;
+
+              const res = await fetch(url);
+              if (!res.ok) throw new Error('NASA API Failed: ' + res.status);
+              
+              const data = await res.json();
+              fs.writeFileSync('voyager-position.json', JSON.stringify(data, null, 2));
+              console.log('Successfully saved voyager-position.json');
+            })();
+          "
+
+      - name: Commit and Push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add voyager-position.json
+          # The '|| echo' prevents the action from failing if the position hasn't changed since yesterday
+          git commit -m "chore: update Voyager live position" || echo "No changes to commit"
+          git push
