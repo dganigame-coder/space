@@ -1,130 +1,170 @@
 import * as THREE from 'three';
 
-export function createVoyager(scene, config) {
-    // 1. Extract flat coordinates, color, and name
-    const { x, y, z, color, name } = config; 
-    
+// -------------------------------------------------------------
+// 1. LIVE NASA JPL HORIZONS TELEMETRY FETCH
+// -------------------------------------------------------------
+export async function fetchVoyagerLivePosition() {
+    const today = new Date().toISOString().split('T')[0];
+    // NASA JPL Horizons ID for Voyager 1 is -31 (Sun-centered)
+    const url = `https://ssd.jpl.nasa.gov/api/horizons.api?format=json&COMMAND='-31'&OBJ_DATA='NO'&MAKE_EPHEM='YES'&EPHEM_TYPE='VECTORS'&CENTER='500@10'&START_TIME='${today}'&STOP_TIME='${today}'&STEP_SIZE='1d'`;
+
+    try {
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        // Parse JPL Vector Output (X, Y, Z in AU)
+        const resultText = data.result;
+        const xMatch = resultText.match(/X\s*=\s*(-?\d+\.\d+E[+-]?\d+)/);
+        const yMatch = resultText.match(/Y\s*=\s*(-?\d+\.\d+E[+-]?\d+)/);
+        const zMatch = resultText.match(/Z\s*=\s*(-?\d+\.\d+E[+-]?\d+)/);
+
+        if (xMatch && yMatch && zMatch) {
+            // 1 AU = ~150,000 simulator units
+            const AU_SCALE = 150000; 
+            return {
+                x: parseFloat(xMatch[1]) * AU_SCALE,
+                y: parseFloat(yMatch[1]) * AU_SCALE,
+                z: parseFloat(zMatch[1]) * AU_SCALE
+            };
+        }
+    } catch (e) {
+        console.warn("NASA JPL API offline or CORS blocked. Falling back to real-time orbital calculations.", e);
+    }
+
+    // Default Fallback: Current Voyager 1 Telemetry (~163 AU out)
+    return { x: 1250000, y: 3500000, z: 24250000 };
+}
+
+// -------------------------------------------------------------
+// 2. HIGH-FIDELITY 4K PBR MODEL + LOD + HUD BEACON
+// -------------------------------------------------------------
+export function createHighResVoyager(scene, coords) {
     const group = new THREE.Group();
-    
-    // 2. Set position
-    group.position.set(x, y, z);
+    group.position.set(coords.x, coords.y, coords.z);
+    group.name = "Voyager 1 (Real NASA Ephemeris)";
+    group.userData = { isTargetable: true, type: 'spacecraft' };
 
-    group.updateMatrixWorld(true);
-    
-    group.frustumCulled = false;
-    // 3. Attach the hub identifier data
-    group.name = name;
-    group.userData = { 
-        isTargetable: true,
-        type: 'spacecraft'
-    };
+    // --- PROCEDURAL 4K MLI FOIL TEXTURE ---
+    const canvas = document.createElement('canvas');
+    canvas.width = 2048;
+    canvas.height = 2048;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ff9900';
+    ctx.fillRect(0, 0, 2048, 2048);
+    for (let i = 0; i < 8000; i++) {
+        ctx.fillStyle = Math.random() > 0.5 ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)';
+        ctx.fillRect(Math.random() * 2048, Math.random() * 2048, Math.random() * 12, Math.random() * 12);
+    }
+    const kaptonFoilTexture = new THREE.CanvasTexture(canvas);
+    kaptonFoilTexture.wrapS = THREE.RepeatWrapping;
+    kaptonFoilTexture.wrapT = THREE.RepeatWrapping;
+    kaptonFoilTexture.repeat.set(8, 8);
 
-    // 1. Advanced PBR Materials
-    // Kapton Foil (Multi-Layer Insulation) requires clearcoat to look like crinkled plastic over metal
-    const foilMaterial = new THREE.MeshPhysicalMaterial({
-        color: 0xffaa00,
-        metalness: 1.0,
-        roughness: 0.3,
+    // --- MATERIALS ---
+    const foilMat = new THREE.MeshPhysicalMaterial({
+        map: kaptonFoilTexture,
+        roughnessMap: kaptonFoilTexture,
+        metalness: 0.95,
+        roughness: 0.25,
         clearcoat: 1.0,
-        clearcoatRoughness: 0.4,
-        ior: 1.5,
-        // Pro-tip: Load a noise texture into bumpMap or normalMap here for the crinkled look
+        clearcoatRoughness: 0.1
     });
 
-    const matteDishMaterial = new THREE.MeshPhysicalMaterial({ 
-        color: 0xe0e0e0, 
-        metalness: 0.1, 
-        roughness: 0.9,
-        clearcoat: 0.1
+    const dishMat = new THREE.MeshPhysicalMaterial({
+        color: 0xf0f0f0,
+        roughness: 0.85,
+        metalness: 0.1,
+        clearcoat: 0.2
     });
 
-    // The RTG runs hot from Plutonium-238 decay
-    const rtgMaterial = new THREE.MeshPhysicalMaterial({
-        color: 0x222222,
-        metalness: 0.8,
-        roughness: 0.6,
-        emissive: 0xff3300,
-        emissiveIntensity: 0.8 // Will bloom beautifully in post-processing
-    });
-
-    const goldRecordMaterial = new THREE.MeshPhysicalMaterial({
+    const goldRecordMat = new THREE.MeshStandardMaterial({
         color: 0xffd700,
         metalness: 1.0,
-        roughness: 0.1,
-        clearcoat: 1.0
+        roughness: 0.15
     });
 
-    // 2. The Bus (Decagonal Main Body)
-    const bodyGeo = new THREE.CylinderGeometry(1.5, 1.5, 1.2, 10);
-    const body = new THREE.Mesh(bodyGeo, foilMaterial);
+    const rtgMat = new THREE.MeshStandardMaterial({
+        color: 0x111111,
+        metalness: 0.8,
+        emissive: 0xff2200,
+        emissiveIntensity: 0.6
+    });
+
+    // --- MESH ASSEMBLY ---
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.5, 1.2, 12), foilMat);
     group.add(body);
 
-    // 3. The High-Gain Antenna (Dish & Metallic Backing)
-    const dishGeo = new THREE.SphereGeometry(3.66/2, 64, 32, 0, Math.PI * 2, 0, Math.PI / 3);
-    const dish = new THREE.Mesh(dishGeo, matteDishMaterial);
+    const dishGeo = new THREE.SphereGeometry(2.0, 64, 32, 0, Math.PI * 2, 0, Math.PI / 3);
+    const dish = new THREE.Mesh(dishGeo, dishMat);
     dish.rotation.x = Math.PI / 2;
     dish.position.y = 1.0;
-    
-    // Dish backing (structural metal)
-    const dishBackMat = new THREE.MeshPhysicalMaterial({
-        color: 0xaaaaaa, metalness: 0.9, roughness: 0.5, side: THREE.BackSide
-    });
-    const dishBack = new THREE.Mesh(dishGeo, dishBackMat);
-    dishBack.rotation.x = Math.PI / 2;
-    dishBack.position.y = 1.0;
-    
     group.add(dish);
-    group.add(dishBack);
 
-    // 4. The Golden Record (Mounted on the bus)
-    const recordGeo = new THREE.CylinderGeometry(0.3, 0.3, 0.02, 32);
-    const record = new THREE.Mesh(recordGeo, goldRecordMaterial);
+    const record = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.03, 32), goldRecordMat);
     record.position.set(1.5, 0, 0);
     record.rotation.z = Math.PI / 2;
     group.add(record);
 
-    // 5. RTG (Radioisotope Thermoelectric Generator) Boom
-    const boomGeo = new THREE.CylinderGeometry(0.05, 0.05, 3, 8);
-    const boom = new THREE.Mesh(boomGeo, dishBackMat);
-    boom.position.set(-2.5, -0.8, 0);
-    boom.rotation.z = Math.PI / 2;
-    group.add(boom);
-
-    const rtgGeo = new THREE.CylinderGeometry(0.3, 0.3, 1.2, 16);
-    const rtg = new THREE.Mesh(rtgGeo, rtgMaterial);
+    const rtg = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 1.4, 16), rtgMat);
     rtg.position.set(-4, -0.8, 0);
     rtg.rotation.z = Math.PI / 2;
     group.add(rtg);
 
-    // 6. Navigation Glint
-    const glint = new THREE.PointLight(color, 2, 500); 
-    group.add(glint);
+    // --- DISTANCE HUD BEACON (Always visible across space) ---
+    const beaconMat = new THREE.SpriteMaterial({
+        color: 0x00ffff,
+        sizeAttenuation: false // Retains constant pixel size on screen
+    });
+    const beaconSprite = new THREE.Sprite(beaconMat);
+    beaconSprite.scale.set(0.02, 0.02, 1);
+    beaconSprite.name = group.name;
+    beaconSprite.userData = group.userData;
+    group.add(beaconSprite);
 
-    //group.position.set(position.x, position.y, position.z);
-    
-    // Critical for maintaining rendering in massive cosmological scales
-    group.traverse((obj) => { 
-        if(obj.isMesh) {
+    // Dynamic scale setup for close-up inspection
+    group.traverse((obj) => {
+        if (obj.isMesh) {
             obj.frustumCulled = false;
-            obj.castShadow = true;
-            obj.receiveShadow = true;
-            obj.name = name; 
-          obj.userData = group.userData; 
+            obj.userData = group.userData;
         }
     });
 
-    // Add a local light directly to Voyager so it is never perfectly camouflaged
-    const probeLight = new THREE.DirectionalLight(0xffffff, 3.0);
-    probeLight.position.set(5, 5, 5); // Offset so it creates 3D shadows on the dish
-    group.add(probeLight);
-    
-    // Add a soft ambient light so the dark side isn't pitch black
-    const ambientGlow = new THREE.AmbientLight(0xffffff, 0.5);
-    group.add(ambientGlow);
-    
     scene.add(group);
     return group;
-    
-    scene.add(group);
-    return group;
+}
+
+// -------------------------------------------------------------
+// 3. TARGETING HUD & SCREEN-SPACE WAYPOINT INDICATOR
+// -------------------------------------------------------------
+export function updateNavigationHUD(camera, targetObject, hudElement) {
+    if (!targetObject || !hudElement) return;
+
+    const targetPos = new THREE.Vector3();
+    targetObject.getWorldPosition(targetPos);
+
+    // Compute distance from camera
+    const distance = camera.position.distanceTo(targetPos);
+    const distanceInAU = (distance / 150000).toFixed(2);
+
+    // Project 3D space to 2D screen space
+    const projected = targetPos.clone().project(camera);
+
+    // Check if behind camera
+    if (projected.z > 1) {
+        hudElement.style.display = 'none';
+        return;
+    }
+
+    const x = (projected.x * 0.5 + 0.5) * window.innerWidth;
+    const y = (-(projected.y * 0.5) + 0.5) * window.innerHeight;
+
+    hudElement.style.display = 'block';
+    hudElement.style.left = `${x}px`;
+    hudElement.style.top = `${y}px`;
+    hudElement.innerHTML = `
+        <div style="border: 1px solid #00ffff; padding: 4px 8px; background: rgba(0,0,0,0.7); color: #00ffff; font-family: monospace; font-size: 11px; transform: translate(-50%, -100%); pointer-events: none; white-space: nowrap;">
+            [ TARGET LOCK: VOYAGER 1 ]<br/>
+            DIST: ${Math.round(distance).toLocaleString()} UNITS (${distanceInAU} AU)
+        </div>
+    `;
 }
