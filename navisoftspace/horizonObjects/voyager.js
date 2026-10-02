@@ -2,45 +2,43 @@ import * as THREE from 'three';
 
 export async function fetchVoyagerLivePosition() {
     try {
-        // The exact NASA URL you were using
-        //const nasaUrl = "https://ssd.jpl.nasa.gov/api/horizons.api?format=json&COMMAND='-31'&OBJ_DATA='NO'&MAKE_EPHEM='YES'&EPHEM_TYPE='VECTORS'&CENTER='500@10'&START_TIME='2026-10-02'&STOP_TIME='2026-10-02'&STEP_SIZE='1d'";
-         const today = new Date().toISOString().split('T')[0];
-        // NASA JPL Horizons ID for Voyager 1 is -31 (Sun-centered)
-        const nasaUrl = `https://ssd.jpl.nasa.gov/api/horizons.api?format=json&COMMAND='-31'&OBJ_DATA='NO'&MAKE_EPHEM='YES'&EPHEM_TYPE='VECTORS'&CENTER='500@10'&START_TIME='${today}'&STOP_TIME='${today}'&STEP_SIZE='1d'`;
+        // 1. Direct jsDelivr CDN link (CORS is natively supported, no proxy needed)
+        // Fixed the trailing quote typo at the end of the URL
+        const url = `https://cdn.jsdelivr.net/gh/dganigame-coder/space@main/voyager-position.json?t=${Date.now()}`;
 
-        // Wrap the NASA URL in the AllOrigins CORS proxy so GitHub Pages is allowed to read it
-        const proxyUrl = "https://api.allorigins.win/raw?url=" + encodeURIComponent(nasaUrl);
-
-        const response = await fetch(proxyUrl);
+        const response = await fetch(url);
         
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         
         const data = await response.json();
-        
-        console.log("Successfully fetched live Voyager 1 position from NASA!");
+        console.log("Successfully fetched live Voyager 1 position from GitHub Actions!");
         
         const resultText = data.result;
+        
+        // 2. Extract coordinates using Regex (grabs the first day's position)
         const xMatch = resultText.match(/X\s*=\s*(-?\d+\.\d+E[+-]?\d+)/);
         const yMatch = resultText.match(/Y\s*=\s*(-?\d+\.\d+E[+-]?\d+)/);
         const zMatch = resultText.match(/Z\s*=\s*(-?\d+\.\d+E[+-]?\d+)/);
 
         if (xMatch && yMatch && zMatch) {
-            // 1 AU = ~150,000 simulator units
-            const AU_SCALE = 150000; 
+            // 3. Fix the scale: JPL returns Kilometers. We must convert KM to AU first!
+            const KM_PER_AU = 149597870.7;
+            const AU_SCALE = 150000; // 1 AU = 150,000 simulator units
+
             return {
-                x: parseFloat(xMatch[1]) * AU_SCALE,
-                y: parseFloat(yMatch[1]) * AU_SCALE,
-                z: parseFloat(zMatch[1]) * AU_SCALE
+                x: (parseFloat(xMatch[1]) / KM_PER_AU) * AU_SCALE,
+                y: (parseFloat(yMatch[1]) / KM_PER_AU) * AU_SCALE,
+                z: (parseFloat(zMatch[1]) / KM_PER_AU) * AU_SCALE
             };
         }
     } catch (e) {
-        console.warn("NASA JPL API offline or CORS blocked. Falling back to real-time orbital calculations.", e);
+        console.warn("CDN fetch failed. Falling back to default simulation coordinates.", e);
     }
 
-    // Default Fallback: Current Voyager 1 Telemetry (~163 AU out)
-    return { x: 1250000, y: 3500000, z: 24250000 };
+    // Default Fallback
+    return { x: -4830, y: -20550, z: 14870 };
 }
 
 
