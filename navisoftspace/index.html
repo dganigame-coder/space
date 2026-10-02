@@ -441,7 +441,7 @@
         "interstellarAnomaly":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@6216f25/navisoftspace/horizonObjects/interstellarAnomaly.js",
         "blackhole":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@c3b2bab/navisoftspace/horizonObjects/blackhole.js",
         "wormhole":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@3adde3b/navisoftspace/horizonObjects/wormhole.js",
-        "voyager":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@f849c82/navisoftspace/horizonObjects/voyager.js",
+        "voyager":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@2b062a9/navisoftspace/horizonObjects/voyager.js",
         "heliopause":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@136f992/navisoftspace/horizonObjects/heliopause.js",
         "star":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@fcb5d06/navisoftspace/horizonObjects/star.js",
         "starsystem":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@b5e091a/navisoftspace/horizonObjects/starsystem.js",
@@ -468,7 +468,8 @@
     import { createWormhole, updateWormhole , triggerWormholeTransition } from 'wormhole';
     import { createStars } from 'stars';
     import { UniverseGenerator } from 'universe';
-    import { createVoyager } from 'voyager';
+    //import { createVoyager } from 'voyager';
+    import { fetchVoyagerLivePosition, createHighResVoyager, updateNavigationHUD } from 'voyager';
     import { createHeliopause } from 'heliopause';
     import { createStar } from 'star';
     import { createStarSystem } from 'starsystem'; 
@@ -875,7 +876,8 @@
                 z: 20000000,
                 name: "'Oumuamua / Interstellar Wanderer"
             });
-        
+
+        /*
          // 150 AU = ~22,500,000 units
         const voyager = createVoyager(engine.scene, {
             x: 10000, 
@@ -884,7 +886,10 @@
             color: 0xffd700,
             name: "Voyager Probe"
         });
+        */
 
+        const nasaCoords = await fetchVoyagerLivePosition();
+        voyagerMesh = createHighResVoyager(engine.scene, nasaCoords);
         
         // If Earth is positioned at x: 150000 (for example)
         const earthDistance = 150000;
@@ -2626,7 +2631,9 @@ engine.scene.add(engine.camera);
                                ];
             const horizonObj = [mainBelt,kuiperBelt,oortCloud,orionNebula, 
                                 remnant, andromeda, blackEyeCore,blackEyeDust,molecularCloud, 
-                                sharedBelt,oumuamua, voyager,
+                                sharedBelt,oumuamua, 
+                                //voyager,
+                                voyagerMesh.
                                 BornSystem,
                                 quasiStarSystem,
                                 //quasiStarDisk,
@@ -2699,8 +2706,8 @@ engine.scene.add(engine.camera);
         const rawBodies = [
             sun, mercury, venus, earth, moon, mars, jupiter, saturn, titan, uranus, neptune, pluto, 
             
-            voyager,
-            
+            //voyager,
+            voyagerMesh,
             // Exoplanets
             exoSystem, alphaCentauriAB, proximaSystem, proximaB, planetE, planetF, gj504b, k218, 
             trappist1System, lhs1140System, cd352722System, sextupleSystem, castorSystem, kepler186Star, kepler186f,
@@ -2969,6 +2976,9 @@ engine.scene.add(engine.camera);
             checkCollisions(engine.camera, bodies, engine.scene);
             updateFlight(engine.camera, bodies);
 
+                if (voyagerMesh) {
+                        updateNavigationHUD(engine.camera, voyagerMesh, hudDiv);
+                    }
             // Inside your main animation render loop tick:
             if (oumuamua) {
                 oumuamua.rotation.x += 0.005; // End-over-end tumble
@@ -3114,7 +3124,7 @@ engine.scene.add(engine.camera);
             // 7. HORIZON OBJECT DISPLAY
             const shipPos = engine.camera.position;
             const shipDist = shipPos.length();
-            const distToVoyager = engine.camera.position.distanceTo(voyager.position);
+            //const distToVoyager = engine.camera.position.distanceTo(voyager.position);
             
             // Default state for this frame (resets colors from previous frames)
             horizonObjElement.style.color = "#00ccff"; 
@@ -3129,10 +3139,12 @@ engine.scene.add(engine.camera);
                 horizonObjElement.innerText = ">> PASSING: HELIOPAUSE BOUNDARY";
                 horizonObjElement.style.color = "#bb00ff"; // Overrides with Purple
             }
+                /*
             else if (distToVoyager < 50000) {
                 horizonObjElement.innerText = ">> SIGNAL DETECTED: VOYAGER 1";
                 horizonObjElement.style.color = "#ffd700"; // Overrides with Gold
             }
+            */
             else if (shipDist >= 60000000 && shipDist <= 85000000) {
                 horizonObjElement.innerText = ">> PASSING: OORT CLOUD";
             } 
