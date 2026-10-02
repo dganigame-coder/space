@@ -21,35 +21,6 @@ async function fetchVoyagerLivePosition() {
         
         console.log("Successfully fetched live Voyager 1 position from NASA!");
         
-        // *** PUT YOUR EXISTING POSITION PARSING CODE HERE ***
-        // Example: extract X, Y, Z from 'data' and return it
-        return data; 
-
-    } catch (error) {
-        console.warn("NASA API blocked or offline. Using fallback coordinates so the app doesn't crash.", error);
-        
-        // Fallback approximate position (in AU) for Oct 2026 so your game keeps running
-        return {
-            x: -2, 
-            y: 110, 
-            z: 120 
-        };
-    }
-}
-
-// -------------------------------------------------------------
-// 1. LIVE NASA JPL HORIZONS TELEMETRY FETCH
-// -------------------------------------------------------------
-export async function fetchVoyagerLivePosition() {
-    //const today = new Date().toISOString().split('T')[0];
-    // NASA JPL Horizons ID for Voyager 1 is -31 (Sun-centered)
-    //const url = `https://ssd.jpl.nasa.gov/api/horizons.api?format=json&COMMAND='-31'&OBJ_DATA='NO'&MAKE_EPHEM='YES'&EPHEM_TYPE='VECTORS'&CENTER='500@10'&START_TIME='${today}'&STOP_TIME='${today}'&STEP_SIZE='1d'`;
-
-    try {
-        //const response = await fetch(url);
-        //const data = await response.json();
-        const data = fetchVoyagerLivePosition();
-        // Parse JPL Vector Output (X, Y, Z in AU)
         const resultText = data.result;
         const xMatch = resultText.match(/X\s*=\s*(-?\d+\.\d+E[+-]?\d+)/);
         const yMatch = resultText.match(/Y\s*=\s*(-?\d+\.\d+E[+-]?\d+)/);
@@ -71,6 +42,7 @@ export async function fetchVoyagerLivePosition() {
     // Default Fallback: Current Voyager 1 Telemetry (~163 AU out)
     return { x: 1250000, y: 3500000, z: 24250000 };
 }
+
 
 // -------------------------------------------------------------
 // 2. HIGH-FIDELITY 4K PBR MODEL + LOD + HUD BEACON
