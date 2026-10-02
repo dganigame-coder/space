@@ -2977,7 +2977,7 @@ engine.scene.add(engine.camera);
             updateFlight(engine.camera, bodies);
 
                 if (voyagerMesh) {
-                        updateNavigationHUD(engine.camera, voyagerMesh, voyagerHUD);
+                        updateNavigationHUD(engine.camera, voyagerMesh, document.getElementById('voyager-hud'));
                     }
             // Inside your main animation render loop tick:
             if (oumuamua) {
