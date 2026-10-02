@@ -889,7 +889,7 @@
         */
 
         const nasaCoords = await fetchVoyagerLivePosition();
-        voyagerMesh = createHighResVoyager(engine.scene, nasaCoords);
+        let voyagerMesh = createHighResVoyager(engine.scene, nasaCoords);
         
         // If Earth is positioned at x: 150000 (for example)
         const earthDistance = 150000;
