@@ -49,7 +49,15 @@ export function createHighResVoyager(scene, coords) {
     const group = new THREE.Group();
     group.position.set(coords.x, coords.y, coords.z);
     group.name = "Voyager 1 (Real NASA Ephemeris)";
-    group.userData = { isTargetable: true, type: 'spacecraft' };
+    
+    // ✅ FIX: Add the critical userData properties for collision detection & HUD
+    group.userData = { 
+        isTargetable: true, 
+        type: 'spacecraft',
+        r: 5000,  // Collision radius for proximity detection
+        name: 'Voyager 1 Probe',
+        info: 'Voyager 1 Golden Record Probe - Currently in Interstellar Space'
+    };
 
     // --- PROCEDURAL 4K MLI FOIL TEXTURE ---
     const canvas = document.createElement('canvas');
@@ -128,11 +136,11 @@ export function createHighResVoyager(scene, coords) {
     beaconSprite.userData = group.userData;
     group.add(beaconSprite);
 
-    // Dynamic scale setup for close-up inspection
+    // ✅ FIX: Propagate userData to all children for collision detection
     group.traverse((obj) => {
         if (obj.isMesh) {
             obj.frustumCulled = false;
-            obj.userData = group.userData;
+            obj.userData = group.userData;  // Inherit parent's collision data
         }
     });
 
@@ -169,7 +177,7 @@ export function updateNavigationHUD(camera, targetObject, hudElement) {
     hudElement.style.left = `${x}px`;
     hudElement.style.top = `${y}px`;
     hudElement.innerHTML = `
-        <div style="border: 1px solid #00ffff; padding: 4px 8px; background: rgba(0,0,0,0.7); color: #00ffff; font-family: monospace; font-size: 11px; transform: translate(-50%, -100%); pointer-events: none; white-space: nowrap;">
+        <div style="border: 1px solid #00ffff; padding: 4px 8px; background: rgba(0,0,0,0.7); color: #00ffff; font-family: monospace; font-size: 11px; transform: translate(-50%, -100%); pointer-events: none; white-space: nowrap; text-shadow: 0 0 8px #00ffff;">
             [ TARGET LOCK: VOYAGER 1 ]<br/>
             DIST: ${Math.round(distance).toLocaleString()} UNITS (${distanceInAU} AU)
         </div>
