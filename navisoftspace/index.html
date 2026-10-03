@@ -3150,7 +3150,6 @@ engine.scene.add(engine.camera);
         // UNIFIED BLACK HOLE ARRAY & CONSOLIDATED UPDATE LOOP
         // ============================================================
         const blackholes = [blackHole, sdssBlackHoleCore, quasiBlackHoleCore, smbhCore, quasarCoreBlackHole];
-        const time = Date.now();
         
         // 1. Find the closest black hole to the camera
         let closestBlackHole = null;
@@ -3158,7 +3157,7 @@ engine.scene.add(engine.camera);
         
         blackholes.forEach(bh => {
             if (!bh) return;
-        
+            const time = Date.now();
             // --- 1. HYPER-REALISTIC VISUAL ANIMATION (Run for ALL black holes) ---
             bh.children.forEach((child, index) => {
                 if (child.name === "mainDisk") child.rotation.z += 0.02;
