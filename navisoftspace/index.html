@@ -3146,50 +3146,47 @@ engine.scene.add(engine.camera);
             }
               */
 
-        // ============================================================
-        // UNIFIED BLACK HOLE ARRAY & CONSOLIDATED UPDATE LOOP
-        // ============================================================
-        const blackholes = [blackHole, sdssBlackHoleCore, quasiBlackHoleCore, smbhCore, quasarCoreBlackHole];
-        
-        // In your animation/render loop (likely in engine.js), replace BOTH old blocks with:
-        blackholes.forEach(bh => {
-            if (!bh) return;
+            // ============================================================
+            // UNIFIED BLACK HOLE ARRAY & CONSOLIDATED UPDATE LOOP
+            // ============================================================
+            const blackholes = [blackHole, sdssBlackHoleCore, quasiBlackHoleCore, smbhCore, quasarCoreBlackHole];
             
-            const time = Date.now();
-            const dist = engine.camera.position.distanceTo(bh.position);
-            
-            // A. Mesh Rotation
-            bh.children.forEach((child, index) => {
-                if (child.name === "mainDisk") child.rotation.z += 0.02;
-                if (child.name === "halo") child.rotation.z -= 0.01;
+            blackholes.forEach(bh => {
+                if (!bh) return;
                 
-                // Handle both "glowLayer" and "glowRing" naming
-                if (child.name && (child.name.includes("glowLayer") || child.name.includes("glowRing"))) {
-                    child.rotation.z += 0.005 + (index * 0.002);
+                const time = Date.now();
+                const dist = engine.camera.position.distanceTo(bh.position);
+                
+                // A. Mesh Rotation & Animations
+                bh.children.forEach((child, index) => {
+                    if (child.name === "mainDisk") child.rotation.z += 0.02;
+                    if (child.name === "halo") child.rotation.z -= 0.01;
                     
-                    // B. Subtle Pulsing
-                    if (child.material) {
-                        child.material.opacity = (0.1 + Math.sin(time * 0.001 + index) * 0.1);
+                    // Handle both "glowLayer" and "glowRing" naming
+                    if (child.name && (child.name.includes("glowLayer") || child.name.includes("glowRing"))) {
+                        child.rotation.z += 0.005 + (index * 0.002);
+                        
+                        // B. Subtle Pulsing
+                        if (child.material) {
+                            child.material.opacity = 0.1 + Math.sin(time * 0.001 + index) * 0.1;
+                        }
                     }
-                }
+                    
+                    // C. Texture Flow
+                    if (child.material && child.material.map) {
+                        child.material.map.offset.x -= 0.005;
+                        child.material.map.offset.y += 0.002;
+                    }
+                });
                 
-                // C. Texture Flow
-                if (child.material && child.material.map) {
-                    child.material.map.offset.x -= 0.005;
-                    child.material.map.offset.y += 0.002;
+                // D. Custom update callback
+                if (bh.userData && bh.userData.update) {
+                    bh.userData.update(time);
                 }
-            });
             
-            // D. Custom update callback
-            if (bh.userData.update) {
-                bh.userData.update(time);
-            }
-        });
                 // --- 2. DISTANCE & CAMERA ZOOM (The "Cinematic" Perspective) ---
                 if (dist < 5000000) { 
-                    // Slowly narrow the FOV as you approach to make the hole look massive
                     const zoomFactor = (5000000 / dist); 
-                    // As you get closer, FOV drops to 30 (Zoomed in) before the Spaghettification kicks in
                     engine.camera.fov = Math.max(30, 75 - zoomFactor); 
                 }
             
@@ -3201,7 +3198,7 @@ engine.scene.add(engine.camera);
             
                     // B. Gravitational Pull (Lerp)
                     const pullStrength = (1000000 - dist) * 0.0000001; 
-                    engine.camera.position.lerp(blackHole.position, pullStrength);
+                    engine.camera.position.lerp(bh.position, pullStrength);
             
                     // C. Hull Shake (The "Interstellar" Vibration)
                     const shakePower = (1000000 / dist) * 15; 
@@ -3209,7 +3206,6 @@ engine.scene.add(engine.camera);
                     engine.camera.position.y += Math.cos(time * 0.11) * (shakePower / 2);
             
                     // D. Spaghettification (Warping reality)
-                    // This overrides the zoom-FOV once you are in the danger zone
                     engine.camera.fov += (1000000 / dist) * 5;
             
                     // E. The Event Horizon
@@ -3225,9 +3221,10 @@ engine.scene.add(engine.camera);
                         engine.camera.fov += 0.1;
                     }
                 }
-                
-                // Final check to update the matrix after all FOV changes
-                engine.camera.updateProjectionMatrix();
+            });
+            
+            // Final check to update the matrix after all FOV changes
+            engine.camera.updateProjectionMatrix();
             }
             // 8. DISTANCE CALCULATIONS
             if(sun && sun.position)
