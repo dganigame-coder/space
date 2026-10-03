@@ -542,7 +542,7 @@
     const engine = await enginePromise;
 
     // --- 1. CONFIGURATION & LOGIC ---
-    const destinations = [
+    let destinations = [
     // ==========================================
     // LEVEL 1: SOL SYSTEM CORE & NEAR NEIGHBORHOOD
     // ==========================================
@@ -890,7 +890,16 @@
 
         const nasaCoords = await fetchVoyagerLivePosition();
         let voyagerMesh = createHighResVoyager(engine.scene, nasaCoords);
+
+    
+        // 3. Find "Voyager Probe" in the destinations array and update its values
+        const voyagerDest = destinations.find(dest => dest.name === "Voyager Probe");
         
+        if (voyagerDest) {
+            voyagerDest.x = nasaCoords.x;
+            voyagerDest.y = nasaCoords.y;
+            voyagerDest.z = nasaCoords.z;
+        }
         // If Earth is positioned at x: 150000 (for example)
         const earthDistance = 150000;
         
@@ -2979,12 +2988,14 @@ engine.scene.add(engine.camera);
                 if (voyagerMesh) {
                         updateNavigationHUD(engine.camera, voyagerMesh, document.getElementById('voyager-hud'));
                     }
+            /* was enabled
             // Inside your main animation render loop tick:
             if (oumuamua) {
                 oumuamua.rotation.x += 0.005; // End-over-end tumble
                 oumuamua.rotation.y += 0.002; // Slow lateral twisting
                 oumuamua.rotation.z += 0.001; // Chaotic stability wobble
             }
+            */
             // ==========================================
             // 🪐 ACCRETION DISK & BELT ROTATION LOGIC
             // ==========================================
@@ -3302,13 +3313,14 @@ engine.scene.add(engine.camera);
                 updateWormhole(wh, time);
             });
             */
+            /*was enabled
             // 3. Existing 'Oumuamua tumbling mechanics (Keep this right below it)
             if (oumuamua) {
                 oumuamua.rotation.x += 0.005; // End-over-end tumble
                 oumuamua.rotation.y += 0.002; // Slow lateral twisting
                 oumuamua.rotation.z += 0.001; // Chaotic stability wobble
             }
-
+           */
             const distToRemnant = phoenixRemnant.position.distanceTo(engine.camera.position);
             // 1. HOIST CONSTANTS: Define these OUTSIDE the loop so they aren't recreated every frame
             const cullRange = 50000000;
