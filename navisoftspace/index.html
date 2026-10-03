@@ -3146,95 +3146,79 @@ engine.scene.add(engine.camera);
             }
               */
 
-        // ============================================================
-        // UNIFIED BLACK HOLE ARRAY & CONSOLIDATED UPDATE LOOP
-        // ============================================================
-        const blackholes = [blackHole, sdssBlackHoleCore, quasiBlackHoleCore, smbhCore, quasarCoreBlackHole];
-        
-        // 1. Find the closest black hole to the camera
-        let closestBlackHole = null;
-        minDistance = Infinity;
-        
-        blackholes.forEach(bh => {
-            if (!bh) return;
-            const time = Date.now();
-            // --- 1. HYPER-REALISTIC VISUAL ANIMATION (Run for ALL black holes) ---
-            bh.children.forEach((child, index) => {
-                if (child.name === "mainDisk") child.rotation.z += 0.02;
-                if (child.name === "halo") child.rotation.z -= 0.01;
-                
-                if (child.name && (child.name.includes("glowLayer") || child.name.includes("glowRing"))) {
-                    child.rotation.z += 0.005 + (index * 0.002);
-                    if (child.material) {
-                        child.material.opacity = (0.1 + Math.sin(time * 0.001 + index) * 0.1);
+            if (blackHole) {
+                const time = Date.now();
+                const dist = engine.camera.position.distanceTo(blackHole.position);
+            
+                // --- 1. HYPER-REALISTIC VISUAL ANIMATION ---
+                blackHole.children.forEach((child, index) => {
+                    // A. Mesh Rotation (The physical movement of the rings)
+                    if (child.name === "mainDisk") child.rotation.z += 0.02;
+                    if (child.name === "halo") child.rotation.z -= 0.01;
+                    
+                    // Handle both "glowLayer" and "glowRing" naming conventions
+                    if (child.name && (child.name.includes("glowLayer") || child.name.includes("glowRing"))) {
+                        child.rotation.z += 0.005 + (index * 0.002);
+                        
+                        // B. Subtle Pulsing (Atmospheric shimmer)
+                        if (child.material) {
+                            child.material.opacity = (0.1 + Math.sin(time * 0.001 + index) * 0.1);
+                        }
+                    }
+            
+                    // C. THE SECRET SAUCE: Texture Flow
+                    // This makes the lava texture look like it's being sucked into the void
+                    if (child.material && child.material.map) {
+                        child.material.map.offset.x -= 0.005; 
+                        child.material.map.offset.y += 0.002;
+                    }
+                });
+            
+                // --- 2. DISTANCE & CAMERA ZOOM (The "Cinematic" Perspective) ---
+                if (dist < 5000000) { 
+                    // Slowly narrow the FOV as you approach to make the hole look massive
+                    const zoomFactor = (5000000 / dist); 
+                    // As you get closer, FOV drops to 30 (Zoomed in) before the Spaghettification kicks in
+                    engine.camera.fov = Math.max(30, 75 - zoomFactor); 
+                }
+            
+                // --- 3. THE TERROR REACTION (Inside 1,000,000 units) ---
+                if (dist < 1000000) {
+                    // A. HUD Warning
+                    horizonObjElement.innerText = ">> WARNING: GRAVITATIONAL WELL DETECTED";
+                    horizonObjElement.style.color = "#ff0000";
+            
+                    // B. Gravitational Pull (Lerp)
+                    const pullStrength = (1000000 - dist) * 0.0000001; 
+                    engine.camera.position.lerp(blackHole.position, pullStrength);
+            
+                    // C. Hull Shake (The "Interstellar" Vibration)
+                    const shakePower = (1000000 / dist) * 15; 
+                    engine.camera.position.x += Math.sin(time * 0.1) * (shakePower / 2);
+                    engine.camera.position.y += Math.cos(time * 0.11) * (shakePower / 2);
+            
+                    // D. Spaghettification (Warping reality)
+                    // This overrides the zoom-FOV once you are in the danger zone
+                    engine.camera.fov += (1000000 / dist) * 5;
+            
+                    // E. The Event Horizon
+                    if (dist < 100000) {
+                        horizonObjElement.innerText = ">> CRITICAL: EVENT HORIZON BREACH";
+                        horizonObjElement.style.opacity = (Math.sin(time * 0.02) > 0) ? 1 : 0.3;
+                    }
+                } else {
+                    // Reset FOV smoothly if the player manages to escape the pull
+                    if (engine.camera.fov > 75) {
+                        engine.camera.fov -= 0.5;
+                    } else if (engine.camera.fov < 75) {
+                        engine.camera.fov += 0.1;
                     }
                 }
-        
-                if (child.material && child.material.map) {
-                    child.material.map.offset.x -= 0.005; 
-                    child.material.map.offset.y += 0.002;
-                }
-            });
-        
-            // Calculate distance to find which one is nearest
-            const dist = engine.camera.position.distanceTo(bh.position);
-            if (dist < minDistance) {
-                minDistance = dist;
-                closestBlackHole = bh;
-            }
-        });
-        
-        // --- 2. CAMERA & GRAVITY EFFECTS (Run ONLY for the CLOSEST black hole) ---
-        if (closestBlackHole) {
-            // Thresholds: Decrease these numbers if the effect is still triggering too early
-            const zoomThreshold = 5000000;
-            const dangerThreshold = 1000000;
-        
-            if (minDistance < zoomThreshold) { 
-                const zoomFactor = (zoomThreshold / minDistance); 
-                engine.camera.fov = Math.max(30, 75 - zoomFactor); 
-            }
-        
-            if (minDistance < dangerThreshold) {
-                // A. HUD Warning
-                horizonObjElement.innerText = ">> WARNING: GRAVITATIONAL WELL DETECTED";
-                horizonObjElement.style.color = "#ff0000";
-        
-                // B. Gravitational Pull (Lerp)
-                const pullStrength = (dangerThreshold - minDistance) * 0.0000001; 
-                engine.camera.position.lerp(closestBlackHole.position, pullStrength);
-        
-                // C. Hull Shake 
-                const shakePower = (dangerThreshold / minDistance) * 15; 
-                engine.camera.position.x += Math.sin(time * 0.1) * (shakePower / 2);
-                engine.camera.position.y += Math.cos(time * 0.11) * (shakePower / 2);
-        
-                // D. Spaghettification 
-                engine.camera.fov += (dangerThreshold / minDistance) * 5;
-        
-                // E. The Event Horizon
-                if (minDistance < 100000) {
-                    horizonObjElement.innerText = ">> CRITICAL: EVENT HORIZON BREACH";
-                    horizonObjElement.style.opacity = (Math.sin(time * 0.02) > 0) ? 1 : 0.3;
-                }
-            } else {
-                // Reset FOV smoothly if the player is outside the danger zone
-                if (engine.camera.fov > 75) {
-                    engine.camera.fov -= 0.5;
-                } else if (engine.camera.fov < 75) {
-                    engine.camera.fov += 0.1;
-                }
                 
-                // Clear HUD warning when safe
-                if (horizonObjElement.innerText.includes("GRAVITATIONAL") || horizonObjElement.innerText.includes("BREACH")) {
-                    horizonObjElement.innerText = "";
-                    horizonObjElement.style.opacity = 1;
-                }
+                // Final check to update the matrix after all FOV changes
+                engine.camera.updateProjectionMatrix();
             }
             
-            // Update projection matrix once per frame after all calculations
-            engine.camera.updateProjectionMatrix();
-        }            
             // 8. DISTANCE CALCULATIONS
             if(sun && sun.position)
             {
