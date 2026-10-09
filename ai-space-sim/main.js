@@ -195,27 +195,36 @@ GEOMETRY SELECTION RULES:
 - Quasar Accretion Disk / Singularity: "geometryType": "disk", "geometryArgs": [0.2, 3.5, 64]`;
 
   // 1. Try Gemini 3.8 Flash First
-  if (geminiKey) {
-    try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${geminiKey}`;
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: promptText }] }],
-          generationConfig: { responseMimeType: "application/json" }
-        })
-      });
+// 1. Try Gemini 3.8 Flash First
+if (geminiKey) {
+  try {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${geminiKey}`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: promptText }] }],
+        generationConfig: { responseMimeType: "application/json" }
+      })
+    });
 
-      if (res.ok) {
-        const data = await res.json();
-        const rawJson = data.candidates[0].content.parts[0].text;
-        worldConfig = JSON.parse(rawJson);
+    // --- ADD THIS MISSING RESPONSE HANDLING ---
+    if (res.ok) {
+      const data = await res.json();
+      let rawJson = data.candidates[0].content.parts[0].text;
+      
+      // Clean markdown formatting if Gemini includes ```json ... ```
+      rawJson = rawJson.replace(/```json/gi, '').replace(/```/g, '').trim();
+      if (rawJson.includes('{')) {
+        rawJson = rawJson.substring(rawJson.indexOf('{'), rawJson.lastIndexOf('}') + 1);
       }
-    } catch (err) {
-      console.warn("Gemini Flash uplink failed:", err);
+      
+      worldConfig = JSON.parse(rawJson);
     }
+  } catch (err) {
+    console.warn("Gemini Flash uplink failed, switching to fallback:", err);
   }
+}
 
   // 2. Fallback to Pollinations AI Text Router
   if (!worldConfig) {
@@ -305,15 +314,39 @@ function applyWorldConfig(config) {
 }
 
 function generateFallbackWorld(input) {
+  const lower = input.toLowerCase();
+  let geom = "sphere";
+  let args = [1.8, 64, 64];
+  let isEmissive = false;
+
+  if (lower.includes('black hole') || lower.includes('blackhole') || lower.includes('ring')) {
+    geom = "torus";
+    args = [2.2, 0.4, 16, 100];
+    isEmissive = true;
+  } else if (lower.includes('quasar') || lower.includes('singularity') || lower.includes('disk')) {
+    geom = "disk";
+    args = [0.2, 3.5, 64];
+    isEmissive = true;
+  } else if (lower.includes('crystal') || lower.includes('asteroid') || lower.includes('comet')) {
+    geom = "icosahedron";
+    args = [1.8, 1];
+  } else if (lower.includes('supernova') || lower.includes('star') || lower.includes('sun')) {
+    isEmissive = true;
+  }
+
+  // Clean title instead of dumping the full command
+  const shortTitle = input.length > 25 ? input.substring(0, 25) + "..." : input;
+
   return {
-    sectorTitle: `Sector ${input.toUpperCase()}`,
+    sectorTitle: `Sector ${shortTitle.toUpperCase()}`,
     lore: `Navigating toward coordinates: "${input}". Orbital scan underway.`,
     speechResponse: `Warp vector locked. Approaching target sector.`,
-    prompt: `seamless texture surface of ${input}`,
-    geometryType: "sphere",
-    geometryArgs: [1.8, 64, 64],
-    emissive: false,
-    runtimeJs: `mesh.rotation.y += 0.015; mesh.position.y = Math.sin(time * 2) * 0.15;`,
+    prompt: `seamless surface texture of ${input}`,
+    geometryType: geom,
+    geometryArgs: args,
+    emissive: isEmissive,
+    emissiveColor: "#ffaa00",
+    runtimeJs: `mesh.rotation.y += 0.02; mesh.rotation.x += 0.01;`,
     audioParams: { baseFreq: 60.0, filterCutoff: 450.0, lfoRate: 1.5 }
   };
 }
