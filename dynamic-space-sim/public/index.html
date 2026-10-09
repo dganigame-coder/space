@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AI Voice Space Command</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app-container">
+    <div id="sidebar">
+      <div class="brand">🚀 AI WORLD ENGINE</div>
+
+      <button id="mic-btn">🎙️ Voice Commander</button>
+
+      <div class="card">
+        <h3>Voice Input</h3>
+        <p id="transcript" style="font-style: italic; color: #cbd5e1;">Click button and speak...</p>
+      </div>
+
+      <div class="card">
+        <h3>Current Sector</h3>
+        <h2 id="sector-title" style="color: #38bdf8;">Sol-Prime</h2>
+        <p id="sector-lore" style="font-size: 0.85rem; margin-top: 5px;">Awaiting command...</p>
+      </div>
+
+      <div class="card">
+        <h3>Live Compiled Code</h3>
+        <pre id="code-preview">// AI Code will compile here</pre>
+      </div>
+    </div>
+
+    <div id="viewport"></div>
+  </div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+      }
+    }
+  </script>
+  <script type="module" src="main.js"></script>
+</body>
+</html>
