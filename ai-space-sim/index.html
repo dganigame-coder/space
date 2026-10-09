@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A.I. World Engine - Space Simulator</title>
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- Import maps for Three.js and Hugging Face -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "@huggingface/inference": "https://cdn.jsdelivr.net/npm/@huggingface/inference@2.8.0/+esm"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="app-container">
+    <aside id="sidebar">
+      <div class="brand">
+        <span class="icon">🚀</span> AI WORLD ENGINE v4.0
+      </div>
+
+      <!-- API Key Setup (Saved to browser locally) -->
+      <div class="card" id="api-card">
+        <h3>1. System Configuration</h3>
+        <input type="password" id="hf-token-input" placeholder="Enter Hugging Face Token (hf_...)">
+        <button id="save-token-btn" class="secondary-btn">Save Token</button>
+        <p id="token-status" style="font-size: 0.75rem; color: #ef4444; margin-top: 5px;">Token required to activate AI.</p>
+      </div>
+
+      <div class="control-panel">
+        <button id="mic-btn" class="primary-btn" disabled>
+          <span id="mic-icon">🎙️</span> Voice Commander
+        </button>
+
+        <div class="input-fallback">
+          <input type="text" id="manual-input" placeholder="Type navigation command..." disabled>
+          <button id="send-btn" disabled>Send</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Voice Input Log</h3>
+        <p id="transcript">Awaiting command...</p>
+      </div>
+
+      <div class="card">
+        <h3>Sector Telemetry</h3>
+        <h2 id="sector-title">Sol-Prime System</h2>
+        <p id="sector-lore">Core origin sector. Awaiting hyperdrive coordinates...</p>
+      </div>
+
+      <div class="card">
+        <h3>WebAudio Ambient Synth</h3>
+        <div class="audio-status">
+          <span class="status-dot"></span> <span id="audio-status-text">Audio Engine Active</span>
+        </div>
+      </div>
+
+      <div class="card code-card">
+        <h3>Live AI Compiled JavaScript</h3>
+        <pre id="code-preview">// Runtime code evaluation window</pre>
+      </div>
+    </aside>
+
+    <main id="viewport">
+      <div id="hud-overlay">
+        <div id="hud-nav-status">PROTOCOL: OFFLINE</div>
+        <div id="hud-coords">X: 000 | Y: 000 | Z: 000</div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html>
