@@ -142,117 +142,101 @@ async function processCommand(commandText) {
   document.getElementById('hud-nav-status').innerText = 'PROTOCOL: AI_COMPUTING';
   document.getElementById('code-preview').innerText = '// Establishing uplink...';
 
+  let worldConfig;
+
   try {
-    const systemPrompt = `[INST] You are a Ship Navigation AI. User input: "${commandText}".
-Return ONLY a valid JSON object without markdown formatting or extra text:
+    const systemPrompt = `You are a Ship Navigation AI.
+User input: "${commandText}".
+Return ONLY a valid raw JSON object. Do not wrap in markdown or backticks:
 {
   "sectorTitle": "Creative sector name",
   "lore": "1-sentence sector summary",
   "speechResponse": "Spoken AI flight instruction",
-  "prompt": "FLUX texture prompt for a spherical planet surface",
+  "prompt": "seamless planet texture map of ${commandText}, highly detailed spherical map 8k",
   "rotationJs": "mesh.rotation.y += 0.02; stars.rotation.z += 0.001;",
   "audioParams": { "baseFreq": 65.0, "filterCutoff": 500.0, "lfoRate": 2.0 }
-} [/INST]`;
+}`;
 
-    // 1. Call a verified HF Serverless Model (Mistral 7B)
-    const llmRes = await fetch('https://router.huggingface.co/hf-inference/models/mistralai/Mistral-7B-Instruct-v0.3', {
+    // 1. Send Request to HF Serverless Llama 3.1 Chat Endpoint
+    const llmRes = await fetch('https://router.huggingface.co/hf-inference/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${hfToken}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        inputs: systemPrompt,
-        parameters: {
-          max_new_tokens: 350,
-          return_full_text: false
-        }
+        model: 'meta-llama/Llama-3.1-8B-Instruct',
+        messages: [{ role: 'user', content: systemPrompt }],
+        max_tokens: 350
       })
     });
 
-    let worldConfig;
-
     if (llmRes.ok) {
       const llmData = await llmRes.json();
-      let rawText = Array.isArray(llmData) ? llmData[0].generated_text : (llmData.generated_text || JSON.stringify(llmData));
+      let rawText = llmData.choices[0].message.content.trim();
       
-      // Extract valid JSON substring
       if (rawText.includes('{')) {
         rawText = rawText.substring(rawText.indexOf('{'), rawText.lastIndexOf('}') + 1);
       }
       worldConfig = JSON.parse(rawText);
     } else {
-      console.warn(`HF LLM returned status ${llmRes.status}. Using procedural fallback generator.`);
+      console.warn(`HF LLM Status ${llmRes.status}. Using procedural fallback.`);
       worldConfig = generateFallbackWorld(commandText);
     }
 
-    document.getElementById('hud-nav-status').innerText = 'PROTOCOL: GENERATING_MATTER';
-
-    // 2. Generate Planetary Texture Map via FLUX
-    try {
-      const imgRes = await fetch('https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${hfToken}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ inputs: worldConfig.prompt })
-      });
-
-      if (imgRes.ok) {
-        const imgBlob = await imgRes.blob();
-        const reader = new FileReader();
-        reader.readAsDataURL(imgBlob);
-        reader.onloadend = () => {
-          new THREE.TextureLoader().load(reader.result, (tex) => {
-            planetMaterial.map = tex;
-            planetMaterial.needsUpdate = true;
-          });
-        };
-      }
-    } catch (e) {
-      console.warn("Texture endpoint skipped:", e);
-    }
-
-    // 3. Apply Audio, Text-to-Speech & Navigation Protocol
-    speakText(worldConfig.speechResponse);
-    if (worldConfig.audioParams) updateAudioSynth(worldConfig.audioParams);
-
-    document.getElementById('sector-title').innerText = worldConfig.sectorTitle;
-    document.getElementById('sector-lore').innerText = worldConfig.lore;
-    document.getElementById('code-preview').innerText = worldConfig.rotationJs;
-    document.getElementById('hud-nav-status').innerText = `SECTOR: ${worldConfig.sectorTitle.toUpperCase()}`;
-
-    // 4. Safely compile AI JavaScript code execution
-    try {
-      runtimeBehavior = new Function('mesh', 'stars', 'time', worldConfig.rotationJs);
-    } catch (e) {
-      console.warn("Runtime code compilation warn:", e);
-    }
-
   } catch (err) {
-    console.error("AI Bridge Error:", err);
-    // Execute fallback to keep simulation running smoothly
-    const fallback = generateFallbackWorld(commandText);
-    applyWorldConfig(fallback);
+    console.warn("AI Uplink failed, engaging procedural fallback:", err);
+    worldConfig = generateFallbackWorld(commandText);
+  }
+
+  // 2. Generate Planetary Texture via Pollinations AI (Zero 410/403 Errors, 100% Free)
+  document.getElementById('hud-nav-status').innerText = 'PROTOCOL: GENERATING_MATTER';
+  
+  const texturePrompt = encodeURIComponent(worldConfig.prompt);
+  const textureUrl = `https://image.pollinations.ai/prompt/${texturePrompt}?width=512&height=512&nologo=true&seed=${Math.floor(Math.random()*99999)}`;
+
+  new THREE.TextureLoader().load(
+    textureUrl, 
+    (tex) => {
+      planetMaterial.map = tex;
+      planetMaterial.color.setHex(0xffffff); // Clear base tint
+      planetMaterial.needsUpdate = true;
+    },
+    undefined,
+    () => console.warn("Texture load issue, retaining base material.")
+  );
+
+  // 3. Apply Audio, Text-to-Speech & Navigation Telemetry
+  speakText(worldConfig.speechResponse);
+  if (worldConfig.audioParams) updateAudioSynth(worldConfig.audioParams);
+
+  document.getElementById('sector-title').innerText = worldConfig.sectorTitle;
+  document.getElementById('sector-lore').innerText = worldConfig.lore;
+  document.getElementById('code-preview').innerText = worldConfig.rotationJs;
+  document.getElementById('hud-nav-status').innerText = `SECTOR: ${worldConfig.sectorTitle.toUpperCase()}`;
+
+  // 4. Safely compile dynamic runtime JS
+  try {
+    runtimeBehavior = new Function('mesh', 'stars', 'time', worldConfig.rotationJs);
+  } catch (e) {
+    console.warn("Runtime compilation warning:", e);
   }
 }
 
-// Procedural Fallback Generator (Prevents offline crashes)
+// Procedural Fallback Generator
 function generateFallbackWorld(input) {
   const sectors = ["Xylos Vega", "Aurelia Nebula", "Pulsar Delta", "Kepler-186f", "Chronos Ring"];
   const sectorName = sectors[Math.floor(Math.random() * sectors.length)];
   
   return {
     sectorTitle: `${sectorName} (${input})`,
-    lore: `Navigating towards custom coordinate stream: "${input}". Atmospheric scanning in progress.`,
-    speechResponse: `Warp engaged. Approaching sector ${sectorName}.`,
-    prompt: `seamless planet texture map of ${input}, ultra detailed 8k spherical map`,
+    lore: `Navigating towards coordinate stream: "${input}". Atmospheric scan underway.`,
+    speechResponse: `Warp vector locked. Approaching sector ${sectorName}.`,
+    prompt: `seamless planet texture surface of ${input}, dark space, highly detailed 3d sphere map`,
     rotationJs: `mesh.rotation.y += 0.015; mesh.position.y = Math.sin(time * 2) * 0.15; stars.rotation.z += 0.001;`,
     audioParams: { baseFreq: 55.0 + Math.random() * 40, filterCutoff: 400.0 + Math.random() * 300, lfoRate: 1.5 + Math.random() * 2 }
   };
 }
-
 function applyWorldConfig(config) {
   speakText(config.speechResponse);
   if (config.audioParams) updateAudioSynth(config.audioParams);
