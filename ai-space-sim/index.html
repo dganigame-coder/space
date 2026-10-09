@@ -6,12 +6,11 @@
   <title>A.I. World Engine - Space Simulator</title>
   <link rel="stylesheet" href="style.css">
   
-  <!-- Import maps for Three.js and Hugging Face -->
+  <!-- Import map for Three.js -->
   <script type="importmap">
     {
       "imports": {
-        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-        "@huggingface/inference": "https://cdn.jsdelivr.net/npm/@huggingface/inference@2.8.0/+esm"
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
       }
     }
   </script>
@@ -26,19 +25,19 @@
       <!-- API Key Setup (Saved to browser locally) -->
       <div class="card" id="api-card">
         <h3>1. System Configuration</h3>
-        <input type="password" id="hf-token-input" placeholder="Enter Hugging Face Token (hf_...)">
-        <button id="save-token-btn" class="secondary-btn">Save Token</button>
-        <p id="token-status" style="font-size: 0.75rem; color: #ef4444; margin-top: 5px;">Token required to activate AI.</p>
+        <input type="password" id="hf-token-input" placeholder="Enter Gemini API Key (AIzaSy...)">
+        <button id="save-token-btn" class="secondary-btn">Save Key</button>
+        <p id="token-status" style="font-size: 0.75rem; color: #fbbf24; margin-top: 5px;">Running via Pollinations fallback (Add Gemini key for priority access).</p>
       </div>
 
       <div class="control-panel">
-        <button id="mic-btn" class="primary-btn" disabled>
+        <button id="mic-btn" class="primary-btn">
           <span id="mic-icon">🎙️</span> Voice Commander
         </button>
 
         <div class="input-fallback">
-          <input type="text" id="manual-input" placeholder="Type navigation command..." disabled>
-          <button id="send-btn" disabled>Send</button>
+          <input type="text" id="manual-input" placeholder="Type navigation command...">
+          <button id="send-btn">Send</button>
         </div>
       </div>
 
@@ -68,7 +67,7 @@
 
     <main id="viewport">
       <div id="hud-overlay">
-        <div id="hud-nav-status">PROTOCOL: OFFLINE</div>
+        <div id="hud-nav-status">PROTOCOL: AWAITING_COMMAND</div>
         <div id="hud-coords">X: 000 | Y: 000 | Z: 000</div>
       </div>
     </main>
