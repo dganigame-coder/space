@@ -78,12 +78,15 @@ function initThreeJS() {
   container.appendChild(renderer.domElement);
 
   // Lighting
-  const dirLight = new THREE.DirectionalLight(0xffffff, 2.0);
-  dirLight.position.set(-20, 10, -20);
+  const dirLight = new THREE.DirectionalLight(0xffffff, 2.5);
+  dirLight.position.set(12, 8, 15); 
   scene.add(dirLight);
   scene.add(new THREE.AmbientLight(0x222233));
   scene.fog = new THREE.FogExp2(0x030712, 0.015);
 
+  // Ambient light to ensure dark side details remain readable
+  const ambientLight = new THREE.AmbientLight(0x667788, 1.2);
+  scene.add(ambientLight);
   // Central Celestial Object
   const geo = new THREE.SphereGeometry(1.8, 64, 64);
   planetMaterial = new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.7 });
