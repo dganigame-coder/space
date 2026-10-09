@@ -137,15 +137,15 @@ function speakText(text) {
   window.speechSynthesis.speak(utterance);
 }
 
-// --- DIRECT FETCH NATIVE AI BRIDGE ---
 async function processCommand(commandText) {
   document.getElementById('transcript').innerText = `"${commandText}"`;
   document.getElementById('hud-nav-status').innerText = 'PROTOCOL: AI_COMPUTING';
-  document.getElementById('code-preview').innerText = '// Processing orbital calculations...';
+  document.getElementById('code-preview').innerText = '// Establishing uplink...';
 
   try {
-    const systemPrompt = `You are a Ship Navigation AI. User input: "${commandText}".
-Return ONLY valid raw JSON format without markdown block wrappers:
+    const systemPrompt = `<|im_start|>system
+You are a Ship Navigation AI. User input: "${commandText}".
+Return ONLY a valid JSON object without markdown formatting, backticks, or extra text:
 {
   "sectorTitle": "Creative sector name",
   "lore": "1-sentence sector summary",
@@ -153,37 +153,52 @@ Return ONLY valid raw JSON format without markdown block wrappers:
   "prompt": "FLUX texture prompt for a high detail spherical planet surface",
   "rotationJs": "mesh.rotation.y += 0.02; stars.rotation.z += 0.001;",
   "audioParams": { "baseFreq": 65.0, "filterCutoff": 500.0, "lfoRate": 2.0 }
-}`;
+}<|im_end|>
+<|im_start|>assistant
+`;
 
-    // Direct Native Fetch to HF Router Chat Completions API
-    const llmRes = await fetch('https://router.huggingface.co/hf-inference/v1/chat/completions', {
+    // Direct Model Endpoint Call (Eliminates 400 Bad Request chat payload errors)
+    const llmRes = await fetch('https://router.huggingface.co/hf-inference/models/Qwen/Qwen2.5-Coder-32B-Instruct', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${hfToken}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'Qwen/Qwen2.5-7B-Instruct',
-        messages: [{ role: 'user', content: systemPrompt }],
-        max_tokens: 400
+        inputs: systemPrompt,
+        parameters: {
+          max_new_tokens: 400,
+          return_full_text: false
+        }
       })
     });
 
+    if (llmRes.status === 403) {
+      throw new Error("403 Forbidden: Check 'Make calls to Inference Providers' on your HF token.");
+    }
+
     if (!llmRes.ok) {
-      throw new Error(`LLM Request failed: Status ${llmRes.status}`);
+      const errorDetail = await llmRes.text();
+      throw new Error(`LLM Error ${llmRes.status}: ${errorDetail}`);
     }
 
     const llmData = await llmRes.json();
-    let rawJson = llmData.choices[0].message.content.trim();
-    if (rawJson.startsWith('```')) {
-      rawJson = rawJson.replace(/```json/g, '').replace(/```/g, '').trim();
+    
+    // Extract generated text string from model response
+    let rawJson = Array.isArray(llmData) ? llmData[0].generated_text : (llmData.generated_text || JSON.stringify(llmData));
+    
+    // Trim backticks or pre/post-prompt commentary if present
+    rawJson = rawJson.trim();
+    if (rawJson.includes('{')) {
+      rawJson = rawJson.substring(rawJson.indexOf('{'), rawJson.lastIndexOf('}') + 1);
     }
+
     const worldConfig = JSON.parse(rawJson);
 
     document.getElementById('hud-nav-status').innerText = 'PROTOCOL: GENERATING_MATTER';
 
-    // Direct Native Fetch to FLUX Image Generation API
-    const imgRes = await fetch('[https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell](https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell)', {
+    // Generate Planetary Texture via FLUX
+    const imgRes = await fetch('https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${hfToken}`,
@@ -204,7 +219,7 @@ Return ONLY valid raw JSON format without markdown block wrappers:
       };
     }
 
-    // Apply Audio and Visual State Changes
+    // Apply Audio, Speech & Telemetry
     speakText(worldConfig.speechResponse);
     if (worldConfig.audioParams) updateAudioSynth(worldConfig.audioParams);
 
@@ -213,17 +228,17 @@ Return ONLY valid raw JSON format without markdown block wrappers:
     document.getElementById('code-preview').innerText = worldConfig.rotationJs;
     document.getElementById('hud-nav-status').innerText = `SECTOR: ${worldConfig.sectorTitle.toUpperCase()}`;
 
-    // Compile dynamic runtime JS safely
+    // Safely compile AI JavaScript code
     try {
       runtimeBehavior = new Function('mesh', 'stars', 'time', worldConfig.rotationJs);
     } catch (e) {
-      console.warn("Runtime code error:", e);
+      console.warn("Runtime code compilation warn:", e);
     }
 
   } catch (err) {
     console.error("AI Bridge Error:", err);
     document.getElementById('hud-nav-status').innerText = 'PROTOCOL: ERROR_OFFLINE';
-    document.getElementById('code-preview').innerText = `// ERROR:\n${err.message}\n\n// Ensure your token is valid and starts with hf_`;
+    document.getElementById('code-preview').innerText = `// UPLINK ERROR:\n${err.message}`;
   }
 }
 
