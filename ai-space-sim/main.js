@@ -158,7 +158,7 @@ Return ONLY a valid JSON object without markdown formatting, backticks, or extra
 `;
 
     // Direct Model Endpoint Call (Eliminates 400 Bad Request chat payload errors)
-    const llmRes = await fetch('https://router.huggingface.co/hf-inference/models/Qwen/Qwen2.5-Coder-32B-Instruct', {
+    const llmRes = await fetch('https://router.huggingface.co/hf-inference/models/Qwen/Qwen2.5-7B-Instruct', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${hfToken}`,
