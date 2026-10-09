@@ -3,7 +3,7 @@ import * as THREE from 'three';
 // Globals
 let scene, camera, renderer, planet, planetMaterial, sun, starField;
 let runtimeBehavior = null;
-let hfToken = localStorage.getItem('hf_space_token') || '';
+let geminiKey = localStorage.getItem('gemini_api_key') || '';
 
 // Audio System Globals
 let audioCtx, osc1, osc2, filterNode, lfoNode, lfoGain;
@@ -23,33 +23,48 @@ function setupSecurity() {
   const tokenBtn = document.getElementById('save-token-btn');
   const status = document.getElementById('token-status');
 
-  if (hfToken) {
-    tokenInput.value = hfToken;
-    enableControls();
-    status.innerText = "Token active & connected.";
-    status.style.color = "#4ade80";
+  // Controls are always enabled since Pollinations/procedural fallback works keylessly
+  enableControls();
+
+  if (geminiKey) {
+    if (tokenInput) tokenInput.value = geminiKey;
+    if (status) {
+      status.innerText = "Gemini API Key active.";
+      status.style.color = "#4ade80";
+    }
+  } else if (status) {
+    status.innerText = "Running via Pollinations fallback (Add Gemini key for priority access).";
+    status.style.color = "#fbbf24";
   }
 
-  tokenBtn.addEventListener('click', () => {
-    const token = tokenInput.value.trim();
-    if (token.startsWith('hf_')) {
-      localStorage.setItem('hf_space_token', token);
-      hfToken = token;
-      enableControls();
-      status.innerText = "Token saved! AI Active.";
-      status.style.color = "#4ade80";
-    } else {
-      status.innerText = "Invalid token. Must start with hf_";
-      status.style.color = "#ef4444";
-    }
-  });
+  if (tokenBtn) {
+    tokenBtn.addEventListener('click', () => {
+      const key = tokenInput.value.trim();
+      if (key) {
+        localStorage.setItem('gemini_api_key', key);
+        geminiKey = key;
+        status.innerText = "Gemini Key Saved! AI Engine Active.";
+        status.style.color = "#4ade80";
+      } else {
+        localStorage.removeItem('gemini_api_key');
+        geminiKey = '';
+        status.innerText = "Key cleared. Using Pollinations fallback.";
+        status.style.color = "#fbbf24";
+      }
+    });
+  }
 }
 
 function enableControls() {
-  document.getElementById('mic-btn').disabled = false;
-  document.getElementById('send-btn').disabled = false;
-  document.getElementById('manual-input').disabled = false;
-  document.getElementById('hud-nav-status').innerText = 'PROTOCOL: AWAITING_COMMAND';
+  const micBtn = document.getElementById('mic-btn');
+  const sendBtn = document.getElementById('send-btn');
+  const manualInput = document.getElementById('manual-input');
+  const statusEl = document.getElementById('hud-nav-status');
+
+  if (micBtn) micBtn.disabled = false;
+  if (sendBtn) sendBtn.disabled = false;
+  if (manualInput) manualInput.disabled = false;
+  if (statusEl) statusEl.innerText = 'PROTOCOL: AWAITING_COMMAND';
 }
 
 function initThreeJS() {
@@ -143,9 +158,7 @@ async function processCommand(commandText) {
   document.getElementById('code-preview').innerText = '// Establishing uplink...';
 
   let worldConfig;
-
-  try {
-    const systemPrompt = `You are a Ship Navigation AI.
+  const promptText = `You are a Ship Navigation AI.
 User input: "${commandText}".
 Return ONLY a valid raw JSON object. Do not wrap in markdown or backticks:
 {
@@ -157,39 +170,62 @@ Return ONLY a valid raw JSON object. Do not wrap in markdown or backticks:
   "audioParams": { "baseFreq": 65.0, "filterCutoff": 500.0, "lfoRate": 2.0 }
 }`;
 
-    // 1. Send Request to HF Serverless Llama 3.1 Chat Endpoint
-    const llmRes = await fetch('https://router.huggingface.co/hf-inference/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${hfToken}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'meta-llama/Llama-3.1-8B-Instruct',
-        messages: [{ role: 'user', content: systemPrompt }],
-        max_tokens: 350
-      })
-    });
+  // 1. Try Gemini 3.8 Flash First
+  if (geminiKey) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${geminiKey}`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: promptText }] }],
+          generationConfig: { responseMimeType: "application/json" }
+        })
+      });
 
-    if (llmRes.ok) {
-      const llmData = await llmRes.json();
-      let rawText = llmData.choices[0].message.content.trim();
-      
-      if (rawText.includes('{')) {
-        rawText = rawText.substring(rawText.indexOf('{'), rawText.lastIndexOf('}') + 1);
+      if (res.ok) {
+        const data = await res.json();
+        const rawJson = data.candidates[0].content.parts[0].text;
+        worldConfig = JSON.parse(rawJson);
+      } else {
+        console.warn(`Gemini API returned status ${res.status}. Trying Pollinations fallback.`);
       }
-      worldConfig = JSON.parse(rawText);
-    } else {
-      console.warn(`HF LLM Status ${llmRes.status}. Using procedural fallback.`);
-      worldConfig = generateFallbackWorld(commandText);
+    } catch (err) {
+      console.warn("Gemini Flash uplink failed:", err);
     }
+  }
 
-  } catch (err) {
-    console.warn("AI Uplink failed, engaging procedural fallback:", err);
+  // 2. Fallback to Pollinations AI Text Router
+  if (!worldConfig) {
+    try {
+      const pRes = await fetch('https://text.pollinations.ai/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: promptText }],
+          jsonMode: true
+        })
+      });
+
+      if (pRes.ok) {
+        const pText = await pRes.text();
+        let cleanJson = pText.trim();
+        if (cleanJson.includes('{')) {
+          cleanJson = cleanJson.substring(cleanJson.indexOf('{'), cleanJson.lastIndexOf('}') + 1);
+        }
+        worldConfig = JSON.parse(cleanJson);
+      }
+    } catch (err) {
+      console.warn("Pollinations text router failed:", err);
+    }
+  }
+
+  // 3. Final Hardcoded Procedural Fallback
+  if (!worldConfig) {
     worldConfig = generateFallbackWorld(commandText);
   }
 
-  // 2. Generate Planetary Texture via Pollinations AI (Zero 410/403 Errors, 100% Free)
+  // 4. Generate Planetary Texture via Pollinations AI
   document.getElementById('hud-nav-status').innerText = 'PROTOCOL: GENERATING_MATTER';
   
   const texturePrompt = encodeURIComponent(worldConfig.prompt);
@@ -199,28 +235,15 @@ Return ONLY a valid raw JSON object. Do not wrap in markdown or backticks:
     textureUrl, 
     (tex) => {
       planetMaterial.map = tex;
-      planetMaterial.color.setHex(0xffffff); // Clear base tint
+      planetMaterial.color.setHex(0xffffff);
       planetMaterial.needsUpdate = true;
     },
     undefined,
     () => console.warn("Texture load issue, retaining base material.")
   );
 
-  // 3. Apply Audio, Text-to-Speech & Navigation Telemetry
-  speakText(worldConfig.speechResponse);
-  if (worldConfig.audioParams) updateAudioSynth(worldConfig.audioParams);
-
-  document.getElementById('sector-title').innerText = worldConfig.sectorTitle;
-  document.getElementById('sector-lore').innerText = worldConfig.lore;
-  document.getElementById('code-preview').innerText = worldConfig.rotationJs;
-  document.getElementById('hud-nav-status').innerText = `SECTOR: ${worldConfig.sectorTitle.toUpperCase()}`;
-
-  // 4. Safely compile dynamic runtime JS
-  try {
-    runtimeBehavior = new Function('mesh', 'stars', 'time', worldConfig.rotationJs);
-  } catch (e) {
-    console.warn("Runtime compilation warning:", e);
-  }
+  // 5. Apply Config Telemetry
+  applyWorldConfig(worldConfig);
 }
 
 // Procedural Fallback Generator
@@ -237,6 +260,7 @@ function generateFallbackWorld(input) {
     audioParams: { baseFreq: 55.0 + Math.random() * 40, filterCutoff: 400.0 + Math.random() * 300, lfoRate: 1.5 + Math.random() * 2 }
   };
 }
+
 function applyWorldConfig(config) {
   speakText(config.speechResponse);
   if (config.audioParams) updateAudioSynth(config.audioParams);
@@ -246,8 +270,11 @@ function applyWorldConfig(config) {
   document.getElementById('hud-nav-status').innerText = `SECTOR: ${config.sectorTitle.toUpperCase()}`;
   try {
     runtimeBehavior = new Function('mesh', 'stars', 'time', config.rotationJs);
-  } catch (e) {}
+  } catch (e) {
+    console.warn("Runtime compilation warning:", e);
+  }
 }
+
 // --- CONTROLS & VOICE RECOGNITION SAFE STATE MACHINE ---
 function setupControls() {
   const micBtn = document.getElementById('mic-btn');
