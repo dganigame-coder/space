@@ -158,17 +158,25 @@ async function processCommand(commandText) {
   document.getElementById('code-preview').innerText = '// Establishing uplink...';
 
   let worldConfig;
-  const promptText = `You are a Ship Navigation AI.
+const promptText = `You are a 3D Space Simulator Engine AI.
 User input: "${commandText}".
-Return ONLY a valid raw JSON object. Do not wrap in markdown or backticks:
+Return ONLY a valid raw JSON object (no markdown, no backticks):
 {
   "sectorTitle": "Creative sector name",
-  "lore": "1-sentence sector summary",
+  "lore": "1-sentence sci-fi summary",
   "speechResponse": "Spoken AI flight instruction",
-  "prompt": "seamless planet texture map of ${commandText}, highly detailed spherical map 8k",
-  "rotationJs": "mesh.rotation.y += 0.02; stars.rotation.z += 0.001;",
+  "prompt": "seamless spherical texture map of ${commandText}, highly detailed 8k",
+  "emissive": true,
+  "emissiveColor": "#ffaa00",
+  "runtimeJs": "mesh.rotation.y += 0.03; mesh.scale.setScalar(1.8 + Math.sin(time * 4) * 0.2); material.emissiveIntensity = 0.6 + Math.sin(time * 8) * 0.4;",
   "audioParams": { "baseFreq": 65.0, "filterCutoff": 500.0, "lfoRate": 2.0 }
-}`;
+}
+
+GUIDELINES FOR "runtimeJs":
+- For normal planets: slight rotation and smooth floating (e.g. mesh.rotation.y += 0.01; mesh.position.y = Math.sin(time) * 0.1;).
+- For supernovas/stars: pulsing scales, rapid rotation, and oscillating emissive intensity using Math.sin(time).
+- For quasars/black holes: rapid axial spins, scale warping, and intense pulse oscillations.
+- You have access to: 'mesh', 'material', 'stars', and 'time'.`;
 
   // 1. Try Gemini 3.8 Flash First
   if (geminiKey) {
@@ -264,14 +272,29 @@ function generateFallbackWorld(input) {
 function applyWorldConfig(config) {
   speakText(config.speechResponse);
   if (config.audioParams) updateAudioSynth(config.audioParams);
+
   document.getElementById('sector-title').innerText = config.sectorTitle;
   document.getElementById('sector-lore').innerText = config.lore;
-  document.getElementById('code-preview').innerText = config.rotationJs;
+  document.getElementById('code-preview').innerText = config.runtimeJs;
   document.getElementById('hud-nav-status').innerText = `SECTOR: ${config.sectorTitle.toUpperCase()}`;
+
+  // 1. AI Dynamically controls material glow and lighting
+  if (config.emissive) {
+    planetMaterial.emissive = new THREE.Color(config.emissiveColor || 0xffffff);
+    planetMaterial.emissiveMap = planetMaterial.map;
+    planetMaterial.emissiveIntensity = 0.6;
+  } else {
+    planetMaterial.emissive = new THREE.Color(0x000000);
+    planetMaterial.emissiveIntensity = 0.0;
+  }
+  planetMaterial.needsUpdate = true;
+
+  // 2. AI Dynamically compiles live frame execution script
   try {
-    runtimeBehavior = new Function('mesh', 'stars', 'time', config.rotationJs);
+    runtimeBehavior = new Function('mesh', 'material', 'stars', 'time', config.runtimeJs);
   } catch (e) {
-    console.warn("Runtime compilation warning:", e);
+    console.warn("AI Script Compilation Error:", e);
+    runtimeBehavior = (mesh, material, stars, time) => { mesh.rotation.y += 0.005; };
   }
 }
 
@@ -352,10 +375,10 @@ function animate(time) {
     starField.geometry.attributes.position.needsUpdate = true;
   }
 
-  // Execute AI runtime compilation or default rotation
+  // Execute AI-generated dynamic behavior
   if (runtimeBehavior && planet) {
     try {
-      runtimeBehavior(planet, starField, t);
+      runtimeBehavior(planet, planetMaterial, starField, t);
     } catch (e) {
       planet.rotation.y += 0.005;
     }
