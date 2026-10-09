@@ -172,27 +172,43 @@ async function processCommand(commandText) {
   document.getElementById('code-preview').innerText = '// Establishing uplink...';
 
   let worldConfig;
-  const promptText = `You are a 3D Space Simulator Engine AI.
-User input: "${commandText}".
-Return ONLY a valid raw JSON object (no markdown, no backticks):
-{
-  "sectorTitle": "Creative sector name",
-  "lore": "1-sentence sci-fi summary",
-  "speechResponse": "Spoken AI flight instruction to pilot",
-  "prompt": "seamless surface texture of ${commandText}, 8k detailed spherical map",
-  "geometryType": "sphere",
-  "geometryArgs": [1.8, 64, 64],
-  "emissive": true,
-  "emissiveColor": "#ffaa00",
-  "runtimeJs": "mesh.rotation.y += 0.02; mesh.rotation.x += 0.01;",
-  "audioParams": { "baseFreq": 65.0, "filterCutoff": 500.0, "lfoRate": 2.0 }
-}
+const promptText = `
+You are controlling an advanced 3D Space Engine Simulator.
+User Command: "${commandText}"
 
-GEOMETRY SELECTION RULES:
-- Standard Planet / Gas Giant / Star: "geometryType": "sphere", "geometryArgs": [1.8, 64, 64]
-- Black Hole Event Horizon / Ring World: "geometryType": "torus", "geometryArgs": [2.2, 0.4, 16, 100]
-- Crystalline Planet / Asteroid / Comet: "geometryType": "icosahedron", "geometryArgs": [1.8, 1]
-- Quasar Accretion Disk / Singularity: "geometryType": "disk", "geometryArgs": [0.2, 3.5, 64]`;
+Your job is to analyze the command and construct the entire 3D space scene.
+
+Schema Rules:
+1. "objects": ALWAYS return an array of 3D objects.
+   - If the user asks for a single body (e.g., "Go to Mars"), generate 1 object in the array centered at [0, 0, 0].
+   - If the user asks for multiple bodies (e.g., "Earth with the Moon", "Binary Star", "Solar System"), generate multiple objects with explicit 3D positions [x, y, z] spread across space.
+2. "geometryType": Choose from "sphere", "torus", "disk", "icosahedron".
+3. "position": Array of coordinates [x, y, z]. Use realistic spatial distribution (e.g., primary star at [0,0,0], orbiting planet at [6, 1, -2]).
+4. "cameraPosition": Set optimal camera coordinates [x, y, z] to frame all objects in view properly.
+5. "cameraTarget": The coordinate vector [x, y, z] where the camera should focus.
+
+Return ONLY valid raw JSON (no markdown formatting):
+{
+  "sectorTitle": "Short sci-fi sector title",
+  "lore": "Brief telemetry description",
+  "speechResponse": "Voice engine sentence",
+  "cameraPosition": [10, 5, 18],
+  "cameraTarget": [0, 0, 0],
+  "objects": [
+    {
+      "name": "Object Name",
+      "geometryType": "sphere | torus | disk | icosahedron",
+      "geometryArgs": [1.8, 64, 64],
+      "position": [0, 0, 0],
+      "emissive": false,
+      "emissiveColor": "#ffaa00",
+      "prompt": "Detailed texture description for Pollinations AI",
+      "runtimeJs": "mesh.rotation.y += 0.005;"
+    }
+  ],
+  "audioParams": { "baseFreq": 60.0, "filterCutoff": 400.0, "lfoRate": 1.0 }
+}
+`;
 
   // 1. Try Gemini 3.8 Flash First
 // 1. Try Gemini 3.8 Flash First
@@ -279,38 +295,64 @@ if (geminiKey) {
 }
 
 function applyWorldConfig(config) {
-  speakText(config.speechResponse);
-  if (config.audioParams) updateAudioSynth(config.audioParams);
+  // 1. Clear previous system meshes
+  while (systemGroup.children.length > 0) {
+    const obj = systemGroup.children[0];
+    if (obj.geometry) obj.geometry.dispose();
+    if (obj.material) obj.material.dispose();
+    systemGroup.remove(obj);
+  }
+  activeAnimatedMeshes = [];
 
-  document.getElementById('sector-title').innerText = config.sectorTitle;
-  document.getElementById('sector-lore').innerText = config.lore;
-  document.getElementById('code-preview').innerText = config.runtimeJs;
-  document.getElementById('hud-nav-status').innerText = `SECTOR: ${config.sectorTitle.toUpperCase()}`;
-
-  // Morph Geometry Dynamically based on AI Instructions
-  if (config.geometryType && planet) {
-    planet.geometry.dispose();
-    planet.geometry = createDynamicGeometry(config.geometryType, config.geometryArgs);
+  // 2. Adjust Camera & OrbitControls to frame the scene
+  if (config.cameraPosition && config.cameraTarget && controls) {
+    const [cx, cy, cz] = config.cameraPosition;
+    const [tx, ty, tz] = config.cameraTarget;
+    
+    // Smoothly re-target OrbitControls
+    controls.target.set(tx, ty, tz); //
+    camera.position.set(cx, cy, cz);
+    controls.update(); //
   }
 
-  // Control Material Glow & Emissive States Dynamically
-  if (config.emissive) {
-    planetMaterial.emissive = new THREE.Color(config.emissiveColor || 0xffffff);
-    planetMaterial.emissiveMap = planetMaterial.map;
-    planetMaterial.emissiveIntensity = 0.8;
-  } else {
-    planetMaterial.emissive = new THREE.Color(0x000000);
-    planetMaterial.emissiveIntensity = 0.0;
-  }
-  planetMaterial.needsUpdate = true;
+  const textureLoader = new THREE.TextureLoader();
 
-  // Compile Live JavaScript Frame Code
-  try {
-    runtimeBehavior = new Function('mesh', 'material', 'stars', 'time', config.runtimeJs);
-  } catch (e) {
-    console.warn("Runtime compilation warning:", e);
-    runtimeBehavior = (mesh, material, stars, time) => { mesh.rotation.y += 0.005; };
-  }
+  // 3. Iterate through array of generated objects
+  const spaceObjects = config.objects || [config];
+
+  spaceObjects.forEach((objConfig) => {
+    // Create requested geometry type
+    const geom = createDynamicGeometry(objConfig.geometryType, objConfig.geometryArgs);
+    
+    const mat = new THREE.MeshStandardMaterial({
+      roughness: 0.5,
+      metalness: 0.1,
+      emissive: objConfig.emissive ? new THREE.Color(objConfig.emissiveColor || 0xffaa00) : 0x000000,
+      emissiveIntensity: objConfig.emissive ? 0.8 : 0
+    });
+
+    const mesh = new THREE.Mesh(geom, mat);
+
+    // Apply specific spatial offset vector [x, y, z]
+    if (objConfig.position && Array.isArray(objConfig.position)) {
+      mesh.position.set(...objConfig.position);
+    }
+
+    // Load unique dynamic texture per object
+    const texUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(objConfig.prompt)}?width=1024&height=512&nologo=true&seed=${Math.floor(Math.random()*99999)}`;
+    textureLoader.load(texUrl, (tex) => {
+      mat.map = tex;
+      mat.needsUpdate = true;
+    });
+
+    // Store custom runtime animation function
+    activeAnimatedMeshes.push({
+      mesh: mesh,
+      runtimeFn: new Function('mesh', 'time', objConfig.runtimeJs || 'mesh.rotation.y += 0.005;')
+    });
+
+    systemGroup.add(mesh);
+  });
 }
 
 function generateFallbackWorld(input) {
