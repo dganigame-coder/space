@@ -23,9 +23,6 @@ function setupSecurity() {
   const tokenBtn = document.getElementById('save-token-btn');
   const status = document.getElementById('token-status');
 
-  // Controls are always enabled since Pollinations/procedural fallback works keylessly
-  enableControls();
-
   if (geminiKey) {
     if (tokenInput) tokenInput.value = geminiKey;
     if (status) {
@@ -55,18 +52,6 @@ function setupSecurity() {
   }
 }
 
-function enableControls() {
-  const micBtn = document.getElementById('mic-btn');
-  const sendBtn = document.getElementById('send-btn');
-  const manualInput = document.getElementById('manual-input');
-  const statusEl = document.getElementById('hud-nav-status');
-
-  if (micBtn) micBtn.disabled = false;
-  if (sendBtn) sendBtn.disabled = false;
-  if (manualInput) manualInput.disabled = false;
-  if (statusEl) statusEl.innerText = 'PROTOCOL: AWAITING_COMMAND';
-}
-
 function initThreeJS() {
   const container = document.getElementById('viewport');
   scene = new THREE.Scene();
@@ -77,19 +62,18 @@ function initThreeJS() {
   renderer.setSize(container.clientWidth, container.clientHeight);
   container.appendChild(renderer.domElement);
 
-  // 1. Front-facing Directional Light (Illuminates the front-right of the planet)
+  // Front-facing Directional Lighting
   const dirLight = new THREE.DirectionalLight(0xffffff, 2.2);
-  dirLight.position.set(12, 8, 15); 
+  dirLight.position.set(12, 8, 15);
   scene.add(dirLight);
 
-  // 2. Single Ambient Light (Keeps dark side visible with a soft blue space tint)
+  // Deep Space Ambient Tint
   const ambientLight = new THREE.AmbientLight(0x404050, 1.0);
   scene.add(ambientLight);
 
-  // 3. Space Fog
   scene.fog = new THREE.FogExp2(0x030712, 0.015);
 
-  // Central Celestial Object
+  // Base Central Celestial Object
   const geo = new THREE.SphereGeometry(1.8, 64, 64);
   planetMaterial = new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.7 });
   planet = new THREE.Mesh(geo, planetMaterial);
@@ -121,7 +105,31 @@ function initThreeJS() {
   });
 }
 
-// --- AUDIO SYSTEM ---
+// --- DYNAMIC GEOMETRY FACTORY ---
+function createDynamicGeometry(type, args) {
+  const p = args || [];
+  switch (type ? type.toLowerCase() : 'sphere') {
+    case 'torus':
+    case 'blackhole':
+    case 'ring_world':
+      return new THREE.TorusGeometry(p[0] || 2.2, p[1] || 0.4, p[2] || 16, p[3] || 100);
+
+    case 'icosahedron':
+    case 'crystal':
+    case 'asteroid':
+      return new THREE.IcosahedronGeometry(p[0] || 1.8, p[1] || 1);
+
+    case 'disk':
+    case 'quasar_core':
+      return new THREE.RingGeometry(p[0] || 0.2, p[1] || 3.5, p[2] || 64);
+
+    case 'sphere':
+    default:
+      return new THREE.SphereGeometry(p[0] || 1.8, p[1] || 64, p[2] || 64);
+  }
+}
+
+// --- AUDIO SYNTHESIS & VOICE OUTPUT ---
 function initWebAudio() {
   if (audioInitialized) return;
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -157,31 +165,34 @@ function speakText(text) {
   window.speechSynthesis.speak(utterance);
 }
 
+// --- PROCESS COMMAND & AI EXECUTION ---
 async function processCommand(commandText) {
   document.getElementById('transcript').innerText = `"${commandText}"`;
   document.getElementById('hud-nav-status').innerText = 'PROTOCOL: AI_COMPUTING';
   document.getElementById('code-preview').innerText = '// Establishing uplink...';
 
   let worldConfig;
-const promptText = `You are a 3D Space Simulator Engine AI.
+  const promptText = `You are a 3D Space Simulator Engine AI.
 User input: "${commandText}".
 Return ONLY a valid raw JSON object (no markdown, no backticks):
 {
   "sectorTitle": "Creative sector name",
   "lore": "1-sentence sci-fi summary",
-  "speechResponse": "Spoken AI flight instruction",
-  "prompt": "seamless spherical texture map of ${commandText}, highly detailed 8k",
+  "speechResponse": "Spoken AI flight instruction to pilot",
+  "prompt": "seamless surface texture of ${commandText}, 8k detailed spherical map",
+  "geometryType": "sphere",
+  "geometryArgs": [1.8, 64, 64],
   "emissive": true,
   "emissiveColor": "#ffaa00",
-  "runtimeJs": "mesh.rotation.y += 0.03; mesh.scale.setScalar(1.8 + Math.sin(time * 4) * 0.2); material.emissiveIntensity = 0.6 + Math.sin(time * 8) * 0.4;",
+  "runtimeJs": "mesh.rotation.y += 0.02; mesh.rotation.x += 0.01;",
   "audioParams": { "baseFreq": 65.0, "filterCutoff": 500.0, "lfoRate": 2.0 }
 }
 
-GUIDELINES FOR "runtimeJs":
-- For normal planets: slight rotation and smooth floating (e.g. mesh.rotation.y += 0.01; mesh.position.y = Math.sin(time) * 0.1;).
-- For supernovas/stars: pulsing scales, rapid rotation, and oscillating emissive intensity using Math.sin(time).
-- For quasars/black holes: rapid axial spins, scale warping, and intense pulse oscillations.
-- You have access to: 'mesh', 'material', 'stars', and 'time'.`;
+GEOMETRY SELECTION RULES:
+- Standard Planet / Gas Giant / Star: "geometryType": "sphere", "geometryArgs": [1.8, 64, 64]
+- Black Hole Event Horizon / Ring World: "geometryType": "torus", "geometryArgs": [2.2, 0.4, 16, 100]
+- Crystalline Planet / Asteroid / Comet: "geometryType": "icosahedron", "geometryArgs": [1.8, 1]
+- Quasar Accretion Disk / Singularity: "geometryType": "disk", "geometryArgs": [0.2, 3.5, 64]`;
 
   // 1. Try Gemini 3.8 Flash First
   if (geminiKey) {
@@ -200,8 +211,6 @@ GUIDELINES FOR "runtimeJs":
         const data = await res.json();
         const rawJson = data.candidates[0].content.parts[0].text;
         worldConfig = JSON.parse(rawJson);
-      } else {
-        console.warn(`Gemini API returned status ${res.status}. Trying Pollinations fallback.`);
       }
     } catch (err) {
       console.warn("Gemini Flash uplink failed:", err);
@@ -233,21 +242,22 @@ GUIDELINES FOR "runtimeJs":
     }
   }
 
-  // 3. Final Hardcoded Procedural Fallback
+  // 3. Procedural Hardcoded Fallback
   if (!worldConfig) {
     worldConfig = generateFallbackWorld(commandText);
   }
 
   // 4. Generate Planetary Texture via Pollinations AI
   document.getElementById('hud-nav-status').innerText = 'PROTOCOL: GENERATING_MATTER';
-  
   const texturePrompt = encodeURIComponent(worldConfig.prompt);
   const textureUrl = `https://image.pollinations.ai/prompt/${texturePrompt}?width=512&height=512&nologo=true&seed=${Math.floor(Math.random()*99999)}`;
 
   new THREE.TextureLoader().load(
-    textureUrl, 
+    textureUrl,
     (tex) => {
       planetMaterial.map = tex;
+      planetMaterial.bumpMap = tex;
+      planetMaterial.bumpScale = 0.05;
       planetMaterial.color.setHex(0xffffff);
       planetMaterial.needsUpdate = true;
     },
@@ -255,23 +265,8 @@ GUIDELINES FOR "runtimeJs":
     () => console.warn("Texture load issue, retaining base material.")
   );
 
-  // 5. Apply Config Telemetry
+  // 5. Apply Telemetry and Morph Geometry
   applyWorldConfig(worldConfig);
-}
-
-// Procedural Fallback Generator
-function generateFallbackWorld(input) {
-  const sectors = ["Xylos Vega", "Aurelia Nebula", "Pulsar Delta", "Kepler-186f", "Chronos Ring"];
-  const sectorName = sectors[Math.floor(Math.random() * sectors.length)];
-  
-  return {
-    sectorTitle: `${sectorName} (${input})`,
-    lore: `Navigating towards coordinate stream: "${input}". Atmospheric scan underway.`,
-    speechResponse: `Warp vector locked. Approaching sector ${sectorName}.`,
-    prompt: `seamless planet texture surface of ${input}, dark space, highly detailed 3d sphere map`,
-    rotationJs: `mesh.rotation.y += 0.015; mesh.position.y = Math.sin(time * 2) * 0.15; stars.rotation.z += 0.001;`,
-    audioParams: { baseFreq: 55.0 + Math.random() * 40, filterCutoff: 400.0 + Math.random() * 300, lfoRate: 1.5 + Math.random() * 2 }
-  };
 }
 
 function applyWorldConfig(config) {
@@ -283,32 +278,56 @@ function applyWorldConfig(config) {
   document.getElementById('code-preview').innerText = config.runtimeJs;
   document.getElementById('hud-nav-status').innerText = `SECTOR: ${config.sectorTitle.toUpperCase()}`;
 
-  // 1. AI Dynamically controls material glow and lighting
+  // Morph Geometry Dynamically based on AI Instructions
+  if (config.geometryType && planet) {
+    planet.geometry.dispose();
+    planet.geometry = createDynamicGeometry(config.geometryType, config.geometryArgs);
+  }
+
+  // Control Material Glow & Emissive States Dynamically
   if (config.emissive) {
     planetMaterial.emissive = new THREE.Color(config.emissiveColor || 0xffffff);
     planetMaterial.emissiveMap = planetMaterial.map;
-    planetMaterial.emissiveIntensity = 0.6;
+    planetMaterial.emissiveIntensity = 0.8;
   } else {
     planetMaterial.emissive = new THREE.Color(0x000000);
     planetMaterial.emissiveIntensity = 0.0;
   }
   planetMaterial.needsUpdate = true;
 
-  // 2. AI Dynamically compiles live frame execution script
+  // Compile Live JavaScript Frame Code
   try {
     runtimeBehavior = new Function('mesh', 'material', 'stars', 'time', config.runtimeJs);
   } catch (e) {
-    console.warn("AI Script Compilation Error:", e);
+    console.warn("Runtime compilation warning:", e);
     runtimeBehavior = (mesh, material, stars, time) => { mesh.rotation.y += 0.005; };
   }
 }
 
-// --- CONTROLS & VOICE RECOGNITION SAFE STATE MACHINE ---
+function generateFallbackWorld(input) {
+  return {
+    sectorTitle: `Sector ${input.toUpperCase()}`,
+    lore: `Navigating toward coordinates: "${input}". Orbital scan underway.`,
+    speechResponse: `Warp vector locked. Approaching target sector.`,
+    prompt: `seamless texture surface of ${input}`,
+    geometryType: "sphere",
+    geometryArgs: [1.8, 64, 64],
+    emissive: false,
+    runtimeJs: `mesh.rotation.y += 0.015; mesh.position.y = Math.sin(time * 2) * 0.15;`,
+    audioParams: { baseFreq: 60.0, filterCutoff: 450.0, lfoRate: 1.5 }
+  };
+}
+
+// --- CONTROLS & VOICE RECOGNITION ---
 function setupControls() {
   const micBtn = document.getElementById('mic-btn');
   const manualInput = document.getElementById('manual-input');
   const sendBtn = document.getElementById('send-btn');
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if (micBtn) micBtn.disabled = false;
+  if (sendBtn) sendBtn.disabled = false;
+  if (manualInput) manualInput.disabled = false;
 
   if (SpeechRecognition) {
     const recognition = new SpeechRecognition();
@@ -316,19 +335,12 @@ function setupControls() {
 
     micBtn.addEventListener('click', () => {
       initWebAudio();
-
-      if (isListening) {
-        recognition.stop();
-        return;
-      }
-
+      if (isListening) { recognition.stop(); return; }
       try {
         recognition.start();
         isListening = true;
         micBtn.classList.add('listening');
-      } catch (e) {
-        console.warn("Recognition start skipped:", e);
-      }
+      } catch (e) {}
     });
 
     recognition.onresult = (event) => {
@@ -337,15 +349,8 @@ function setupControls() {
       processCommand(event.results[0][0].transcript);
     };
 
-    recognition.onerror = () => {
-      isListening = false;
-      micBtn.classList.remove('listening');
-    };
-
-    recognition.onend = () => {
-      isListening = false;
-      micBtn.classList.remove('listening');
-    };
+    recognition.onerror = () => { isListening = false; micBtn.classList.remove('listening'); };
+    recognition.onend = () => { isListening = false; micBtn.classList.remove('listening'); };
   }
 
   sendBtn.addEventListener('click', () => {
@@ -370,7 +375,6 @@ function animate(time) {
   requestAnimationFrame(animate);
   const t = time * 0.001;
 
-  // Warp starfield motion
   if (starField) {
     const positions = starField.geometry.attributes.position.array;
     for (let i = 2; i < positions.length; i += 3) {
@@ -380,7 +384,6 @@ function animate(time) {
     starField.geometry.attributes.position.needsUpdate = true;
   }
 
-  // Execute AI-generated dynamic behavior
   if (runtimeBehavior && planet) {
     try {
       runtimeBehavior(planet, planetMaterial, starField, t);
