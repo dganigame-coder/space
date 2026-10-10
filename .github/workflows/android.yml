@@ -8,7 +8,6 @@ on:
 jobs:
   deploy-web:
     runs-on: ubuntu-latest
-    # This block forces the runner to look inside the 'space' folder
     defaults:
       run:
         working-directory: ./space 
@@ -24,10 +23,11 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Build
-        run: npm run build || echo "No build step"
+      - name: Build Web
+        run: npm run build
 
       - name: Deploy to Render
+        if: ${{ secrets.RENDER_DEPLOY_HOOK != '' }}
         run: curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK }}
 
   build-android:
@@ -48,16 +48,23 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Build Web Assets
+        run: npm run build
+
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Sync Capacitor
-        run: npx cap sync android
+      - name: Initialize & Sync Capacitor Android
+        run: |
+          if [ ! -d "android" ]; then
+            npx cap add android
+          fi
+          npx cap sync android
 
-      - name: Build APK
+      - name: Build APK with Gradle
         run: |
           cd android
           chmod +x gradlew
@@ -65,13 +72,12 @@ jobs:
 
       - name: Rename and Prepare APK
         run: |
-          # Finds the file in the android folder
           APK_PATH=$(find android -name "app-debug.apk" | head -n 1)
           mkdir -p final_output
-          mv "$APK_PATH" final_output/navisoft.apk
+          cp "$APK_PATH" final_output/nasa-space.apk
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: navisoft-package
-          path: space/final_output/navisoft.apk
+          name: nasa-space-package
+          path: space/final_output/nasa-space.apk
