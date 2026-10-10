@@ -8,9 +8,6 @@ on:
 jobs:
   deploy-web:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./space 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -33,9 +30,6 @@ jobs:
   build-android:
     needs: deploy-web
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./space
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -80,4 +74,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: nasa-space-package
-          path: space/final_output/nasa-space.apk
+          path: final_output/nasa-space.apk
