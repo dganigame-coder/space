@@ -19,6 +19,13 @@ function init() {
   initThreeJS();
   setupControls();
   animate(0);
+
+  // Smoothly dismiss cinematic boot screen overlay
+  const bootOverlay = document.getElementById('boot-overlay');
+  if (bootOverlay) {
+    bootOverlay.style.opacity = '0';
+    setTimeout(() => bootOverlay.remove(), 500);
+  }
 }
 
 function setupSecurity() {
@@ -64,6 +71,12 @@ function initThreeJS() {
   renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
   renderer.setSize(container.clientWidth, container.clientHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+  // --- CINEMATIC PHOTOREALISM SETTINGS ---
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.2;
+
   container.appendChild(renderer.domElement);
 
   systemGroup = new THREE.Group();
@@ -361,7 +374,7 @@ function applyWorldConfig(config) {
       mesh.position.set(...objConfig.position);
     }
 
-    // Free-tier safe Pollinations texture request (1024x512, no paid enhance parameters)
+    // Free-tier safe Pollinations texture request (1024x512, no paid parameters)
     if (objConfig.prompt) {
       const enhancedPrompt = encodeURIComponent(`${objConfig.prompt}, 4k resolution, highly detailed photorealistic space texture map, seamless equirectangular`);
       const texUrl = `https://image.pollinations.ai/prompt/${enhancedPrompt}?width=1024&height=512&nologo=true&seed=${Math.floor(Math.random()*99999)}`;
@@ -426,16 +439,38 @@ function generateFallbackWorld(input) {
   };
 }
 
-// --- CONTROLS & VOICE RECOGNITION ---
+// --- CONTROLS, VOICE & FULLSCREEN SETUP ---
 function setupControls() {
   const micBtn = document.getElementById('mic-btn');
   const manualInput = document.getElementById('manual-input');
   const sendBtn = document.getElementById('send-btn');
+  const mobileToggleBtn = document.getElementById('mobile-toggle-btn');
+  const sidebar = document.getElementById('sidebar');
+  const fullscreenBtn = document.getElementById('fullscreen-btn');
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
   if (micBtn) micBtn.disabled = false;
   if (sendBtn) sendBtn.disabled = false;
   if (manualInput) manualInput.disabled = false;
+
+  // Mobile Drawer Toggle Listener
+  if (mobileToggleBtn && sidebar) {
+    mobileToggleBtn.addEventListener('click', () => {
+      sidebar.classList.toggle('mobile-open');
+      mobileToggleBtn.innerText = sidebar.classList.contains('mobile-open') ? '✕ Close' : '⚙️ Controls';
+    });
+  }
+
+  // Fullscreen Toggle Listener
+  if (fullscreenBtn) {
+    fullscreenBtn.addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => console.warn(err));
+      } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+      }
+    });
+  }
 
   if (SpeechRecognition && micBtn) {
     const recognition = new SpeechRecognition();
