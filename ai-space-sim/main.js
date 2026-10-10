@@ -422,7 +422,8 @@ function applyWorldConfig(config) {
       }, index * 1200); // Stagger API requests, not the visual spawn
     }
   });
-  
+}
+
 function generateFallbackWorld(input) {
   const lower = input.toLowerCase();
   let geom = "sphere";
