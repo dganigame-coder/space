@@ -331,6 +331,20 @@ Return ONLY valid raw JSON:
 `;
 }
 
+async function loadTextureWithRetry(url, maxRetries = 2, delay = 1500) {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await new Promise((resolve, reject) => {
+        textureLoader.load(url, resolve, undefined, reject);
+      });
+    } catch (err) {
+      if (attempt === maxRetries) throw err;
+      // Wait longer with each retry (exponential backoff)
+      await new Promise(resolve => setTimeout(resolve, delay * (attempt + 1)));
+    }
+  }
+}
+
 // --- APPLY WORLD CONFIGURATION TO THREE.JS ---
 function applyWorldConfig(config) {
   while (systemGroup.children.length > 0) {
@@ -360,51 +374,53 @@ function applyWorldConfig(config) {
   const textureLoader = new THREE.TextureLoader();
   const spaceObjects = config.objects || [config];
 
-  spaceObjects.forEach((objConfig) => {
-    const geom = createDynamicGeometry(objConfig.geometryType, objConfig.geometryArgs);
+  spaceObjects.forEach(async (objConfig, index) => {
+  const geom = createDynamicGeometry(objConfig.geometryType, objConfig.geometryArgs);
 
-    // Instantly apply Gemini's assigned thematic color while textures load
-    const mat = new THREE.MeshStandardMaterial({
-      color: new THREE.Color(objConfig.color || 0x38bdf8),
-      roughness: 0.35,
-      metalness: 0.15,
-      emissive: objConfig.emissive ? new THREE.Color(objConfig.emissiveColor || 0xffaa00) : 0x000000,
-      emissiveIntensity: objConfig.emissive ? 0.9 : 0
-    });
-
-    const mesh = new THREE.Mesh(geom, mat);
-
-    if (objConfig.position && Array.isArray(objConfig.position)) {
-      mesh.position.set(...objConfig.position);
-    }
-
- // Free-tier safe Pollinations texture request with CORS & priority enforcement
-    if (objConfig.prompt) {
-      const enhancedPrompt = encodeURIComponent(`${objConfig.prompt}, 4k resolution, highly detailed photorealistic space texture map, seamless equirectangular`);
-      const texUrl = `https://image.pollinations.ai/prompt/${enhancedPrompt}?width=1024&height=512&nologo=true&model=flux&seed=${Math.floor(Math.random()*99999)}`;
-
-      // --- CRITICAL: Enable Cross-Origin permissions for WebGL ---
-      textureLoader.setCrossOrigin('anonymous');
-
-      textureLoader.load(texUrl, (tex) => {
-        tex.colorSpace = THREE.SRGBColorSpace;
-        mat.map = tex;
-        mat.color.set(0xffffff); // Clear solid tint so the custom AI image takes 100% priority
-        mat.needsUpdate = true;  // Force WebGL to recompile the shader with the new texture
-      }, undefined, (err) => {
-        console.warn("Texture load error, keeping fallback material color.");
-      });
-    }
-    
-    activeAnimatedMeshes.push({
-      mesh: mesh,
-      runtimeFn: new Function('mesh', 'time', objConfig.runtimeJs || 'mesh.rotation.y += 0.005;')
-    });
-
-    systemGroup.add(mesh);
+  const mat = new THREE.MeshStandardMaterial({
+    color: new THREE.Color(objConfig.color || 0x38bdf8),
+    roughness: 0.35,
+    metalness: 0.15,
+    emissive: objConfig.emissive ? new THREE.Color(objConfig.emissiveColor || 0xffaa00) : 0x000000,
+    emissiveIntensity: objConfig.emissive ? 0.9 : 0
   });
-}
 
+  const mesh = new THREE.Mesh(geom, mat);
+
+  if (objConfig.position && Array.isArray(objConfig.position)) {
+    mesh.position.set(...objConfig.position);
+  }
+
+  if (objConfig.prompt) {
+    // Sleep stagger between objects
+    await new Promise(r => setTimeout(r, index * 1200));
+
+    const enhancedPrompt = encodeURIComponent(`${objConfig.prompt}, 4k resolution, highly detailed photorealistic space texture map, seamless equirectangular`);
+    const texUrl = `https://image.pollinations.ai/prompt/${enhancedPrompt}?width=1024&height=512&nologo=true&model=flux&seed=${Math.floor(Math.random()*99999)}`;
+
+    textureLoader.setCrossOrigin('anonymous');
+    
+    try {
+      const tex = await loadTextureWithRetry(texUrl);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.needsUpdate = true;
+      mat.map = tex;
+      mat.color.set(0xffffff);
+      mat.needsUpdate = true;
+      console.log(`Texture loaded successfully for: ${objConfig.name}`);
+    } catch (err) {
+      console.warn(`Texture load failed for ${objConfig.name} after retries, keeping fallback color.`);
+    }
+  }
+
+  activeAnimatedMeshes.push({
+    mesh: mesh,
+    runtimeFn: new Function('mesh', 'time', objConfig.runtimeJs || 'mesh.rotation.y += 0.005;')
+  });
+
+  systemGroup.add(mesh);
+});
+  
 function generateFallbackWorld(input) {
   const lower = input.toLowerCase();
   let geom = "sphere";
