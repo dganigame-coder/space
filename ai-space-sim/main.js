@@ -63,7 +63,7 @@ function initThreeJS() {
 
   renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
   renderer.setSize(container.clientWidth, container.clientHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Crisp rendering
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   container.appendChild(renderer.domElement);
 
   systemGroup = new THREE.Group();
@@ -173,6 +173,33 @@ function speakText(text) {
   window.speechSynthesis.speak(utterance);
 }
 
+// --- REQUIREMENT 1: ADVANCED DYNAMIC OBJECT INSTRUCTION BUILDER ---
+function buildPromptText(commandText) {
+  return `You are controlling an advanced 3D Space Simulation Engine. User Command: "${commandText}". 
+Analyze the request and construct a dynamic group of 1 to 3 relevant space objects (e.g., planets, moons, rings, asteroid clusters, black holes, space stations, or stars) that accurately fulfill the user's intent.
+Return ONLY valid JSON with the following schema:
+{
+  "sectorTitle": "Name of the stellar sector",
+  "lore": "Brief atmospheric description of the sector",
+  "speechResponse": "Short spoken response confirming destination or explaining status",
+  "cameraPosition": [x, y, z],
+  "cameraTarget": [x, y, z],
+  "objects": [
+    {
+      "name": "Object Name",
+      "geometryType": "sphere" | "torus" | "icosahedron" | "disk",
+      "geometryArgs": [params...],
+      "position": [x, y, z],
+      "emissive": boolean,
+      "emissiveColor": "#hexcolor",
+      "prompt": "Detailed AI image prompt for surface texture map",
+      "runtimeJs": "mesh.rotation.y += 0.005; ..."
+    }
+  ],
+  "audioParams": { "baseFreq": 60, "filterCutoff": 450, "lfoRate": 1.5 }
+}`;
+}
+
 // --- PROCESS COMMAND & AI EXECUTION ---
 async function processCommand(commandText) {
   const transcriptEl = document.getElementById('transcript');
@@ -184,8 +211,6 @@ async function processCommand(commandText) {
   if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: AI_COMPUTING';
 
   let worldConfig = null;
-  
-  // Prioritized Flash Model Hierarchy (Highest capability down to lightweight Lite)
   const flashModels = ['gemini-3.8-flash', 'gemini-3.5-flash-lite'];
 
   // 1. Try Gemini models in sequence
@@ -202,7 +227,6 @@ async function processCommand(commandText) {
           })
         });
 
-        // If quota is exhausted (429), log it and move to the next tier model
         if (res.status === 429) {
           console.warn(`Model ${model} hit 429 quota limit. Cascading to next tier...`);
           continue; 
@@ -216,7 +240,7 @@ async function processCommand(commandText) {
             rawJson = rawJson.substring(rawJson.indexOf('{'), rawJson.lastIndexOf('}') + 1);
           }
           worldConfig = JSON.parse(rawJson);
-          break; // Success! Exit the loop
+          break; 
         }
       } catch (err) {
         console.warn(`Uplink error with ${model}:`, err);
@@ -224,8 +248,9 @@ async function processCommand(commandText) {
     }
   }
 
-  // 2. Fallback to Pollinations Text Router if Gemini models are fully rate-limited
+  // 2. Fallback to Pollinations Text Router if Gemini models fail or rate-limit
   if (!worldConfig) {
+    console.warn("Primary AI uplink busy or unavailable. Routing through Pollinations text fallback...");
     try {
       const pRes = await fetch('https://text.pollinations.ai/', {
         method: 'POST',
@@ -248,9 +273,14 @@ async function processCommand(commandText) {
     }
   }
 
-  // 3. Final Safety Net: Local Procedural Generator (Lowers object count to 1-2 to save memory)
+  // --- REQUIREMENT 2: EXPLICIT ERROR / FALLBACK HANDLING & AUDIO NOTIFICATION ---
   if (!worldConfig) {
+    console.warn("All remote AI models failed. Engaging Local Procedural Fallback Engine.");
     worldConfig = generateFallbackWorld(commandText);
+    
+    // Announce fallback status explicitly to user via text & speech
+    worldConfig.speechResponse = "Sorry, system is processing interference and couldn't reach primary neural net. Changing to emergency procedural sector direction.";
+    worldConfig.lore = "WARNING: Primary telemetry uplink lost. Engaging localized backup matrix parameters.";
   }
 
   if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: SECURED_TARGET';
@@ -272,9 +302,6 @@ async function processCommand(commandText) {
   applyWorldConfig(worldConfig);
 }
 
-function buildPromptText(commandText) {
-  return `You are controlling a 3D Space Engine. User Command: "${commandText}". Return ONLY valid JSON with sectorTitle, lore, speechResponse, cameraPosition, cameraTarget, and objects array (max 2-3 objects to optimize performance).`;
-}
 function applyWorldConfig(config) {
   while (systemGroup.children.length > 0) {
     const obj = systemGroup.children[0];
@@ -309,7 +336,6 @@ function applyWorldConfig(config) {
   spaceObjects.forEach((objConfig) => {
     const geom = createDynamicGeometry(objConfig.geometryType, objConfig.geometryArgs);
     
-    // --- REQUIREMENT 1: High-fidelity Material Settings ---
     const mat = new THREE.MeshStandardMaterial({
       roughness: 0.35,
       metalness: 0.15,
@@ -319,12 +345,10 @@ function applyWorldConfig(config) {
 
     const mesh = new THREE.Mesh(geom, mat);
 
-    // --- REQUIREMENT 2: True 3D Spatial Offset Placement ---
     if (objConfig.position && Array.isArray(objConfig.position)) {
       mesh.position.set(...objConfig.position);
     }
 
-    // --- REQUIREMENT 1: 4K High-Res Pollinations Texture Request ---
     if (objConfig.prompt) {
       const enhancedPrompt = encodeURIComponent(`${objConfig.prompt}, 4k resolution, highly detailed photorealistic space texture map, seamless equirectangular`);
       const texUrl = `https://image.pollinations.ai/prompt/${enhancedPrompt}?width=2048&height=1024&nologo=true&enhance=true&seed=${Math.floor(Math.random()*99999)}`;
@@ -370,9 +394,9 @@ function generateFallbackWorld(input) {
   const shortTitle = input.length > 25 ? input.substring(0, 25) + "..." : input;
 
   return {
-    sectorTitle: `Sector: ${shortTitle.toUpperCase()}`,
-    lore: `Long-range sensors locked onto target coordinates for: "${input}". Spatial mapping complete.`,
-    speechResponse: `Warp vector locked. Approaching coordinate sector.`,
+    sectorTitle: `Fallback Sector: ${shortTitle.toUpperCase()}`,
+    lore: `Telemetry connection disrupted. Local procedural generator active for query: "${input}".`,
+    speechResponse: "Sorry, system is processing interference and couldn't reach primary neural net. Changing to emergency procedural sector direction.",
     cameraPosition: [14, 6, 22],
     cameraTarget: [0, 0, 0],
     objects: [{
