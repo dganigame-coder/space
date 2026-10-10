@@ -288,7 +288,7 @@ async function processCommand(commandText) {
   applyWorldConfig(worldConfig);
 }
 
-// --- DETAILED AI PROMPT INSTRUCTIONS ---
+// --- DETAILED AI PROMPT INSTRUCTIONS (WITH INSTANT COLOR SCHEMA) ---
 function buildPromptText(commandText) {
   return `
 You are controlling an advanced 3D Real-Space Simulator Engine.
@@ -302,8 +302,9 @@ Rules:
    - For binary stars or multiple bodies, spread them out across different coordinates (e.g., [ -6, 0, 0 ] and [ 6, 0, -3 ]).
    - For planets/moons, place them at offset coordinates relative to their parent body (e.g., [ 5, 1, 2 ]).
 2. "geometryType": Choose from "sphere", "torus", "disk", "icosahedron".
-3. "cameraPosition" & "cameraTarget": Position camera wide enough to frame all objects nicely.
-4. "prompt": Provide extremely descriptive, photorealistic texture prompts for Pollinations AI (mention high-frequency detail, photorealism, cinematic lighting).
+3. "color": Provide a thematic HEX color code (e.g., "#ef4444" for a red star, "#38bdf8" for an ocean planet, "#64748b" for rocky bodies) so objects display immediate color before texture loading.
+4. "cameraPosition" & "cameraTarget": Position camera wide enough to frame all objects nicely.
+5. "prompt": Provide extremely descriptive, photorealistic texture prompts for Pollinations AI.
 
 Return ONLY valid raw JSON:
 {
@@ -318,6 +319,7 @@ Return ONLY valid raw JSON:
       "geometryType": "sphere",
       "geometryArgs": [2.0, 64, 64],
       "position": [0, 0, 0],
+      "color": "#38bdf8",
       "emissive": false,
       "emissiveColor": "#ffaa00",
       "prompt": "hyperrealistic satellite map texture of...",
@@ -361,7 +363,9 @@ function applyWorldConfig(config) {
   spaceObjects.forEach((objConfig) => {
     const geom = createDynamicGeometry(objConfig.geometryType, objConfig.geometryArgs);
 
+    // Instantly apply Gemini's assigned thematic color while textures load
     const mat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color(objConfig.color || 0x38bdf8),
       roughness: 0.35,
       metalness: 0.15,
       emissive: objConfig.emissive ? new THREE.Color(objConfig.emissiveColor || 0xffaa00) : 0x000000,
@@ -401,20 +405,20 @@ function generateFallbackWorld(input) {
   let geom = "sphere";
   let args = [2.0, 64, 64];
   let isEmissive = false;
+  let baseColor = "#38bdf8";
 
   if (lower.includes('black hole') || lower.includes('blackhole') || lower.includes('ring')) {
     geom = "torus";
     args = [2.8, 0.5, 32, 128];
     isEmissive = true;
-  } else if (lower.includes('quasar') || lower.includes('singularity') || lower.includes('disk')) {
-    geom = "disk";
-    args = [0.4, 4.5, 64];
+    baseColor = "#1e293b";
+  } else if (lower.includes('red dwarf') || lower.includes('star') || lower.includes('sun')) {
     isEmissive = true;
+    baseColor = "#ef4444";
   } else if (lower.includes('crystal') || lower.includes('asteroid')) {
     geom = "icosahedron";
     args = [2.0, 2];
-  } else if (lower.includes('supernova') || lower.includes('star')) {
-    isEmissive = true;
+    baseColor = "#94a3b8";
   }
 
   const shortTitle = input.length > 25 ? input.substring(0, 25) + "..." : input;
@@ -430,8 +434,9 @@ function generateFallbackWorld(input) {
       geometryType: geom,
       geometryArgs: args,
       position: [0, 0, 0],
+      color: baseColor,
       emissive: isEmissive,
-      emissiveColor: "#ffaa00",
+      emissiveColor: baseColor,
       prompt: `photorealistic 4k space surface texture map of ${input}`,
       runtimeJs: `mesh.rotation.y += 0.01;`
     }],
