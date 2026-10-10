@@ -381,8 +381,7 @@ function applyWorldConfig(config) {
     // Free-tier safe Pollinations texture request (1024x512, no paid parameters)
     if (objConfig.prompt) {
       const enhancedPrompt = encodeURIComponent(`${objConfig.prompt}, 4k resolution, highly detailed photorealistic space texture map, seamless equirectangular`);
-      const texUrl = `https://image.pollinations.ai/prompt/${enhancedPrompt}?width=1024&height=512&nologo=true&seed=${Math.floor(Math.random()*99999)}`;
-
+      const texUrl = `https://image.pollinations.ai/prompt/${enhancedPrompt}?width=1024&height=512&nologo=true&model=flux&seed=${Math.floor(Math.random()*99999)}`;
       textureLoader.load(texUrl, (tex) => {
         mat.map = tex;
         mat.needsUpdate = true;
