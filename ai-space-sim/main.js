@@ -390,6 +390,21 @@ function applyWorldConfig(config) {
       });
     }
 
+    // Free-tier safe Pollinations texture request (1024x512, no paid parameters)
+    if (objConfig.prompt) {
+      const enhancedPrompt = encodeURIComponent(`${objConfig.prompt}, 4k resolution, highly detailed photorealistic space texture map, seamless equirectangular`);
+      const texUrl = `https://image.pollinations.ai/prompt/${enhancedPrompt}?width=1024&height=512&nologo=true&model=flux&seed=${Math.floor(Math.random()*99999)}`;
+
+      textureLoader.load(texUrl, (tex) => {
+        tex.colorSpace = THREE.SRGBColorSpace;
+        mat.map = tex;
+        mat.color.set(0xffffff); // <-- Resets tint to white so texture colors show fully!
+        mat.needsUpdate = true;
+      }, undefined, (err) => {
+        console.warn("Texture load error, keeping fallback material color.");
+      });
+    }
+    
     activeAnimatedMeshes.push({
       mesh: mesh,
       runtimeFn: new Function('mesh', 'time', objConfig.runtimeJs || 'mesh.rotation.y += 0.005;')
