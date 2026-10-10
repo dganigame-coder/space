@@ -12,7 +12,7 @@ let controls; // Optional OrbitControls
 let audioCtx, osc1, osc2, filterNode, lfoNode, lfoGain;
 let audioInitialized = false;
 let isListening = false;
-
+let textureLoader = new THREE.TextureLoader();
 // --- INITIALIZATION ---
 function init() {
   setupSecurity();
@@ -371,7 +371,6 @@ function applyWorldConfig(config) {
     }
   }
 
-  const textureLoader = new THREE.TextureLoader();
   const spaceObjects = config.objects || [config];
 
   spaceObjects.forEach(async (objConfig, index) => {
