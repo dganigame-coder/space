@@ -7,12 +7,14 @@ let geminiKey = localStorage.getItem('gemini_api_key') || '';
 let systemGroup;
 let activeAnimatedMeshes = [];
 let controls; // Optional OrbitControls
+let textureLoader = new THREE.TextureLoader();
 
 // Audio System Globals
 let audioCtx, osc1, osc2, filterNode, lfoNode, lfoGain;
 let audioInitialized = false;
 let isListening = false;
-let textureLoader = new THREE.TextureLoader();
+
+
 // --- INITIALIZATION ---
 function init() {
   setupSecurity();
@@ -373,53 +375,54 @@ function applyWorldConfig(config) {
 
   const spaceObjects = config.objects || [config];
 
-  spaceObjects.forEach(async (objConfig, index) => {
-  const geom = createDynamicGeometry(objConfig.geometryType, objConfig.geometryArgs);
+  spaceObjects.forEach((objConfig, index) => {
+    const geom = createDynamicGeometry(objConfig.geometryType, objConfig.geometryArgs);
 
-  const mat = new THREE.MeshStandardMaterial({
-    color: new THREE.Color(objConfig.color || 0x38bdf8),
-    roughness: 0.35,
-    metalness: 0.15,
-    emissive: objConfig.emissive ? new THREE.Color(objConfig.emissiveColor || 0xffaa00) : 0x000000,
-    emissiveIntensity: objConfig.emissive ? 0.9 : 0
-  });
+    const mat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color(objConfig.color || 0x38bdf8),
+      roughness: 0.35,
+      metalness: 0.15,
+      emissive: objConfig.emissive ? new THREE.Color(objConfig.emissiveColor || 0xffaa00) : 0x000000,
+      emissiveIntensity: objConfig.emissive ? 0.9 : 0
+    });
 
-  const mesh = new THREE.Mesh(geom, mat);
+    const mesh = new THREE.Mesh(geom, mat);
 
-  if (objConfig.position && Array.isArray(objConfig.position)) {
-    mesh.position.set(...objConfig.position);
-  }
-
-  if (objConfig.prompt) {
-    // Sleep stagger between objects
-    await new Promise(r => setTimeout(r, index * 1200));
-
-    const enhancedPrompt = encodeURIComponent(`${objConfig.prompt}, 4k resolution, highly detailed photorealistic space texture map, seamless equirectangular`);
-    const texUrl = `https://image.pollinations.ai/prompt/${enhancedPrompt}?width=1024&height=512&nologo=true&model=flux&seed=${Math.floor(Math.random()*99999)}`;
-
-    textureLoader.setCrossOrigin('anonymous');
-    
-    try {
-      const tex = await loadTextureWithRetry(texUrl);
-      tex.colorSpace = THREE.SRGBColorSpace;
-      tex.needsUpdate = true;
-      mat.map = tex;
-      mat.color.set(0xffffff);
-      mat.needsUpdate = true;
-      console.log(`Texture loaded successfully for: ${objConfig.name}`);
-    } catch (err) {
-      console.warn(`Texture load failed for ${objConfig.name} after retries, keeping fallback color.`);
+    if (objConfig.position && Array.isArray(objConfig.position)) {
+      mesh.position.set(...objConfig.position);
     }
-  }
 
-  activeAnimatedMeshes.push({
-    mesh: mesh,
-    runtimeFn: new Function('mesh', 'time', objConfig.runtimeJs || 'mesh.rotation.y += 0.005;')
+    // --- 1. ADD TO SCENE IMMEDIATELY SO THEY ALL SPAWN TOGETHER ---
+    systemGroup.add(mesh);
+
+    activeAnimatedMeshes.push({
+      mesh: mesh,
+      runtimeFn: new Function('mesh', 'time', objConfig.runtimeJs || 'mesh.rotation.y += 0.005;')
+    });
+
+    // --- 2. LOAD TEXTURES ASYNCHRONOUSLY WITH STAGGERED DELAYS IN THE BACKGROUND ---
+    if (objConfig.prompt) {
+      setTimeout(async () => {
+        const enhancedPrompt = encodeURIComponent(`${objConfig.prompt}, 4k resolution, highly detailed photorealistic space texture map, seamless equirectangular`);
+        const texUrl = `https://image.pollinations.ai/prompt/${enhancedPrompt}?width=1024&height=512&nologo=true&model=flux&seed=${Math.floor(Math.random()*99999)}`;
+
+        textureLoader.setCrossOrigin('anonymous');
+        
+        try {
+          const tex = await loadTextureWithRetry(texUrl);
+          tex.colorSpace = THREE.SRGBColorSpace;
+          tex.needsUpdate = true;
+          mat.map = tex;
+          mat.color.set(0xffffff);
+          mat.needsUpdate = true;
+          console.log(`Texture loaded successfully for: ${objConfig.name}`);
+        } catch (err) {
+          console.warn(`Texture load failed for ${objConfig.name} after retries, keeping fallback color.`);
+        }
+      }, index * 1200); // Stagger API requests, not the visual spawn
+    }
   });
-
-  systemGroup.add(mesh);
-});
-}
+  
 function generateFallbackWorld(input) {
   const lower = input.toLowerCase();
   let geom = "sphere";
