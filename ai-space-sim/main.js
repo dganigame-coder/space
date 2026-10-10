@@ -1,14 +1,12 @@
 import * as THREE from 'three';
 
 // --- GLOBALS ---
-let scene, camera, renderer, planet, planetMaterial, sun, starField;
-let runtimeBehavior = null;
+let scene, camera, renderer, starField;
 let geminiKey = localStorage.getItem('gemini_api_key') || '';
 
-// NEW FIX: Declare missing groups and animation arrays
 let systemGroup;
 let activeAnimatedMeshes = [];
-let controls; // In case you add THREE.OrbitControls later
+let controls; // Optional OrbitControls
 
 // Audio System Globals
 let audioCtx, osc1, osc2, filterNode, lfoNode, lfoGain;
@@ -58,60 +56,53 @@ function setupSecurity() {
 }
 
 function initThreeJS() {
-  const container = document.getElementById('viewport') || document.body; // Fallback if no viewport
+  const container = document.getElementById('viewport') || document.body;
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
-  camera.position.z = 8;
+  camera.position.set(0, 5, 15);
 
-  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
   renderer.setSize(container.clientWidth, container.clientHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Crisp rendering
   container.appendChild(renderer.domElement);
 
-  // NEW FIX: Initialize systemGroup and add it to the scene
   systemGroup = new THREE.Group();
   scene.add(systemGroup);
 
-  // Front-facing Directional Lighting
-  const dirLight = new THREE.DirectionalLight(0xffffff, 2.2);
-  dirLight.position.set(12, 8, 15);
+  // Dynamic Scene Lighting
+  const dirLight = new THREE.DirectionalLight(0xffffff, 2.5);
+  dirLight.position.set(20, 15, 20);
   scene.add(dirLight);
 
-  // Deep Space Ambient Tint
-  const ambientLight = new THREE.AmbientLight(0x404050, 1.0);
+  const ambientLight = new THREE.AmbientLight(0x222233, 1.2);
   scene.add(ambientLight);
 
-  scene.fog = new THREE.FogExp2(0x030712, 0.015);
+  scene.fog = new THREE.FogExp2(0x02040a, 0.012);
 
-  // Base Central Celestial Object
-  const geo = new THREE.SphereGeometry(1.8, 64, 64);
-  planetMaterial = new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.7 });
-  planet = new THREE.Mesh(geo, planetMaterial);
-  
-  // NEW FIX: Add planet to systemGroup instead of scene directly
+  // Initial Default Object (Earth-like placeholder)
+  const geo = new THREE.SphereGeometry(2.0, 64, 64);
+  const planetMaterial = new THREE.MeshStandardMaterial({ 
+    color: 0x38bdf8, 
+    roughness: 0.4, 
+    metalness: 0.1 
+  });
+  const planet = new THREE.Mesh(geo, planetMaterial);
   systemGroup.add(planet);
 
-  // Default animation for the base planet
   activeAnimatedMeshes.push({
     mesh: planet,
-    runtimeFn: new Function('mesh', 'time', 'mesh.rotation.y += 0.005;')
+    runtimeFn: new Function('mesh', 'time', 'mesh.rotation.y += 0.003;')
   });
 
-  // Distant Sun
-  const sunGeo = new THREE.SphereGeometry(6, 32, 32);
-  const sunMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
-  sun = new THREE.Mesh(sunGeo, sunMat);
-  sun.position.set(-50, 15, -100);
-  scene.add(sun);
-
-  // Infinite Starfield Particles
+  // Immersive Deep Space Starfield
   const starGeo = new THREE.BufferGeometry();
-  const starCount = 4000;
+  const starCount = 5000;
   const starPos = new Float32Array(starCount * 3);
   for (let i = 0; i < starCount * 3; i++) {
-    starPos[i] = (Math.random() - 0.5) * 400;
+    starPos[i] = (Math.random() - 0.5) * 600;
   }
   starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
-  const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.5 });
+  const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.6, transparent: true, opacity: 0.85 });
   starField = new THREE.Points(starGeo, starMat);
   scene.add(starField);
 
@@ -129,20 +120,20 @@ function createDynamicGeometry(type, args) {
     case 'torus':
     case 'blackhole':
     case 'ring_world':
-      return new THREE.TorusGeometry(p[0] || 2.2, p[1] || 0.4, p[2] || 16, p[3] || 100);
+      return new THREE.TorusGeometry(p[0] || 2.5, p[1] || 0.5, p[2] || 32, p[3] || 128);
 
     case 'icosahedron':
     case 'crystal':
     case 'asteroid':
-      return new THREE.IcosahedronGeometry(p[0] || 1.8, p[1] || 1);
+      return new THREE.IcosahedronGeometry(p[0] || 2.0, p[1] || 2);
 
     case 'disk':
     case 'quasar_core':
-      return new THREE.RingGeometry(p[0] || 0.2, p[1] || 3.5, p[2] || 64);
+      return new THREE.RingGeometry(p[0] || 0.4, p[1] || 4.5, p[2] || 64);
 
     case 'sphere':
     default:
-      return new THREE.SphereGeometry(p[0] || 1.8, p[1] || 64, p[2] || 64);
+      return new THREE.SphereGeometry(p[0] || 2.0, p[1] || 64, p[2] || 64);
   }
 }
 
@@ -186,52 +177,52 @@ function speakText(text) {
 async function processCommand(commandText) {
   const transcriptEl = document.getElementById('transcript');
   const hudStatusEl = document.getElementById('hud-nav-status');
-  const codePreviewEl = document.getElementById('code-preview');
+  const titleEl = document.getElementById('sector-title') || document.querySelector('.sector-title');
+  const loreEl = document.getElementById('sector-lore') || document.querySelector('.sector-lore');
   
   if (transcriptEl) transcriptEl.innerText = `"${commandText}"`;
-  if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: AI_COMPUTING';
-  if (codePreviewEl) codePreviewEl.innerText = '// Establishing uplink...';
+  if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: AI_COMPUTING_REAL_SPACE';
 
   let worldConfig;
   const promptText = `
-You are controlling an advanced 3D Space Engine Simulator.
+You are controlling an advanced 3D Real-Space Simulator Engine.
 User Command: "${commandText}"
 
-Your job is to analyze the command and construct the entire 3D space scene.
+Generate a hyper-realistic space scene layout with accurate 3D distribution.
 
-Schema Rules:
-1. "objects": ALWAYS return an array of 3D objects.
-   - If the user asks for a single body (e.g., "Go to Mars"), generate 1 object in the array centered at [0, 0, 0].
-   - If the user asks for multiple bodies (e.g., "Earth with the Moon", "Binary Star", "Solar System"), generate multiple objects with explicit 3D positions [x, y, z] spread across space.
+Rules:
+1. "objects": ALWAYS return an array of 3D objects. 
+   - DO NOT cluster everything at [0,0,0]. Space is vast.
+   - For binary stars, spread them out (e.g., [ -6, 0, 0 ] and [ 6, 0, -3 ]).
+   - For planets/moons, place moons at offset coordinates relative to their parent planet (e.g., [ 5, 1, 2 ]).
 2. "geometryType": Choose from "sphere", "torus", "disk", "icosahedron".
-3. "position": Array of coordinates [x, y, z]. Use realistic spatial distribution.
-4. "cameraPosition": Set optimal camera coordinates [x, y, z] to frame all objects.
-5. "cameraTarget": The coordinate vector [x, y, z] where the camera should focus.
+3. "cameraPosition" & "cameraTarget": Position camera wide enough to frame all objects nicely.
+4. "prompt": Provide extremely descriptive, photorealistic 4K texture prompts for Pollinations AI (mention high-frequency detail, photorealism, cinematic lighting).
 
 Return ONLY valid raw JSON:
 {
-  "sectorTitle": "Short sci-fi sector title",
-  "lore": "Brief telemetry description",
-  "speechResponse": "Voice engine sentence",
-  "cameraPosition": [10, 5, 18],
+  "sectorTitle": "Sector Name",
+  "lore": "Detailed scientific and sci-fi telemetry explanation of the current sector.",
+  "speechResponse": "Concise voice announcement sentence for arrival.",
+  "cameraPosition": [12, 6, 20],
   "cameraTarget": [0, 0, 0],
   "objects": [
     {
-      "name": "Object Name",
+      "name": "Primary Body",
       "geometryType": "sphere",
-      "geometryArgs": [1.8, 64, 64],
+      "geometryArgs": [2.0, 64, 64],
       "position": [0, 0, 0],
       "emissive": false,
       "emissiveColor": "#ffaa00",
-      "prompt": "Detailed texture description for Pollinations AI",
-      "runtimeJs": "mesh.rotation.y += 0.005;"
+      "prompt": "hyperrealistic 4k satellite map texture of...",
+      "runtimeJs": "mesh.rotation.y += 0.002;"
     }
   ],
   "audioParams": { "baseFreq": 60.0, "filterCutoff": 400.0, "lfoRate": 1.0 }
 }
 `;
 
-  // 1. Try Gemini (Fixed Model Version to gemini-1.5-flash)
+  // 1. Try Gemini
   if (geminiKey) {
     try {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${geminiKey}`;
@@ -247,7 +238,6 @@ Return ONLY valid raw JSON:
       if (res.ok) {
         const data = await res.json();
         let rawJson = data.candidates[0].content.parts[0].text;
-        
         rawJson = rawJson.replace(/```json/gi, '').replace(/```/g, '').trim();
         if (rawJson.includes('{')) {
           rawJson = rawJson.substring(rawJson.indexOf('{'), rawJson.lastIndexOf('}') + 1);
@@ -284,23 +274,25 @@ Return ONLY valid raw JSON:
     }
   }
 
-  // 3. Procedural Hardcoded Fallback (This will now run properly without crashing)
+  // 3. Procedural Fallback
   if (!worldConfig) {
     worldConfig = generateFallbackWorld(commandText);
   }
 
-  if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: GENERATING_MATTER';
+  if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: SECURED_TARGET';
+
+  // --- REQUIREMENT 3 & 4: Concurrent Textual Telemetry + TTS ---
+  if (titleEl && worldConfig.sectorTitle) titleEl.innerText = worldConfig.sectorTitle;
+  if (loreEl && worldConfig.lore) loreEl.innerText = worldConfig.lore;
   
-  // Audio & Voice responses
   if (worldConfig.speechResponse) speakText(worldConfig.speechResponse);
   if (worldConfig.audioParams) updateAudioSynth(worldConfig.audioParams);
 
-  // 5. Apply Telemetry and Morph Geometry
+  // Apply Spatial Scene Configuration
   applyWorldConfig(worldConfig);
 }
 
 function applyWorldConfig(config) {
-  // 1. Clear previous system meshes safely
   while (systemGroup.children.length > 0) {
     const obj = systemGroup.children[0];
     if (obj.geometry) obj.geometry.dispose();
@@ -311,17 +303,15 @@ function applyWorldConfig(config) {
     systemGroup.remove(obj);
   }
   
-  // Reset animations
   activeAnimatedMeshes = [];
 
-  // 2. Adjust Camera to frame the scene
+  // Realistic Navigation Framing & Camera Sync
   if (config.cameraPosition && config.cameraTarget) {
     const [cx, cy, cz] = config.cameraPosition;
     const [tx, ty, tz] = config.cameraTarget;
     
     camera.position.set(cx, cy, cz);
     
-    // NEW FIX: Safe check for controls vs manual camera lookAt
     if (typeof controls !== 'undefined' && controls) {
       controls.target.set(tx, ty, tz);
       controls.update(); 
@@ -333,33 +323,37 @@ function applyWorldConfig(config) {
   const textureLoader = new THREE.TextureLoader();
   const spaceObjects = config.objects || [config];
 
-  // 3. Iterate through array of generated objects
   spaceObjects.forEach((objConfig) => {
     const geom = createDynamicGeometry(objConfig.geometryType, objConfig.geometryArgs);
     
+    // --- REQUIREMENT 1: High-fidelity Material Settings ---
     const mat = new THREE.MeshStandardMaterial({
-      roughness: 0.5,
-      metalness: 0.1,
+      roughness: 0.35,
+      metalness: 0.15,
       emissive: objConfig.emissive ? new THREE.Color(objConfig.emissiveColor || 0xffaa00) : 0x000000,
-      emissiveIntensity: objConfig.emissive ? 0.8 : 0
+      emissiveIntensity: objConfig.emissive ? 0.9 : 0
     });
 
     const mesh = new THREE.Mesh(geom, mat);
 
+    // --- REQUIREMENT 2: True 3D Spatial Offset Placement ---
     if (objConfig.position && Array.isArray(objConfig.position)) {
       mesh.position.set(...objConfig.position);
     }
 
-    // Load unique dynamic texture per object safely
+    // --- REQUIREMENT 1: 4K High-Res Pollinations Texture Request ---
     if (objConfig.prompt) {
-      const texUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(objConfig.prompt)}?width=1024&height=512&nologo=true&seed=${Math.floor(Math.random()*99999)}`;
+      const enhancedPrompt = encodeURIComponent(`${objConfig.prompt}, 4k resolution, highly detailed photorealistic space texture map, seamless equirectangular`);
+      const texUrl = `https://image.pollinations.ai/prompt/${enhancedPrompt}?width=2048&height=1024&nologo=true&enhance=true&seed=${Math.floor(Math.random()*99999)}`;
+      
       textureLoader.load(texUrl, (tex) => {
         mat.map = tex;
         mat.needsUpdate = true;
+      }, undefined, (err) => {
+        console.warn("Texture load error, keeping fallback material color.");
       });
     }
 
-    // Store custom runtime animation function
     activeAnimatedMeshes.push({
       mesh: mesh,
       runtimeFn: new Function('mesh', 'time', objConfig.runtimeJs || 'mesh.rotation.y += 0.005;')
@@ -372,41 +366,41 @@ function applyWorldConfig(config) {
 function generateFallbackWorld(input) {
   const lower = input.toLowerCase();
   let geom = "sphere";
-  let args = [1.8, 64, 64];
+  let args = [2.0, 64, 64];
   let isEmissive = false;
 
   if (lower.includes('black hole') || lower.includes('blackhole') || lower.includes('ring')) {
     geom = "torus";
-    args = [2.2, 0.4, 16, 100];
+    args = [2.8, 0.5, 32, 128];
     isEmissive = true;
   } else if (lower.includes('quasar') || lower.includes('singularity') || lower.includes('disk')) {
     geom = "disk";
-    args = [0.2, 3.5, 64];
+    args = [0.4, 4.5, 64];
     isEmissive = true;
-  } else if (lower.includes('crystal') || lower.includes('asteroid') || lower.includes('comet')) {
+  } else if (lower.includes('crystal') || lower.includes('asteroid')) {
     geom = "icosahedron";
-    args = [1.8, 1];
-  } else if (lower.includes('supernova') || lower.includes('star') || lower.includes('sun')) {
+    args = [2.0, 2];
+  } else if (lower.includes('supernova') || lower.includes('star')) {
     isEmissive = true;
   }
 
   const shortTitle = input.length > 25 ? input.substring(0, 25) + "..." : input;
 
   return {
-    sectorTitle: `Sector ${shortTitle.toUpperCase()}`,
-    lore: `Navigating toward coordinates: "${input}". Orbital scan underway.`,
-    speechResponse: `Warp vector locked. Approaching target sector.`,
-    cameraPosition: [10, 5, 18],
+    sectorTitle: `Sector: ${shortTitle.toUpperCase()}`,
+    lore: `Long-range sensors locked onto target coordinates for: "${input}". Spatial mapping complete.`,
+    speechResponse: `Warp vector locked. Approaching coordinate sector.`,
+    cameraPosition: [14, 6, 22],
     cameraTarget: [0, 0, 0],
     objects: [{
       name: shortTitle,
       geometryType: geom,
       geometryArgs: args,
-      position: [0,0,0],
+      position: [0, 0, 0],
       emissive: isEmissive,
       emissiveColor: "#ffaa00",
-      prompt: `seamless surface texture of ${input} in space`,
-      runtimeJs: `mesh.rotation.y += 0.02; mesh.rotation.x += 0.01;`
+      prompt: `photorealistic 4k space surface texture map of ${input}`,
+      runtimeJs: `mesh.rotation.y += 0.01;`
     }],
     audioParams: { baseFreq: 60.0, filterCutoff: 450.0, lfoRate: 1.5 }
   };
@@ -474,19 +468,17 @@ function animate(time) {
   if (starField) {
     const positions = starField.geometry.attributes.position.array;
     for (let i = 2; i < positions.length; i += 3) {
-      positions[i] += 0.4;
-      if (positions[i] > 10) positions[i] = -400;
+      positions[i] += 0.3;
+      if (positions[i] > 10) positions[i] = -500;
     }
     starField.geometry.attributes.position.needsUpdate = true;
   }
 
-  // NEW FIX: Properly loop over the active animated objects instead of one global function
   activeAnimatedMeshes.forEach((anim) => {
     if (anim.mesh && anim.runtimeFn) {
       try {
         anim.runtimeFn(anim.mesh, t);
       } catch (e) {
-        // Fallback rotation if custom JS fails
         anim.mesh.rotation.y += 0.005;
       }
     }
