@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>A.I. World Engine - Space Simulator</title>
   <link rel="stylesheet" href="style.css">
   
@@ -16,13 +16,16 @@
   </script>
 </head>
 <body>
+  <!-- Mobile Sidebar Toggle Button -->
+  <button id="mobile-toggle-btn" aria-label="Toggle Controls">⚙️ Controls</button>
+
   <div id="app-container">
     <aside id="sidebar">
       <div class="brand">
         <span class="icon">🚀</span> AI WORLD ENGINE v4.0
       </div>
 
-      <!-- API Key Setup (Saved to browser locally) -->
+      <!-- API Key Setup -->
       <div class="card" id="api-card">
         <h3>1. System Configuration</h3>
         <input type="password" id="hf-token-input" placeholder="Enter Gemini API Key (AIzaSy...)">
