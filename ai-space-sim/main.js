@@ -420,7 +420,7 @@ function applyWorldConfig(config) {
 
   systemGroup.add(mesh);
 });
-  
+}
 function generateFallbackWorld(input) {
   const lower = input.toLowerCase();
   let geom = "sphere";
