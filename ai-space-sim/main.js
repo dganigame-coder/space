@@ -177,90 +177,64 @@ function speakText(text) {
 async function processCommand(commandText) {
   const transcriptEl = document.getElementById('transcript');
   const hudStatusEl = document.getElementById('hud-nav-status');
-  const titleEl = document.getElementById('sector-title') || document.querySelector('.sector-title');
-  const loreEl = document.getElementById('sector-lore') || document.querySelector('.sector-lore');
+  const titleEl = document.getElementById('sector-title');
+  const loreEl = document.getElementById('sector-lore');
   
   if (transcriptEl) transcriptEl.innerText = `"${commandText}"`;
-  if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: AI_COMPUTING_REAL_SPACE';
+  if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: AI_COMPUTING';
 
-  let worldConfig;
-  const promptText = `
-You are controlling an advanced 3D Real-Space Simulator Engine.
-User Command: "${commandText}"
+  let worldConfig = null;
+  
+  // Prioritized Flash Model Hierarchy (Highest capability down to lightweight Lite)
+  const flashModels = ['gemini-3.8-flash', 'gemini-3.5-flash-lite'];
 
-Generate a hyper-realistic space scene layout with accurate 3D distribution.
-
-Rules:
-1. "objects": ALWAYS return an array of 3D objects. 
-   - DO NOT cluster everything at [0,0,0]. Space is vast.
-   - For binary stars, spread them out (e.g., [ -6, 0, 0 ] and [ 6, 0, -3 ]).
-   - For planets/moons, place moons at offset coordinates relative to their parent planet (e.g., [ 5, 1, 2 ]).
-2. "geometryType": Choose from "sphere", "torus", "disk", "icosahedron".
-3. "cameraPosition" & "cameraTarget": Position camera wide enough to frame all objects nicely.
-4. "prompt": Provide extremely descriptive, photorealistic 4K texture prompts for Pollinations AI (mention high-frequency detail, photorealism, cinematic lighting).
-
-Return ONLY valid raw JSON:
-{
-  "sectorTitle": "Sector Name",
-  "lore": "Detailed scientific and sci-fi telemetry explanation of the current sector.",
-  "speechResponse": "Concise voice announcement sentence for arrival.",
-  "cameraPosition": [12, 6, 20],
-  "cameraTarget": [0, 0, 0],
-  "objects": [
-    {
-      "name": "Primary Body",
-      "geometryType": "sphere",
-      "geometryArgs": [2.0, 64, 64],
-      "position": [0, 0, 0],
-      "emissive": false,
-      "emissiveColor": "#ffaa00",
-      "prompt": "hyperrealistic 4k satellite map texture of...",
-      "runtimeJs": "mesh.rotation.y += 0.002;"
-    }
-  ],
-  "audioParams": { "baseFreq": 60.0, "filterCutoff": 400.0, "lfoRate": 1.0 }
-}
-`;
-
-  // 1. Try Gemini
+  // 1. Try Gemini models in sequence
   if (geminiKey) {
-    try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${geminiKey}`;
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: promptText }] }],
-          generationConfig: { responseMimeType: "application/json" }
-        })
-      });
+    for (const model of flashModels) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: buildPromptText(commandText) }] }],
+            generationConfig: { responseMimeType: "application/json" }
+          })
+        });
 
-      if (res.ok) {
-        const data = await res.json();
-        let rawJson = data.candidates[0].content.parts[0].text;
-        rawJson = rawJson.replace(/```json/gi, '').replace(/```/g, '').trim();
-        if (rawJson.includes('{')) {
-          rawJson = rawJson.substring(rawJson.indexOf('{'), rawJson.lastIndexOf('}') + 1);
+        // If quota is exhausted (429), log it and move to the next tier model
+        if (res.status === 429) {
+          console.warn(`Model ${model} hit 429 quota limit. Cascading to next tier...`);
+          continue; 
         }
-        worldConfig = JSON.parse(rawJson);
+
+        if (res.ok) {
+          const data = await res.json();
+          let rawJson = data.candidates[0].content.parts[0].text;
+          rawJson = rawJson.replace(/```json/gi, '').replace(/```/g, '').trim();
+          if (rawJson.includes('{')) {
+            rawJson = rawJson.substring(rawJson.indexOf('{'), rawJson.lastIndexOf('}') + 1);
+          }
+          worldConfig = JSON.parse(rawJson);
+          break; // Success! Exit the loop
+        }
+      } catch (err) {
+        console.warn(`Uplink error with ${model}:`, err);
       }
-    } catch (err) {
-      console.warn("Gemini uplink failed, switching to fallback:", err);
     }
   }
 
-  // 2. Fallback to Pollinations AI Text Router
+  // 2. Fallback to Pollinations Text Router if Gemini models are fully rate-limited
   if (!worldConfig) {
     try {
       const pRes = await fetch('https://text.pollinations.ai/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: [{ role: 'user', content: promptText }],
+          messages: [{ role: 'user', content: buildPromptText(commandText) }],
           jsonMode: true
         })
       });
-
       if (pRes.ok) {
         const pText = await pRes.text();
         let cleanJson = pText.trim();
@@ -269,29 +243,38 @@ Return ONLY valid raw JSON:
         }
         worldConfig = JSON.parse(cleanJson);
       }
-    } catch (err) {
-      console.warn("Pollinations text router failed:", err);
+    } catch (e) {
+      console.warn("Pollinations text router fallback failed.");
     }
   }
 
-  // 3. Procedural Fallback
+  // 3. Final Safety Net: Local Procedural Generator (Lowers object count to 1-2 to save memory)
   if (!worldConfig) {
     worldConfig = generateFallbackWorld(commandText);
   }
 
   if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: SECURED_TARGET';
 
-  // --- REQUIREMENT 3 & 4: Concurrent Textual Telemetry + TTS ---
+  // Sync UI Telemetry & Voice
   if (titleEl && worldConfig.sectorTitle) titleEl.innerText = worldConfig.sectorTitle;
   if (loreEl && worldConfig.lore) loreEl.innerText = worldConfig.lore;
-  
   if (worldConfig.speechResponse) speakText(worldConfig.speechResponse);
   if (worldConfig.audioParams) updateAudioSynth(worldConfig.audioParams);
 
-  // Apply Spatial Scene Configuration
+  // Update Live Code Window
+  const codePreviewEl = document.getElementById('code-preview');
+  if (codePreviewEl && worldConfig.objects) {
+    codePreviewEl.innerText = worldConfig.objects
+      .map(o => `// [${o.name}]\n${o.runtimeJs}`)
+      .join('\n\n');
+  }
+
   applyWorldConfig(worldConfig);
 }
 
+function buildPromptText(commandText) {
+  return `You are controlling a 3D Space Engine. User Command: "${commandText}". Return ONLY valid JSON with sectorTitle, lore, speechResponse, cameraPosition, cameraTarget, and objects array (max 2-3 objects to optimize performance).`;
+}
 function applyWorldConfig(config) {
   while (systemGroup.children.length > 0) {
     const obj = systemGroup.children[0];
