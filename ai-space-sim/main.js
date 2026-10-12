@@ -333,7 +333,7 @@ Return ONLY valid raw JSON:
 `;
 }
 
-async function loadTextureWithRetry(url, maxRetries = 2, delay = 1500) {
+async function loadTextureWithRetry(url, maxRetries = 2, delay = 8000) {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await new Promise((resolve, reject) => {
@@ -341,7 +341,7 @@ async function loadTextureWithRetry(url, maxRetries = 2, delay = 1500) {
       });
     } catch (err) {
       if (attempt === maxRetries) throw err;
-      // Wait longer with each retry (exponential backoff)
+      console.warn(`Texture attempt ${attempt + 1} failed. Backing off for ${(attempt + 1) * delay}ms...`);
       await new Promise(resolve => setTimeout(resolve, delay * (attempt + 1)));
     }
   }
@@ -400,12 +400,17 @@ function applyWorldConfig(config) {
       runtimeFn: new Function('mesh', 'time', objConfig.runtimeJs || 'mesh.rotation.y += 0.005;')
     });
 
-    // --- 2. LOAD TEXTURES ASYNCHRONOUSLY WITH STAGGERED DELAYS IN THE BACKGROUND ---
-    if (objConfig.prompt) {
-      setTimeout(async () => {
-        const enhancedPrompt = encodeURIComponent(`${objConfig.prompt}, 4k resolution, highly detailed photorealistic space texture map, seamless equirectangular`);
-        const texUrl = `https://image.pollinations.ai/prompt/${enhancedPrompt}?width=1024&height=512&nologo=true&model=flux&seed=${Math.floor(Math.random()*99999)}`;
+   // --- 2. LOAD TEXTURES ASYNCHRONOUSLY WITH STAGGERED DELAYS IN THE BACKGROUND ---
+    let texUrl = null;
+    if (objConfig.customTextureUrl) {
+      texUrl = objConfig.customTextureUrl; // Real NASA SkyView image
+    } else if (objConfig.prompt) {
+      const enhancedPrompt = encodeURIComponent(`${objConfig.prompt}, 4k resolution, highly detailed photorealistic space texture map, seamless equirectangular`);
+      texUrl = `https://image.pollinations.ai/prompt/${enhancedPrompt}?width=1024&height=512&nologo=true&model=flux&seed=${Math.floor(Math.random()*99999)}`;
+    }
 
+    if (texUrl) {
+      setTimeout(async () => {
         textureLoader.setCrossOrigin('anonymous');
         
         try {
@@ -419,7 +424,7 @@ function applyWorldConfig(config) {
         } catch (err) {
           console.warn(`Texture load failed for ${objConfig.name} after retries, keeping fallback color.`);
         }
-      }, index * 1200); // Stagger API requests, not the visual spawn
+      }, index * 8500); // 8.5-second cooldown delay per object to bypass rate limits
     }
   });
 }
