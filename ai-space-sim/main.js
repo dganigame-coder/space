@@ -192,7 +192,7 @@ function speakText(text) {
   window.speechSynthesis.speak(utterance);
 }
 
-// --- PROCESS COMMAND & MODEL CASCADE ---
+// --- PROCESS COMMAND & MODEL CASCADE (WITH VERBOSE VOICE TELEMETRY) ---
 async function processCommand(commandText) {
   const transcriptEl = document.getElementById('transcript');
   const hudStatusEl = document.getElementById('hud-nav-status');
@@ -202,13 +202,19 @@ async function processCommand(commandText) {
   if (transcriptEl) transcriptEl.innerText = `"${commandText}"`;
   if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: AI_COMPUTING';
 
+  // Verbose speech announcing command receipt and Gemini uplink start
+  speakText(`Long range sensors locking onto target: ${commandText}. Querying Gemini neural network.`);
+
   let worldConfig = null;
   const flashModels = ['gemini-3.8-flash', 'gemini-3.5-flash-lite'];
 
-  // 1. Try Gemini models in sequence with error notification handling
+  // 1. Try Gemini models in sequence with verbose voice updates
   if (geminiKey) {
     for (const model of flashModels) {
       try {
+        if (hudStatusEl) hudStatusEl.innerText = `UPLINK: ${model.toUpperCase()}`;
+        speakText(`Establishing secure trajectory link with primary model ${model}.`);
+
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
         const res = await fetch(url, {
           method: 'POST',
@@ -221,9 +227,7 @@ async function processCommand(commandText) {
 
         if (res.status === 429) {
           console.warn(`Model ${model} hit 429 quota limit. Cascading...`);
-          if (model === flashModels[flashModels.length - 1]) {
-            speakText("Primary system quota exhausted. Rerouting to secondary fallback trajectory.");
-          }
+          speakText(`Primary model ${model} rate limited. Rerouting through fallback channels.`);
           continue; 
         }
 
@@ -235,6 +239,7 @@ async function processCommand(commandText) {
             rawJson = rawJson.substring(rawJson.indexOf('{'), rawJson.lastIndexOf('}') + 1);
           }
           worldConfig = JSON.parse(rawJson);
+          speakText("Neural layout compiled successfully. Initializing space synthesis.");
           break; 
         }
       } catch (err) {
@@ -245,6 +250,7 @@ async function processCommand(commandText) {
 
   // 2. Fallback to Pollinations Text Router
   if (!worldConfig) {
+    speakText("Gemini uplink unavailable. Rerouting computational request to Pollinations backup matrix.");
     try {
       const pRes = await fetch('https://text.pollinations.ai/', {
         method: 'POST',
@@ -261,23 +267,25 @@ async function processCommand(commandText) {
           cleanJson = cleanJson.substring(cleanJson.indexOf('{'), cleanJson.lastIndexOf('}') + 1);
         }
         worldConfig = JSON.parse(cleanJson);
+        speakText("Backup matrix configuration acquired.");
       }
     } catch (e) {
       console.warn("Pollinations text router fallback failed.");
     }
   }
 
-  // 3. Final Safety Net: Local Procedural Generator with Explicit Fallback Announcements
+  // 3. Final Safety Net: Local Procedural Generator
   if (!worldConfig) {
+    speakText("AI servers unresponsive. Engaging local backup trajectory matrix.");
     worldConfig = generateFallbackWorld(commandText);
     worldConfig.sectorTitle = "SYSTEM FALLBACK: LOCAL MATRIX";
     worldConfig.lore = "Warning: AI uplink failed or quota exceeded. System is processing via local procedural space generator.";
-    worldConfig.speechResponse = "Sorry, system couldn't reach main AI servers. Switching to local backup trajectory.";
+    worldConfig.speechResponse = "Switching to local backup trajectory.";
   }
 
   if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: SECURED_TARGET';
 
-  // Sync UI Telemetry & Voice
+  // Sync UI Telemetry
   if (titleEl && worldConfig.sectorTitle) titleEl.innerText = worldConfig.sectorTitle;
   if (loreEl && worldConfig.lore) loreEl.innerText = worldConfig.lore;
   if (worldConfig.audioParams) updateAudioSynth(worldConfig.audioParams);
@@ -293,7 +301,7 @@ async function processCommand(commandText) {
   await applyWorldConfig(worldConfig);
 }
 
-// --- DETAILED AI PROMPT INSTRUCTIONS (WITH INSTANT COLOR SCHEMA) ---
+// --- DETAILED AI PROMPT INSTRUCTIONS ---
 function buildPromptText(commandText) {
   return `
 You are controlling an advanced 3D Real-Space Simulator Engine.
