@@ -9,6 +9,10 @@ let activeAnimatedMeshes = [];
 let controls; // Optional OrbitControls
 let textureLoader = new THREE.TextureLoader();
 
+// Strict Texture Queue Globals (Prevents 402 Rate Limit Errors)
+let textureQueue = [];
+let isProcessingQueue = false;
+
 // Audio System Globals
 let audioCtx, osc1, osc2, filterNode, lfoNode, lfoGain;
 let audioInitialized = false;
@@ -333,6 +337,7 @@ Return ONLY valid raw JSON:
 `;
 }
 
+// --- STRICT SERIAL TEXTURE QUEUE & RETRY LOGIC ---
 async function loadTextureWithRetry(url, maxRetries = 2, delay = 8000) {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
@@ -345,6 +350,31 @@ async function loadTextureWithRetry(url, maxRetries = 2, delay = 8000) {
       await new Promise(resolve => setTimeout(resolve, delay * (attempt + 1)));
     }
   }
+}
+
+function enqueueTextureLoad(texUrl, onSuccess, onError) {
+  textureQueue.push({ texUrl, onSuccess, onError });
+  processTextureQueue();
+}
+
+async function processTextureQueue() {
+  if (isProcessingQueue || textureQueue.length === 0) return;
+  isProcessingQueue = true;
+
+  const item = textureQueue.shift();
+
+  try {
+    const tex = await loadTextureWithRetry(item.texUrl);
+    item.onSuccess(tex);
+  } catch (err) {
+    item.onError(err);
+  }
+
+  // Guaranteed 8.5-second cooldown buffer AFTER each texture finishes downloading
+  await new Promise(resolve => setTimeout(resolve, 8500));
+
+  isProcessingQueue = false;
+  processTextureQueue();
 }
 
 // --- APPLY WORLD CONFIGURATION TO THREE.JS ---
@@ -392,7 +422,7 @@ function applyWorldConfig(config) {
       mesh.position.set(...objConfig.position);
     }
 
-    // --- 1. ADD TO SCENE IMMEDIATELY SO THEY ALL SPAWN TOGETHER ---
+    // --- 1. ADD TO SCENE IMMEDIATELY SO ALL OBJECTS SPAWN TOGETHER ---
     systemGroup.add(mesh);
 
     activeAnimatedMeshes.push({
@@ -400,7 +430,7 @@ function applyWorldConfig(config) {
       runtimeFn: new Function('mesh', 'time', objConfig.runtimeJs || 'mesh.rotation.y += 0.005;')
     });
 
-   // --- 2. LOAD TEXTURES ASYNCHRONOUSLY WITH STAGGERED DELAYS IN THE BACKGROUND ---
+    // --- 2. QUEUE TEXTURES STRICTLY ONE-BY-ONE TO BYPASS 402 ERRORS ---
     let texUrl = null;
     if (objConfig.customTextureUrl) {
       texUrl = objConfig.customTextureUrl; // Real NASA SkyView image
@@ -410,21 +440,22 @@ function applyWorldConfig(config) {
     }
 
     if (texUrl) {
-      setTimeout(async () => {
-        textureLoader.setCrossOrigin('anonymous');
-        
-        try {
-          const tex = await loadTextureWithRetry(texUrl);
+      textureLoader.setCrossOrigin('anonymous');
+      
+      enqueueTextureLoad(
+        texUrl,
+        (tex) => {
           tex.colorSpace = THREE.SRGBColorSpace;
           tex.needsUpdate = true;
           mat.map = tex;
           mat.color.set(0xffffff);
           mat.needsUpdate = true;
           console.log(`Texture loaded successfully for: ${objConfig.name}`);
-        } catch (err) {
+        },
+        (err) => {
           console.warn(`Texture load failed for ${objConfig.name} after retries, keeping fallback color.`);
         }
-      }, index * 8500); // 8.5-second cooldown delay per object to bypass rate limits
+      );
     }
   });
 }
