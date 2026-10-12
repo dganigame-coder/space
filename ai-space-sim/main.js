@@ -280,7 +280,6 @@ async function processCommand(commandText) {
   // Sync UI Telemetry & Voice
   if (titleEl && worldConfig.sectorTitle) titleEl.innerText = worldConfig.sectorTitle;
   if (loreEl && worldConfig.lore) loreEl.innerText = worldConfig.lore;
-  if (worldConfig.speechResponse) speakText(worldConfig.speechResponse);
   if (worldConfig.audioParams) updateAudioSynth(worldConfig.audioParams);
 
   // Update Live Code Window
@@ -291,7 +290,7 @@ async function processCommand(commandText) {
       .join('\n\n');
   }
 
-  applyWorldConfig(worldConfig);
+  await applyWorldConfig(worldConfig);
 }
 
 // --- DETAILED AI PROMPT INSTRUCTIONS (WITH INSTANT COLOR SCHEMA) ---
@@ -352,33 +351,11 @@ async function loadTextureWithRetry(url, maxRetries = 2, delay = 8000) {
   }
 }
 
-function enqueueTextureLoad(texUrl, onSuccess, onError) {
-  textureQueue.push({ texUrl, onSuccess, onError });
-  processTextureQueue();
-}
+// --- APPLY WORLD CONFIGURATION TO THREE.JS (VERBOSE PRE-LOAD QUEUE) ---
+async function applyWorldConfig(config) {
+  const hudStatusEl = document.getElementById('hud-nav-status');
 
-async function processTextureQueue() {
-  if (isProcessingQueue || textureQueue.length === 0) return;
-  isProcessingQueue = true;
-
-  const item = textureQueue.shift();
-
-  try {
-    const tex = await loadTextureWithRetry(item.texUrl);
-    item.onSuccess(tex);
-  } catch (err) {
-    item.onError(err);
-  }
-
-  // Guaranteed 8.5-second cooldown buffer AFTER each texture finishes downloading
-  await new Promise(resolve => setTimeout(resolve, 8500));
-
-  isProcessingQueue = false;
-  processTextureQueue();
-}
-
-// --- APPLY WORLD CONFIGURATION TO THREE.JS ---
-function applyWorldConfig(config) {
+  // 1. Clear old scene items
   while (systemGroup.children.length > 0) {
     const obj = systemGroup.children[0];
     if (obj.geometry) obj.geometry.dispose();
@@ -405,32 +382,14 @@ function applyWorldConfig(config) {
 
   const spaceObjects = config.objects || [config];
 
-  spaceObjects.forEach((objConfig, index) => {
-    const geom = createDynamicGeometry(objConfig.geometryType, objConfig.geometryArgs);
+  // 2. Pre-load all textures sequentially with verbose speech and 8s cooldowns
+  for (let i = 0; i < spaceObjects.length; i++) {
+    const objConfig = spaceObjects[i];
+    
+    const verboseText = `Warp vector active. Synthesizing texture map ${i + 1} of ${spaceObjects.length} for sector body ${objConfig.name}. Please hold while travel buffer stabilizes.`;
+    if (hudStatusEl) hudStatusEl.innerText = `UPLINK: ${objConfig.name.toUpperCase()}`;
+    speakText(verboseText);
 
-    const mat = new THREE.MeshStandardMaterial({
-      color: new THREE.Color(objConfig.color || 0x38bdf8),
-      roughness: 0.35,
-      metalness: 0.15,
-      emissive: objConfig.emissive ? new THREE.Color(objConfig.emissiveColor || 0xffaa00) : 0x000000,
-      emissiveIntensity: objConfig.emissive ? 0.9 : 0
-    });
-
-    const mesh = new THREE.Mesh(geom, mat);
-
-    if (objConfig.position && Array.isArray(objConfig.position)) {
-      mesh.position.set(...objConfig.position);
-    }
-
-    // --- 1. ADD TO SCENE IMMEDIATELY SO ALL OBJECTS SPAWN TOGETHER ---
-    systemGroup.add(mesh);
-
-    activeAnimatedMeshes.push({
-      mesh: mesh,
-      runtimeFn: new Function('mesh', 'time', objConfig.runtimeJs || 'mesh.rotation.y += 0.005;')
-    });
-
-    // --- 2. QUEUE TEXTURES STRICTLY ONE-BY-ONE TO BYPASS 402 ERRORS ---
     let texUrl = null;
     if (objConfig.customTextureUrl) {
       texUrl = objConfig.customTextureUrl; // Real NASA SkyView image
@@ -441,22 +400,58 @@ function applyWorldConfig(config) {
 
     if (texUrl) {
       textureLoader.setCrossOrigin('anonymous');
-      
-      enqueueTextureLoad(
-        texUrl,
-        (tex) => {
-          tex.colorSpace = THREE.SRGBColorSpace;
-          tex.needsUpdate = true;
-          mat.map = tex;
-          mat.color.set(0xffffff);
-          mat.needsUpdate = true;
-          console.log(`Texture loaded successfully for: ${objConfig.name}`);
-        },
-        (err) => {
-          console.warn(`Texture load failed for ${objConfig.name} after retries, keeping fallback color.`);
-        }
-      );
+      try {
+        const tex = await loadTextureWithRetry(texUrl, 2, 8000);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.needsUpdate = true;
+        objConfig.preloadedTex = tex;
+        console.log(`Successfully pre-loaded texture for: ${objConfig.name}`);
+      } catch (err) {
+        console.warn(`Texture load failed for ${objConfig.name} after retries, keeping fallback color.`);
+        objConfig.preloadedTex = null;
+      }
+
+      // Wait 8.5 seconds between each request to completely bypass 402 rate limits (skip wait on final item)
+      if (i < spaceObjects.length - 1) {
+        if (hudStatusEl) hudStatusEl.innerText = `COOLDOWN: BUFFERING SECTOR...`;
+        await new Promise(resolve => setTimeout(resolve, 8500));
+      }
     }
+  }
+
+  if (hudStatusEl) {
+    hudStatusEl.innerText = 'PROTOCOL: SECURED_TARGET';
+  }
+  
+  if (config.speechResponse) {
+    speakText(config.speechResponse);
+  }
+
+  // 3. NOW spawn all objects together into the scene with completed textures!
+  spaceObjects.forEach((objConfig) => {
+    const geom = createDynamicGeometry(objConfig.geometryType, objConfig.geometryArgs);
+
+    const mat = new THREE.MeshStandardMaterial({
+      color: objConfig.preloadedTex ? 0xffffff : new THREE.Color(objConfig.color || 0x38bdf8),
+      roughness: 0.35,
+      metalness: 0.15,
+      emissive: objConfig.emissive ? new THREE.Color(objConfig.emissiveColor || 0xffaa00) : 0x000000,
+      emissiveIntensity: objConfig.emissive ? 0.9 : 0,
+      map: objConfig.preloadedTex || null
+    });
+
+    const mesh = new THREE.Mesh(geom, mat);
+
+    if (objConfig.position && Array.isArray(objConfig.position)) {
+      mesh.position.set(...objConfig.position);
+    }
+
+    systemGroup.add(mesh);
+
+    activeAnimatedMeshes.push({
+      mesh: mesh,
+      runtimeFn: new Function('mesh', 'time', objConfig.runtimeJs || 'mesh.rotation.y += 0.005;')
+    });
   });
 }
 
