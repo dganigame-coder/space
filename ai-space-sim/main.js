@@ -192,7 +192,7 @@ function speakText(text) {
   window.speechSynthesis.speak(utterance);
 }
 
-// --- PROCESS COMMAND & MODEL CASCADE (WITH VERBOSE VOICE TELEMETRY) ---
+// --- PROCESS COMMAND & MODEL CASCADE (WITH IMMERSIVE SPACE SPEECH) ---
 async function processCommand(commandText) {
   const transcriptEl = document.getElementById('transcript');
   const hudStatusEl = document.getElementById('hud-nav-status');
@@ -200,20 +200,19 @@ async function processCommand(commandText) {
   const loreEl = document.getElementById('sector-lore');
 
   if (transcriptEl) transcriptEl.innerText = `"${commandText}"`;
-  if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: AI_COMPUTING';
+  if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: ASTROMETRIC_SCAN';
 
-  // Verbose speech announcing command receipt and Gemini uplink start
-  speakText(`Long range sensors locking onto target: ${commandText}. Querying Gemini neural network.`);
+  speakText(`Engaging long-range astrometric sensors for target vector: ${commandText}. Calibrating navigation arrays.`);
 
   let worldConfig = null;
   const flashModels = ['gemini-3.8-flash', 'gemini-3.5-flash-lite'];
 
-  // 1. Try Gemini models in sequence with verbose voice updates
+  // 1. Try Gemini models in sequence with immersive voice feedback
   if (geminiKey) {
     for (const model of flashModels) {
       try {
-        if (hudStatusEl) hudStatusEl.innerText = `UPLINK: ${model.toUpperCase()}`;
-        speakText(`Establishing secure trajectory link with primary model ${model}.`);
+        if (hudStatusEl) hudStatusEl.innerText = `UPLINK: SECCTOR_MAP`;
+        speakText("Analyzing gravitational harmonics and stellar coordinates for sector alignment.");
 
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
         const res = await fetch(url, {
@@ -227,7 +226,7 @@ async function processCommand(commandText) {
 
         if (res.status === 429) {
           console.warn(`Model ${model} hit 429 quota limit. Cascading...`);
-          speakText(`Primary model ${model} rate limited. Rerouting through fallback channels.`);
+          speakText("Primary navigation relay congested. Rerouting through secondary subspace communication array.");
           continue; 
         }
 
@@ -239,7 +238,7 @@ async function processCommand(commandText) {
             rawJson = rawJson.substring(rawJson.indexOf('{'), rawJson.lastIndexOf('}') + 1);
           }
           worldConfig = JSON.parse(rawJson);
-          speakText("Neural layout compiled successfully. Initializing space synthesis.");
+          speakText("Sector topography mapped successfully. Initializing holographic materialization sequence.");
           break; 
         }
       } catch (err) {
@@ -250,7 +249,7 @@ async function processCommand(commandText) {
 
   // 2. Fallback to Pollinations Text Router
   if (!worldConfig) {
-    speakText("Gemini uplink unavailable. Rerouting computational request to Pollinations backup matrix.");
+    speakText("Primary astrometric database unreachable. Engaging long-range archival database retrieval.");
     try {
       const pRes = await fetch('https://text.pollinations.ai/', {
         method: 'POST',
@@ -267,7 +266,7 @@ async function processCommand(commandText) {
           cleanJson = cleanJson.substring(cleanJson.indexOf('{'), cleanJson.lastIndexOf('}') + 1);
         }
         worldConfig = JSON.parse(cleanJson);
-        speakText("Backup matrix configuration acquired.");
+        speakText("Archival sector configuration successfully acquired.");
       }
     } catch (e) {
       console.warn("Pollinations text router fallback failed.");
@@ -276,11 +275,11 @@ async function processCommand(commandText) {
 
   // 3. Final Safety Net: Local Procedural Generator
   if (!worldConfig) {
-    speakText("AI servers unresponsive. Engaging local backup trajectory matrix.");
+    speakText("External telemetry offline. Engaging internal stellar synthesis matrix.");
     worldConfig = generateFallbackWorld(commandText);
     worldConfig.sectorTitle = "SYSTEM FALLBACK: LOCAL MATRIX";
-    worldConfig.lore = "Warning: AI uplink failed or quota exceeded. System is processing via local procedural space generator.";
-    worldConfig.speechResponse = "Switching to local backup trajectory.";
+    worldConfig.lore = "Warning: External telemetry link lost. System is operating on local emergency navigational backup.";
+    worldConfig.speechResponse = "Engaging emergency local warp trajectory.";
   }
 
   if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: SECURED_TARGET';
@@ -359,7 +358,7 @@ async function loadTextureWithRetry(url, maxRetries = 2, delay = 8000) {
   }
 }
 
-// --- APPLY WORLD CONFIGURATION TO THREE.JS (VERBOSE PRE-LOAD QUEUE) ---
+// --- APPLY WORLD CONFIGURATION TO THREE.JS (VERBOSE SPACEFLIGHT PRE-LOAD) ---
 async function applyWorldConfig(config) {
   const hudStatusEl = document.getElementById('hud-nav-status');
 
@@ -390,13 +389,13 @@ async function applyWorldConfig(config) {
 
   const spaceObjects = config.objects || [config];
 
-  // 2. Pre-load all textures sequentially with verbose speech and 8s cooldowns
+  // 2. Pre-load all textures sequentially with immersive spaceflight voice telemetry and 8s cooldowns
   for (let i = 0; i < spaceObjects.length; i++) {
     const objConfig = spaceObjects[i];
     
-    const verboseText = `Warp vector active. Synthesizing texture map ${i + 1} of ${spaceObjects.length} for sector body ${objConfig.name}. Please hold while travel buffer stabilizes.`;
-    if (hudStatusEl) hudStatusEl.innerText = `UPLINK: ${objConfig.name.toUpperCase()}`;
-    speakText(verboseText);
+    const spaceSpeech = `Approaching orbital perimeter of ${objConfig.name}. Calibrating surface albedo and atmospheric data maps. Please maintain subspace stabilization.`;
+    if (hudStatusEl) hudStatusEl.innerText = `MAPPING: ${objConfig.name.toUpperCase()}`;
+    speakText(spaceSpeech);
 
     let texUrl = null;
     if (objConfig.customTextureUrl) {
@@ -419,9 +418,9 @@ async function applyWorldConfig(config) {
         objConfig.preloadedTex = null;
       }
 
-      // Wait 8.5 seconds between each request to completely bypass 402 rate limits (skip wait on final item)
+      // Wait 8.5 seconds between each request to completely bypass rate limits (skip wait on final item)
       if (i < spaceObjects.length - 1) {
-        if (hudStatusEl) hudStatusEl.innerText = `COOLDOWN: BUFFERING SECTOR...`;
+        if (hudStatusEl) hudStatusEl.innerText = `COOLDOWN: STABILIZING ORBIT...`;
         await new Promise(resolve => setTimeout(resolve, 8500));
       }
     }
