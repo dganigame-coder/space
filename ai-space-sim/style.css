@@ -216,11 +216,11 @@ body {
 /* --- MOBILE RESPONSIVE ADAPTIVE MEDIA QUERY --- */
 @media (max-width: 768px) {
  /* Mobile Viewports Layout */
-  #mobile-toggle-btn {
+#mobile-toggle-btn {
     display: block;
-    position: relative; /* Keeps it strictly in the document flow—no overlapping */
+    position: relative;
     width: 100px;
-    margin: 12px 0;
+    margin: 12px 0 12px auto; /* Aligns button to the right */
     background: #1e293b;
     color: #38bdf8;
     border: 1px solid #334155;
@@ -231,7 +231,8 @@ body {
     box-sizing: border-box;
     cursor: pointer;
     z-index: 10;
-  }
+}
+  
   #app-container { grid-template-columns: 1fr; }
   #sidebar {
     position: fixed;
