@@ -1,269 +1,91 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Planetary Space Engine Deck</title>
-    <!-- ✅ EXCHANGED: Swapped out Cloudflare CDN for unpkg repository package stream link -->
-    <script src="https://unpkg.com"></script>
-    <style>
-        body {
-            margin: 0;
-            overflow: hidden;
-            background-color: #030305;
-            font-family: 'Courier New', Courier, monospace;
-            color: #00ffcc;
-            user-select: none;
-        }
-        #canvas-container {
-            width: 100vw;
-            height: 100vh;
-            position: absolute;
-            top: 0;
-            left: 0;
-            z-index: 1;
-        }
-        .hud-panel {
-            position: absolute;
-            z-index: 10;
-            background: rgba(8, 14, 24, 0.85);
-            border: 1px solid #00ffcc;
-            box-shadow: 0 0 15px rgba(0, 255, 204, 0.15);
-            padding: 20px;
-            border-radius: 6px;
-            backdrop-filter: blur(8px);
-        }
-        #left-hud {
-            top: 20px;
-            left: 20px;
-            width: 380px;
-        }
-        #control-deck {
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 90%;
-            max-width: 750px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        h2, h3 {
-            margin: 0 0 10px 0;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            font-size: 15px;
-            border-bottom: 1px dashed rgba(0, 255, 204, 0.4);
-            padding-bottom: 5px;
-        }
-        .status-node {
-            font-size: 12px;
-            margin-bottom: 6px;
-        }
-        .highlight {
-            color: #fff;
-            text-shadow: 0 0 5px #00ffcc;
-        }
-        .input-group {
-            display: flex;
-            gap: 10px;
-            width: 100%;
-        }
-        input[type="text"] {
-            flex-grow: 1;
-            background: rgba(0, 15, 15, 0.6);
-            border: 1px solid #00ffcc;
-            color: #fff;
-            padding: 10px;
-            border-radius: 4px;
-            font-family: inherit;
-            outline: none;
-        }
-        button {
-            background: transparent;
-            border: 1px solid #ffcc00;
-            color: #ffcc00;
-            padding: 10px 20px;
-            border-radius: 4px;
-            font-family: inherit;
-            font-weight: bold;
-            cursor: pointer;
-            text-transform: uppercase;
-            transition: all 0.3s ease;
-        }
-        button:hover:not(:disabled) {
-            background: #ffcc00;
-            color: #080e18;
-            box-shadow: 0 0 10px rgba(255, 204, 0, 0.5);
-        }
-        button:disabled {
-            border-color: #555;
-            color: #555;
-            cursor: not-allowed;
-        }
-        .console-stream {
-            background: #000;
-            border-left: 2px solid #88ccff;
-            padding: 8px;
-            font-size: 11px;
-            color: #88ccff;
-            height: 120px;
-            overflow-y: auto;
-            margin-top: 10px;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>A.I. World Engine - Space Simulator 13.888</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/dganigame-coder/space@cdb9d1e/ai-space-sim/style.css">
+  
+  <!-- Import map for Three.js -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+      }
+    }
+  </script>
 </head>
 <body>
+  <!-- Mobile Sidebar Toggle Button -->
+  <button id="mobile-toggle-btn" aria-label="Toggle Controls">⚙️ Controls</button>
 
-    <div id="canvas-container"></div>
+  <div id="app-container">
+    <aside id="sidebar">
+      <div class="brand">
+        <span class="icon">🚀</span> AI WORLD ENGINE v13.888
+      </div>
 
-    <!-- Left Status HUD -->
-    <div id="left-hud" class="hud-panel">
-        <h2>Telemetry Deck</h2>
-        <div class="status-node">NAV INDEX: <span id="hud-nav-status" class="highlight">ORBITAL IDLE</span></div>
-        <div class="status-node">SYSTEM CORE: <span id="sys-status" class="highlight">READY</span></div>
-        <div id="consoleOut" class="console-stream">Awaiting command text vector...</div>
-    </div>
+      <!-- API Key Setup -->
+      <div class="card" id="api-card">
+        <h3>1. System Configuration</h3>
+        <input type="password" id="hf-token-input" placeholder="Enter Gemini API Key (AIzaSy...)">
+        <button id="save-token-btn" class="secondary-btn">Save Key</button>
+        <p id="token-status" style="font-size: 0.75rem; color: #fbbf24; margin-top: 5px;">Running via Pollinations fallback (Add Gemini key for priority access).</p>
+      </div>
 
-    <!-- Bottom Control Panel Configuration -->
-    <div id="control-deck" class="hud-panel">
-        <h3>Launch Generation Sequence</h3>
-        <div class="input-group">
-            <input type="text" id="commandText" value="Orion Nebula Core" placeholder="Enter sector destination details...">
-            <button id="execBtn" onclick="triggerPipeline()">Execute Map Run</button>
+      <div class="control-panel">
+        <button id="mic-btn" class="primary-btn">
+          <span id="mic-icon">🎙️</span> Voice Commander
+        </button>
+
+        <div class="input-fallback">
+          <input type="text" id="manual-input" placeholder="Type navigation command...">
+          <button id="send-btn">Send</button>
         </div>
-    </div>
 
-    <script>
-        // --- 1. INITIALIZE THREE.JS CONTAINER WORLD ---
-        const container = document.getElementById('canvas-container');
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x020205);
+        <!-- Fullscreen App Toggle -->
+        <button id="fullscreen-btn" class="secondary-btn">🛜 Toggle Fullscreen</button>
+      </div>
 
-        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 5, 25);
+      <div class="card">
+        <h3>Voice Input Log</h3>
+        <p id="transcript">Awaiting command...</p>
+      </div>
 
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
-        container.appendChild(renderer.domElement);
+      <div class="card">
+        <h3>Sector Telemetry</h3>
+        <h2 id="sector-title">Sol-Prime System</h2>
+        <p id="sector-lore">Core origin sector. Awaiting hyperdrive coordinates...</p>
+      </div>
 
-        // Core Ambient and Target Light Systems
-        const ambientLight = new THREE.AmbientLight(0x444444);
-        scene.add(ambientLight);
+      <div class="card">
+        <h3>WebAudio Ambient Synth</h3>
+        <div class="audio-status">
+          <span class="status-dot"></span> <span id="audio-status-text">Audio Engine Active</span>
+        </div>
+      </div>
 
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
-        directionalLight.position.set(5, 5, 5).normalize();
-        scene.add(directionalLight);
+      <div class="card code-card">
+        <h3>Live AI Compiled JavaScript</h3>
+        <pre id="code-preview">// Runtime code evaluation window</pre>
+      </div>
+    </aside>
 
-        // System Group Tracking Nodes
-        const systemGroup = new THREE.Group();
-        scene.add(systemGroup);
-        let activeAnimatedMeshes = [];
+    <main id="viewport">
+      <!-- Cinematic Boot Screen Overlay -->
+      <div id="boot-overlay" style="position: absolute; inset: 0; background: #030712; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 50; transition: opacity 0.5s ease;">
+        <h1 style="color: #38bdf8; font-family: monospace; letter-spacing: 3px; font-size: 1.2rem;">AI WORLD ENGINE v13.888</h1>
+        <p style="color: #94a3b8; font-family: monospace; font-size: 0.8rem; margin-top: 8px;">INITIALIZING REAL-SPACE MATRIX...</p>
+      </div>
 
-        const textureLoader = new THREE.TextureLoader();
+      <div id="hud-overlay">
+        <div id="hud-nav-status">PROTOCOL: AWAITING_COMMAND</div>
+        <div id="hud-coords">X: 000 | Y: 000 | Z: 000</div>
+        <div id="line">-----------------------------------</div>
+      </div>
+    </main>
+  </div>
 
-        // Responsive Scaling Event Window Listener
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
-
-        // --- 2. AUXILIARY HUD & SPEAK IMPLEMENTATION ---
-        const consoleOut = document.getElementById('consoleOut');
-        const sysStatus = document.getElementById('sys-status');
-        const hudStatusEl = document.getElementById('hud-nav-status');
-
-        function printLog(msg) {
-            const time = new Date().toLocaleTimeString();
-            consoleOut.innerHTML += `<div>[${time}] ${msg}</div>`;
-            consoleOut.scrollTop = consoleOut.scrollHeight;
-            console.log(msg);
-        }
-
-        function speakText(text) {
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel(); 
-                const utterance = new SpeechSynthesisUtterance(text);
-                window.speechSynthesis.speak(utterance);
-            }
-            printLog(`🔊 Narrator: "${text}"`);
-        }
-
-        function buildPromptText(command) {
-            return `Generate a JSON configuration file for space targets in ${command}. Output strictly valid JSON without formatting codeblocks. Schema: {"sectorTitle": "${command}", "cameraPosition":, "cameraTarget":, "objects": [{"name": "ExoPlanet-A", "prompt": "cracked molten lava planetary texture map"}, {"name": "ExoPlanet-B", "prompt": "icy crystalline glacier surface panorama"}]}`;
-        }
-
-        function generateFallbackWorld(commandText) {
-            return {
-                sectorTitle: "SYSTEM FALLBACK: LOCAL MATRIX",
-                cameraPosition:,
-                cameraTarget:,
-                objects: [
-                    { name: "Fallback Delta", prompt: "rocky gas giant atmospheric storms texture map" },
-                    { name: "Fallback Epsilon", prompt: "arid desert crater dunes surface topography" }
-                ]
-            };
-        }
-
-        // --- 3. THE EXTRACTION SAFE RETRY MATRIX INTERCEPTOR ---
-        async function loadTextureWithRetry(url, maxRetries = 2, delay = 8000, isPollinations = false) {
-          for (let attempt = 0; attempt <= maxRetries; attempt++) {
-            let blobUrl = null;
-            try {
-              let finalUrl = url;
-
-              if (isPollinations) {
-                const response = await fetch(url);
-                if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
-                
-                const blob = await response.blob();
-                
-                // Rate-limit buffer tracking safeguard
-                if (blob.size > 1100000) {
-                  throw new Error("Pollinations rate-limit block image detected.");
-                }
-                
-                blobUrl = URL.createObjectURL(blob);
-                finalUrl = blobUrl;
-              }
-
-              const texture = await textureLoader.loadAsync(finalUrl);
-              if (blobUrl) URL.revokeObjectURL(blobUrl);
-              return texture;
-
-            } catch (err) {
-              if (blobUrl) URL.revokeObjectURL(blobUrl);
-              if (attempt === maxRetries) throw err;
-              
-              const penaltyDelay = attempt === 0 ? 15000 : delay * (attempt + 1);
-              console.warn(`Texture generation/load failed: "${err.message}". Retrying attempt ${attempt + 1} in ${penaltyDelay}ms...`);
-              printLog(`⚠️ Target block: Retry processing in ${penaltyDelay / 1000}s...`);
-              await new Promise(resolve => setTimeout(resolve, penaltyDelay));
-            }
-          }
-        }
-
-        // --- 4. THE APPLY WORLD CONFIGURATION PIPELINE MAPPED TO YOUR INPUTS ---
-        async function applyWorldConfig(config) {
-          // Dispose of older array groups to free GPU memory footprint
-          while (systemGroup.children.length > 0) {
-            const obj = systemGroup.children;
-            if (obj.geometry) obj.geometry.dispose();
-            if (obj.material) {
-              if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
-              else obj.material.dispose();
-            }
-            systemGroup.remove(obj);
-          }
-
-          activeAnimatedMeshes = [];
-
-          if (config.cameraPosition && config.cameraTarget) {
-            const [cx, cy, cz] = config.cameraPosition;
-            const [tx, ty, tz] = config.cameraTarget;
-            camera.position.set(cx, cy, cz);
-            camera.lookAt(tx, ty, tz);
-          }
-
+  <script type="module" src="https://cdn.jsdelivr.net/gh/dganigame-coder/space@2534597/ai-space-sim/main.js"></script>
+</body>
+</html>
