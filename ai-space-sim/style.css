@@ -219,7 +219,7 @@ body {
   #mobile-toggle-btn {
     display: block;
     position: relative; /* Keeps it strictly in the document flow—no overlapping */
-    width: 100%;
+    width: 100px;
     margin: 12px 0;
     background: #1e293b;
     color: #38bdf8;
