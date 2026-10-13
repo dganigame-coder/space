@@ -388,7 +388,38 @@ async function loadTextureWithRetry(url, maxRetries = 2, delay = 8000, isPollina
   }
 }
 
-// --- APPLY WORLD CONFIGURATION TO THREE.JS (VERBOSE SPACEFLIGHT PRE-LOAD) ---
+// --- TEXTURE ATLAS SLICING UTILITY ---
+function sliceTextureAtlas(imageElement, rows, cols) {
+  const textures = [];
+  const imgWidth = imageElement.naturalWidth || imageElement.width;
+  const imgHeight = imageElement.naturalHeight || imageElement.height;
+  
+  const sliceWidth = imgWidth / cols;
+  const sliceHeight = imgHeight / rows;
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const canvas = document.createElement('canvas');
+      canvas.width = sliceWidth;
+      canvas.height = sliceHeight;
+      const ctx = canvas.getContext('2d');
+
+      ctx.drawImage(
+        imageElement,
+        c * sliceWidth, r * sliceHeight, sliceWidth, sliceHeight,
+        0, 0, sliceWidth, sliceHeight
+      );
+
+      const subTexture = new THREE.CanvasTexture(canvas);
+      subTexture.colorSpace = THREE.SRGBColorSpace;
+      subTexture.needsUpdate = true;
+      textures.push(subTexture);
+    }
+  }
+  return textures;
+}
+
+// --- APPLY WORLD CONFIGURATION TO THREE.JS (ATLAS SINGLE-REQUEST PIPELINE) ---
 async function applyWorldConfig(config) {
   const hudStatusEl = document.getElementById('hud-nav-status');
 
@@ -419,41 +450,51 @@ async function applyWorldConfig(config) {
 
   const spaceObjects = config.objects || [config];
 
-  // 2. Pre-load all textures sequentially with blob guard and adaptive backoff pacing
-  for (let i = 0; i < spaceObjects.length; i++) {
-    const objConfig = spaceObjects[i];
-    
-    const spaceSpeech = `Approaching orbital perimeter of ${objConfig.name}. Calibrating surface albedo and atmospheric data maps. Please maintain subspace stabilization.`;
+  // 2. Separate custom NASA textures vs Pollinations procedural textures
+  const pollinationsObjs = spaceObjects.filter(obj => obj.prompt && !obj.customTextureUrl);
+  const customObjs = spaceObjects.filter(obj => obj.customTextureUrl);
+
+  // Load custom NASA textures individually
+  for (const objConfig of customObjs) {
     if (hudStatusEl) hudStatusEl.innerText = `MAPPING: ${objConfig.name.toUpperCase()}`;
-    speakText(spaceSpeech);
-
-    let texUrl = null;
-    if (objConfig.customTextureUrl) {
-      texUrl = objConfig.customTextureUrl; // Real NASA SkyView image
-    } else if (objConfig.prompt) {
-      const enhancedPrompt = encodeURIComponent(`${objConfig.prompt}, 4k resolution, highly detailed photorealistic space texture map, seamless equirectangular`);
-      texUrl = `https://image.pollinations.ai/prompt/${enhancedPrompt}?width=1024&height=512&nologo=true&model=flux&seed=${Math.floor(Math.random()*99999)}`;
+    speakText(`Acquiring archival visual telemetry for ${objConfig.name}.`);
+    textureLoader.setCrossOrigin('anonymous');
+    try {
+      const tex = await loadTextureWithRetry(objConfig.customTextureUrl, 2, 8000, false);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.needsUpdate = true;
+      objConfig.preloadedTex = tex;
+    } catch (e) {
+      objConfig.preloadedTex = null;
     }
+  }
 
-    if (texUrl) {
-      textureLoader.setCrossOrigin('anonymous');
-      try {
-        const isPollinations = !!objConfig.prompt;
-        const tex = await loadTextureWithRetry(texUrl, 2, 8000, isPollinations);
-        tex.colorSpace = THREE.SRGBColorSpace;
-        tex.needsUpdate = true;
-        objConfig.preloadedTex = tex;
-        console.log(`Successfully pre-loaded texture for: ${objConfig.name}`);
-      } catch (err) {
-        console.warn(`Texture load failed for ${objConfig.name} after retries, keeping fallback color.`, err);
+  // Request ALL Pollinations textures in ONE SINGLE ATLAS SHEET request to avoid 402 errors!
+  if (pollinationsObjs.length > 0) {
+    if (hudStatusEl) hudStatusEl.innerText = `UPLINK: SYNTHESIZING ATLAS SHEET`;
+    speakText(`Initiating single-pass subspace synthesis for sector texture atlas matrix.`);
+
+    const descriptions = pollinationsObjs.map(o => o.prompt).join(' | ');
+    const cols = pollinationsObjs.length > 1 ? 2 : 1;
+    const rows = Math.ceil(pollinationsObjs.length / cols);
+    
+    const atlasPrompt = encodeURIComponent(`a ${rows}x${cols} grid sheet containing equirectangular seamless space texture maps of: ${descriptions}, 4k resolution, highly detailed photorealistic`);
+    const atlasUrl = `https://image.pollinations.ai/prompt/${atlasPrompt}?width=${cols * 1024}&height=${rows * 512}&nologo=true&model=flux&seed=${Math.floor(Math.random()*99999)}`;
+
+    textureLoader.setCrossOrigin('anonymous');
+    try {
+      const masterTex = await loadTextureWithRetry(atlasUrl, 2, 8000, true);
+      const subTextures = sliceTextureAtlas(masterTex.image, rows, cols);
+
+      pollinationsObjs.forEach((objConfig, index) => {
+        objConfig.preloadedTex = subTextures[index] || null;
+      });
+      console.log("Texture atlas successfully fetched and sliced for sector objects.");
+    } catch (err) {
+      console.warn("Texture atlas synthesis failed after retries, keeping fallback colors.", err);
+      pollinationsObjs.forEach(objConfig => {
         objConfig.preloadedTex = null;
-      }
-
-      // Hard cooldown pause between Pollinations objects to clear rolling windows
-      if (objConfig.prompt && i < spaceObjects.length - 1) {
-        if (hudStatusEl) hudStatusEl.innerText = `COOLDOWN: STABILIZING ORBIT...`;
-        await new Promise(resolve => setTimeout(resolve, 7500));
-      }
+      });
     }
   }
 
@@ -465,7 +506,7 @@ async function applyWorldConfig(config) {
     speakText(config.speechResponse);
   }
 
-  // 3. NOW spawn all objects together into the scene with verified textures!
+  // 3. NOW spawn all objects together into the scene with fully compiled/sliced textures!
   spaceObjects.forEach((objConfig) => {
     const geom = createDynamicGeometry(objConfig.geometryType, objConfig.geometryArgs);
 
