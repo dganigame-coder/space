@@ -22,21 +22,9 @@ body {
   overflow: hidden;
 }
 
-/* Mobile Toggle Button */
+/* Hide on desktop viewports */
 #mobile-toggle-btn {
   display: none;
-  position: fixed;
-  top: 15px;
-  right: 15px;
-  z-index: 1000;
-  background: rgba(15, 23, 42, 0.9);
-  border: 1px solid rgba(56, 189, 248, 0.4);
-  color: #38bdf8;
-  padding: 10px 14px;
-  border-radius: 8px;
-  font-weight: bold;
-  cursor: pointer;
-  backdrop-filter: blur(8px);
 }
 
 #sidebar {
@@ -227,7 +215,23 @@ body {
 
 /* --- MOBILE RESPONSIVE ADAPTIVE MEDIA QUERY --- */
 @media (max-width: 768px) {
-  #mobile-toggle-btn { display: block; }
+ /* Mobile Viewports Layout */
+  #mobile-toggle-btn {
+    display: block;
+    position: relative; /* Keeps it strictly in the document flow—no overlapping */
+    width: 100%;
+    margin: 12px 0;
+    background: #1e293b;
+    color: #38bdf8;
+    border: 1px solid #334155;
+    padding: 12px;
+    border-radius: 8px;
+    font-weight: bold;
+    text-align: center;
+    box-sizing: border-box;
+    cursor: pointer;
+    z-index: 10;
+  }
   #app-container { grid-template-columns: 1fr; }
   #sidebar {
     position: fixed;
