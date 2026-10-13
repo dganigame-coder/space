@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Deep Space AI & NASA APIs</title>
+    <title>Deep Space AI & NASA Live Pipeline</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -17,11 +17,7 @@
             --glow-color: rgba(56, 189, 248, 0.15);
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
             font-family: 'Inter', sans-serif;
@@ -31,208 +27,219 @@
             padding: 2rem 1rem;
         }
 
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-        }
+        .container { max-width: 900px; margin: 0 auto; }
 
-        header {
-            text-align: center;
-            margin-bottom: 3rem;
-        }
-
+        header { text-align: center; margin-bottom: 2rem; }
         header h1 {
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 1rem;
+            font-size: 2.2rem;
+            margin-bottom: 0.5rem;
             background: linear-gradient(135deg, var(--accent-cyan), var(--accent-indigo));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
+        header p { color: var(--text-secondary); font-size: 1rem; }
 
-        header p {
-            font-size: 1.125rem;
-            color: var(--text-secondary);
-            max-width: 750px;
-            margin: 0 auto;
-        }
-
-        section {
-            margin-bottom: 3rem;
-        }
-
-        h2 {
-            font-size: 1.75rem;
-            margin-bottom: 1.5rem;
+        .control-panel {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
             display: flex;
-            align-items: center;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
             gap: 0.5rem;
         }
 
-        .grid {
+        label { font-size: 0.875rem; color: var(--text-secondary); font-weight: 500; }
+
+        input[type="password"] {
+            background-color: #0b0f19;
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            color: var(--text-primary);
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input[type="password"]:focus { border-color: var(--accent-cyan); }
+
+        button {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-indigo));
+            color: #030712;
+            border: none;
+            border-radius: 8px;
+            padding: 0.8rem 1.5rem;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.1s;
+        }
+
+        button:hover { opacity: 0.9; transform: translateY(-1px); }
+        button:active { transform: translateY(0); }
+
+        .results-grid {
             display: grid;
             grid-template-columns: 1fr;
             gap: 1.5rem;
         }
 
-        @media (min-width: 768px) {
-            .grid {
-                grid-template-columns: repeat(3, 1fr);
-            }
+        @media(min-width: 768px) {
+            .results-grid { grid-template-columns: 1fr 1fr; }
         }
 
-        .card {
+        .panel-card {
             background-color: var(--card-bg);
             border: 1px solid var(--card-border);
             border-radius: 12px;
             padding: 1.5rem;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
+            gap: 1rem;
         }
 
-        .card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 10px 25px -5px var(--glow-color);
-            border-color: var(--accent-cyan);
+        .panel-card h3 { color: var(--accent-cyan); font-size: 1.2rem; }
+
+        .nasa-img {
+            width: 100%;
+            height: 220px;
+            object-fit: cover;
+            border-radius: 8px;
+            background-color: #0b0f19;
         }
 
-        .card h3 {
-            font-size: 1.2rem;
-            margin-bottom: 1rem;
+        .loader {
+            display: none;
+            text-align: center;
             color: var(--accent-cyan);
+            font-style: italic;
+            padding: 1rem;
         }
 
-        .card ul {
-            list-style: none;
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
+        .ai-output {
+            white-space: pre-wrap;
             font-size: 0.925rem;
             color: var(--text-secondary);
-        }
-
-        .card strong {
-            color: var(--text-primary);
-        }
-
-        .info-box {
-            background-color: var(--card-bg);
+            background-color: #0b0f19;
+            padding: 1rem;
+            border-radius: 8px;
             border: 1px solid var(--card-border);
-            border-radius: 12px;
-            padding: 2rem;
-            margin-bottom: 2rem;
-        }
-
-        .info-box p {
-            color: var(--text-secondary);
-            margin-bottom: 1rem;
-        }
-
-        .tips-list {
-            list-style-type: disc;
-            padding-left: 1.5rem;
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
-            color: var(--text-secondary);
-        }
-
-        .tips-list li strong {
-            color: var(--text-primary);
-        }
-
-        footer {
-            text-align: center;
-            margin-top: 4rem;
-            padding-top: 2rem;
-            border-top: 1px solid var(--card-border);
-            color: var(--text-secondary);
-        }
-
-        footer p {
-            font-size: 1.1rem;
-            font-weight: 500;
-            color: var(--text-primary);
+            max-height: 350px;
+            overflow-y: auto;
         }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <!-- Header -->
         <header>
-            <h1>AI & NASA Deep Space Engagement</h1>
-            <p>Automating deep-space image processing and anomaly detection by feeding raw telemetry, pixel data, and orbital parameters into machine learning pipelines.</p>
+            <h1>Deep Space Live AI Pipeline</h1>
+            <p>Pulling raw telemetry data from NASA APIs and running real-time Gemini AI anomaly detection.</p>
         </header>
 
-        <!-- Use Cases Section -->
-        <section>
-            <h2>🚀 Top 3 High-Engagement AI + NASA Use Cases</h2>
-            <div class="grid">
-                <!-- Use Case 1 -->
-                <article class="card">
-                    <div>
-                        <h3>1. JWST & Hubble Automated Image Enhancement</h3>
-                        <ul>
-                            <li><strong>The API:</strong> NASA Image and Video Library API or STScI MAST API for raw FITS/TIFF files.</li>
-                            <li><strong>The AI Engine:</strong> CNNs or GANs for super-resolution, cosmic ray removal, and star/galaxy segmentation.</li>
-                            <li><strong>Discovery Potential:</strong> Finding ultra-faint, highly redshifted background galaxies in deep-field noise.</li>
-                        </ul>
-                    </div>
-                </article>
-
-                <!-- Use Case 2 -->
-                <article class="card">
-                    <div>
-                        <h3>2. Exoplanet Light Curve Analysis</h3>
-                        <ul>
-                            <li><strong>The API:</strong> NASA Exoplanet Archive API for transit light curve data from Kepler & TESS.</li>
-                            <li><strong>The AI Engine:</strong> RNNs or Transformer-based time-series models to scan brightness drops.</li>
-                            <li><strong>Discovery Potential:</strong> Discovering shallow transits (tiny brightness dips) missed by traditional filters.</li>
-                        </ul>
-                    </div>
-                </article>
-
-                <!-- Use Case 3 -->
-                <article class="card">
-                    <div>
-                        <h3>3. Asteroid Tracking & Orbital Evolution</h3>
-                        <ul>
-                            <li><strong>The API:</strong> JPL SBDB Query API or NeoWs for asteroid orbital elements.</li>
-                            <li><strong>The AI Engine:</strong> Gradient Boosting (XGBoost/LightGBM) or Physics-Informed Neural Networks (PINNs).</li>
-                            <li><strong>Discovery Potential:</strong> Predicting chaotic orbital shifts, mapping asteroid families, and identifying mining candidates.</li>
-                        </ul>
-                    </div>
-                </article>
+        <!-- Configuration Panel -->
+        <div class="control-panel">
+            <div class="input-group">
+                <label for="apiKey">Gemini API Key (stored locally in your session only)</label>
+                <input type="password" id="apiKey" placeholder="AIzaSy...">
             </div>
-        </section>
+            <button onclick="runPipeline()">🚀 Run Deep Space AI Pipeline</button>
+        </div>
 
-        <!-- Architecture Section -->
-        <section>
-            <h2>🛠️ Architecture: How They Connect</h2>
-            <div class="info-box">
-                <p>The most scalable way to process these discoveries is to build an automated pipeline using Python. Data flows seamlessly from NASA's primary endpoints directly into custom-trained AI models to output automated celestial discoveries.</p>
+        <div id="loader" class="loader">🌌 Fetching data from NASA & running Gemini neural pipeline... Please wait...</div>
+
+        <!-- Live Results Section -->
+        <div class="results-grid" id="resultsSection" style="display: none;">
+            <!-- NASA Input Data -->
+            <div class="panel-card">
+                <h3>1. Live NASA APOD Feed</h3>
+                <div id="nasaContent">
+                    <!-- Dynamically populated -->
+                </div>
             </div>
-        </section>
 
-        <!-- Tips Section -->
-        <section>
-            <h2>💡 Tips for Maximum Engagement</h2>
-            <div class="info-box">
-                <ul class="tips-list">
-                    <li><strong>Don't start from scratch:</strong> Leverage NASA's pre-cleaned machine learning datasets, such as the Kepler Exoplanet Search Results, ideal for fast model training.</li>
-                    <li><strong>Build a Web App:</strong> Use Python frameworks like Streamlit or Gradio to let users input a NASA object ID and watch your AI model process images or plot discoveries in real-time.</li>
-                </ul>
+            <!-- Gemini Analysis Output -->
+            <div class="panel-card">
+                <h3>2. Gemini Anomaly & Enhancement AI</h3>
+                <div class="ai-output" id="aiOutput">Waiting for pipeline execution...</div>
             </div>
-        </section>
-
-        <!-- Footer / CTA -->
-        <footer>
-            <p>Which of these paths sounds the most exciting to you: processing deep-space telescope imagery using computer vision, or detecting exoplanets using time-series data?</p>
-        </footer>
+        </div>
     </div>
 
+    <script>
+        async function runPipeline() {
+            const apiKey = document.getElementById('apiKey').value.trim();
+            if (!apiKey) {
+                alert('Please enter your Gemini API key first!');
+                return;
+            }
+
+            const loader = document.getElementById('loader');
+            const resultsSection = document.getElementById('resultsSection');
+            const nasaContent = document.getElementById('nasaContent');
+            const aiOutput = document.getElementById('aiOutput');
+
+            loader.style.display = 'block';
+            resultsSection.style.display = 'none';
+
+            try {
+                // 1. Fetch real live data from NASA API (Using NASA's public APOD API)
+                const nasaRes = await fetch('https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY');
+                const nasaData = await nasaRes.json();
+
+                // Display NASA data
+                nasaContent.innerHTML = `
+                    <p><strong>Title:</strong> ${nasaData.title}</p>
+                    <p><strong>Date:</strong> ${nasaData.date}</p>
+                    ${nasaData.media_type === 'image' ? `<img src="${nasaData.url}" class="nasa-img" alt="NASA Image">` : `<p><em>Media type is video/other</em></p>`}
+                    <p style="font-size: 0.85rem; color: #9ca3af; margin-top: 0.5rem;">${nasaData.explanation.substring(0, 180)}...</p>
+                `;
+
+                // 2. Call Gemini API to perform Deep Space Anomaly & Enhancement Analysis
+                const prompt = `You are an elite astrophysicist and computer vision AI engine analyzing space data. 
+                Here is today's NASA object data:
+                Title: ${nasaData.title}
+                Description: ${nasaData.explanation}
+
+                Please perform a simulated automated discovery breakdown:
+                1. Super-Resolution & Noise Profile (Identify potential hidden details masked by stellar noise).
+                2. Anomaly Detection (What subtle background structures or redshifted phenomena could an AI pipeline flag here?).
+                3. Engagement Score & Next Steps for Python automation.`;
+
+                const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+                
+                const geminiRes = await fetch(geminiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }]
+                    })
+                });
+
+                const geminiData = await geminiRes.json();
+                
+                if (geminiData.candidates && geminiData.candidates[0].content) {
+                    aiOutput.textContent = geminiData.candidates[0].content.parts[0].text;
+                } else {
+                    aiOutput.textContent = "Error: Invalid response structure from Gemini API. Check your API key.";
+                }
+
+                loader.style.display = 'none';
+                resultsSection.style.display = 'grid';
+
+            } catch (error) {
+                loader.style.display = 'none';
+                alert('An error occurred during execution: ' + error.message);
+            }
+        }
+    </script>
 </body>
 </html>
