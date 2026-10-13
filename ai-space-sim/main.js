@@ -3,6 +3,7 @@ import * as THREE from 'three';
 // --- GLOBALS ---
 let scene, camera, renderer, starField;
 let geminiKey = localStorage.getItem('gemini_api_key') || '';
+let dynamicModelQueue = ['gemini-2.5-flash']; // Safe default fallback until fetched
 
 let systemGroup;
 let activeAnimatedMeshes = [];
@@ -20,17 +21,59 @@ let isListening = false;
 
 
 // --- INITIALIZATION ---
-function init() {
+async function init() {
   setupSecurity();
   initThreeJS();
   setupControls();
   animate(0);
+
+  // Dynamically fetch and rank available Gemini models at startup
+  if (geminiKey) {
+    await discoverGeminiModels();
+  }
 
   // Smoothly dismiss cinematic boot screen overlay
   const bootOverlay = document.getElementById('boot-overlay');
   if (bootOverlay) {
     bootOverlay.style.opacity = '0';
     setTimeout(() => bootOverlay.remove(), 500);
+  }
+}
+
+// --- DYNAMIC MODEL DISCOVERY & WATERFALL BUILDER ---
+async function discoverGeminiModels() {
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${geminiKey}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    
+    const data = await res.json();
+    if (data && data.models) {
+      // Filter for models supporting content generation and exclude audio/embedding/tts models
+      const validModels = data.models
+        .filter(m => 
+          m.supportedGenerationMethods?.includes('generateContent') &&
+          !m.name.includes('tts') &&
+          !m.name.includes('embedding') &&
+          !m.name.includes('transcribe') &&
+          !m.name.includes('image')
+        )
+        .map(m => m.name.replace('models/', ''));
+
+      // Sort models: Prioritize Flash models first for speed, then Pro, then latest tags
+      validModels.sort((a, b) => {
+        if (a.includes('flash') && !b.includes('flash')) return -1;
+        if (!a.includes('flash') && b.includes('flash')) return 1;
+        return 0;
+      });
+
+      if (validModels.length > 0) {
+        dynamicModelQueue = validModels;
+        console.log("Successfully compiled dynamic Gemini model waterfall:", dynamicModelQueue);
+        speakText("Astrometric telemetry online. Dynamic neural model queue synchronized.");
+      }
+    }
+  } catch (err) {
+    console.warn("Could not fetch dynamic model list, using default fallback queue.", err);
   }
 }
 
@@ -51,13 +94,14 @@ function setupSecurity() {
   }
 
   if (tokenBtn) {
-    tokenBtn.addEventListener('click', () => {
+    tokenBtn.addEventListener('click', async () => {
       const key = tokenInput.value.trim();
       if (key) {
         localStorage.setItem('gemini_api_key', key);
         geminiKey = key;
         status.innerText = "Gemini Key Saved! AI Engine Active.";
         status.style.color = "#4ade80";
+        await discoverGeminiModels(); // Re-discover models for the new key
       } else {
         localStorage.removeItem('gemini_api_key');
         geminiKey = '';
@@ -192,7 +236,7 @@ function speakText(text) {
   window.speechSynthesis.speak(utterance);
 }
 
-// --- PROCESS COMMAND & MODEL CASCADE (WITH IMMERSIVE SPACE SPEECH) ---
+// --- PROCESS COMMAND & RUNTIME MODEL WATERFALL ---
 async function processCommand(commandText) {
   const transcriptEl = document.getElementById('transcript');
   const hudStatusEl = document.getElementById('hud-nav-status');
@@ -205,14 +249,13 @@ async function processCommand(commandText) {
   speakText(`Engaging long-range astrometric sensors for target vector: ${commandText}. Calibrating navigation arrays.`);
 
   let worldConfig = null;
-  const flashModels = ['gemini-3.8-flash', 'gemini-3.5-flash-lite'];
 
-  // 1. Try Gemini models in sequence with immersive voice feedback
-  if (geminiKey) {
-    for (const model of flashModels) {
+  // 1. Iterate through the dynamically discovered model queue as a true runtime waterfall
+  if (geminiKey && dynamicModelQueue.length > 0) {
+    for (const model of dynamicModelQueue) {
       try {
-        if (hudStatusEl) hudStatusEl.innerText = `UPLINK: SECTOR_MAP`;
-        speakText("Analyzing gravitational harmonics and stellar coordinates for sector alignment.");
+        if (hudStatusEl) hudStatusEl.innerText = `UPLINK: ${model.toUpperCase()}`;
+        speakText(`Analyzing gravitational harmonics via neural channel ${model}.`);
 
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
         const res = await fetch(url, {
@@ -224,9 +267,9 @@ async function processCommand(commandText) {
           })
         });
 
-        if (res.status === 429) {
-          console.warn(`Model ${model} hit 429 quota limit. Cascading...`);
-          speakText("Primary navigation relay congested. Rerouting through secondary subspace communication array.");
+        if (res.status === 429 || res.status === 503) {
+          console.warn(`Model ${model} returned status ${res.status}. Cascading down waterfall...`);
+          speakText(`Navigation relay ${model} congested or unavailable. Rerouting through secondary subspace communication array.`);
           continue; 
         }
 
@@ -242,7 +285,7 @@ async function processCommand(commandText) {
           break; 
         }
       } catch (err) {
-        console.warn(`Uplink error with ${model}:`, err);
+        console.warn(`Uplink error with model ${model}:`, err);
       }
     }
   }
@@ -350,14 +393,12 @@ async function loadTextureWithRetry(url, maxRetries = 2, delay = 8000, isPollina
     try {
       let finalUrl = url;
 
-      // Intercept Pollinations requests to check blob size before Three.js touches them
       if (isPollinations) {
         const response = await fetch(url);
         if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
         
         const blob = await response.blob();
         
-        // Rate-limit block detector (~1.3MB static warning image guard)
         if (blob.size > 1100000) {
           throw new Error("Pollinations rate-limit block image detected.");
         }
@@ -366,23 +407,16 @@ async function loadTextureWithRetry(url, maxRetries = 2, delay = 8000, isPollina
         finalUrl = blobUrl;
       }
 
-      // Load verified asset securely via Three.js loadAsync
       const texture = await textureLoader.loadAsync(finalUrl);
-      
-      // Clean up local blob memory tracker
       if (blobUrl) URL.revokeObjectURL(blobUrl);
-      
       return texture;
 
     } catch (err) {
       if (blobUrl) URL.revokeObjectURL(blobUrl);
-
       if (attempt === maxRetries) throw err;
       
-      // Adaptive backoff: 15s penalty delay on attempt 0 to clear rate-limit windows
       const penaltyDelay = attempt === 0 ? 15000 : delay * (attempt + 1);
       console.warn(`Texture generation/load failed: "${err.message}". Retrying attempt ${attempt + 1} in ${penaltyDelay}ms...`);
-      
       await new Promise(resolve => setTimeout(resolve, penaltyDelay));
     }
   }
@@ -423,7 +457,6 @@ function sliceTextureAtlas(imageElement, rows, cols) {
 async function applyWorldConfig(config) {
   const hudStatusEl = document.getElementById('hud-nav-status');
 
-  // 1. Clear old scene items
   while (systemGroup.children.length > 0) {
     const obj = systemGroup.children[0];
     if (obj.geometry) obj.geometry.dispose();
@@ -449,12 +482,9 @@ async function applyWorldConfig(config) {
   }
 
   const spaceObjects = config.objects || [config];
-
-  // 2. Separate custom NASA textures vs Pollinations procedural textures
   const pollinationsObjs = spaceObjects.filter(obj => obj.prompt && !obj.customTextureUrl);
   const customObjs = spaceObjects.filter(obj => obj.customTextureUrl);
 
-  // Load custom NASA textures individually
   for (const objConfig of customObjs) {
     if (hudStatusEl) hudStatusEl.innerText = `MAPPING: ${objConfig.name.toUpperCase()}`;
     speakText(`Acquiring archival visual telemetry for ${objConfig.name}.`);
@@ -469,7 +499,6 @@ async function applyWorldConfig(config) {
     }
   }
 
-  // Request ALL Pollinations textures in ONE SINGLE ATLAS SHEET request to avoid 402 errors!
   if (pollinationsObjs.length > 0) {
     if (hudStatusEl) hudStatusEl.innerText = `UPLINK: SYNTHESIZING ATLAS SHEET`;
     speakText(`Initiating single-pass subspace synthesis for sector texture atlas matrix.`);
@@ -489,7 +518,6 @@ async function applyWorldConfig(config) {
       pollinationsObjs.forEach((objConfig, index) => {
         objConfig.preloadedTex = subTextures[index] || null;
       });
-      console.log("Texture atlas successfully fetched and sliced for sector objects.");
     } catch (err) {
       console.warn("Texture atlas synthesis failed after retries, keeping fallback colors.", err);
       pollinationsObjs.forEach(objConfig => {
@@ -506,7 +534,6 @@ async function applyWorldConfig(config) {
     speakText(config.speechResponse);
   }
 
-  // 3. NOW spawn all objects together into the scene with fully compiled/sliced textures!
   spaceObjects.forEach((objConfig) => {
     const geom = createDynamicGeometry(objConfig.geometryType, objConfig.geometryArgs);
 
@@ -592,7 +619,6 @@ function setupControls() {
   if (sendBtn) sendBtn.disabled = false;
   if (manualInput) manualInput.disabled = false;
 
-  // Mobile Drawer Toggle Listener
   if (mobileToggleBtn && sidebar) {
     mobileToggleBtn.addEventListener('click', () => {
       sidebar.classList.toggle('mobile-open');
@@ -600,7 +626,6 @@ function setupControls() {
     });
   }
 
-  // Fullscreen Toggle Listener
   if (fullscreenBtn) {
     fullscreenBtn.addEventListener('click', () => {
       if (!document.fullscreenElement) {
