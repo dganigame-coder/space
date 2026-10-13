@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deep Space AI & NASA APIs</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #030712;
+            --card-bg: #111827;
+            --card-border: #1f2937;
+            --text-primary: #f9fafb;
+            --text-secondary: #9ca3af;
+            --accent-cyan: #38bdf8;
+            --accent-indigo: #818cf8;
+            --glow-color: rgba(56, 189, 248, 0.15);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-indigo));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        header p {
+            font-size: 1.125rem;
+            color: var(--text-secondary);
+            max-width: 750px;
+            margin: 0 auto;
+        }
+
+        section {
+            margin-bottom: 3rem;
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+
+        @media (min-width: 768px) {
+            .grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px -5px var(--glow-color);
+            border-color: var(--accent-cyan);
+        }
+
+        .card h3 {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            color: var(--accent-cyan);
+        }
+
+        .card ul {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            font-size: 0.925rem;
+            color: var(--text-secondary);
+        }
+
+        .card strong {
+            color: var(--text-primary);
+        }
+
+        .info-box {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .info-box p {
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        .tips-list {
+            list-style-type: disc;
+            padding-left: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .tips-list li strong {
+            color: var(--text-primary);
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 4rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--card-border);
+            color: var(--text-secondary);
+        }
+
+        footer p {
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <h1>AI & NASA Deep Space Engagement</h1>
+            <p>Automating deep-space image processing and anomaly detection by feeding raw telemetry, pixel data, and orbital parameters into machine learning pipelines.</p>
+        </header>
+
+        <!-- Use Cases Section -->
+        <section>
+            <h2>🚀 Top 3 High-Engagement AI + NASA Use Cases</h2>
+            <div class="grid">
+                <!-- Use Case 1 -->
+                <article class="card">
+                    <div>
+                        <h3>1. JWST & Hubble Automated Image Enhancement</h3>
+                        <ul>
+                            <li><strong>The API:</strong> NASA Image and Video Library API or STScI MAST API for raw FITS/TIFF files.</li>
+                            <li><strong>The AI Engine:</strong> CNNs or GANs for super-resolution, cosmic ray removal, and star/galaxy segmentation.</li>
+                            <li><strong>Discovery Potential:</strong> Finding ultra-faint, highly redshifted background galaxies in deep-field noise.</li>
+                        </ul>
+                    </div>
+                </article>
+
+                <!-- Use Case 2 -->
+                <article class="card">
+                    <div>
+                        <h3>2. Exoplanet Light Curve Analysis</h3>
+                        <ul>
+                            <li><strong>The API:</strong> NASA Exoplanet Archive API for transit light curve data from Kepler & TESS.</li>
+                            <li><strong>The AI Engine:</strong> RNNs or Transformer-based time-series models to scan brightness drops.</li>
+                            <li><strong>Discovery Potential:</strong> Discovering shallow transits (tiny brightness dips) missed by traditional filters.</li>
+                        </ul>
+                    </div>
+                </article>
+
+                <!-- Use Case 3 -->
+                <article class="card">
+                    <div>
+                        <h3>3. Asteroid Tracking & Orbital Evolution</h3>
+                        <ul>
+                            <li><strong>The API:</strong> JPL SBDB Query API or NeoWs for asteroid orbital elements.</li>
+                            <li><strong>The AI Engine:</strong> Gradient Boosting (XGBoost/LightGBM) or Physics-Informed Neural Networks (PINNs).</li>
+                            <li><strong>Discovery Potential:</strong> Predicting chaotic orbital shifts, mapping asteroid families, and identifying mining candidates.</li>
+                        </ul>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <!-- Architecture Section -->
+        <section>
+            <h2>🛠️ Architecture: How They Connect</h2>
+            <div class="info-box">
+                <p>The most scalable way to process these discoveries is to build an automated pipeline using Python. Data flows seamlessly from NASA's primary endpoints directly into custom-trained AI models to output automated celestial discoveries.</p>
+            </div>
+        </section>
+
+        <!-- Tips Section -->
+        <section>
+            <h2>💡 Tips for Maximum Engagement</h2>
+            <div class="info-box">
+                <ul class="tips-list">
+                    <li><strong>Don't start from scratch:</strong> Leverage NASA's pre-cleaned machine learning datasets, such as the Kepler Exoplanet Search Results, ideal for fast model training.</li>
+                    <li><strong>Build a Web App:</strong> Use Python frameworks like Streamlit or Gradio to let users input a NASA object ID and watch your AI model process images or plot discoveries in real-time.</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Footer / CTA -->
+        <footer>
+            <p>Which of these paths sounds the most exciting to you: processing deep-space telescope imagery using computer vision, or detecting exoplanets using time-series data?</p>
+        </footer>
+    </div>
+
+</body>
+</html>
