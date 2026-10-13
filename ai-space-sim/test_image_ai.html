@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Three.js Space Engine Texture Test</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #050505;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #fff;
+            user-select: none;
+        }
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        #hud {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            pointer-events: none;
+            background: rgba(0, 10, 20, 0.65);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #00ffcc;
+            box-shadow: 0 0 15px rgba(0, 255, 204, 0.2);
+            max-width: 320px;
+        }
+        h1 {
+            margin: 0 0 10px 0;
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+            color: #00ffcc;
+            text-transform: uppercase;
+        }
+        #hudStatus {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9rem;
+            color: #ff0055;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        .instruction {
+            font-size: 0.8rem;
+            color: #88a0b0;
+            line-height: 1.4;
+        }
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            background: rgba(0, 40, 80, 0.8);
+            border: 1px solid #00ffcc;
+            color: #00ffcc;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        button:hover {
+            background: #00ffcc;
+            color: #000;
+            box-shadow: 0 0 10px #00ffcc;
+        }
+    </style>
+    <!-- Include Three.js via CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+    <div id="hud">
+        <h1>Navigation Computer</h1>
+        <div id="hudStatus">SYSTEM READY</div>
+        <div class="instruction">Press F12 to check network diagnostics, logs, or run custom texture scripts manually.</div>
+    </div>
+
+    <div id="controls">
+        <button id="btnStart">Run Pipeline Loop</button>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <script>
+        // --- 1. SETUP THREE.JS BIOMATRIX SCENE ---
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        
+        // Setup a starfield background
+        const starsGeometry = new THREE.BufferGeometry();
+        const starsCount = 2000;
+        const starPositions = new Float32Array(starsCount * 3);
+        for(let i=0; i < starsCount * 3; i++) {
+            starPositions[i] = (Math.random() - 0.5) * 500;
+        }
+        starsGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+        const starsMaterial = new THREE.PointsMaterial({color: 0xffffff, size: 0.5});
+        const starField = new THREE.Points(starsGeometry, starsMaterial);
+        scene.add(starField);
+
+        // Camera setup
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 12;
+
+        // Renderer setup
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+
+        // Lighting configuration
+        const ambientLight = new THREE.AmbientLight(0x333333);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        directionalLight.position.set(5, 3, 5);
+        scene.add(directionalLight);
+
+        // Create the core geometric planet mesh
+        const geometry = new THREE.SphereGeometry(4, 64, 64);
+        // Start with a fallback plain material color matrix
+        const material = new THREE.MeshStandardMaterial({ 
+            color: 0x2244aa, 
+            roughness: 0.7,
+            metalness: 0.2
+        });
+        const planetMesh = new THREE.Mesh(geometry, material);
+        scene.add(planetMesh);
+
+        // Handle scaling adjustments on window resizing
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Animation rendering ticking framework
+        function animate() {
+            requestAnimationFrame(animate);
+            planetMesh.rotation.y += 0.003; // Dynamic Y rotation loop
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // --- 2. PASTE APPLIED F12 LOGIC MECHANISMS NATIVELY BELOW ---
+        
+        // Define objects array inside local scope context
+        const spaceObjects = [
+            { name: "Gargantua Prime", prompt: "hostile frozen ice planet surface with deep glowing methane blue crevasses and frosted permafrost ridges" },
+            { name: "Aetheris Alpha", prompt: "dense turbulent gas giant atmosphere with swirling neon green and dark obsidian storm bands" },
+            { name: "Vulcan Peak", prompt: "active volcanic planet surface cracked black basalt cooling crust glowing rivers of orange magma veins" }
+        ];
+
+        const hudStatusEl = document.getElementById('hudStatus');
+        
+        function speakText(text) {
+            if ('speechSynthesis' in window) {
+                // Cancel active speeches to prevent buffering text lines
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                window.speechSynthesis.speak(utterance);
+            } else {
+                console.log(`🔊 [NARRATION]: ${text}`);
+            }
+        }
+
+        const textureLoader = new THREE.TextureLoader();
+        textureLoader.setCrossOrigin('anonymous');
+
+        async function loadTextureWithRetry(url, maxRetries = 2, delay = 8000, isPollinations = false) {
+            for (let attempt = 0; attempt <= maxRetries; attempt++) {
+                let blobUrl = null;
+                try {
+                    let finalUrl = url;
+
+                    if (isPollinations) {
+                        const response = await fetch(url);
+                        if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
+                        
+                        const blob = await response.blob();
+                        
+                        // 🛑 Intercept rate limits!
+                        if (blob.size > 1100000) {
+                            throw new Error("Pollinations rate-limit block image detected.");
+                        }
+                        
+                        blobUrl = URL.createObjectURL(blob);
+                        finalUrl = blobUrl;
+                    }
+
+                    const texture = await textureLoader.loadAsync(finalUrl);
+                    if (blobUrl) URL.revokeObjectURL(blobUrl);
+                    return texture;
+
+                } catch (err) {
+                    if (blobUrl) URL.revokeObjectURL(blobUrl);
+                    if (attempt === maxRetries) throw err;
+                    
+                    const penaltyDelay = attempt === 0 ? 15000 : delay * (attempt + 1);
+                    console.warn(`⚠️ Texture step failed: "${err.message}". Retrying (${attempt + 1}/${maxRetries}) in ${penaltyDelay}ms...`);
+                    await new Promise(resolve => setTimeout(resolve, penaltyDelay));
+                }
+            }
+        }
+
+        async function runSpaceMappingPipeline() {
+            document.getElementById('btnStart').disabled = true;
+            document.getElementById('btnStart').innerText = "Processing...";
+
+            for (let i = 0; i < spaceObjects.length; i++) {
+                const objConfig = spaceObjects[i];
+                
+                const spaceSpeech = `Approaching orbital perimeter of ${objConfig.name}. Calibrating surface albedo and atmospheric data maps. Please maintain subspace stabilization.`;
+                if (hudStatusEl) hudStatusEl.innerText = `MAPPING: ${objConfig.name.toUpperCase()}`;
+                speakText(spaceSpeech);
+
+                let texUrl = null;
+                if (objConfig.customTextureUrl) {
+                    texUrl = objConfig.customTextureUrl; 
+                } else if (objConfig.prompt) {
+                    const enhancedPrompt = encodeURIComponent(`${objConfig.prompt}, 4k resolution, highly detailed photorealistic space texture map, seamless equirectangular, unlit, flat projection`);
+                    texUrl = `https://gen.pollinations.ai/image/${enhancedPrompt}?width=1024&height=512&nologo=true&model=flux&seed=${Math.floor(Math.random()*99999)}`;
+                }
+
+                if (texUrl) {
+                    try {
+                        const isPollinations = !!objConfig.prompt;
+                        const tex = await loadTextureWithRetry(texUrl, 2, 8000, isPollinations);
+                        
+                        tex.colorSpace = THREE.SRGBColorSpace;
+                        tex.wrapS = THREE.RepeatWrapping;     
+                        tex.wrapT = THREE.ClampToEdgeWrapping; 
+                        tex.needsUpdate = true;
+                        
+                        objConfig.preloadedTex = tex;
+                        console.log(`✅ Successfully pre-loaded texture for: ${objConfig.name}`);
+
+                        // Live-swap material texture onto the visible viewport planet!
+                        if (planetMesh.material.map) planetMesh.material.map.dispose();
+                        planetMesh.material.map = tex;
+                        // Reset base color parameter so texture maps register perfectly
+                        planetMesh.material.color.setHex(0xffffff); 
+                        planetMesh.material.needsUpdate = true;
+
+                    } catch (err) {
+                        console.warn(`❌ Texture load failed for ${objConfig.name} after all retries.`, err);
+                        objConfig.preloadedTex = null;
+                    }
+                }
+
+                // ⏳ MANDATORY TIMING STRATEGY BETWEEN ENTRIES
+                if (objConfig.prompt && i < spaceObjects.length - 1) {
+                    console.log("⏳ Enforcing 7.5 second interval delay to protect API limits...");
+                    await new Promise(resolve => setTimeout(resolve, 7500));
+                }
+            }
+
+            console.log("🎉 Complete Orbital Texture Mapping Routine Finished!");
+            hudStatusEl.innerText = "ALL PLANETS MAPPED";
+            document.getElementById('btnStart').disabled = false;
+            document.getElementById('btnStart').innerText = "Run Pipeline Loop";
+            window.extractedSpaceObjects = spaceObjects; 
+        }
+
+        // Attach function hook directly to button interface click events
+        document.getElementById('btnStart').addEventListener('click', runSpaceMappingPipeline);
+    </script>
+</body>
+</html>
