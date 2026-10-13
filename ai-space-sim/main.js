@@ -27,7 +27,7 @@ async function init() {
   setupControls();
   animate(0);
 
-  // Dynamically discover and rank available Gemini models at startup
+  // Dynamically discover and rank available Gemini models at startup (Newest First)
   if (geminiKey) {
     await discoverGeminiModels();
   }
@@ -40,7 +40,7 @@ async function init() {
   }
 }
 
-// --- DYNAMIC MODEL DISCOVERY & WATERFALL BUILDER ---
+// --- DYNAMIC MODEL DISCOVERY & NEWEST-FIRST WATERFALL BUILDER ---
 async function discoverGeminiModels() {
   try {
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${geminiKey}`);
@@ -48,26 +48,61 @@ async function discoverGeminiModels() {
     
     const data = await res.json();
     if (data && data.models) {
+      // Filter for generative content models while excluding specialized non-chat endpoints
       const validModels = data.models
         .filter(m => 
           m.supportedGenerationMethods?.includes('generateContent') &&
           !m.name.includes('tts') &&
           !m.name.includes('embedding') &&
           !m.name.includes('transcribe') &&
-          !m.name.includes('image')
+          !m.name.includes('image') &&
+          !m.name.includes('gemma')
         )
-        .map(m => m.name.replace('models/', ''));
+        .map(m => ({
+          id: m.name.replace('models/', ''),
+          versionString: m.version || '',
+          description: m.description || ''
+        }));
 
+      // Sort models from NEWEST (First) to OLDEST (Last)
       validModels.sort((a, b) => {
-        if (a.includes('flash') && !b.includes('flash')) return -1;
-        if (!a.includes('flash') && b.includes('flash')) return 1;
-        return 0;
+        // 1. Extract numeric version numbers from model IDs (e.g., 4.0, 3.8, 3.5, 2.5)
+        const getVer = (str) => {
+          const match = str.match(/(\d+(\.\d+)?)/);
+          return match ? parseFloat(match[0]) : 0;
+        };
+
+        const vA = getVer(a.id);
+        const vB = getVer(b.id);
+
+        if (vA !== vB) {
+          return vB - vA; // Higher major version number prioritized first
+        }
+
+        // 2. Extract MM-YYYY release date stamps if version numbers are equal (e.g., "-08-2026" vs "-05-2026")
+        const getDateVal = (str) => {
+          const match = str.match(/(\d{2})-(\d{4})/);
+          if (match) return parseInt(match[2]) * 100 + parseInt(match[1]);
+          return 0;
+        };
+
+        const dateA = getDateVal(a.versionString);
+        const dateB = getDateVal(b.versionString);
+
+        if (dateA !== dateB) {
+          return dateB - dateA; // More recent release date prioritized first
+        }
+
+        // 3. Speed priority tie-breaker: Flash models prioritized over Pro for telemetry
+        const aFlash = a.id.includes('flash') ? 1 : 0;
+        const bFlash = b.id.includes('flash') ? 1 : 0;
+        return bFlash - aFlash;
       });
 
       if (validModels.length > 0) {
-        dynamicModelQueue = validModels;
-        console.log("Successfully compiled dynamic Gemini model waterfall:", dynamicModelQueue);
-        speakText("Astrometric telemetry online. Dynamic neural model queue synchronized.");
+        dynamicModelQueue = validModels.map(m => m.id);
+        console.log("Successfully compiled newest-first Gemini model waterfall:", dynamicModelQueue);
+        speakText("Astrometric telemetry online. Dynamic neural model queue synchronized to latest generation matrix.");
       }
     }
   } catch (err) {
@@ -234,7 +269,7 @@ function speakText(text) {
   window.speechSynthesis.speak(utterance);
 }
 
-// --- PROCESS COMMAND & RUNTIME MODEL WATERFALL ---
+// --- PROCESS COMMAND & RUNTIME NEWEST-FIRST MODEL WATERFALL ---
 async function processCommand(commandText) {
   const transcriptEl = document.getElementById('transcript');
   const hudStatusEl = document.getElementById('hud-nav-status');
@@ -248,6 +283,7 @@ async function processCommand(commandText) {
 
   let worldConfig = null;
 
+  // 1. Iterate through the dynamically ordered model waterfall (Newest models first)
   if (geminiKey && dynamicModelQueue.length > 0) {
     for (const model of dynamicModelQueue) {
       try {
@@ -287,6 +323,7 @@ async function processCommand(commandText) {
     }
   }
 
+  // 2. Fallback to Pollinations Text Router
   if (!worldConfig) {
     speakText("Primary astrometric database unreachable. Engaging long-range archival database retrieval.");
     try {
@@ -312,6 +349,7 @@ async function processCommand(commandText) {
     }
   }
 
+  // 3. Final Safety Net: Local Procedural Generator
   if (!worldConfig) {
     speakText("External telemetry offline. Engaging internal stellar synthesis matrix.");
     worldConfig = generateFallbackWorld(commandText);
@@ -322,10 +360,12 @@ async function processCommand(commandText) {
 
   if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: SECURED_TARGET';
 
+  // Sync UI Telemetry
   if (titleEl && worldConfig.sectorTitle) titleEl.innerText = worldConfig.sectorTitle;
   if (loreEl && worldConfig.lore) loreEl.innerText = worldConfig.lore;
   if (worldConfig.audioParams) updateAudioSynth(worldConfig.audioParams);
 
+  // Update Live Code Window
   const codePreviewEl = document.getElementById('code-preview');
   if (codePreviewEl && worldConfig.objects) {
     codePreviewEl.innerText = worldConfig.objects
