@@ -211,7 +211,7 @@ async function processCommand(commandText) {
   if (geminiKey) {
     for (const model of flashModels) {
       try {
-        if (hudStatusEl) hudStatusEl.innerText = `UPLINK: SECCTOR_MAP`;
+        if (hudStatusEl) hudStatusEl.innerText = `UPLINK: SECTOR_MAP`;
         speakText("Analyzing gravitational harmonics and stellar coordinates for sector alignment.");
 
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
@@ -343,17 +343,47 @@ Return ONLY valid raw JSON:
 `;
 }
 
-// --- STRICT SERIAL TEXTURE QUEUE & RETRY LOGIC ---
-async function loadTextureWithRetry(url, maxRetries = 2, delay = 8000) {
+// --- SAFE BLOB-GUARDED TEXTURE LOADER WITH ADAPTIVE RETRY PENALTIES ---
+async function loadTextureWithRetry(url, maxRetries = 2, delay = 8000, isPollinations = false) {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    let blobUrl = null;
     try {
-      return await new Promise((resolve, reject) => {
-        textureLoader.load(url, resolve, undefined, reject);
-      });
+      let finalUrl = url;
+
+      // Intercept Pollinations requests to check blob size before Three.js touches them
+      if (isPollinations) {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
+        
+        const blob = await response.blob();
+        
+        // Rate-limit block detector (~1.3MB static warning image guard)
+        if (blob.size > 1100000) {
+          throw new Error("Pollinations rate-limit block image detected.");
+        }
+        
+        blobUrl = URL.createObjectURL(blob);
+        finalUrl = blobUrl;
+      }
+
+      // Load verified asset securely via Three.js loadAsync
+      const texture = await textureLoader.loadAsync(finalUrl);
+      
+      // Clean up local blob memory tracker
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+      
+      return texture;
+
     } catch (err) {
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+
       if (attempt === maxRetries) throw err;
-      console.warn(`Texture attempt ${attempt + 1} failed. Backing off for ${(attempt + 1) * delay}ms...`);
-      await new Promise(resolve => setTimeout(resolve, delay * (attempt + 1)));
+      
+      // Adaptive backoff: 15s penalty delay on attempt 0 to clear rate-limit windows
+      const penaltyDelay = attempt === 0 ? 15000 : delay * (attempt + 1);
+      console.warn(`Texture generation/load failed: "${err.message}". Retrying attempt ${attempt + 1} in ${penaltyDelay}ms...`);
+      
+      await new Promise(resolve => setTimeout(resolve, penaltyDelay));
     }
   }
 }
@@ -389,7 +419,7 @@ async function applyWorldConfig(config) {
 
   const spaceObjects = config.objects || [config];
 
-  // 2. Pre-load all textures sequentially with immersive spaceflight voice telemetry and 8s cooldowns
+  // 2. Pre-load all textures sequentially with blob guard and adaptive backoff pacing
   for (let i = 0; i < spaceObjects.length; i++) {
     const objConfig = spaceObjects[i];
     
@@ -408,20 +438,21 @@ async function applyWorldConfig(config) {
     if (texUrl) {
       textureLoader.setCrossOrigin('anonymous');
       try {
-        const tex = await loadTextureWithRetry(texUrl, 2, 8000);
+        const isPollinations = !!objConfig.prompt;
+        const tex = await loadTextureWithRetry(texUrl, 2, 8000, isPollinations);
         tex.colorSpace = THREE.SRGBColorSpace;
         tex.needsUpdate = true;
         objConfig.preloadedTex = tex;
         console.log(`Successfully pre-loaded texture for: ${objConfig.name}`);
       } catch (err) {
-        console.warn(`Texture load failed for ${objConfig.name} after retries, keeping fallback color.`);
+        console.warn(`Texture load failed for ${objConfig.name} after retries, keeping fallback color.`, err);
         objConfig.preloadedTex = null;
       }
 
-      // Wait 8.5 seconds between each request to completely bypass rate limits (skip wait on final item)
-      if (i < spaceObjects.length - 1) {
+      // Hard cooldown pause between Pollinations objects to clear rolling windows
+      if (objConfig.prompt && i < spaceObjects.length - 1) {
         if (hudStatusEl) hudStatusEl.innerText = `COOLDOWN: STABILIZING ORBIT...`;
-        await new Promise(resolve => setTimeout(resolve, 8500));
+        await new Promise(resolve => setTimeout(resolve, 7500));
       }
     }
   }
@@ -434,7 +465,7 @@ async function applyWorldConfig(config) {
     speakText(config.speechResponse);
   }
 
-  // 3. NOW spawn all objects together into the scene with completed textures!
+  // 3. NOW spawn all objects together into the scene with verified textures!
   spaceObjects.forEach((objConfig) => {
     const geom = createDynamicGeometry(objConfig.geometryType, objConfig.geometryArgs);
 
