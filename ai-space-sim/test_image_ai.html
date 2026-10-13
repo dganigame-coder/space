@@ -3,266 +3,890 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#030305">
     <title>3D Planetary Space Engine Deck</title>
-    <!-- ✅ EXCHANGED: Swapped out Cloudflare CDN for unpkg repository package stream link -->
-    <script src="https://unpkg.com"></script>
+
+    <!-- Three.js module import map. Serve this file over localhost/HTTPS. -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+        }
+    }
+    </script>
+
     <style>
-        body {
+        :root {
+            --cyan: #00ffcc;
+            --blue: #88ccff;
+            --gold: #ffcc00;
+            --panel: rgba(8, 14, 24, 0.88);
+        }
+
+        * { box-sizing: border-box; }
+
+        html, body {
+            width: 100%;
+            height: 100%;
             margin: 0;
             overflow: hidden;
-            background-color: #030305;
-            font-family: 'Courier New', Courier, monospace;
-            color: #00ffcc;
+        }
+
+        body {
+            background: #030305;
+            color: var(--cyan);
+            font-family: "Courier New", Courier, monospace;
             user-select: none;
         }
+
         #canvas-container {
-            width: 100vw;
-            height: 100vh;
-            position: absolute;
-            top: 0;
-            left: 0;
+            position: fixed;
+            inset: 0;
             z-index: 1;
+            overflow: hidden;
         }
+
+        #canvas-container canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
         .hud-panel {
-            position: absolute;
+            position: fixed;
             z-index: 10;
-            background: rgba(8, 14, 24, 0.85);
-            border: 1px solid #00ffcc;
-            box-shadow: 0 0 15px rgba(0, 255, 204, 0.15);
-            padding: 20px;
+            padding: 16px;
+            background: var(--panel);
+            border: 1px solid var(--cyan);
             border-radius: 6px;
+            box-shadow: 0 0 15px rgba(0, 255, 204, 0.15);
             backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
         }
+
         #left-hud {
             top: 20px;
             left: 20px;
-            width: 380px;
+            width: min(380px, calc(100vw - 40px));
         }
+
         #control-deck {
             bottom: 20px;
             left: 50%;
             transform: translateX(-50%);
-            width: 90%;
-            max-width: 750px;
+            width: min(750px, calc(100vw - 32px));
             display: flex;
             flex-direction: column;
             gap: 12px;
         }
+
         h2, h3 {
-            margin: 0 0 10px 0;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            font-size: 15px;
+            margin: 0 0 10px;
+            padding-bottom: 7px;
             border-bottom: 1px dashed rgba(0, 255, 204, 0.4);
-            padding-bottom: 5px;
+            font-size: 14px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
         }
+
         .status-node {
+            margin-bottom: 7px;
             font-size: 12px;
-            margin-bottom: 6px;
         }
+
         .highlight {
             color: #fff;
-            text-shadow: 0 0 5px #00ffcc;
+            text-shadow: 0 0 5px var(--cyan);
+            overflow-wrap: anywhere;
         }
+
         .input-group {
             display: flex;
             gap: 10px;
             width: 100%;
         }
+
         input[type="text"] {
-            flex-grow: 1;
-            background: rgba(0, 15, 15, 0.6);
-            border: 1px solid #00ffcc;
-            color: #fff;
-            padding: 10px;
-            border-radius: 4px;
-            font-family: inherit;
+            flex: 1;
+            min-width: 0;
+            padding: 11px;
             outline: none;
-        }
-        button {
-            background: transparent;
-            border: 1px solid #ffcc00;
-            color: #ffcc00;
-            padding: 10px 20px;
+            border: 1px solid var(--cyan);
             border-radius: 4px;
+            background: rgba(0, 15, 15, 0.8);
+            color: #fff;
             font-family: inherit;
+            font-size: 13px;
+        }
+
+        input[type="text"]:focus {
+            box-shadow: 0 0 8px rgba(0, 255, 204, 0.3);
+        }
+
+        button {
+            padding: 10px 16px;
+            border: 1px solid var(--gold);
+            border-radius: 4px;
+            background: transparent;
+            color: var(--gold);
+            font-family: inherit;
+            font-size: 12px;
             font-weight: bold;
             cursor: pointer;
             text-transform: uppercase;
-            transition: all 0.3s ease;
+            transition: background 0.2s, color 0.2s, box-shadow 0.2s;
         }
+
         button:hover:not(:disabled) {
-            background: #ffcc00;
+            background: var(--gold);
             color: #080e18;
             box-shadow: 0 0 10px rgba(255, 204, 0, 0.5);
         }
+
         button:disabled {
             border-color: #555;
-            color: #555;
+            color: #777;
             cursor: not-allowed;
         }
+
         .console-stream {
-            background: #000;
-            border-left: 2px solid #88ccff;
-            padding: 8px;
-            font-size: 11px;
-            color: #88ccff;
             height: 120px;
-            overflow-y: auto;
             margin-top: 10px;
+            padding: 8px;
+            overflow-y: auto;
+            overflow-wrap: anywhere;
+            border-left: 2px solid var(--blue);
+            background: #000;
+            color: var(--blue);
+            font-size: 11px;
+            line-height: 1.45;
+        }
+
+        .console-stream div { margin-bottom: 5px; }
+
+        @media (max-width: 600px) {
+            #left-hud {
+                top: 10px;
+                left: 10px;
+                width: min(310px, calc(100vw - 20px));
+                padding: 12px;
+            }
+
+            #control-deck {
+                bottom: 10px;
+                width: calc(100vw - 20px);
+                padding: 12px;
+            }
+
+            .input-group { flex-direction: column; }
+            .input-group button { width: 100%; }
+            .console-stream { height: 75px; }
         }
     </style>
 </head>
 <body>
-
     <div id="canvas-container"></div>
 
-    <!-- Left Status HUD -->
-    <div id="left-hud" class="hud-panel">
+    <section id="left-hud" class="hud-panel" aria-label="Telemetry deck">
         <h2>Telemetry Deck</h2>
-        <div class="status-node">NAV INDEX: <span id="hud-nav-status" class="highlight">ORBITAL IDLE</span></div>
-        <div class="status-node">SYSTEM CORE: <span id="sys-status" class="highlight">READY</span></div>
-        <div id="consoleOut" class="console-stream">Awaiting command text vector...</div>
-    </div>
+        <div class="status-node">
+            NAV INDEX:
+            <span id="hud-nav-status" class="highlight">ORBITAL IDLE</span>
+        </div>
+        <div class="status-node">
+            SYSTEM CORE:
+            <span id="sys-status" class="highlight">INITIALIZING</span>
+        </div>
+        <div id="consoleOut" class="console-stream" role="log" aria-live="polite">Awaiting command text vector...</div>
+    </section>
 
-    <!-- Bottom Control Panel Configuration -->
-    <div id="control-deck" class="hud-panel">
+    <section id="control-deck" class="hud-panel" aria-label="Generation controls">
         <h3>Launch Generation Sequence</h3>
         <div class="input-group">
-            <input type="text" id="commandText" value="Orion Nebula Core" placeholder="Enter sector destination details...">
-            <button id="execBtn" onclick="triggerPipeline()">Execute Map Run</button>
+            <input
+                type="text"
+                id="commandText"
+                value="Orion Nebula Core"
+                placeholder="Enter sector destination details..."
+                aria-label="Sector destination"
+                autocomplete="off"
+            >
+            <button id="execBtn" type="button">Execute Map Run</button>
         </div>
-    </div>
+    </section>
 
-    <script>
-        // --- 1. INITIALIZE THREE.JS CONTAINER WORLD ---
-        const container = document.getElementById('canvas-container');
+    <script type="module">
+        import * as THREE from "three";
+
+        // Optional server endpoint for AI-generated JSON. Leave empty to use
+        // the reliable local generator. Never put a private API key in this file.
+        const CONFIG_API_ENDPOINT = "";
+
+        // --------------------------------------------------
+        // 1. DOM AND ENGINE INITIALIZATION
+        // --------------------------------------------------
+        const container = document.getElementById("canvas-container");
+        const consoleOut = document.getElementById("consoleOut");
+        const sysStatus = document.getElementById("sys-status");
+        const hudStatusEl = document.getElementById("hud-nav-status");
+        const commandInput = document.getElementById("commandText");
+        const execBtn = document.getElementById("execBtn");
+
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x020205);
 
-        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 5, 25);
+        const camera = new THREE.PerspectiveCamera(
+            45,
+            window.innerWidth / window.innerHeight,
+            0.1,
+            2000
+        );
+        camera.position.set(0, 8, 32);
+        camera.lookAt(0, 0, 0);
 
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        const renderer = new THREE.WebGLRenderer({
+            antialias: true,
+            alpha: false,
+            powerPreference: "high-performance"
+        });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.1;
         container.appendChild(renderer.domElement);
 
-        // Core Ambient and Target Light Systems
-        const ambientLight = new THREE.AmbientLight(0x444444);
+        const ambientLight = new THREE.AmbientLight(0x9aabc5, 1.2);
         scene.add(ambientLight);
 
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
-        directionalLight.position.set(5, 5, 5).normalize();
-        scene.add(directionalLight);
+        const keyLight = new THREE.PointLight(0xffffff, 450, 0, 2);
+        keyLight.position.set(8, 10, 12);
+        scene.add(keyLight);
 
-        // System Group Tracking Nodes
+        const blueRimLight = new THREE.PointLight(0x1688ff, 350, 0, 2);
+        blueRimLight.position.set(-12, 3, -8);
+        scene.add(blueRimLight);
+
+        const violetLight = new THREE.PointLight(0x8d45ff, 180, 0, 2);
+        violetLight.position.set(4, -8, -12);
+        scene.add(violetLight);
+
         const systemGroup = new THREE.Group();
+        systemGroup.name = "GeneratedPlanetarySystem";
         scene.add(systemGroup);
-        let activeAnimatedMeshes = [];
 
+        const activeAnimatedMeshes = [];
         const textureLoader = new THREE.TextureLoader();
+        textureLoader.setCrossOrigin("anonymous");
 
-        // Responsive Scaling Event Window Listener
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
+        let isGenerating = false;
+        let isDisposed = false;
+        let animationFrameId = null;
 
-        // --- 2. AUXILIARY HUD & SPEAK IMPLEMENTATION ---
-        const consoleOut = document.getElementById('consoleOut');
-        const sysStatus = document.getElementById('sys-status');
-        const hudStatusEl = document.getElementById('hud-nav-status');
-
-        function printLog(msg) {
+        // --------------------------------------------------
+        // 2. HUD HELPERS
+        // --------------------------------------------------
+        function printLog(message) {
             const time = new Date().toLocaleTimeString();
-            consoleOut.innerHTML += `<div>[${time}] ${msg}</div>`;
+            const entry = document.createElement("div");
+            entry.textContent = `[${time}] ${String(message)}`;
+            consoleOut.appendChild(entry);
+
+            while (consoleOut.children.length > 80) {
+                consoleOut.firstElementChild.remove();
+            }
+
             consoleOut.scrollTop = consoleOut.scrollHeight;
-            console.log(msg);
+            console.log(message);
+        }
+
+        function setStatus(message) {
+            sysStatus.textContent = message;
         }
 
         function speakText(text) {
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel(); 
-                const utterance = new SpeechSynthesisUtterance(text);
-                window.speechSynthesis.speak(utterance);
-            }
-            printLog(`🔊 Narrator: "${text}"`);
+            if (!("speechSynthesis" in window)) return;
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 1;
+            utterance.pitch = 1;
+            window.speechSynthesis.speak(utterance);
         }
 
+        // --------------------------------------------------
+        // 3. JSON PROMPT FOR AN OPTIONAL AI BACKEND
+        // --------------------------------------------------
         function buildPromptText(command) {
-            return `Generate a JSON configuration file for space targets in ${command}. Output strictly valid JSON without formatting codeblocks. Schema: {"sectorTitle": "${command}", "cameraPosition":, "cameraTarget":, "objects": [{"name": "ExoPlanet-A", "prompt": "cracked molten lava planetary texture map"}, {"name": "ExoPlanet-B", "prompt": "icy crystalline glacier surface panorama"}]}`;
+            const schema = {
+                sectorTitle: command,
+                cameraPosition: [0, 7, 24],
+                cameraTarget: [0, 0, 0],
+                objects: [
+                    {
+                        name: "ExoPlanet-A",
+                        prompt: "cracked molten lava planetary surface texture",
+                        color: "#d9572b",
+                        radius: 2.5,
+                        position: [-4.5, 0, 0],
+                        seed: 101
+                    },
+                    {
+                        name: "ExoPlanet-B",
+                        prompt: "icy crystalline glacier planetary surface",
+                        color: "#55aaff",
+                        radius: 1.8,
+                        position: [3.5, 1, -2],
+                        seed: 202
+                    }
+                ]
+            };
+
+            return [
+                `Create a 3D planetary sector configuration for: ${command}.`,
+                "Return only valid JSON. Do not use Markdown fences.",
+                "Use this schema and keep all positions as finite numbers:",
+                JSON.stringify(schema, null, 2)
+            ].join("\n");
         }
 
+        // --------------------------------------------------
+        // 4. SEEDED PROCEDURAL PLANET TEXTURE
+        // --------------------------------------------------
+        function createPlanetTexture(baseColor, seed = 1) {
+            const canvas = document.createElement("canvas");
+            canvas.width = 512;
+            canvas.height = 256;
+
+            const ctx = canvas.getContext("2d");
+            if (!ctx) throw new Error("Canvas 2D context is unavailable.");
+
+            ctx.fillStyle = baseColor || "#557799";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            let state = (Number(seed) >>> 0) || 1;
+            function random() {
+                state = (Math.imul(1664525, state) + 1013904223) >>> 0;
+                return state / 4294967296;
+            }
+
+            // Large-scale surface patterns.
+            for (let i = 0; i < 1000; i++) {
+                const x = random() * canvas.width;
+                const y = random() * canvas.height;
+                const rx = 3 + random() * 34;
+                const ry = 2 + random() * 14;
+
+                ctx.fillStyle = random() > 0.5
+                    ? "rgba(255,255,255,0.15)"
+                    : "rgba(0,0,0,0.21)";
+
+                ctx.beginPath();
+                ctx.ellipse(x, y, rx, ry, random() * Math.PI, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Fine-grained markings.
+            for (let i = 0; i < 2200; i++) {
+                ctx.fillStyle = random() > 0.5
+                    ? "rgba(255,255,255,0.13)"
+                    : "rgba(0,0,0,0.14)";
+
+                ctx.fillRect(
+                    random() * canvas.width,
+                    random() * canvas.height,
+                    1 + random() * 3,
+                    1 + random() * 2
+                );
+            }
+
+            // Gentle atmospheric bands.
+            for (let i = 0; i < 22; i++) {
+                ctx.fillStyle = random() > 0.5
+                    ? "rgba(255,255,255,0.035)"
+                    : "rgba(0,0,0,0.045)";
+                ctx.fillRect(0, random() * canvas.height, canvas.width, 2 + random() * 7);
+            }
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.colorSpace = THREE.SRGBColorSpace;
+            texture.anisotropy = Math.min(renderer.capabilities.getMaxAnisotropy(), 8);
+            return texture;
+        }
+
+        // --------------------------------------------------
+        // 5. EXTERNAL TEXTURE LOADER WITH RETRIES
+        // --------------------------------------------------
+        // For cross-origin image sources, the host must allow CORS if the image
+        // is to be used as a WebGL texture. useFetchBlob=true is optional and
+        // can fail if the image host does not permit browser fetch/CORS.
+        async function loadTextureWithRetry(
+            url,
+            maxRetries = 2,
+            delay = 1500,
+            useFetchBlob = false
+        ) {
+            let lastError;
+
+            for (let attempt = 0; attempt <= maxRetries; attempt++) {
+                let blobUrl = null;
+                try {
+                    let finalUrl = url;
+
+                    if (useFetchBlob) {
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 20000);
+                        let response;
+
+                        try {
+                            response = await fetch(url, { signal: controller.signal });
+                        } finally {
+                            clearTimeout(timeoutId);
+                        }
+
+                        if (!response.ok) {
+                            throw new Error(`Image request failed: HTTP ${response.status}`);
+                        }
+
+                        const contentType = (response.headers.get("content-type") || "").toLowerCase();
+                        if (!contentType.startsWith("image/")) {
+                            throw new Error(`Expected image data; received ${contentType || "unknown content type"}.`);
+                        }
+
+                        const blob = await response.blob();
+                        if (blob.size === 0) throw new Error("The returned image is empty.");
+                        if (blob.size > 12 * 1024 * 1024) {
+                            throw new Error("Texture exceeds the 12 MB download limit.");
+                        }
+
+                        blobUrl = URL.createObjectURL(blob);
+                        finalUrl = blobUrl;
+                    }
+
+                    const texture = await textureLoader.loadAsync(finalUrl);
+                    texture.colorSpace = THREE.SRGBColorSpace;
+
+                    if (blobUrl) URL.revokeObjectURL(blobUrl);
+                    return texture;
+                } catch (error) {
+                    lastError = error;
+                    if (blobUrl) URL.revokeObjectURL(blobUrl);
+
+                    if (attempt >= maxRetries) break;
+
+                    const waitMs = delay * (attempt + 1);
+                    printLog(`Texture load failed; retry ${attempt + 1}/${maxRetries} in ${Math.round(waitMs / 1000)}s.`);
+                    console.warn("Texture load/retry error:", error);
+                    await new Promise(resolve => setTimeout(resolve, waitMs));
+                }
+            }
+
+            throw lastError || new Error("Texture loading failed.");
+        }
+
+        // --------------------------------------------------
+        // 6. BACKGROUND STAR FIELD (ONE DRAW CALL)
+        // --------------------------------------------------
+        function createStarField(count = 2500) {
+            const positions = new Float32Array(count * 3);
+            const colors = new Float32Array(count * 3);
+
+            for (let i = 0; i < count; i++) {
+                const k = i * 3;
+                positions[k] = (Math.random() - 0.5) * 450;
+                positions[k + 1] = (Math.random() - 0.5) * 300;
+                positions[k + 2] = -30 - Math.random() * 350;
+
+                const brightness = 0.45 + Math.random() * 0.55;
+                const tint = Math.random();
+                colors[k] = brightness;
+                colors[k + 1] = brightness * (0.8 + tint * 0.2);
+                colors[k + 2] = brightness;
+            }
+
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+
+            const material = new THREE.PointsMaterial({
+                size: 0.65,
+                vertexColors: true,
+                sizeAttenuation: true,
+                transparent: true,
+                opacity: 0.9,
+                depthWrite: false
+            });
+
+            const points = new THREE.Points(geometry, material);
+            points.name = "BackgroundStarField";
+            return points;
+        }
+
+        const starField = createStarField();
+        scene.add(starField);
+
+        // --------------------------------------------------
+        // 7. LOCAL FALLBACK WORLD CONFIGURATION
+        // --------------------------------------------------
         function generateFallbackWorld(commandText) {
+            const command = commandText.trim() || "Unknown Sector";
+            const isOrion = /orion|nebula/i.test(command);
+
             return {
-                sectorTitle: "SYSTEM FALLBACK: LOCAL MATRIX",
-                cameraPosition:,
-                cameraTarget:,
+                sectorTitle: command,
+                cameraPosition: [0, 7, 24],
+                cameraTarget: [0, 0, 0],
                 objects: [
-                    { name: "Fallback Delta", prompt: "rocky gas giant atmospheric storms texture map" },
-                    { name: "Fallback Epsilon", prompt: "arid desert crater dunes surface topography" }
+                    {
+                        name: "ExoPlanet-A",
+                        prompt: isOrion ? "molten planetary terrain" : "rocky planetary terrain",
+                        color: isOrion ? "#d9572b" : "#bd8050",
+                        radius: 2.5,
+                        position: [-4.5, 0, 0],
+                        seed: 101
+                    },
+                    {
+                        name: "ExoPlanet-B",
+                        prompt: "icy crystalline glacier terrain",
+                        color: "#55aaff",
+                        radius: 1.7,
+                        position: [3.5, 1, -2],
+                        seed: 202
+                    },
+                    {
+                        name: "ExoPlanet-C",
+                        prompt: "violet alien world terrain",
+                        color: "#9c62d6",
+                        radius: 1.15,
+                        position: [0, -3, 2],
+                        seed: 303
+                    }
                 ]
             };
         }
 
-        // --- 3. THE EXTRACTION SAFE RETRY MATRIX INTERCEPTOR ---
-        async function loadTextureWithRetry(url, maxRetries = 2, delay = 8000, isPollinations = false) {
-          for (let attempt = 0; attempt <= maxRetries; attempt++) {
-            let blobUrl = null;
-            try {
-              let finalUrl = url;
-
-              if (isPollinations) {
-                const response = await fetch(url);
-                if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
-                
-                const blob = await response.blob();
-                
-                // Rate-limit buffer tracking safeguard
-                if (blob.size > 1100000) {
-                  throw new Error("Pollinations rate-limit block image detected.");
-                }
-                
-                blobUrl = URL.createObjectURL(blob);
-                finalUrl = blobUrl;
-              }
-
-              const texture = await textureLoader.loadAsync(finalUrl);
-              if (blobUrl) URL.revokeObjectURL(blobUrl);
-              return texture;
-
-            } catch (err) {
-              if (blobUrl) URL.revokeObjectURL(blobUrl);
-              if (attempt === maxRetries) throw err;
-              
-              const penaltyDelay = attempt === 0 ? 15000 : delay * (attempt + 1);
-              console.warn(`Texture generation/load failed: "${err.message}". Retrying attempt ${attempt + 1} in ${penaltyDelay}ms...`);
-              printLog(`⚠️ Target block: Retry processing in ${penaltyDelay / 1000}s...`);
-              await new Promise(resolve => setTimeout(resolve, penaltyDelay));
+        // --------------------------------------------------
+        // 8. OPTIONAL AI CONFIGURATION FETCH
+        // --------------------------------------------------
+        // If CONFIG_API_ENDPOINT is set to your own backend URL, that backend
+        // should accept POST JSON { prompt: "..." } and return either the
+        // configuration directly or { config: configuration }. The backend
+        // is responsible for authentication and keeping provider API keys secret.
+        function validateWorldConfig(config) {
+            if (!config || typeof config !== "object" || !Array.isArray(config.objects)) {
+                throw new Error("Configuration must contain an objects array.");
             }
-          }
+            if (config.objects.length > 100) {
+                throw new Error("Configuration exceeds the 100-object safety limit.");
+            }
+
+            const validVector = value => Array.isArray(value) && value.length === 3 &&
+                value.every(n => typeof n === "number" && Number.isFinite(n));
+
+            if (config.cameraPosition !== undefined && !validVector(config.cameraPosition)) {
+                throw new Error("cameraPosition must be an array of three finite numbers.");
+            }
+            if (config.cameraTarget !== undefined && !validVector(config.cameraTarget)) {
+                throw new Error("cameraTarget must be an array of three finite numbers.");
+            }
+
+            for (const object of config.objects) {
+                if (!object || typeof object !== "object") {
+                    throw new Error("An object entry is invalid.");
+                }
+                if (object.position !== undefined && !validVector(object.position)) {
+                    throw new Error(`Invalid position for ${object.name || "unnamed object"}.`);
+                }
+                if (object.radius !== undefined && (!Number.isFinite(object.radius) || object.radius <= 0)) {
+                    throw new Error(`Invalid radius for ${object.name || "unnamed object"}.`);
+                }
+                if (object.textureUrl !== undefined) {
+                    try {
+                        const parsed = new URL(object.textureUrl, window.location.href);
+                        if (!["http:", "https:"].includes(parsed.protocol)) {
+                            throw new Error("Only HTTP(S) texture URLs are allowed.");
+                        }
+                    } catch {
+                        throw new Error(`Invalid textureUrl for ${object.name || "unnamed object"}.`);
+                    }
+                }
+            }
+
+            return config;
         }
 
-        // --- 4. THE APPLY WORLD CONFIGURATION PIPELINE MAPPED TO YOUR INPUTS ---
-        async function applyWorldConfig(config) {
-          // Dispose of older array groups to free GPU memory footprint
-          while (systemGroup.children.length > 0) {
-            const obj = systemGroup.children;
-            if (obj.geometry) obj.geometry.dispose();
-            if (obj.material) {
-              if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
-              else obj.material.dispose();
+        async function generateWorldConfig(command) {
+            if (!CONFIG_API_ENDPOINT) {
+                printLog("Using local procedural configuration (no AI endpoint configured).");
+                return generateFallbackWorld(command);
             }
-            systemGroup.remove(obj);
-          }
 
-          activeAnimatedMeshes = [];
+            printLog("Requesting sector configuration from configured backend...");
 
-          if (config.cameraPosition && config.cameraTarget) {
-            const [cx, cy, cz] = config.cameraPosition;
-            const [tx, ty, tz] = config.cameraTarget;
-            camera.position.set(cx, cy, cz);
-            camera.lookAt(tx, ty, tz);
-          }
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 45000);
+
+            try {
+                const response = await fetch(CONFIG_API_ENDPOINT, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ prompt: buildPromptText(command), command }),
+                    signal: controller.signal
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Configuration API returned HTTP ${response.status}.`);
+                }
+
+                const data = await response.json();
+                const config = data.config || data;
+                return validateWorldConfig(config);
+            } finally {
+                clearTimeout(timeoutId);
+            }
+        }
+
+        // --------------------------------------------------
+        // 9. DISPOSE OLD GENERATED OBJECTS SAFELY
+        // --------------------------------------------------
+        function disposeObject(object) {
+            const disposedGeometries = new Set();
+            const disposedMaterials = new Set();
+            const disposedTextures = new Set();
+
+            object.traverse(child => {
+                if (child.geometry && !disposedGeometries.has(child.geometry)) {
+                    disposedGeometries.add(child.geometry);
+                    child.geometry.dispose();
+                }
+
+                if (!child.material) return;
+                const materials = Array.isArray(child.material) ? child.material : [child.material];
+
+                for (const material of materials) {
+                    if (!material || disposedMaterials.has(material)) continue;
+                    disposedMaterials.add(material);
+
+                    for (const value of Object.values(material)) {
+                        if (value && value.isTexture && !disposedTextures.has(value)) {
+                            disposedTextures.add(value);
+                            value.dispose();
+                        }
+                    }
+                    material.dispose();
+                }
+            });
+        }
+
+        function clearSystemGroup() {
+            activeAnimatedMeshes.length = 0;
+            while (systemGroup.children.length > 0) {
+                const child = systemGroup.children[0];
+                systemGroup.remove(child);
+                disposeObject(child);
+            }
+        }
+
+        // --------------------------------------------------
+        // 10. CREATE A PLANET AND ATMOSPHERE
+        // --------------------------------------------------
+        async function createPlanet(config) {
+            const radius = THREE.MathUtils.clamp(Number(config.radius) || 1.5, 0.25, 10);
+            const color = typeof config.color === "string" ? config.color : "#557799";
+
+            let texture = createPlanetTexture(color, Number(config.seed) || 1);
+
+            if (typeof config.textureUrl === "string" && config.textureUrl.trim()) {
+                try {
+                    const remoteTexture = await loadTextureWithRetry(
+                        config.textureUrl,
+                        2,
+                        1500,
+                        config.useFetchBlob === true
+                    );
+                    texture.dispose();
+                    texture = remoteTexture;
+                    printLog(`External texture loaded: ${config.name || "Unnamed Planet"}`);
+                } catch (error) {
+                    printLog(`External texture unavailable; procedural texture retained for ${config.name || "planet"}.`);
+                    console.warn("External texture error:", error);
+                }
+            }
+
+            const geometry = new THREE.SphereGeometry(radius, 64, 48);
+            const material = new THREE.MeshStandardMaterial({
+                map: texture,
+                roughness: 0.88,
+                metalness: 0.02
+            });
+
+            const planet = new THREE.Mesh(geometry, material);
+            planet.name = typeof config.name === "string" ? config.name : "Unnamed Planet";
+
+            const p = Array.isArray(config.position) ? config.position : [0, 0, 0];
+            planet.position.set(p[0] || 0, p[1] || 0, p[2] || 0);
+            planet.rotation.set(Math.random() * 0.4, Math.random() * Math.PI * 2, Math.random() * 0.2);
+            systemGroup.add(planet);
+            activeAnimatedMeshes.push(planet);
+
+            const glow = new THREE.Mesh(
+                new THREE.SphereGeometry(radius * 1.08, 32, 24),
+                new THREE.MeshBasicMaterial({
+                    color,
+                    transparent: true,
+                    opacity: 0.10,
+                    side: THREE.BackSide,
+                    depthWrite: false
+                })
+            );
+            glow.name = `${planet.name}-Atmosphere`;
+            planet.add(glow);
+
+            printLog(`Planet initialized: ${planet.name}`);
+        }
+
+        // --------------------------------------------------
+        // 11. APPLY CONFIGURATION TO SCENE
+        // --------------------------------------------------
+        function isValidVector3(value) {
+            return Array.isArray(value) && value.length === 3 &&
+                value.every(n => typeof n === "number" && Number.isFinite(n));
+        }
+
+        async function applyWorldConfig(config) {
+            validateWorldConfig(config);
+            clearSystemGroup();
+
+            if (isValidVector3(config.cameraPosition) && isValidVector3(config.cameraTarget)) {
+                camera.position.fromArray(config.cameraPosition);
+                camera.lookAt(new THREE.Vector3().fromArray(config.cameraTarget));
+                camera.updateProjectionMatrix();
+            }
+
+            const title = typeof config.sectorTitle === "string" ? config.sectorTitle : "Unknown Sector";
+            hudStatusEl.textContent = title;
+            setStatus("BUILDING WORLD");
+
+            for (const objectConfig of config.objects) {
+                await createPlanet(objectConfig);
+            }
+
+            setStatus("WORLD ONLINE");
+            printLog(`Sector loaded: ${title}`);
+            printLog(`${activeAnimatedMeshes.length} planetary objects initialized.`);
+        }
+
+        // --------------------------------------------------
+        // 12. FULL COMMAND PIPELINE
+        // --------------------------------------------------
+        async function triggerPipeline() {
+            if (isGenerating) return;
+
+            const command = commandInput.value.trim();
+            if (!command) {
+                printLog("ERROR: Enter a sector destination first.");
+                commandInput.focus();
+                return;
+            }
+
+            isGenerating = true;
+            execBtn.disabled = true;
+
+            try {
+                setStatus("PROCESSING");
+                hudStatusEl.textContent = "GENERATING SECTOR";
+                printLog(`Destination received: ${command}`);
+                printLog("Preparing configuration...");
+
+                const config = await generateWorldConfig(command);
+                await applyWorldConfig(config);
+
+                speakText(`Sector ${command} successfully initialized.`);
+            } catch (error) {
+                console.error("Generation pipeline failed:", error);
+                setStatus("GENERATION FAILED");
+                printLog(`ERROR: ${error.message || error}`);
+            } finally {
+                isGenerating = false;
+                execBtn.disabled = false;
+            }
+        }
+
+        execBtn.addEventListener("click", triggerPipeline);
+        commandInput.addEventListener("keydown", event => {
+            if (event.key === "Enter") triggerPipeline();
+        });
+
+        // --------------------------------------------------
+        // 13. ANIMATION LOOP
+        // --------------------------------------------------
+        const clock = new THREE.Clock();
+
+        function animate() {
+            if (isDisposed) return;
+            animationFrameId = requestAnimationFrame(animate);
+
+            const delta = Math.min(clock.getDelta(), 0.05);
+            const elapsed = clock.elapsedTime;
+
+            for (const planet of activeAnimatedMeshes) {
+                planet.rotation.y += delta * 0.12;
+            }
+
+            starField.rotation.y = elapsed * 0.0015;
+            starField.rotation.x = Math.sin(elapsed * 0.03) * 0.01;
+            blueRimLight.position.x = -12 + Math.sin(elapsed * 0.15) * 2;
+            violetLight.position.x = 4 + Math.cos(elapsed * 0.12) * 2;
+
+            renderer.render(scene, camera);
+        }
+
+        // --------------------------------------------------
+        // 14. RESPONSIVE RESIZE
+        // --------------------------------------------------
+        function handleResize() {
+            const width = window.innerWidth;
+            const height = Math.max(window.innerHeight, 1);
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        }
+
+        window.addEventListener("resize", handleResize);
+
+        // --------------------------------------------------
+        // 15. SHUTDOWN / CLEANUP
+        // --------------------------------------------------
+        window.addEventListener("pagehide", () => {
+            isDisposed = true;
+            if (animationFrameId !== null) cancelAnimationFrame(animationFrameId);
+            if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+            clearSystemGroup();
+            starField.geometry.dispose();
+            starField.material.dispose();
+            renderer.dispose();
+        }, { once: true });
+
+        // --------------------------------------------------
+        // 16. BOOT
+        // --------------------------------------------------
+        async function bootEngine() {
+            try {
+                setStatus("INITIALIZING");
+                printLog("Initializing Three.js renderer...");
+                printLog("Creating background star field...");
+                await applyWorldConfig(generateFallbackWorld("Orion Nebula Core"));
+                animate();
+                printLog("3D rendering pipeline online.");
+                printLog("Awaiting sector commands...");
+            } catch (error) {
+                console.error("Engine boot failed:", error);
+                setStatus("BOOT FAILED");
+                printLog(`BOOT ERROR: ${error.message || error}`);
+            }
+        }
+
+        bootEngine();
+    </script>
+</body>
+</html>
