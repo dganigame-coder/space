@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>3D Planetary Space Engine Deck</title>
-    <!-- Import Three.js via CDN -->
-    <script src="https://cloudflare.com"></script>
+    <!-- ✅ EXCHANGED: Swapped out Cloudflare CDN for unpkg repository package stream link -->
+    <script src="https://unpkg.com"></script>
     <style>
         body {
             margin: 0;
@@ -249,7 +249,7 @@
         async function applyWorldConfig(config) {
           // Dispose of older array groups to free GPU memory footprint
           while (systemGroup.children.length > 0) {
-            const obj = systemGroup.children[0];
+            const obj = systemGroup.children;
             if (obj.geometry) obj.geometry.dispose();
             if (obj.material) {
               if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
@@ -266,4 +266,3 @@
             camera.position.set(cx, cy, cz);
             camera.lookAt(tx, ty, tz);
           }
-
