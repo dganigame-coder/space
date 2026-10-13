@@ -48,7 +48,6 @@ async function discoverGeminiModels() {
     
     const data = await res.json();
     if (data && data.models) {
-      // Filter for generative content models while excluding specialized non-chat endpoints
       const validModels = data.models
         .filter(m => 
           m.supportedGenerationMethods?.includes('generateContent') &&
@@ -66,7 +65,6 @@ async function discoverGeminiModels() {
 
       // Sort models from NEWEST (First) to OLDEST (Last)
       validModels.sort((a, b) => {
-        // 1. Extract numeric version numbers from model IDs (e.g., 4.0, 3.8, 3.5, 2.5)
         const getVer = (str) => {
           const match = str.match(/(\d+(\.\d+)?)/);
           return match ? parseFloat(match[0]) : 0;
@@ -76,10 +74,9 @@ async function discoverGeminiModels() {
         const vB = getVer(b.id);
 
         if (vA !== vB) {
-          return vB - vA; // Higher major version number prioritized first
+          return vB - vA;
         }
 
-        // 2. Extract MM-YYYY release date stamps if version numbers are equal (e.g., "-08-2026" vs "-05-2026")
         const getDateVal = (str) => {
           const match = str.match(/(\d{2})-(\d{4})/);
           if (match) return parseInt(match[2]) * 100 + parseInt(match[1]);
@@ -90,10 +87,9 @@ async function discoverGeminiModels() {
         const dateB = getDateVal(b.versionString);
 
         if (dateA !== dateB) {
-          return dateB - dateA; // More recent release date prioritized first
+          return dateB - dateA;
         }
 
-        // 3. Speed priority tie-breaker: Flash models prioritized over Pro for telemetry
         const aFlash = a.id.includes('flash') ? 1 : 0;
         const bFlash = b.id.includes('flash') ? 1 : 0;
         return bFlash - aFlash;
@@ -102,7 +98,7 @@ async function discoverGeminiModels() {
       if (validModels.length > 0) {
         dynamicModelQueue = validModels.map(m => m.id);
         console.log("Successfully compiled newest-first Gemini model waterfall:", dynamicModelQueue);
-        speakText("Astrometric telemetry online. Dynamic neural model queue synchronized to latest generation matrix.");
+        speakText("Astrometric telemetry online. Subspace neural calibration sequence complete.");
       }
     }
   } catch (err) {
@@ -155,7 +151,6 @@ function initThreeJS() {
   renderer.setSize(container.clientWidth, container.clientHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-  // --- CINEMATIC PHOTOREALISM SETTINGS ---
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.2;
@@ -165,7 +160,6 @@ function initThreeJS() {
   systemGroup = new THREE.Group();
   scene.add(systemGroup);
 
-  // Dynamic Scene Lighting
   const dirLight = new THREE.DirectionalLight(0xffffff, 2.5);
   dirLight.position.set(20, 15, 20);
   scene.add(dirLight);
@@ -175,7 +169,6 @@ function initThreeJS() {
 
   scene.fog = new THREE.FogExp2(0x02040a, 0.012);
 
-  // Initial Default Placeholder Object
   const geo = new THREE.SphereGeometry(2.0, 64, 64);
   const planetMaterial = new THREE.MeshStandardMaterial({ 
     color: 0x38bdf8, 
@@ -190,7 +183,6 @@ function initThreeJS() {
     runtimeFn: new Function('mesh', 'time', 'mesh.rotation.y += 0.003;')
   });
 
-  // Immersive Starfield
   const starGeo = new THREE.BufferGeometry();
   const starCount = 5000;
   const starPos = new Float32Array(starCount * 3);
@@ -209,7 +201,6 @@ function initThreeJS() {
   });
 }
 
-// --- DYNAMIC GEOMETRY FACTORY ---
 function createDynamicGeometry(type, args) {
   const p = args || [];
   switch (type ? type.toLowerCase() : 'sphere') {
@@ -233,7 +224,6 @@ function createDynamicGeometry(type, args) {
   }
 }
 
-// --- AUDIO SYNTHESIS & VOICE OUTPUT ---
 function initWebAudio() {
   if (audioInitialized) return;
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -269,7 +259,7 @@ function speakText(text) {
   window.speechSynthesis.speak(utterance);
 }
 
-// --- PROCESS COMMAND & RUNTIME NEWEST-FIRST MODEL WATERFALL ---
+// --- PROCESS COMMAND & SILENT CALIBRATION WATERFALL ---
 async function processCommand(commandText) {
   const transcriptEl = document.getElementById('transcript');
   const hudStatusEl = document.getElementById('hud-nav-status');
@@ -283,14 +273,13 @@ async function processCommand(commandText) {
 
   let worldConfig = null;
 
-  // 1. Iterate through the dynamically ordered model waterfall (Newest models first)
   if (geminiKey && dynamicModelQueue.length > 0) {
-    for (const model of dynamicModelQueue) {
+    for (let i = 0; i < dynamicModelQueue.length; i++) {
       try {
-        if (hudStatusEl) hudStatusEl.innerText = `UPLINK: ${model.toUpperCase()}`;
-        speakText(`Analyzing gravitational harmonics via neural channel ${model}.`);
+        if (hudStatusEl) hudStatusEl.innerText = `UPLINK: CALIBRATING...`;
+        speakText(`Calibrating spatial telemetry link.`);
 
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${dynamicModelQueue[i]}:generateContent?key=${geminiKey}`;
         const res = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -301,8 +290,8 @@ async function processCommand(commandText) {
         });
 
         if (res.status === 429 || res.status === 503) {
-          console.warn(`Model ${model} returned status ${res.status}. Cascading down waterfall...`);
-          speakText(`Navigation relay ${model} congested or unavailable. Rerouting through secondary subspace communication array.`);
+          console.warn(`Model returned status ${res.status}. Cascading down waterfall...`);
+          speakText(`Primary subspace relay congested. Recalibrating navigational frequency.`);
           continue; 
         }
 
@@ -318,12 +307,11 @@ async function processCommand(commandText) {
           break; 
         }
       } catch (err) {
-        console.warn(`Uplink error with model ${model}:`, err);
+        console.warn("Uplink calibration error:", err);
       }
     }
   }
 
-  // 2. Fallback to Pollinations Text Router
   if (!worldConfig) {
     speakText("Primary astrometric database unreachable. Engaging long-range archival database retrieval.");
     try {
@@ -349,7 +337,6 @@ async function processCommand(commandText) {
     }
   }
 
-  // 3. Final Safety Net: Local Procedural Generator
   if (!worldConfig) {
     speakText("External telemetry offline. Engaging internal stellar synthesis matrix.");
     worldConfig = generateFallbackWorld(commandText);
@@ -360,12 +347,10 @@ async function processCommand(commandText) {
 
   if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: SECURED_TARGET';
 
-  // Sync UI Telemetry
   if (titleEl && worldConfig.sectorTitle) titleEl.innerText = worldConfig.sectorTitle;
   if (loreEl && worldConfig.lore) loreEl.innerText = worldConfig.lore;
   if (worldConfig.audioParams) updateAudioSynth(worldConfig.audioParams);
 
-  // Update Live Code Window
   const codePreviewEl = document.getElementById('code-preview');
   if (codePreviewEl && worldConfig.objects) {
     codePreviewEl.innerText = worldConfig.objects
@@ -376,7 +361,6 @@ async function processCommand(commandText) {
   await applyWorldConfig(worldConfig);
 }
 
-// --- DETAILED AI PROMPT INSTRUCTIONS (STRICT SCIENTIFIC REALITY) ---
 function buildPromptText(commandText) {
   return `
 You are controlling an advanced 3D Real-Space Simulator Engine.
@@ -385,16 +369,14 @@ User Command: "${commandText}"
 CRITICAL SCIENTIFIC INTEGRITY RULE:
 - ALWAYS follow true astrophysical reality and actual space object data. 
 - DO NOT hallucinate fake or fictitious space objects, fictional planets, or imaginary moons unless explicitly requested by the user. 
-- If the user names a real planetary system or body (e.g., Mars, Saturn, Jupiter, Trappist-1, Earth), render its actual scientific layout accurately (e.g., Mars should be rendered alone as a single red planet unless major moons like Phobos/Deimos are scientifically relevant to the view; Saturn should feature its proper ring structure).
+- If the user names a real planetary system or body (e.g., Mars, Saturn, Jupiter, Trappist-1, Earth), render its actual scientific layout accurately.
 
 Rules:
 1. "objects": Return an array of 3D objects reflecting true spatial distribution.
-   - For a single planetary body (e.g., "Mars"), return an array with exactly ONE primary object representing that body to avoid redundant satellite placement.
-   - For multi-body systems (e.g., "Saturnian System"), include verified moons or rings at correct relative offsets.
 2. "geometryType": Choose from "sphere", "torus", "disk", "icosahedron".
-3. "color": Provide a scientifically accurate HEX color code (e.g., "#b9774e" for Mars, "#38bdf8" for Earth).
+3. "color": Provide a scientifically accurate HEX color code.
 4. "cameraPosition" & "cameraTarget": Position camera wide enough to frame the celestial body cleanly.
-5. "prompt": Provide extremely descriptive, photorealistic texture prompts for Pollinations AI based on real planetary geology and imagery.
+5. "prompt": Provide descriptive texture prompts.
 
 Return ONLY valid raw JSON:
 {
@@ -412,7 +394,7 @@ Return ONLY valid raw JSON:
       "color": "#b9774e",
       "emissive": false,
       "emissiveColor": "#ffaa00",
-      "prompt": "hyperrealistic satellite map texture of Mars surface, rusty iron oxide dunes, realistic topography",
+      "prompt": "hyperrealistic satellite map texture",
       "runtimeJs": "mesh.rotation.y += 0.002;"
     }
   ],
@@ -421,7 +403,6 @@ Return ONLY valid raw JSON:
 `;
 }
 
-// --- SAFE BLOB-GUARDED TEXTURE LOADER WITH ADAPTIVE RETRY PENALTIES ---
 async function loadTextureWithRetry(url, maxRetries = 2, delay = 8000, isPollinations = false) {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     let blobUrl = null;
@@ -461,7 +442,6 @@ async function loadTextureWithRetry(url, maxRetries = 2, delay = 8000, isPollina
 async function applyWorldConfig(config) {
   const hudStatusEl = document.getElementById('hud-nav-status');
 
-  // 1. Clear old scene items
   while (systemGroup.children.length > 0) {
     const obj = systemGroup.children[0];
     if (obj.geometry) obj.geometry.dispose();
@@ -488,20 +468,20 @@ async function applyWorldConfig(config) {
 
   const spaceObjects = config.objects || [config];
 
-  // 2. Pre-load each object's texture sequentially with 1-to-1 safety and hard cooldowns
   for (let i = 0; i < spaceObjects.length; i++) {
     const objConfig = spaceObjects[i];
     
-    const spaceSpeech = `Approaching orbital perimeter of ${objConfig.name}. Calibrating surface albedo and atmospheric data maps. Please maintain subspace stabilization.`;
+    const spaceSpeech = `Calibrating surface albedo and planetary topography maps for ${objConfig.name}.`;
     if (hudStatusEl) hudStatusEl.innerText = `MAPPING: ${objConfig.name.toUpperCase()}`;
     speakText(spaceSpeech);
 
     let texUrl = null;
     if (objConfig.customTextureUrl) {
-      texUrl = objConfig.customTextureUrl; // Real NASA SkyView image
+      texUrl = objConfig.customTextureUrl;
     } else if (objConfig.prompt) {
-      const enhancedPrompt = encodeURIComponent(`${objConfig.prompt}, 4k resolution, highly detailed photorealistic space texture map, seamless equirectangular`);
-      texUrl = `https://image.pollinations.ai/prompt/${enhancedPrompt}?width=1024&height=512&nologo=true&model=flux&seed=${Math.floor(Math.random()*99999)}`;
+      // Enforce clean, flat equirectangular texture mapping with zero background elements or extra clutter
+      const cleanPrompt = encodeURIComponent(`${objConfig.prompt}, flat equirectangular seamless texture map, pure planetary surface topography only, zero background stars, zero lighting effects, zero framing, high-resolution game asset`);
+      texUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=1024&height=512&nologo=true&model=flux&seed=${Math.floor(Math.random()*99999)}`;
     }
 
     if (texUrl) {
@@ -512,13 +492,11 @@ async function applyWorldConfig(config) {
         tex.colorSpace = THREE.SRGBColorSpace;
         tex.needsUpdate = true;
         objConfig.preloadedTex = tex;
-        console.log(`Successfully pre-loaded texture for: ${objConfig.name}`);
       } catch (err) {
         console.warn(`Texture load failed for ${objConfig.name} after retries, keeping fallback color.`, err);
         objConfig.preloadedTex = null;
       }
 
-      // Hard cooldown pause between requests to completely prevent 402 errors
       if (i < spaceObjects.length - 1) {
         if (hudStatusEl) hudStatusEl.innerText = `COOLDOWN: STABILIZING ORBIT...`;
         await new Promise(resolve => setTimeout(resolve, 8500));
@@ -534,7 +512,6 @@ async function applyWorldConfig(config) {
     speakText(config.speechResponse);
   }
 
-  // 3. NOW spawn all objects together into the scene with their guaranteed matching textures!
   spaceObjects.forEach((objConfig) => {
     const geom = createDynamicGeometry(objConfig.geometryType, objConfig.geometryArgs);
 
@@ -599,14 +576,13 @@ function generateFallbackWorld(input) {
       color: baseColor,
       emissive: isEmissive,
       emissiveColor: baseColor,
-      prompt: `photorealistic 4k space surface texture map of ${input}`,
+      prompt: `photorealistic surface texture map of ${input}`,
       runtimeJs: `mesh.rotation.y += 0.01;`
     }],
     audioParams: { baseFreq: 60.0, filterCutoff: 450.0, lfoRate: 1.5 }
   };
 }
 
-// --- CONTROLS, VOICE & FULLSCREEN SETUP ---
 function setupControls() {
   const micBtn = document.getElementById('mic-btn');
   const manualInput = document.getElementById('manual-input');
@@ -680,7 +656,6 @@ function setupControls() {
   }
 }
 
-// --- RENDER LOOP ---
 function animate(time) {
   requestAnimationFrame(animate);
   const t = time * 0.001;
