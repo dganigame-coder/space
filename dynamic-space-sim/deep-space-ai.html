@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Autonomous NASA 3D Explorer with Dual Waterfall System</title>
+    <title>Autonomous NASA 3D Explorer with Resilient Proxy Fallback</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -138,7 +138,7 @@
 
         <div class="math-box">
             <strong>Active Physics Engine:</strong><br>
-            Spherical-to-Cartesian Mapping & Dual Waterfall Cascades Active.
+            Spherical-to-Cartesian Mapping & Resilient Proxy Waterfall Active.
         </div>
     </div>
 
@@ -248,7 +248,7 @@
             throw new Error(`All waterfall models failed: ${lastError?.message}`);
         }
 
-        // --- NASA CORS PROXY WATERFALL WITH OFFLINE ARCHIVAL FALLBACK ---
+        // --- BULLETPROOF NASA FETCH WITH STRICT STATUS & ARCHIVAL FALLBACK ---
         async function fetchNASAWithProxy(targetUrl) {
             const proxyBuilders = [
                 (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
@@ -258,17 +258,20 @@
             for (const buildProxyUrl of proxyBuilders) {
                 try {
                     const res = await fetch(buildProxyUrl(targetUrl));
-                    if (res.ok) {
-                        const data = await res.json();
-                        if (Array.isArray(data) && data.length > 0) return data;
+                    if (!res.ok) {
+                        throw new Error(`Proxy responded with status ${res.status}`);
+                    }
+                    const data = await res.json();
+                    if (Array.isArray(data) && data.length > 0) {
+                        return data;
                     }
                 } catch (e) {
-                    console.warn("CORS proxy endpoint failed, cascading to next proxy...", e);
+                    console.warn("CORS proxy endpoint failed or blocked, trying next option...", e.message);
                 }
             }
 
-            // Ultimate offline backup dataset so the simulation never breaks
-            console.warn("All external CORS proxies blocked. Loading reliable emergency archival exoplanet dataset.");
+            // Fallback dataset if all external proxies fail or are blocked by browser/firewall
+            console.warn("External proxies unavailable. Loading built-in offline archival exoplanet dataset.");
             return [
                 { pl_name: "Kepler-186 f", hostname: "Kepler-186", ra: 299.1, dec: 43.9, sy_dist: 178.5, pl_eqt: 233, st_teff: 3788, st_rad: 0.47, pl_bmasse: 1.17 },
                 { pl_name: "TRAPPIST-1 e", hostname: "TRAPPIST-1", ra: 346.6, dec: -5.0, sy_dist: 12.1, pl_eqt: 251, st_teff: 2566, st_rad: 0.12, pl_bmasse: 0.69 },
@@ -311,13 +314,12 @@
                 const params = JSON.parse(jsonMatch[0]);
                 agentLog.textContent = `[Mission Briefing]: ${params.briefing}\n\n[Sector Bounds]: RA [${params.raMin}°-${params.raMax}°], Dec [${params.decMin}°-${params.decMax}°]`;
 
-                statusBar.textContent = "📡 Querying NASA TAP database via Proxy Waterfall...";
+                statusBar.textContent = "📡 Fetching celestial telemetry...";
                 
                 const adqlQuery = `select top ${params.maxRecords || 80} pl_name, hostname, ra, dec, sy_dist, pl_eqt, st_teff, st_rad, pl_bmasse from ps where sy_dist is not null and ra between ${params.raMin} and ${params.raMax} and dec between ${params.decMin} and ${params.decMax} and pl_eqt is not null`;
                 
                 const targetNasaUrl = `https://exoplanetarchive.ipac.caltech.edu/TAP/sync?query=${encodeURIComponent(adqlQuery)}&format=json`;
                 
-                // Fetch using proxy waterfall (with automatic archival fallback)
                 const spaceObjects = await fetchNASAWithProxy(targetNasaUrl);
                 statusBar.textContent = `✨ Successfully rendered ${spaceObjects.length} celestial systems!`;
 
