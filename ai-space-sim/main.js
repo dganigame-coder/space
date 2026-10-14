@@ -183,7 +183,9 @@ function createInitialPlanet() {
   const planetMaterial = new THREE.MeshStandardMaterial({ 
     color: 0x197da8, 
     roughness: 0.55, 
-    metalness: 0.05 
+    metalness: 0.05,
+    transparent: true,
+    opacity: 1.0
   });
   const planet = new THREE.Mesh(geo, planetMaterial);
   planet.name = 'Starter World';
@@ -298,16 +300,15 @@ function createDynamicGeometry(type, args) {
   const p = args || [];
   switch (type ? type.toLowerCase() : 'sphere') {
     case 'torus':
-    case 'blackhole':
+      return new THREE.TorusGeometry(p[0] || 3.2, p[1] || 0.25, p[2] || 32, p[3] || 128);
+    case 'disk':
+    case 'ring':
     case 'ring_world':
-      return new THREE.TorusGeometry(p[0] || 2.5, p[1] || 0.4, p[2] || 32, p[3] || 128);
+      return new THREE.RingGeometry(p[0] || 2.4, p[1] || 4.8, p[2] || 128);
     case 'icosahedron':
     case 'crystal':
     case 'asteroid':
       return new THREE.IcosahedronGeometry(p[0] || 2.0, p[1] || 2);
-    case 'disk':
-    case 'quasar_core':
-      return new THREE.RingGeometry(p[0] || 0.4, p[1] || 4.5, p[2] || 64);
     case 'sphere':
     default:
       return new THREE.SphereGeometry(p[0] || 2.0, p[1] || 64, p[2] || 48);
@@ -450,41 +451,55 @@ async function processCommand(commandText) {
   applyWorldConfig(worldConfig);
 }
 
-// Object-Specific Detailed Prompt Engineering for Maximum Variety & Realism
+// Upgraded Prompt with Explicit Multi-Part Ring Instructions
 function buildPromptText(commandText) {
   return `
 You are an advanced 3D Real-Space Simulator Engine and Principal Planetary Scientist.
 User Command: "${commandText}"
 
-CRITICAL SCIENTIFIC INTEGRITY & VISUAL VARIETY:
-- Follow true astrophysical reality. If the user asks for Saturn, render Saturn with its specific ring structure. If they ask for a Star, render a luminous plasma sphere. If they ask for an icy moon, render fractured ice sheets.
-- CRITICAL: Every object in the "objects" array MUST have a unique, highly detailed "prompt" field describing its specific visual features (e.g., gas giant storm bands, rocky cratered highlands, glowing stellar corona, or icy tectonic fractures). Never use generic prompts.
+CRITICAL SCIENTIFIC INTEGRITY & STRUCTURE RULES:
+- Follow true astrophysical reality. 
+- FOR RINGED PLANETS (like Saturn): You MUST return MULTIPLE objects in the "objects" array: 
+  1. The central planetary body sphere (e.g., Saturn core).
+  2. A separate companion object with geometryType "disk" or "torus", matching the planet's position, rotated horizontally (rotation.x = 1.57 or similar via setup), representing the luminous ring system.
+- Every object in the "objects" array MUST have a unique, highly detailed "prompt" field describing its exact visual appearance.
 
 Return ONLY valid raw JSON:
 {
   "sectorTitle": "Sector Name",
   "lore": "Detailed scientific telemetry explanation.",
   "speechResponse": "Concise voice announcement sentence for arrival.",
-  "cameraPosition": [14, 6, 22],
+  "cameraPosition": [16, 8, 24],
   "cameraTarget": [0, 0, 0],
   "objects": [
     {
-      "name": "Object Name",
+      "name": "Planet Name",
       "geometryType": "sphere",
       "geometryArgs": [2.0, 64, 48],
       "position": [0, 0, 0],
-      "color": "#38bdf8",
+      "color": "#e2bb75",
       "emissive": false,
-      "emissiveColor": "#ffaa00",
-      "emissiveIntensity": 0,
       "roughness": 0.45,
       "metalness": 0.08,
-      "prompt": "Detailed visual description unique to this specific object",
+      "prompt": "Saturn gas giant golden storm bands, turbulent cloud layers",
       "animationType": "spin",
-      "animationSpeed": 0.05
+      "animationSpeed": 0.04
+    },
+    {
+      "name": "Planet Rings",
+      "geometryType": "disk",
+      "geometryArgs": [2.6, 5.2, 96],
+      "position": [0, 0, 0],
+      "color": "#c4a47c",
+      "emissive": false,
+      "roughness": 0.3,
+      "metalness": 0.2,
+      "prompt": "icy planetary ring system particle belt, rocky ice chunks texture",
+      "animationType": "spin",
+      "animationSpeed": 0.02
     }
   ],
-  "audioParams": { "baseFreq": 60.0, "filterCutoff": 400.0, "lfoRate": 1.0 }
+  "audioParams": { "baseFreq": 55.0, "filterCutoff": 380.0, "lfoRate": 1.0 }
 }
 `;
 }
@@ -509,7 +524,7 @@ async function loadTextureWithRetry(url, maxRetries = 2, delay = 4000) {
   }
 }
 
-// --- INSTANT SECTOR MATERIALIZATION & BACKGROUND 2K STREAMING ---
+// --- INSTANT MATERIALIZATION WITH SMOOTH HOLOGRAPHIC FADE-IN ---
 function applyWorldConfig(config) {
   const hudStatusEl = document.getElementById('hud-nav-status');
 
@@ -553,20 +568,28 @@ function applyWorldConfig(config) {
   if (hudStatusEl) hudStatusEl.innerText = `PROTOCOL: MATERIALIZING SECTOR`;
   if (config.speechResponse) speakText(config.speechResponse);
 
-  // Instant Spawn: Materialize all objects immediately with PBR styling
   spaceObjects.forEach((objConfig) => {
     const geom = createDynamicGeometry(objConfig.geometryType, objConfig.geometryArgs);
+    
+    // Start with low opacity (holographic ghost state) to eliminate jarring pop-ins
     const mat = new THREE.MeshStandardMaterial({
       color: new THREE.Color(objConfig.color || 0x38bdf8),
       roughness: objConfig.roughness || 0.4,
       metalness: objConfig.metalness || 0.1,
       emissive: objConfig.emissive ? new THREE.Color(objConfig.emissiveColor || 0xffaa00) : 0x000000,
-      emissiveIntensity: objConfig.emissive ? (objConfig.emissiveIntensity || 0.9) : 0
+      emissiveIntensity: objConfig.emissive ? (objConfig.emissiveIntensity || 0.9) : 0,
+      transparent: true,
+      opacity: 0.15 // Fades in smoothly as textures arrive
     });
 
     const mesh = new THREE.Mesh(geom, mat);
     if (objConfig.position && Array.isArray(objConfig.position)) {
       mesh.position.set(...objConfig.position);
+    }
+
+    // Orient ring systems properly
+    if (objConfig.geometryType === 'disk' || objConfig.geometryType === 'ring') {
+      mesh.rotation.x = Math.PI / 2;
     }
 
     if (objConfig.geometryType === 'sphere' && !objConfig.emissive) {
@@ -581,26 +604,31 @@ function applyWorldConfig(config) {
       speed: objConfig.animationSpeed || 0.05
     });
 
-    // Stream 2K object-specific textures asynchronously in the background
+    // Stream 2K texture in background and cross-fade opacity to 1.0 upon arrival
     if (objConfig.prompt || objConfig.customTextureUrl) {
-      loadTextureAsync(mesh, objConfig);
+      loadTextureWithFade(mesh, objConfig);
+    } else {
+      // If no texture needed, fade straight to full opacity
+      fadeInMesh(mesh);
     }
   });
 
   if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: SECURED_TARGET';
 }
 
-async function loadTextureAsync(mesh, objConfig) {
+async function loadTextureWithFade(mesh, objConfig) {
   let texUrl = objConfig.customTextureUrl;
   if (!texUrl && objConfig.prompt) {
-    // 2K Resolution (2048x1024) with object-specific prompt and seamless equirectangular mapping
     const specificPrompt = encodeURIComponent(
       `${objConfig.prompt}, flat equirectangular seamless texture map, pure surface topography only, micro-surface relief, high-frequency textural detail, crisp albedo, zero background stars, zero lighting effects, zero framing, high-resolution game asset`
     );
     texUrl = `https://image.pollinations.ai/prompt/${specificPrompt}?width=2048&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 99999)}`;
   }
 
-  if (!texUrl) return;
+  if (!texUrl) {
+    fadeInMesh(mesh);
+    return;
+  }
 
   try {
     const texture = await loadTextureWithRetry(texUrl, 2, 4000);
@@ -611,9 +639,25 @@ async function loadTextureAsync(mesh, objConfig) {
       mesh.material.color.set(0xffffff);
       mesh.material.needsUpdate = true;
     }
+    fadeInMesh(mesh);
   } catch (err) {
-    console.warn(`Background texture stream failed for ${objConfig.name}, keeping PBR fallback color.`);
+    console.warn(`Background texture stream failed for ${objConfig.name}, keeping PBR fallback.`);
+    fadeInMesh(mesh);
   }
+}
+
+// Smoothly cross-fades object opacity from ghost state to crystal clear 1.0
+function fadeInMesh(mesh) {
+  let currentOpacity = mesh.material.opacity;
+  const fadeInterval = setInterval(() => {
+    currentOpacity += 0.08;
+    if (currentOpacity >= 1.0) {
+      mesh.material.opacity = 1.0;
+      clearInterval(fadeInterval);
+    } else {
+      mesh.material.opacity = currentOpacity;
+    }
+  }, 25);
 }
 
 function generateFallbackWorld(input) {
