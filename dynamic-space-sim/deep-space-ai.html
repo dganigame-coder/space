@@ -3,152 +3,227 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dynamic NASA 3D Space Coordinate Query Engine</title>
+    <title>Autonomous Gemini + NASA 3D Deep Space & Physics Engine</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { margin: 0; background-color: #030712; font-family: 'Inter', sans-serif; overflow: hidden; color: white; }
-        
-        #control-panel {
+        :root {
+            --bg-color: #030712;
+            --card-bg: rgba(17, 24, 39, 0.9);
+            --card-border: #1f2937;
+            --text-primary: #f9fafb;
+            --text-secondary: #9ca3af;
+            --accent-cyan: #38bdf8;
+            --accent-indigo: #818cf8;
+            --glow-color: rgba(56, 189, 248, 0.2);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        #webgl-container {
             position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(17, 24, 39, 0.9);
-            border: 1px solid #1f2937;
-            padding: 1.5rem;
-            border-radius: 12px;
-            backdrop-filter: blur(10px);
-            width: 320px;
+            top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1;
+        }
+
+        .hud-panel {
+            position: absolute;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(12px);
+            border-radius: 14px;
+            padding: 1.25rem;
             z-index: 10;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.6);
         }
 
-        h2 { font-size: 1rem; margin: 0 0 1rem 0; color: #38bdf8; }
-        
-        .input-group {
-            margin-bottom: 0.75rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        #control-panel {
+            top: 20px; right: 20px; width: 360px;
+            display: flex; flex-direction: column; gap: 0.75rem;
+            max-height: 90vh; overflow-y: auto;
         }
-
-        label { font-size: 0.8rem; color: #9ca3af; }
-        
-        input {
-            width: 90px;
-            background: #0b0f19;
-            border: 1px solid #374151;
-            color: white;
-            padding: 0.4rem;
-            border-radius: 6px;
-            text-align: center;
-        }
-
-        button {
-            width: 100%;
-            background: linear-gradient(135deg, #38bdf8, #818cf8);
-            color: #030712;
-            border: none;
-            padding: 0.7rem;
-            font-weight: 600;
-            border-radius: 6px;
-            cursor: pointer;
-            margin-top: 0.5rem;
-        }
-        button:hover { opacity: 0.9; }
 
         #info-panel {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            background: rgba(17, 24, 39, 0.85);
-            border: 1px solid #1f2937;
-            padding: 1.2rem;
-            border-radius: 10px;
-            pointer-events: none;
-            backdrop-filter: blur(8px);
-            max-width: 280px;
+            top: 20px; left: 20px; width: 340px; pointer-events: none;
         }
-        #info-panel h3 { font-size: 1rem; margin: 0 0 0.4rem 0; color: #38bdf8; }
-        #info-panel p { font-size: 0.8rem; margin: 0; color: #9ca3af; }
-        #status { font-size: 0.75rem; color: #34d399; margin-top: 0.5rem; text-align: center; }
+
+        #dossier-panel {
+            bottom: 20px; left: 20px; width: 450px; max-height: 45vh; overflow-y: auto;
+            display: none; border-color: var(--accent-cyan);
+        }
+
+        h2 { font-size: 1rem; color: var(--accent-cyan); display: flex; align-items: center; gap: 0.5rem; }
+        h3 { font-size: 1.05rem; color: var(--accent-cyan); margin-bottom: 0.3rem; }
+        
+        .input-group { display: flex; flex-direction: column; gap: 0.3rem; }
+        label { font-size: 0.75rem; color: var(--text-secondary); font-weight: 500; }
+
+        input, textarea {
+            background: #0b0f19; border: 1px solid var(--card-border);
+            color: var(--text-primary); padding: 0.6rem; border-radius: 8px;
+            font-size: 0.85rem; outline: none; font-family: 'Inter', sans-serif;
+        }
+        input:focus, textarea:focus { border-color: var(--accent-cyan); }
+        textarea { resize: vertical; height: 60px; }
+
+        button {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-indigo));
+            color: #030712; border: none; padding: 0.7rem; font-weight: 600;
+            border-radius: 8px; cursor: pointer; font-size: 0.9rem;
+            transition: opacity 0.2s, transform 0.1s;
+        }
+        button:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        .ai-log {
+            background: #0b0f19; border: 1px solid var(--card-border);
+            border-radius: 8px; padding: 0.75rem; font-size: 0.8rem;
+            color: var(--text-secondary); max-height: 110px; overflow-y: auto;
+            white-space: pre-wrap;
+        }
+
+        .math-box {
+            background: rgba(3, 7, 18, 0.7); border-left: 3px solid var(--accent-indigo);
+            padding: 0.5rem 0.75rem; margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-secondary);
+        }
+
+        #status-bar { font-size: 0.75rem; color: #34d399; text-align: center; font-weight: 500; }
+        .clickable-hint { font-size: 0.75rem; color: var(--accent-indigo); margin-top: 0.5rem; font-style: italic; }
     </style>
 </head>
 <body>
 
-    <div id="info-panel">
+    <div id="webgl-container"></div>
+
+    <!-- Quick Telemetry Inspector (Top Left) -->
+    <div id="info-panel" class="hud-panel">
         <h3 id="objectTitle">Deep Space Sector</h3>
-        <p id="objectDesc">Enter coordinates and query NASA's live TAP database.</p>
+        <p id="objectDesc" style="font-size: 0.825rem; color: var(--text-secondary);">Hover over any star node to inspect live telemetry. <strong>Click an object</strong> to generate a full AI Educational Dossier.</p>
     </div>
 
-    <div id="control-panel">
-        <h2>🌌 Query Sector Coordinates</h2>
-        <div class="input-group">
-            <label>RA Min / Max (°):</label>
-            <div>
-                <input type="number" id="raMin" value="0">
-                <input type="number" id="raMax" value="45">
-            </div>
+    <!-- Click-to-Explore AI Educational & Physics Dossier (Bottom Left) -->
+    <div id="dossier-panel" class="hud-panel">
+        <h3>🪐 AI Educational & Physics Dossier</h3>
+        <div id="dossierContent" style="font-size: 0.825rem; color: var(--text-secondary); white-space: pre-wrap; margin-top: 0.5rem;">
+            Click a celestial body in the 3D viewport to compute its physical model and stream an AI educational briefing.
         </div>
+    </div>
+
+    <!-- Gemini Mission Control Panel (Top Right) -->
+    <div id="control-panel" class="hud-panel">
+        <h2>🌌 Gemini AI Space Agent</h2>
+        
         <div class="input-group">
-            <label>Dec Min / Max (°):</label>
-            <div>
-                <input type="number" id="decMin" value="-20">
-                <input type="number" id="decMax" value="20">
-            </div>
+            <label for="apiKey">Gemini API Key</label>
+            <input type="password" id="apiKey" placeholder="AIzaSy...">
         </div>
-        <button onclick="fetchNASAQuery()">Fetch & Render 3D</button>
-        <div id="status">Ready for query</div>
+
+        <div class="input-group">
+            <label for="userPrompt">Natural Language Mission Command</label>
+            <textarea id="userPrompt">Scan the sky sector for rocky exoplanets and potentially habitable worlds.</textarea>
+        </div>
+
+        <button onclick="runAgentPipeline()">🚀 Deploy AI Agent & Query NASA</button>
+        <div id="status-bar">Agent Idle. Ready for deployment.</div>
+
+        <div class="input-group">
+            <label>Agent Reasoning & Strategy</label>
+            <div id="agentLog" class="ai-log">Waiting for agent execution...</div>
+        </div>
+
+        <div class="math-box">
+            <strong>Active Physics Engine:</strong><br>
+            Spherical-to-Cartesian Mapping & Stefan-Boltzmann Stellar Radiative Flux Calculations active.
+        </div>
     </div>
 
     <!-- Three.js Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
         // 1. Scene, Camera, Renderer Setup
+        const container = document.getElementById('webgl-container');
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 10000);
-        camera.position.set(0, 0, 80);
+        camera.position.set(0, 0, 90);
 
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        container.appendChild(renderer.domElement);
 
         scene.add(new THREE.AmbientLight(0xffffff, 0.9));
 
         let starGroup = new THREE.Group();
         scene.add(starGroup);
+        let activeObjects = [];
 
-        // 2. Dynamic Query Function to NASA TAP API
-        async function fetchNASAQuery() {
-            const statusEl = document.getElementById('status');
-            statusEl.textContent = "Connecting to NASA IPAC Archive...";
+        // 2. Main Agent Execution Pipeline
+        async function runAgentPipeline() {
+            const apiKey = document.getElementById('apiKey').value.trim();
+            const userPrompt = document.getElementById('userPrompt').value.trim();
+            const statusBar = document.getElementById('status-bar');
+            const agentLog = document.getElementById('agentLog');
 
-            const raMin = document.getElementById('raMin').value;
-            const raMax = document.getElementById('raMax').value;
-            const decMin = document.getElementById('decMin').value;
-            const decMax = document.getElementById('decMax').value;
+            if (!apiKey) {
+                alert('Please provide your Gemini API key.');
+                return;
+            }
 
-            // Construct ADQL query limiting results to prevent browser overload (e.g., limit 100)
-            const query = `select top 100 pl_name, hostname, ra, dec, sy_dist, pl_eqt, st_teff, st_rad from ps where sy_dist is not null and ra between ${raMin} and ${raMax} and dec between ${decMin} and ${decMax} and pl_eqt is not null`;
-            
-            const url = `https://exoplanetarchive.ipac.caltech.edu/TAP/sync?query=${encodeURIComponent(query)}&format=json`;
+            statusBar.textContent = "🤖 Gemini Agent parsing celestial query...";
+            agentLog.textContent = "Analyzing user intent and constructing NASA IPAC TAP ADQL parameters...";
 
             try {
-                const response = await fetch(url);
-                if (!response.ok) throw new Error('Network response failed');
-                const rawData = await response.json();
+                const agentPrompt = `You are an autonomous astrophysics AI agent. User command: "${userPrompt}"
+                Return ONLY a valid JSON block with these exact keys:
+                - "raMin": number (0 to 360)
+                - "raMax": number (0 to 360)
+                - "decMin": number (-90 to 90)
+                - "decMax": number (-90 to 90)
+                - "maxRecords": number (40 to 100)
+                - "briefing": string (short 2-sentence mission briefing).`;
 
-                statusEl.textContent = `Rendered ${rawData.length} planetary objects!`;
+                const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
                 
-                // Clear previous render nodes
-                while(starGroup.children.length > 0){ 
-                    starGroup.remove(starGroup.children[0]); 
-                }
+                const agentRes = await fetch(geminiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: agentPrompt }] }] })
+                });
 
-                // Parse and map records into 3D space
-                rawData.forEach(row => {
-                    const name = row.pl_name || "Unknown Planet";
+                const agentData = await agentRes.json();
+                const rawText = agentData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+                if (!jsonMatch) throw new Error("Agent failed to output structured parameters.");
+                
+                const params = JSON.parse(jsonMatch[0]);
+                agentLog.textContent = `[Mission Briefing]: ${params.briefing}\n\n[Sector Bounds]: RA [${params.raMin}°-${params.raMax}°], Dec [${params.decMin}°-${params.decMax}°]`;
+
+                statusBar.textContent = "📡 Querying live NASA IPAC database...";
+                
+                const adqlQuery = `select top ${params.maxRecords || 80} pl_name, hostname, ra, dec, sy_dist, pl_eqt, st_teff, st_rad, pl_bmasse from ps where sy_dist is not null and ra between ${params.raMin} and ${params.raMax} and dec between ${params.decMin} and ${params.decMax} and pl_eqt is not null`;
+                
+                const nasaUrl = `https://exoplanetarchive.ipac.caltech.edu/TAP/sync?query=${encodeURIComponent(adqlQuery)}&format=json`;
+                const nasaRes = await fetch(nasaUrl);
+                if (!nasaRes.ok) throw new Error("Failed to connect to NASA TAP endpoint.");
+                
+                const spaceObjects = await nasaRes.json();
+                statusBar.textContent = `✨ Successfully rendered ${spaceObjects.length} celestial systems!`;
+
+                // Clear previous nodes
+                while(starGroup.children.length > 0) { starGroup.remove(starGroup.children[0]); }
+                activeObjects = [];
+
+                spaceObjects.forEach(row => {
+                    const name = row.pl_name || "Unknown Exoplanet";
                     const starTemp = parseFloat(row.st_teff || 5778);
                     const distance = parseFloat(row.sy_dist || 10);
                     
-                    // Convert celestial spherical coordinates to Cartesian 3D vectors
+                    // --- MATHEMATICAL CARTESIAN COORDINATE TRANSFORMATION ---
                     const raRad = THREE.MathUtils.degToRad(parseFloat(row.ra));
                     const decRad = THREE.MathUtils.degToRad(parseFloat(row.dec));
 
@@ -156,7 +231,7 @@
                     const y = distance * Math.cos(decRad) * Math.sin(raRad);
                     const z = distance * Math.sin(decRad);
 
-                    // Assign color based on star temperature
+                    // Star temperature color mapping
                     let color = "#ffffff";
                     if (starTemp >= 10000) color = "#9bb0ff";
                     else if (starTemp >= 6000) color = "#ffffff";
@@ -164,32 +239,46 @@
                     else if (starTemp >= 3700) color = "#ffcc66";
                     else color = "#ff3300";
 
-                    // Create 3D Mesh representation
-                    const geometry = new THREE.SphereGeometry(Math.max(parseFloat(row.st_rad || 1), 0.5) * 0.8, 16, 16);
+                    const geometry = new THREE.SphereGeometry(Math.max(parseFloat(row.st_rad || 1), 0.4) * 0.7, 16, 16);
                     const material = new THREE.MeshBasicMaterial({ color: color });
                     const mesh = new THREE.Mesh(geometry, material);
 
                     mesh.position.set(x, y, z);
-                    mesh.userData = { name: name, host: row.hostname, dist: distance, temp: row.pl_eqt };
+                    
+                    // Bundle metadata and raw physics parameters for inspection and AI processing
+                    mesh.userData = { 
+                        name: name, 
+                        host: row.hostname, 
+                        dist: distance, 
+                        temp: row.pl_eqt,
+                        mass: row.pl_bmasse || "Unknown",
+                        ra: row.ra,
+                        dec: row.dec,
+                        st_teff: starTemp,
+                        st_rad: row.st_rad || 1.0,
+                        cartesian: { x: x.toFixed(2), y: y.toFixed(2), z: z.toFixed(2) }
+                    };
                     
                     starGroup.add(mesh);
+                    activeObjects.push(mesh);
                 });
 
             } catch (error) {
-                statusEl.textContent = "Error fetching data.";
+                statusBar.textContent = "❌ Error during pipeline execution.";
+                agentLog.textContent = "Error details: " + error.message;
                 console.error(error);
             }
         }
 
-        // 3. Animation loop
+        // 3. Animation loop for universe rotation
         function animate() {
             requestAnimationFrame(animate);
-            starGroup.rotation.y += 0.0005;
+            starGroup.rotation.y += 0.0003;
             renderer.render(scene, camera);
         }
         animate();
 
-        // 4. Hover Raycasting for UI details
+        // 4. Raycaster setup for Hover and Click interactions
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
@@ -206,10 +295,76 @@
             if (intersects.length > 0) {
                 const data = intersects[0].object.userData;
                 titleEl.textContent = data.name;
-                descEl.innerHTML = `Host Star: ${data.host}<br>Distance: ${data.dist} parsecs<br>Eq. Temp: ${data.temp} K`;
+                descEl.innerHTML = `Host Star: <strong>${data.host}</strong><br>` +
+                                   `Distance: <strong>${data.dist} pc</strong> | Eq. Temp: <strong>${data.temp} K</strong><br>` +
+                                   `<span class="clickable-hint">👉 Click node for full AI Educational & Physics Dossier</span>`;
             } else {
                 titleEl.textContent = "Deep Space Sector";
-                descEl.textContent = "Hover over plotted nodes for telemetry details.";
+                descEl.innerHTML = "Hover over any star node to inspect live telemetry. <strong>Click an object</strong> to generate a full AI Educational Dossier.";
+            }
+        });
+
+        // 5. Click Event: Trigger AI Educational Briefing & Physics Calculation Breakdown
+        window.addEventListener('click', async (event) => {
+            // Ignore clicks if clicking inside control panels
+            if (event.target.closest('.hud-panel')) return;
+
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(starGroup.children);
+
+            if (intersects.length > 0) {
+                const data = intersects[0].object.userData;
+                const dossierPanel = document.getElementById('dossier-panel');
+                const dossierContent = document.getElementById('dossierContent');
+                const apiKey = document.getElementById('apiKey').value.trim();
+
+                dossierPanel.style.display = 'block';
+                dossierContent.textContent = `🪐 Synthesizing physical models and generating AI educational briefing for ${data.name}... Please wait...`;
+
+                if (!apiKey) {
+                    dossierContent.textContent = "Please enter your Gemini API key in the control panel to generate AI briefings.";
+                    return;
+                }
+
+                try {
+                    // Formulate astrophysical context and prompt for Gemini
+                    const prompt = `You are an elite astrophysicist and space educator. Provide a comprehensive educational briefing and mathematical/physical breakdown for the exoplanet system "${data.name}" orbiting host star "${data.host}".
+
+                    Telemetry & Parameters:
+                    - Distance: ${data.dist} parsecs ($d$)
+                    - Coordinates: Right Ascension $\alpha = ${data.ra}^{\circ}$, Declination $\delta = ${data.dec}^{\circ}$
+                    - Derived 3D Cartesian Position (parsecs): $x = ${data.cartesian.x}, y = ${data.cartesian.y}, z = ${data.cartesian.z}$
+                    - Planet Equilibrium Temperature: ${data.temp} Kelvin ($T_{eq}$)
+                    - Planet Mass: ${data.mass} Earth masses ($M_p$)
+                    - Host Star Effective Temperature: ${data.st_teff} Kelvin ($T_{eff}$)
+                    - Host Star Radius: ${data.st_rad} Solar radii ($R_*$)
+
+                    Structure your response into:
+                    1. **Physical & Environmental Overview**: Describe what kind of world this is, its climate, and potential surface characteristics based on its temperature and mass.
+                    2. **Astrophysical Derivations & Formulas**: Explain how its 3D spatial coordinates are calculated using spherical-to-Cartesian trigonometry ($x = d \cos\delta \cos\alpha$, etc.) and how its thermal equilibrium is bounded by stellar flux.
+                    3. **Astrobiological Potential**: Evaluate whether conditions could support complex chemistry or life.`;
+
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+                    const res = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                    });
+
+                    const json = await res.json();
+                    const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
+                    
+                    if (text) {
+                        dossierContent.textContent = text;
+                    } else {
+                        dossierContent.textContent = "Error receiving AI dossier from Gemini.";
+                    }
+                } catch (err) {
+                    dossierContent.textContent = "Failed to fetch AI briefing: " + err.message;
+                }
             }
         });
 
@@ -218,9 +373,6 @@
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
-
-        // Run initial query on load
-        fetchNASAQuery();
     </script>
 </body>
 </html>
