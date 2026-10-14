@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Autonomous Gemini + NASA 3D Deep Space & Physics Engine</title>
+    <title>Autonomous NASA 3D Explorer with Gemini Model Fallbacks</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -138,7 +138,7 @@
 
         <div class="math-box">
             <strong>Active Physics Engine:</strong><br>
-            Spherical-to-Cartesian Mapping & Stefan-Boltzmann Stellar Radiative Flux Calculations active.
+            Spherical-to-Cartesian Mapping & Stefan-Boltzmann Radiative Flux active. Model Fallback Queue Enabled.
         </div>
     </div>
 
@@ -162,6 +162,50 @@
         scene.add(starGroup);
         let activeObjects = [];
 
+        // --- GEMINI MODEL FALLBACK WRAPPER ---
+        async function callGeminiWithFallback(promptText, apiKey) {
+            // Sequence of fallback models if one fails, is pending, or rate-limited
+            const models = [
+                'gemini-3.8-flash',
+                'gemini-3.5-flash',
+                'gemini-2.5-flash',
+                'gemini-3.1-pro-preview'
+            ];
+
+            let lastError = null;
+
+            for (const model of models) {
+                try {
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
+                    });
+
+                    if (!response.ok) {
+                        const errBody = await response.json().catch(() => ({}));
+                        throw new Error(`Model ${model} returned status ${response.status}: ${errBody.error?.message || response.statusText}`);
+                    }
+
+                    const data = await response.json();
+                    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                    
+                    if (!text) {
+                        throw new Error(`Model ${model} returned empty response content.`);
+                    }
+
+                    console.log(`Successfully completed request using fallback model: ${model}`);
+                    return text;
+                } catch (err) {
+                    console.warn(`Model ${model} failed or pending. Trying next fallback option... Error:`, err.message);
+                    lastError = err;
+                }
+            }
+
+            throw new Error(`All fallback models failed. Last encountered error: ${lastError?.message || 'Unknown network error'}`);
+        }
+
         // 2. Main Agent Execution Pipeline
         async function runAgentPipeline() {
             const apiKey = document.getElementById('apiKey').value.trim();
@@ -174,8 +218,8 @@
                 return;
             }
 
-            statusBar.textContent = "🤖 Gemini Agent parsing celestial query...";
-            agentLog.textContent = "Analyzing user intent and constructing NASA IPAC TAP ADQL parameters...";
+            statusBar.textContent = "🤖 Gemini Agent parsing query with model fallback queue...";
+            agentLog.textContent = "Evaluating intent and querying model stack...";
 
             try {
                 const agentPrompt = `You are an autonomous astrophysics AI agent. User command: "${userPrompt}"
@@ -187,18 +231,11 @@
                 - "maxRecords": number (40 to 100)
                 - "briefing": string (short 2-sentence mission briefing).`;
 
-                const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+                // Execute with automatic fallback wrapper
+                const rawText = await callGeminiWithFallback(agentPrompt, apiKey);
                 
-                const agentRes = await fetch(geminiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: agentPrompt }] }] })
-                });
-
-                const agentData = await agentRes.json();
-                const rawText = agentData.candidates?.[0]?.content?.parts?.[0]?.text || "";
                 const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-                if (!jsonMatch) throw new Error("Agent failed to output structured parameters.");
+                if (!jsonMatch) throw new Error("Agent response did not contain structured parameters JSON.");
                 
                 const params = JSON.parse(jsonMatch[0]);
                 agentLog.textContent = `[Mission Briefing]: ${params.briefing}\n\n[Sector Bounds]: RA [${params.raMin}°-${params.raMax}°], Dec [${params.decMin}°-${params.decMax}°]`;
@@ -245,7 +282,6 @@
 
                     mesh.position.set(x, y, z);
                     
-                    // Bundle metadata and raw physics parameters for inspection and AI processing
                     mesh.userData = { 
                         name: name, 
                         host: row.hostname, 
@@ -304,9 +340,8 @@
             }
         });
 
-        // 5. Click Event: Trigger AI Educational Briefing & Physics Calculation Breakdown
+        // 5. Click Event: Trigger AI Educational Briefing with Fallback Support
         window.addEventListener('click', async (event) => {
-            // Ignore clicks if clicking inside control panels
             if (event.target.closest('.hud-panel')) return;
 
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
@@ -322,48 +357,36 @@
                 const apiKey = document.getElementById('apiKey').value.trim();
 
                 dossierPanel.style.display = 'block';
-                dossierContent.textContent = `🪐 Synthesizing physical models and generating AI educational briefing for ${data.name}... Please wait...`;
+                dossierContent.textContent = `🪐 Querying model fallback sequence to build physical model and educational briefing for ${data.name}...`;
 
                 if (!apiKey) {
-                    dossierContent.textContent = "Please enter your Gemini API key in the control panel to generate AI briefings.";
+                    dossierContent.textContent = "Please enter your Gemini API key in the control panel.";
                     return;
                 }
 
                 try {
-                    // Formulate astrophysical context and prompt for Gemini
                     const prompt = `You are an elite astrophysicist and space educator. Provide a comprehensive educational briefing and mathematical/physical breakdown for the exoplanet system "${data.name}" orbiting host star "${data.host}".
 
                     Telemetry & Parameters:
-                    - Distance: ${data.dist} parsecs ($d$)
-                    - Coordinates: Right Ascension $\alpha = ${data.ra}^{\circ}$, Declination $\delta = ${data.dec}^{\circ}$
-                    - Derived 3D Cartesian Position (parsecs): $x = ${data.cartesian.x}, y = ${data.cartesian.y}, z = ${data.cartesian.z}$
-                    - Planet Equilibrium Temperature: ${data.temp} Kelvin ($T_{eq}$)
-                    - Planet Mass: ${data.mass} Earth masses ($M_p$)
-                    - Host Star Effective Temperature: ${data.st_teff} Kelvin ($T_{eff}$)
-                    - Host Star Radius: ${data.st_rad} Solar radii ($R_*$)
+                    - Distance: ${data.dist} parsecs (d)
+                    - Coordinates: Right Ascension alpha = ${data.ra} degrees, Declination delta = ${data.dec} degrees
+                    - Derived 3D Cartesian Position (parsecs): x = ${data.cartesian.x}, y = ${data.cartesian.y}, z = ${data.cartesian.z}
+                    - Planet Equilibrium Temperature: ${data.temp} Kelvin
+                    - Planet Mass: ${data.mass} Earth masses
+                    - Host Star Effective Temperature: ${data.st_teff} Kelvin
+                    - Host Star Radius: ${data.st_rad} Solar radii
 
                     Structure your response into:
-                    1. **Physical & Environmental Overview**: Describe what kind of world this is, its climate, and potential surface characteristics based on its temperature and mass.
-                    2. **Astrophysical Derivations & Formulas**: Explain how its 3D spatial coordinates are calculated using spherical-to-Cartesian trigonometry ($x = d \cos\delta \cos\alpha$, etc.) and how its thermal equilibrium is bounded by stellar flux.
-                    3. **Astrobiological Potential**: Evaluate whether conditions could support complex chemistry or life.`;
+                    1. Physical & Environmental Overview: Surface conditions, climate, and profile.
+                    2. Astrophysical Derivations & Formulas: Explanation of 3D spatial coordinate calculations and thermal equilibrium bounds.
+                    3. Astrobiological Potential: Assessment of habitability chemistry.`;
 
-                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-                    const res = await fetch(url, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-                    });
+                    // Trigger fallback wrapper for dossier generation
+                    const text = await callGeminiWithFallback(prompt, apiKey);
+                    dossierContent.textContent = text;
 
-                    const json = await res.json();
-                    const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
-                    
-                    if (text) {
-                        dossierContent.textContent = text;
-                    } else {
-                        dossierContent.textContent = "Error receiving AI dossier from Gemini.";
-                    }
                 } catch (err) {
-                    dossierContent.textContent = "Failed to fetch AI briefing: " + err.message;
+                    dossierContent.textContent = "Failed to fetch AI briefing across all model fallbacks: " + err.message;
                 }
             }
         });
