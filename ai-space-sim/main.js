@@ -366,7 +366,7 @@ async function processCommand(commandText) {
   if (transcriptEl) transcriptEl.innerText = `"${commandText}"`;
   if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: ASTROMETRIC_SCAN';
 
-  speakText(`Engaging long-range astrometric sensors for target vector: ${commandText}.`);
+  speakText(`Engaging long-range astrometric sensors for target vector: ${commandText}. Calibrating navigation arrays.`);
 
   let worldConfig = null;
 
@@ -378,6 +378,8 @@ async function processCommand(commandText) {
 
       try {
         if (hudStatusEl) hudStatusEl.innerText = `UPLINK: CALIBRATING...`;
+        speakText(`Calibrating spatial telemetry link.`);
+        
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${dynamicModelQueue[i]}:generateContent?key=${geminiKey}`;
         const res = await fetch(url, {
           method: 'POST',
@@ -392,6 +394,7 @@ async function processCommand(commandText) {
         clearTimeout(timeoutId);
 
         if (res.status === 429 || res.status === 503) {
+          speakText(`Primary subspace relay congested. Recalibrating navigational frequency.`);
           continue; 
         }
 
@@ -403,6 +406,7 @@ async function processCommand(commandText) {
             rawJson = rawJson.substring(rawJson.indexOf('{'), rawJson.lastIndexOf('}') + 1);
           }
           worldConfig = JSON.parse(rawJson);
+          speakText("Sector topography mapped successfully. Initializing holographic materialization sequence.");
           break; 
         }
       } catch (err) {
@@ -412,6 +416,7 @@ async function processCommand(commandText) {
   }
 
   if (!worldConfig && requestId === commandSequence) {
+    speakText("Primary astrometric database unreachable. Engaging archival retrieval.");
     try {
       const pController = new AbortController();
       const pTimeoutId = setTimeout(() => pController.abort(), 10000);
@@ -433,11 +438,13 @@ async function processCommand(commandText) {
           cleanJson = cleanJson.substring(cleanJson.indexOf('{'), cleanJson.lastIndexOf('}') + 1);
         }
         worldConfig = JSON.parse(cleanJson);
+        speakText("Archival sector configuration successfully acquired.");
       }
     } catch (e) {}
   }
 
   if (!worldConfig && requestId === commandSequence) {
+    speakText("External telemetry offline. Engaging internal stellar synthesis matrix.");
     worldConfig = generateFallbackWorld(commandText);
   }
 
@@ -451,7 +458,6 @@ async function processCommand(commandText) {
   applyWorldConfig(worldConfig);
 }
 
-// Upgraded Prompt with Explicit Multi-Part Ring Instructions
 function buildPromptText(commandText) {
   return `
 You are an advanced 3D Real-Space Simulator Engine and Principal Planetary Scientist.
@@ -461,7 +467,7 @@ CRITICAL SCIENTIFIC INTEGRITY & STRUCTURE RULES:
 - Follow true astrophysical reality. 
 - FOR RINGED PLANETS (like Saturn): You MUST return MULTIPLE objects in the "objects" array: 
   1. The central planetary body sphere (e.g., Saturn core).
-  2. A separate companion object with geometryType "disk" or "torus", matching the planet's position, rotated horizontally (rotation.x = 1.57 or similar via setup), representing the luminous ring system.
+  2. A separate companion object with geometryType "disk" or "torus", matching the planet's position, representing the luminous ring system.
 - Every object in the "objects" array MUST have a unique, highly detailed "prompt" field describing its exact visual appearance.
 
 Return ONLY valid raw JSON:
@@ -524,8 +530,8 @@ async function loadTextureWithRetry(url, maxRetries = 2, delay = 4000) {
   }
 }
 
-// --- INSTANT MATERIALIZATION WITH SMOOTH HOLOGRAPHIC FADE-IN ---
-function applyWorldConfig(config) {
+// --- INSTANT MATERIALIZATION WITH TELEMETRY & FADE-IN ---
+async function applyWorldConfig(config) {
   const hudStatusEl = document.getElementById('hud-nav-status');
 
   while (systemGroup.children.length > 0) {
@@ -566,12 +572,10 @@ function applyWorldConfig(config) {
 
   const spaceObjects = config.objects || [config];
   if (hudStatusEl) hudStatusEl.innerText = `PROTOCOL: MATERIALIZING SECTOR`;
-  if (config.speechResponse) speakText(config.speechResponse);
 
+  // Materialize objects immediately with PBR styling and ghost opacity
   spaceObjects.forEach((objConfig) => {
     const geom = createDynamicGeometry(objConfig.geometryType, objConfig.geometryArgs);
-    
-    // Start with low opacity (holographic ghost state) to eliminate jarring pop-ins
     const mat = new THREE.MeshStandardMaterial({
       color: new THREE.Color(objConfig.color || 0x38bdf8),
       roughness: objConfig.roughness || 0.4,
@@ -579,7 +583,7 @@ function applyWorldConfig(config) {
       emissive: objConfig.emissive ? new THREE.Color(objConfig.emissiveColor || 0xffaa00) : 0x000000,
       emissiveIntensity: objConfig.emissive ? (objConfig.emissiveIntensity || 0.9) : 0,
       transparent: true,
-      opacity: 0.15 // Fades in smoothly as textures arrive
+      opacity: 0.15
     });
 
     const mesh = new THREE.Mesh(geom, mat);
@@ -587,7 +591,6 @@ function applyWorldConfig(config) {
       mesh.position.set(...objConfig.position);
     }
 
-    // Orient ring systems properly
     if (objConfig.geometryType === 'disk' || objConfig.geometryType === 'ring') {
       mesh.rotation.x = Math.PI / 2;
     }
@@ -603,17 +606,31 @@ function applyWorldConfig(config) {
       type: objConfig.animationType || 'spin',
       speed: objConfig.animationSpeed || 0.05
     });
-
-    // Stream 2K texture in background and cross-fade opacity to 1.0 upon arrival
-    if (objConfig.prompt || objConfig.customTextureUrl) {
-      loadTextureWithFade(mesh, objConfig);
-    } else {
-      // If no texture needed, fade straight to full opacity
-      fadeInMesh(mesh);
-    }
   });
 
+  // Background streaming with telemetry updates per object
+  for (let i = 0; i < spaceObjects.length; i++) {
+    const objConfig = spaceObjects[i];
+    const mesh = systemGroup.children[i];
+    if (!mesh) continue;
+
+    if (hudStatusEl) hudStatusEl.innerText = `MAPPING: ${objConfig.name.toUpperCase()}`;
+    speakText(`Calibrating surface albedo and topography maps for ${objConfig.name}.`);
+
+    if (objConfig.prompt || objConfig.customTextureUrl) {
+      await loadTextureWithFade(mesh, objConfig);
+    } else {
+      fadeInMesh(mesh);
+    }
+
+    if (i < spaceObjects.length - 1) {
+      if (hudStatusEl) hudStatusEl.innerText = `COOLDOWN: STABILIZING ORBIT...`;
+      await new Promise(resolve => setTimeout(resolve, 1500));
+    }
+  }
+
   if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: SECURED_TARGET';
+  if (config.speechResponse) speakText(config.speechResponse);
 }
 
 async function loadTextureWithFade(mesh, objConfig) {
@@ -646,7 +663,6 @@ async function loadTextureWithFade(mesh, objConfig) {
   }
 }
 
-// Smoothly cross-fades object opacity from ghost state to crystal clear 1.0
 function fadeInMesh(mesh) {
   let currentOpacity = mesh.material.opacity;
   const fadeInterval = setInterval(() => {
