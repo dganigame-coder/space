@@ -13,7 +13,7 @@ let elapsedSeconds = 0;
 let lastFrameTime = 0;
 let textureLoader = new THREE.TextureLoader();
 
-// Strict Texture Queue & Timeout Globals
+// Control & Request Globals
 let currentCommandAbort = null;
 let commandSequence = 0;
 
@@ -91,7 +91,6 @@ async function discoverGeminiModels() {
 
       if (validModels.length > 0) {
         dynamicModelQueue = validModels.map(m => m.id);
-        console.log("Compiled newest-first Gemini model waterfall:", dynamicModelQueue);
         speakText("Astrometric telemetry online. Subspace neural calibration sequence complete.");
       }
     }
@@ -135,7 +134,7 @@ function setupSecurity() {
   }
 }
 
-// --- AAA-GRADE THREE.JS INITIALIZATION ---
+// --- THREE.JS INITIALIZATION ---
 function initThreeJS() {
   const container = document.getElementById('viewport') || document.body;
   scene = new THREE.Scene();
@@ -149,7 +148,6 @@ function initThreeJS() {
   renderer.setSize(container.clientWidth, container.clientHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 
-  // Cinematic Filmic Color Pipeline
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.3;
@@ -163,7 +161,6 @@ function initThreeJS() {
   systemGroup = new THREE.Group();
   scene.add(systemGroup);
 
-  // Cinematic Lighting
   const dirLight = new THREE.DirectionalLight(0xffffff, 2.8);
   dirLight.position.set(25, 18, 22);
   scene.add(dirLight);
@@ -201,7 +198,6 @@ function createInitialPlanet() {
   });
 }
 
-// GPU-Driven Starfield Shader (Replaces per-frame JS buffer rewrites)[cite: 1, 2]
 function createEnhancedStarfield() {
   const count = 6000;
   const positions = new Float32Array(count * 3);
@@ -451,10 +447,9 @@ async function processCommand(commandText) {
   if (loreEl && worldConfig.lore) loreEl.innerText = worldConfig.lore;
   if (worldConfig.audioParams) updateAudioSynth(worldConfig.audioParams);
 
-  await applyWorldConfig(worldConfig);
+  applyWorldConfig(worldConfig);
 }
 
-// Top-Tier AI Prompt Generation for Deep Scientific & Visual Physics
 function buildPromptText(commandText) {
   return `
 You are an advanced 3D Real-Space Simulator Engine and Principal Planetary Scientist.
@@ -493,21 +488,17 @@ Return ONLY valid raw JSON:
 `;
 }
 
-async function loadTextureWithRetry(url, maxRetries = 2, delay = 8000, isPollinations = false) {
+async function loadTextureWithRetry(url, maxRetries = 2, delay = 4000) {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     let blobUrl = null;
     try {
-      let finalUrl = url;
-      if (isPollinations) {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
-        const blob = await response.blob();
-        if (blob.size > 1200000) throw new Error("Rate-limit block image detected.");
-        blobUrl = URL.createObjectURL(blob);
-        finalUrl = blobUrl;
-      }
-      const texture = await textureLoader.loadAsync(finalUrl);
-      if (blobUrl) URL.revokeObjectURL(blobUrl);
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
+      const blob = await response.blob();
+      if (blob.size > 1200000) throw new Error("Rate-limit block image detected.");
+      blobUrl = URL.createObjectURL(blob);
+      const texture = await textureLoader.loadAsync(blobUrl);
+      URL.revokeObjectURL(blobUrl);
       return texture;
     } catch (err) {
       if (blobUrl) URL.revokeObjectURL(blobUrl);
@@ -517,8 +508,8 @@ async function loadTextureWithRetry(url, maxRetries = 2, delay = 8000, isPollina
   }
 }
 
-// --- APPLY WORLD CONFIGURATION WITH 2K TEXTURES & ORBITCONTROLS ---
-async function applyWorldConfig(config) {
+// --- INSTANT SECTOR MATERIALIZATION & BACKGROUND STREAMING ---
+function applyWorldConfig(config) {
   const hudStatusEl = document.getElementById('hud-nav-status');
 
   while (systemGroup.children.length > 0) {
@@ -558,42 +549,18 @@ async function applyWorldConfig(config) {
   }
 
   const spaceObjects = config.objects || [config];
+  if (hudStatusEl) hudStatusEl.innerText = `PROTOCOL: MATERIALIZING SECTOR`;
+  if (config.speechResponse) speakText(config.speechResponse);
 
-  for (let i = 0; i < spaceObjects.length; i++) {
-    const objConfig = spaceObjects[i];
-    if (hudStatusEl) hudStatusEl.innerText = `MAPPING: ${objConfig.name.toUpperCase()}`;
-
-    let texUrl = null;
-    if (objConfig.customTextureUrl) {
-      texUrl = objConfig.customTextureUrl;
-    } else if (objConfig.prompt) {
-      // 2K Resolution (2048x1024) with Flux Micro-Surface Detail Keywords
-      const topScorePrompt = encodeURIComponent(
-        `${objConfig.prompt}, flat equirectangular seamless texture map, pure planetary surface topography only, micro-surface relief, high-frequency textural detail, crisp albedo, zero background stars, zero lighting effects, zero framing, high-resolution game asset`
-      );
-      texUrl = `https://image.pollinations.ai/prompt/${topScorePrompt}?width=2048&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random()*99999)}`;
-    }
-
-    let preloadedTex = null;
-    if (texUrl) {
-      textureLoader.setCrossOrigin('anonymous');
-      try {
-        preloadedTex = await loadTextureWithRetry(texUrl, 2, 8000, true);
-        preloadedTex.colorSpace = THREE.SRGBColorSpace;
-        preloadedTex.needsUpdate = true;
-      } catch (err) {
-        preloadedTex = null;
-      }
-    }
-
+  // INSTANT SPAWN: Materialize all objects immediately with PBR styling
+  spaceObjects.forEach((objConfig) => {
     const geom = createDynamicGeometry(objConfig.geometryType, objConfig.geometryArgs);
     const mat = new THREE.MeshStandardMaterial({
-      color: preloadedTex ? 0xffffff : new THREE.Color(objConfig.color || 0x38bdf8),
+      color: new THREE.Color(objConfig.color || 0x38bdf8),
       roughness: objConfig.roughness || 0.4,
       metalness: objConfig.metalness || 0.1,
       emissive: objConfig.emissive ? new THREE.Color(objConfig.emissiveColor || 0xffaa00) : 0x000000,
-      emissiveIntensity: objConfig.emissive ? (objConfig.emissiveIntensity || 0.9) : 0,
-      map: preloadedTex
+      emissiveIntensity: objConfig.emissive ? (objConfig.emissiveIntensity || 0.9) : 0
     });
 
     const mesh = new THREE.Mesh(geom, mat);
@@ -613,12 +580,38 @@ async function applyWorldConfig(config) {
       speed: objConfig.animationSpeed || 0.05
     });
 
-    if (i < spaceObjects.length - 1) {
-      await new Promise(resolve => setTimeout(resolve, 6000));
+    // Stream 2K textures asynchronously in the background without blocking the view
+    if (objConfig.prompt || objConfig.customTextureUrl) {
+      loadTextureAsync(mesh, objConfig);
     }
+  });
+
+  if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: SECURED_TARGET';
+}
+
+async function loadTextureAsync(mesh, objConfig) {
+  let texUrl = objConfig.customTextureUrl;
+  if (!texUrl && objConfig.prompt) {
+    const topScorePrompt = encodeURIComponent(
+      `${objConfig.prompt}, flat equirectangular seamless texture map, pure planetary surface topography only, micro-surface relief, high-frequency textural detail, crisp albedo, zero background stars, zero lighting effects, zero framing, high-resolution game asset`
+    );
+    texUrl = `https://image.pollinations.ai/prompt/${topScorePrompt}?width=2048&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 99999)}`;
   }
 
-  if (config.speechResponse) speakText(config.speechResponse);
+  if (!texUrl) return;
+
+  try {
+    const texture = await loadTextureWithRetry(texUrl, 2, 4000);
+    if (texture && mesh.material) {
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.needsUpdate = true;
+      mesh.material.map = texture;
+      mesh.material.color.set(0xffffff); // Allow texture colors to shine through
+      mesh.material.needsUpdate = true;
+    }
+  } catch (err) {
+    console.warn(`Background texture stream failed for ${objConfig.name}, keeping PBR fallback color.`);
+  }
 }
 
 function generateFallbackWorld(input) {
@@ -646,9 +639,8 @@ function generateFallbackWorld(input) {
   };
 }
 
-// --- SETUP CONTROLS & ORBITCONTROLS ---
+// --- SETUP CONTROLS ---
 function setupControls() {
-  const container = document.getElementById('viewport') || document.body;
   controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.dampingFactor = 0.05;
@@ -731,7 +723,7 @@ function setupControls() {
   }
 }
 
-// --- SECURE DELTA ANIMATION LOOP & GPU SHADER TICK ---
+// --- ANIMATION LOOP ---
 function animate(time) {
   requestAnimationFrame(animate);
   const t = time * 0.001;
