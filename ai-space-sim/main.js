@@ -450,14 +450,15 @@ async function processCommand(commandText) {
   applyWorldConfig(worldConfig);
 }
 
+// Object-Specific Detailed Prompt Engineering for Maximum Variety & Realism
 function buildPromptText(commandText) {
   return `
 You are an advanced 3D Real-Space Simulator Engine and Principal Planetary Scientist.
 User Command: "${commandText}"
 
-CRITICAL SCIENTIFIC INTEGRITY:
-- Follow true astrophysical reality and actual space object data.
-- Provide precise visual properties (roughness, metalness) matching real planetary geology.
+CRITICAL SCIENTIFIC INTEGRITY & VISUAL VARIETY:
+- Follow true astrophysical reality. If the user asks for Saturn, render Saturn with its specific ring structure. If they ask for a Star, render a luminous plasma sphere. If they ask for an icy moon, render fractured ice sheets.
+- CRITICAL: Every object in the "objects" array MUST have a unique, highly detailed "prompt" field describing its specific visual features (e.g., gas giant storm bands, rocky cratered highlands, glowing stellar corona, or icy tectonic fractures). Never use generic prompts.
 
 Return ONLY valid raw JSON:
 {
@@ -468,7 +469,7 @@ Return ONLY valid raw JSON:
   "cameraTarget": [0, 0, 0],
   "objects": [
     {
-      "name": "Planet Name",
+      "name": "Object Name",
       "geometryType": "sphere",
       "geometryArgs": [2.0, 64, 48],
       "position": [0, 0, 0],
@@ -478,7 +479,7 @@ Return ONLY valid raw JSON:
       "emissiveIntensity": 0,
       "roughness": 0.45,
       "metalness": 0.08,
-      "prompt": "hyperrealistic satellite map texture, micro-surface relief, high-frequency textural detail",
+      "prompt": "Detailed visual description unique to this specific object",
       "animationType": "spin",
       "animationSpeed": 0.05
     }
@@ -508,7 +509,7 @@ async function loadTextureWithRetry(url, maxRetries = 2, delay = 4000) {
   }
 }
 
-// --- INSTANT SECTOR MATERIALIZATION & BACKGROUND STREAMING ---
+// --- INSTANT SECTOR MATERIALIZATION & BACKGROUND 2K STREAMING ---
 function applyWorldConfig(config) {
   const hudStatusEl = document.getElementById('hud-nav-status');
 
@@ -552,7 +553,7 @@ function applyWorldConfig(config) {
   if (hudStatusEl) hudStatusEl.innerText = `PROTOCOL: MATERIALIZING SECTOR`;
   if (config.speechResponse) speakText(config.speechResponse);
 
-  // INSTANT SPAWN: Materialize all objects immediately with PBR styling
+  // Instant Spawn: Materialize all objects immediately with PBR styling
   spaceObjects.forEach((objConfig) => {
     const geom = createDynamicGeometry(objConfig.geometryType, objConfig.geometryArgs);
     const mat = new THREE.MeshStandardMaterial({
@@ -580,7 +581,7 @@ function applyWorldConfig(config) {
       speed: objConfig.animationSpeed || 0.05
     });
 
-    // Stream 2K textures asynchronously in the background without blocking the view
+    // Stream 2K object-specific textures asynchronously in the background
     if (objConfig.prompt || objConfig.customTextureUrl) {
       loadTextureAsync(mesh, objConfig);
     }
@@ -592,10 +593,11 @@ function applyWorldConfig(config) {
 async function loadTextureAsync(mesh, objConfig) {
   let texUrl = objConfig.customTextureUrl;
   if (!texUrl && objConfig.prompt) {
-    const topScorePrompt = encodeURIComponent(
-      `${objConfig.prompt}, flat equirectangular seamless texture map, pure planetary surface topography only, micro-surface relief, high-frequency textural detail, crisp albedo, zero background stars, zero lighting effects, zero framing, high-resolution game asset`
+    // 2K Resolution (2048x1024) with object-specific prompt and seamless equirectangular mapping
+    const specificPrompt = encodeURIComponent(
+      `${objConfig.prompt}, flat equirectangular seamless texture map, pure surface topography only, micro-surface relief, high-frequency textural detail, crisp albedo, zero background stars, zero lighting effects, zero framing, high-resolution game asset`
     );
-    texUrl = `https://image.pollinations.ai/prompt/${topScorePrompt}?width=2048&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 99999)}`;
+    texUrl = `https://image.pollinations.ai/prompt/${specificPrompt}?width=2048&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 99999)}`;
   }
 
   if (!texUrl) return;
@@ -606,7 +608,7 @@ async function loadTextureAsync(mesh, objConfig) {
       texture.colorSpace = THREE.SRGBColorSpace;
       texture.needsUpdate = true;
       mesh.material.map = texture;
-      mesh.material.color.set(0xffffff); // Allow texture colors to shine through
+      mesh.material.color.set(0xffffff);
       mesh.material.needsUpdate = true;
     }
   } catch (err) {
