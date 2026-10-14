@@ -1,24 +1,26 @@
 import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 // --- GLOBALS ---
-let scene, camera, renderer, starField;
+let scene, camera, renderer, starField, starMaterial;
 let geminiKey = localStorage.getItem('gemini_api_key') || '';
 let dynamicModelQueue = ['gemini-2.5-flash']; // Safe default fallback until discovered
 
 let systemGroup;
+let controls;
 let activeAnimatedMeshes = [];
-let controls; // Optional OrbitControls
+let elapsedSeconds = 0;
+let lastFrameTime = 0;
 let textureLoader = new THREE.TextureLoader();
 
-// Strict Texture Queue Globals (Prevents 402 Rate Limit Errors)
-let textureQueue = [];
-let isProcessingQueue = false;
+// Strict Texture Queue & Timeout Globals
+let currentCommandAbort = null;
+let commandSequence = 0;
 
 // Audio System Globals
 let audioCtx, osc1, osc2, filterNode, lfoNode, lfoGain;
 let audioInitialized = false;
 let isListening = false;
-
 
 // --- INITIALIZATION ---
 async function init() {
@@ -27,20 +29,19 @@ async function init() {
   setupControls();
   animate(0);
 
-  // Dynamically discover and rank available Gemini models at startup (Newest First)
   if (geminiKey) {
     await discoverGeminiModels();
   }
 
-  // Smoothly dismiss cinematic boot screen overlay
   const bootOverlay = document.getElementById('boot-overlay');
   if (bootOverlay) {
+    bootOverlay.style.transition = 'opacity 500ms ease';
     bootOverlay.style.opacity = '0';
     setTimeout(() => bootOverlay.remove(), 500);
   }
 }
 
-// --- DYNAMIC MODEL DISCOVERY & NEWEST-FIRST WATERFALL BUILDER ---
+// --- DYNAMIC MODEL DISCOVERY & WATERFALL BUILDER ---
 async function discoverGeminiModels() {
   try {
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${geminiKey}`);
@@ -63,7 +64,6 @@ async function discoverGeminiModels() {
           description: m.description || ''
         }));
 
-      // Sort models from NEWEST (First) to OLDEST (Last)
       validModels.sort((a, b) => {
         const getVer = (str) => {
           const match = str.match(/(\d+(\.\d+)?)/);
@@ -72,10 +72,7 @@ async function discoverGeminiModels() {
 
         const vA = getVer(a.id);
         const vB = getVer(b.id);
-
-        if (vA !== vB) {
-          return vB - vA;
-        }
+        if (vA !== vB) return vB - vA;
 
         const getDateVal = (str) => {
           const match = str.match(/(\d{2})-(\d{4})/);
@@ -85,10 +82,7 @@ async function discoverGeminiModels() {
 
         const dateA = getDateVal(a.versionString);
         const dateB = getDateVal(b.versionString);
-
-        if (dateA !== dateB) {
-          return dateB - dateA;
-        }
+        if (dateA !== dateB) return dateB - dateA;
 
         const aFlash = a.id.includes('flash') ? 1 : 0;
         const bFlash = b.id.includes('flash') ? 1 : 0;
@@ -97,7 +91,7 @@ async function discoverGeminiModels() {
 
       if (validModels.length > 0) {
         dynamicModelQueue = validModels.map(m => m.id);
-        console.log("Successfully compiled newest-first Gemini model waterfall:", dynamicModelQueue);
+        console.log("Compiled newest-first Gemini model waterfall:", dynamicModelQueue);
         speakText("Astrometric telemetry online. Subspace neural calibration sequence complete.");
       }
     }
@@ -141,58 +135,44 @@ function setupSecurity() {
   }
 }
 
+// --- AAA-GRADE THREE.JS INITIALIZATION ---
 function initThreeJS() {
   const container = document.getElementById('viewport') || document.body;
   scene = new THREE.Scene();
-  camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+  scene.background = new THREE.Color(0x02040a);
+  scene.fog = new THREE.FogExp2(0x02040a, 0.0012);
+
+  camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 25000);
   camera.position.set(0, 5, 15);
 
   renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
   renderer.setSize(container.clientWidth, container.clientHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 
+  // Cinematic Filmic Color Pipeline
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.2;
+  renderer.toneMappingExposure = 1.3;
 
+  renderer.domElement.style.display = 'block';
+  renderer.domElement.style.width = '100%';
+  renderer.domElement.style.height = '100%';
+  renderer.domElement.style.touchAction = 'none';
   container.appendChild(renderer.domElement);
 
   systemGroup = new THREE.Group();
   scene.add(systemGroup);
 
-  const dirLight = new THREE.DirectionalLight(0xffffff, 2.5);
-  dirLight.position.set(20, 15, 20);
+  // Cinematic Lighting
+  const dirLight = new THREE.DirectionalLight(0xffffff, 2.8);
+  dirLight.position.set(25, 18, 22);
   scene.add(dirLight);
 
-  const ambientLight = new THREE.AmbientLight(0x222233, 1.2);
+  const ambientLight = new THREE.AmbientLight(0x182035, 0.6);
   scene.add(ambientLight);
 
-  scene.fog = new THREE.FogExp2(0x02040a, 0.012);
-
-  const geo = new THREE.SphereGeometry(2.0, 64, 64);
-  const planetMaterial = new THREE.MeshStandardMaterial({ 
-    color: 0x38bdf8, 
-    roughness: 0.4, 
-    metalness: 0.1 
-  });
-  const planet = new THREE.Mesh(geo, planetMaterial);
-  systemGroup.add(planet);
-
-  activeAnimatedMeshes.push({
-    mesh: planet,
-    runtimeFn: new Function('mesh', 'time', 'mesh.rotation.y += 0.003;')
-  });
-
-  const starGeo = new THREE.BufferGeometry();
-  const starCount = 5000;
-  const starPos = new Float32Array(starCount * 3);
-  for (let i = 0; i < starCount * 3; i++) {
-    starPos[i] = (Math.random() - 0.5) * 600;
-  }
-  starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
-  const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.6, transparent: true, opacity: 0.85 });
-  starField = new THREE.Points(starGeo, starMat);
-  scene.add(starField);
+  createEnhancedStarfield();
+  createInitialPlanet();
 
   window.addEventListener('resize', () => {
     camera.aspect = container.clientWidth / container.clientHeight;
@@ -201,29 +181,144 @@ function initThreeJS() {
   });
 }
 
+function createInitialPlanet() {
+  const geo = new THREE.SphereGeometry(2.0, 64, 48);
+  const planetMaterial = new THREE.MeshStandardMaterial({ 
+    color: 0x197da8, 
+    roughness: 0.55, 
+    metalness: 0.05 
+  });
+  const planet = new THREE.Mesh(geo, planetMaterial);
+  planet.name = 'Starter World';
+  systemGroup.add(planet);
+
+  addAtmosphereShell(planet, 2.08, new THREE.Color(0x38bdf8), 0.55);
+
+  activeAnimatedMeshes.push({
+    mesh: planet,
+    type: 'spin',
+    config: { speed: 0.1, axis: 'y' }
+  });
+}
+
+// GPU-Driven Starfield Shader (Replaces per-frame JS buffer rewrites)[cite: 1, 2]
+function createEnhancedStarfield() {
+  const count = 6000;
+  const positions = new Float32Array(count * 3);
+  const sizes = new Float32Array(count);
+  const phases = new Float32Array(count);
+
+  for (let i = 0; i < count; i++) {
+    const z = Math.random() * 2 - 1;
+    const theta = Math.random() * Math.PI * 2;
+    const radial = Math.sqrt(Math.max(0, 1 - z * z));
+    const radius = 300 + Math.random() * 500;
+    positions[i * 3] = radial * Math.cos(theta) * radius;
+    positions[i * 3 + 1] = z * radius;
+    positions[i * 3 + 2] = radial * Math.sin(theta) * radius;
+    sizes[i] = 1.0 + Math.random() * 2.0;
+    phases[i] = Math.random() * Math.PI * 2;
+  }
+
+  const starGeo = new THREE.BufferGeometry();
+  starGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  starGeo.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1));
+  starGeo.setAttribute('aPhase', new THREE.BufferAttribute(phases, 1));
+
+  starMaterial = new THREE.ShaderMaterial({
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    uniforms: { uTime: { value: 0 } },
+    vertexShader: `
+      attribute float aSize;
+      attribute float aPhase;
+      uniform float uTime;
+      varying float vAlpha;
+      void main() {
+        vec4 viewPosition = modelViewMatrix * vec4(position, 1.0);
+        gl_Position = projectionMatrix * viewPosition;
+        gl_PointSize = clamp(aSize * (240.0 / max(1.0, -viewPosition.z)), 1.0, 3.5);
+        vAlpha = 0.6 + 0.4 * sin(uTime * (0.8 + aPhase * 0.1) + aPhase);
+      }
+    `,
+    fragmentShader: `
+      varying float vAlpha;
+      void main() {
+        float dist = distance(gl_PointCoord, vec2(0.5));
+        if (dist > 0.5) discard;
+        float mask = 1.0 - smoothstep(0.1, 0.5, dist);
+        gl_FragColor = vec4(vec3(0.8, 0.9, 1.0), mask * vAlpha);
+      }
+    `
+  });
+
+  starField = new THREE.Points(starGeo, starMaterial);
+  starField.frustumCulled = false;
+  scene.add(starField);
+}
+
+function addAtmosphereShell(parent, radius, color, opacity = 0.5) {
+  const shell = new THREE.Mesh(
+    new THREE.SphereGeometry(radius, 48, 32),
+    new THREE.ShaderMaterial({
+      uniforms: {
+        uGlowColor: { value: color.clone() },
+        uOpacity: { value: opacity }
+      },
+      vertexShader: `
+        varying vec3 vNormal;
+        varying vec3 vViewDir;
+        void main() {
+          vec4 viewPosition = modelViewMatrix * vec4(position, 1.0);
+          vNormal = normalize(normalMatrix * normal);
+          vViewDir = normalize(-viewPosition.xyz);
+          gl_Position = projectionMatrix * viewPosition;
+        }
+      `,
+      fragmentShader: `
+        uniform vec3 uGlowColor;
+        uniform float uOpacity;
+        varying vec3 vNormal;
+        varying vec3 vViewDir;
+        void main() {
+          float facing = max(dot(normalize(vNormal), normalize(vViewDir)), 0.0);
+          float rim = pow(1.0 - facing, 2.5);
+          gl_FragColor = vec4(uGlowColor, rim * uOpacity);
+        }
+      `,
+      side: THREE.BackSide,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
+    })
+  );
+  shell.name = 'AtmosphereGlow';
+  parent.add(shell);
+  return shell;
+}
+
 function createDynamicGeometry(type, args) {
   const p = args || [];
   switch (type ? type.toLowerCase() : 'sphere') {
     case 'torus':
     case 'blackhole':
     case 'ring_world':
-      return new THREE.TorusGeometry(p[0] || 2.5, p[1] || 0.5, p[2] || 32, p[3] || 128);
-
+      return new THREE.TorusGeometry(p[0] || 2.5, p[1] || 0.4, p[2] || 32, p[3] || 128);
     case 'icosahedron':
     case 'crystal':
     case 'asteroid':
       return new THREE.IcosahedronGeometry(p[0] || 2.0, p[1] || 2);
-
     case 'disk':
     case 'quasar_core':
       return new THREE.RingGeometry(p[0] || 0.4, p[1] || 4.5, p[2] || 64);
-
     case 'sphere':
     default:
-      return new THREE.SphereGeometry(p[0] || 2.0, p[1] || 64, p[2] || 64);
+      return new THREE.SphereGeometry(p[0] || 2.0, p[1] || 64, p[2] || 48);
   }
 }
 
+// --- AUDIO SYSTEM ---
 function initWebAudio() {
   if (audioInitialized) return;
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -259,8 +354,13 @@ function speakText(text) {
   window.speechSynthesis.speak(utterance);
 }
 
-// --- PROCESS COMMAND & TIMEOUT-PROTECTED WATERFALL ---
+// --- PROCESS COMMAND WITH WATERFALL & 12S TIMEOUT ---
 async function processCommand(commandText) {
+  const requestId = ++commandSequence;
+  if (currentCommandAbort) currentCommandAbort.abort();
+  const controller = new AbortController();
+  currentCommandAbort = controller;
+
   const transcriptEl = document.getElementById('transcript');
   const hudStatusEl = document.getElementById('hud-nav-status');
   const titleEl = document.getElementById('sector-title');
@@ -269,20 +369,18 @@ async function processCommand(commandText) {
   if (transcriptEl) transcriptEl.innerText = `"${commandText}"`;
   if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: ASTROMETRIC_SCAN';
 
-  speakText(`Engaging long-range astrometric sensors for target vector: ${commandText}. Calibrating navigation arrays.`);
+  speakText(`Engaging long-range astrometric sensors for target vector: ${commandText}.`);
 
   let worldConfig = null;
 
   if (geminiKey && dynamicModelQueue.length > 0) {
     for (let i = 0; i < dynamicModelQueue.length; i++) {
-      // Create an AbortController with a 12-second timeout to prevent infinite pending hangs
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 12000);
+      if (requestId !== commandSequence) return;
+      const timeoutController = new AbortController();
+      const timeoutId = setTimeout(() => timeoutController.abort(), 12000);
 
       try {
         if (hudStatusEl) hudStatusEl.innerText = `UPLINK: CALIBRATING...`;
-        speakText(`Calibrating spatial telemetry link.`);
-
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${dynamicModelQueue[i]}:generateContent?key=${geminiKey}`;
         const res = await fetch(url, {
           method: 'POST',
@@ -291,14 +389,12 @@ async function processCommand(commandText) {
             contents: [{ parts: [{ text: buildPromptText(commandText) }] }],
             generationConfig: { responseMimeType: "application/json" }
           }),
-          signal: controller.signal // Bind timeout controller signal
+          signal: timeoutController.signal
         });
 
-        clearTimeout(timeoutId); // Clear timeout since response arrived successfully
+        clearTimeout(timeoutId);
 
         if (res.status === 429 || res.status === 503) {
-          console.warn(`Model returned status ${res.status}. Cascading down waterfall...`);
-          speakText(`Primary subspace relay congested. Recalibrating navigational frequency.`);
           continue; 
         }
 
@@ -310,27 +406,18 @@ async function processCommand(commandText) {
             rawJson = rawJson.substring(rawJson.indexOf('{'), rawJson.lastIndexOf('}') + 1);
           }
           worldConfig = JSON.parse(rawJson);
-          speakText("Sector topography mapped successfully. Initializing holographic materialization sequence.");
           break; 
         }
       } catch (err) {
         clearTimeout(timeoutId);
-        if (err.name === 'AbortError') {
-          console.warn(`Model ${dynamicModelQueue[i]} request timed out after 12s. Cascading down waterfall...`);
-          speakText(`Subspace relay timed out. Rerouting through secondary channel.`);
-        } else {
-          console.warn(`Uplink calibration error with ${dynamicModelQueue[i]}:`, err);
-        }
       }
     }
   }
 
-  if (!worldConfig) {
-    speakText("Primary astrometric database unreachable. Engaging long-range archival database retrieval.");
+  if (!worldConfig && requestId === commandSequence) {
     try {
       const pController = new AbortController();
       const pTimeoutId = setTimeout(() => pController.abort(), 10000);
-
       const pRes = await fetch('https://text.pollinations.ai/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -349,72 +436,56 @@ async function processCommand(commandText) {
           cleanJson = cleanJson.substring(cleanJson.indexOf('{'), cleanJson.lastIndexOf('}') + 1);
         }
         worldConfig = JSON.parse(cleanJson);
-        speakText("Archival sector configuration successfully acquired.");
       }
-    } catch (e) {
-      console.warn("Pollinations text router fallback failed or timed out.");
-    }
+    } catch (e) {}
   }
 
-  if (!worldConfig) {
-    speakText("External telemetry offline. Engaging internal stellar synthesis matrix.");
+  if (!worldConfig && requestId === commandSequence) {
     worldConfig = generateFallbackWorld(commandText);
-    worldConfig.sectorTitle = "SYSTEM FALLBACK: LOCAL MATRIX";
-    worldConfig.lore = "Warning: External telemetry link lost. System is operating on local emergency navigational backup.";
-    worldConfig.speechResponse = "Engaging emergency local warp trajectory.";
   }
+
+  if (requestId !== commandSequence) return;
 
   if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: SECURED_TARGET';
-
   if (titleEl && worldConfig.sectorTitle) titleEl.innerText = worldConfig.sectorTitle;
   if (loreEl && worldConfig.lore) loreEl.innerText = worldConfig.lore;
   if (worldConfig.audioParams) updateAudioSynth(worldConfig.audioParams);
 
-  const codePreviewEl = document.getElementById('code-preview');
-  if (codePreviewEl && worldConfig.objects) {
-    codePreviewEl.innerText = worldConfig.objects
-      .map(o => `// [${o.name}]\n// Geometry: ${o.geometryType}\n${o.runtimeJs}`)
-      .join('\n\n');
-  }
-
   await applyWorldConfig(worldConfig);
 }
 
+// Top-Tier AI Prompt Generation for Deep Scientific & Visual Physics
 function buildPromptText(commandText) {
   return `
-You are controlling an advanced 3D Real-Space Simulator Engine.
+You are an advanced 3D Real-Space Simulator Engine and Principal Planetary Scientist.
 User Command: "${commandText}"
 
-CRITICAL SCIENTIFIC INTEGRITY RULE:
-- ALWAYS follow true astrophysical reality and actual space object data. 
-- DO NOT hallucinate fake or fictitious space objects, fictional planets, or imaginary moons unless explicitly requested by the user. 
-- If the user names a real planetary system or body (e.g., Mars, Saturn, Jupiter, Trappist-1, Earth), render its actual scientific layout accurately.
-
-Rules:
-1. "objects": Return an array of 3D objects reflecting true spatial distribution.
-2. "geometryType": Choose from "sphere", "torus", "disk", "icosahedron".
-3. "color": Provide a scientifically accurate HEX color code.
-4. "cameraPosition" & "cameraTarget": Position camera wide enough to frame the celestial body cleanly.
-5. "prompt": Provide descriptive texture prompts.
+CRITICAL SCIENTIFIC INTEGRITY:
+- Follow true astrophysical reality and actual space object data.
+- Provide precise visual properties (roughness, metalness) matching real planetary geology.
 
 Return ONLY valid raw JSON:
 {
   "sectorTitle": "Sector Name",
-  "lore": "Detailed scientific telemetry explanation of the current sector.",
+  "lore": "Detailed scientific telemetry explanation.",
   "speechResponse": "Concise voice announcement sentence for arrival.",
-  "cameraPosition": [12, 6, 20],
+  "cameraPosition": [14, 6, 22],
   "cameraTarget": [0, 0, 0],
   "objects": [
     {
       "name": "Planet Name",
       "geometryType": "sphere",
-      "geometryArgs": [2.0, 64, 64],
+      "geometryArgs": [2.0, 64, 48],
       "position": [0, 0, 0],
-      "color": "#b9774e",
+      "color": "#38bdf8",
       "emissive": false,
       "emissiveColor": "#ffaa00",
-      "prompt": "hyperrealistic satellite map texture",
-      "runtimeJs": "mesh.rotation.y += 0.002;"
+      "emissiveIntensity": 0,
+      "roughness": 0.45,
+      "metalness": 0.08,
+      "prompt": "hyperrealistic satellite map texture, micro-surface relief, high-frequency textural detail",
+      "animationType": "spin",
+      "animationSpeed": 0.05
     }
   ],
   "audioParams": { "baseFreq": 60.0, "filterCutoff": 400.0, "lfoRate": 1.0 }
@@ -427,47 +498,38 @@ async function loadTextureWithRetry(url, maxRetries = 2, delay = 8000, isPollina
     let blobUrl = null;
     try {
       let finalUrl = url;
-
       if (isPollinations) {
         const response = await fetch(url);
         if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
-        
         const blob = await response.blob();
-        
-        if (blob.size > 1100000) {
-          throw new Error("Pollinations rate-limit block image detected.");
-        }
-        
+        if (blob.size > 1200000) throw new Error("Rate-limit block image detected.");
         blobUrl = URL.createObjectURL(blob);
         finalUrl = blobUrl;
       }
-
       const texture = await textureLoader.loadAsync(finalUrl);
       if (blobUrl) URL.revokeObjectURL(blobUrl);
       return texture;
-
     } catch (err) {
       if (blobUrl) URL.revokeObjectURL(blobUrl);
       if (attempt === maxRetries) throw err;
-      
-      const penaltyDelay = attempt === 0 ? 15000 : delay * (attempt + 1);
-      console.warn(`Texture generation/load failed: "${err.message}". Retrying attempt ${attempt + 1} in ${penaltyDelay}ms...`);
-      await new Promise(resolve => setTimeout(resolve, penaltyDelay));
+      await new Promise(resolve => setTimeout(resolve, delay * (attempt + 1)));
     }
   }
 }
 
-// --- APPLY WORLD CONFIGURATION TO THREE.JS (SAFE SEQUENTIAL 1-TO-1 PIPELINE) ---
+// --- APPLY WORLD CONFIGURATION WITH 2K TEXTURES & ORBITCONTROLS ---
 async function applyWorldConfig(config) {
   const hudStatusEl = document.getElementById('hud-nav-status');
 
   while (systemGroup.children.length > 0) {
     const obj = systemGroup.children[0];
-    if (obj.geometry) obj.geometry.dispose();
-    if (obj.material) {
-      if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
-      else obj.material.dispose();
-    }
+    obj.traverse(child => {
+      if (child.geometry) child.geometry.dispose();
+      if (child.material) {
+        if (Array.isArray(child.material)) child.material.forEach(m => m.dispose());
+        else child.material.dispose();
+      }
+    });
     systemGroup.remove(obj);
   }
 
@@ -477,11 +539,8 @@ async function applyWorldConfig(config) {
     let [cx, cy, cz] = config.cameraPosition;
     const [tx, ty, tz] = config.cameraTarget;
 
-    // --- RESPONSIVE BORDER ADJUSTMENT ---
     const container = document.getElementById('viewport') || document.body;
     const aspect = container.clientWidth / container.clientHeight;
-    
-    // If portrait mode (mobile phone), scale camera distance back so objects fit inside borders
     if (aspect < 1) {
       const portraitMultiplier = 1.35 / aspect; 
       cx *= portraitMultiplier;
@@ -490,7 +549,7 @@ async function applyWorldConfig(config) {
     }
 
     camera.position.set(cx, cy, cz);
-    if (typeof controls !== 'undefined' && controls) {
+    if (controls) {
       controls.target.set(tx, ty, tz);
       controls.update(); 
     } else {
@@ -502,119 +561,103 @@ async function applyWorldConfig(config) {
 
   for (let i = 0; i < spaceObjects.length; i++) {
     const objConfig = spaceObjects[i];
-    
-    const spaceSpeech = `Calibrating surface albedo and planetary topography maps for ${objConfig.name}.`;
     if (hudStatusEl) hudStatusEl.innerText = `MAPPING: ${objConfig.name.toUpperCase()}`;
-    speakText(spaceSpeech);
 
     let texUrl = null;
     if (objConfig.customTextureUrl) {
       texUrl = objConfig.customTextureUrl;
     } else if (objConfig.prompt) {
-      const cleanPrompt = encodeURIComponent(`${objConfig.prompt}, flat equirectangular seamless texture map, pure planetary surface topography only, zero background stars, zero lighting effects, zero framing, high-resolution game asset`);
-      texUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=1024&height=512&nologo=true&model=flux&seed=${Math.floor(Math.random()*99999)}`;
+      // 2K Resolution (2048x1024) with Flux Micro-Surface Detail Keywords
+      const topScorePrompt = encodeURIComponent(
+        `${objConfig.prompt}, flat equirectangular seamless texture map, pure planetary surface topography only, micro-surface relief, high-frequency textural detail, crisp albedo, zero background stars, zero lighting effects, zero framing, high-resolution game asset`
+      );
+      texUrl = `https://image.pollinations.ai/prompt/${topScorePrompt}?width=2048&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random()*99999)}`;
     }
 
+    let preloadedTex = null;
     if (texUrl) {
       textureLoader.setCrossOrigin('anonymous');
       try {
-        const isPollinations = !!objConfig.prompt;
-        const tex = await loadTextureWithRetry(texUrl, 2, 8000, isPollinations);
-        tex.colorSpace = THREE.SRGBColorSpace;
-        tex.needsUpdate = true;
-        objConfig.preloadedTex = tex;
+        preloadedTex = await loadTextureWithRetry(texUrl, 2, 8000, true);
+        preloadedTex.colorSpace = THREE.SRGBColorSpace;
+        preloadedTex.needsUpdate = true;
       } catch (err) {
-        console.warn(`Texture load failed for ${objConfig.name} after retries, keeping fallback color.`, err);
-        objConfig.preloadedTex = null;
-      }
-
-      if (i < spaceObjects.length - 1) {
-        if (hudStatusEl) hudStatusEl.innerText = `COOLDOWN: STABILIZING ORBIT...`;
-        await new Promise(resolve => setTimeout(resolve, 8500));
+        preloadedTex = null;
       }
     }
-  }
 
-  if (hudStatusEl) {
-    hudStatusEl.innerText = 'PROTOCOL: SECURED_TARGET';
-  }
-  
-  if (config.speechResponse) {
-    speakText(config.speechResponse);
-  }
-
-  spaceObjects.forEach((objConfig) => {
     const geom = createDynamicGeometry(objConfig.geometryType, objConfig.geometryArgs);
-
     const mat = new THREE.MeshStandardMaterial({
-      color: objConfig.preloadedTex ? 0xffffff : new THREE.Color(objConfig.color || 0x38bdf8),
-      roughness: 0.35,
-      metalness: 0.15,
+      color: preloadedTex ? 0xffffff : new THREE.Color(objConfig.color || 0x38bdf8),
+      roughness: objConfig.roughness || 0.4,
+      metalness: objConfig.metalness || 0.1,
       emissive: objConfig.emissive ? new THREE.Color(objConfig.emissiveColor || 0xffaa00) : 0x000000,
-      emissiveIntensity: objConfig.emissive ? 0.9 : 0,
-      map: objConfig.preloadedTex || null
+      emissiveIntensity: objConfig.emissive ? (objConfig.emissiveIntensity || 0.9) : 0,
+      map: preloadedTex
     });
 
     const mesh = new THREE.Mesh(geom, mat);
-
     if (objConfig.position && Array.isArray(objConfig.position)) {
       mesh.position.set(...objConfig.position);
+    }
+
+    if (objConfig.geometryType === 'sphere' && !objConfig.emissive) {
+      addAtmosphereShell(mesh, (objConfig.geometryArgs?.[0] || 2.0) * 1.035, new THREE.Color(0x38bdf8), 0.45);
     }
 
     systemGroup.add(mesh);
 
     activeAnimatedMeshes.push({
       mesh: mesh,
-      runtimeFn: new Function('mesh', 'time', objConfig.runtimeJs || 'mesh.rotation.y += 0.005;')
+      type: objConfig.animationType || 'spin',
+      speed: objConfig.animationSpeed || 0.05
     });
-  });
+
+    if (i < spaceObjects.length - 1) {
+      await new Promise(resolve => setTimeout(resolve, 6000));
+    }
+  }
+
+  if (config.speechResponse) speakText(config.speechResponse);
 }
 
 function generateFallbackWorld(input) {
-  const lower = input.toLowerCase();
-  let geom = "sphere";
-  let args = [2.0, 64, 64];
-  let isEmissive = false;
-  let baseColor = "#38bdf8";
-
-  if (lower.includes('black hole') || lower.includes('blackhole') || lower.includes('ring')) {
-    geom = "torus";
-    args = [2.8, 0.5, 32, 128];
-    isEmissive = true;
-    baseColor = "#1e293b";
-  } else if (lower.includes('red dwarf') || lower.includes('star') || lower.includes('sun')) {
-    isEmissive = true;
-    baseColor = "#ef4444";
-  } else if (lower.includes('crystal') || lower.includes('asteroid')) {
-    geom = "icosahedron";
-    args = [2.0, 2];
-    baseColor = "#94a3b8";
-  }
-
   const shortTitle = input.length > 25 ? input.substring(0, 25) + "..." : input;
-
   return {
     sectorTitle: `Sector: ${shortTitle.toUpperCase()}`,
-    lore: `Long-range sensors locked onto target coordinates for: "${input}". Spatial mapping complete.`,
+    lore: `Long-range sensors locked onto target coordinates for: "${input}".`,
     speechResponse: `Warp vector locked. Approaching coordinate sector.`,
     cameraPosition: [14, 6, 22],
     cameraTarget: [0, 0, 0],
     objects: [{
       name: shortTitle,
-      geometryType: geom,
-      geometryArgs: args,
+      geometryType: 'sphere',
+      geometryArgs: [2.0, 64, 48],
       position: [0, 0, 0],
-      color: baseColor,
-      emissive: isEmissive,
-      emissiveColor: baseColor,
+      color: "#38bdf8",
+      emissive: false,
+      roughness: 0.4,
+      metalness: 0.1,
       prompt: `photorealistic surface texture map of ${input}`,
-      runtimeJs: `mesh.rotation.y += 0.01;`
+      animationType: 'spin',
+      animationSpeed: 0.05
     }],
     audioParams: { baseFreq: 60.0, filterCutoff: 450.0, lfoRate: 1.5 }
   };
 }
 
+// --- SETUP CONTROLS & ORBITCONTROLS ---
 function setupControls() {
+  const container = document.getElementById('viewport') || document.body;
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.05;
+  controls.enablePan = true;
+  controls.minDistance = 1.2;
+  controls.maxDistance = 10000;
+  controls.rotateSpeed = 0.6;
+  controls.zoomSpeed = 0.8;
+
   const micBtn = document.getElementById('mic-btn');
   const manualInput = document.getElementById('manual-input');
   const sendBtn = document.getElementById('send-btn');
@@ -631,10 +674,7 @@ function setupControls() {
     mobileToggleBtn.addEventListener('click', () => {
       sidebar.classList.toggle('mobile-open');
       mobileToggleBtn.innerText = sidebar.classList.contains('mobile-open') ? '✕ Close' : '⚙️ Controls';
-      
-      setTimeout(() => {
-        window.dispatchEvent(new Event('resize'));
-      }, 300);
+      setTimeout(() => window.dispatchEvent(new Event('resize')), 300);
     });
   }
 
@@ -691,29 +731,30 @@ function setupControls() {
   }
 }
 
+// --- SECURE DELTA ANIMATION LOOP & GPU SHADER TICK ---
 function animate(time) {
   requestAnimationFrame(animate);
   const t = time * 0.001;
+  const dt = lastFrameTime ? Math.min(Math.max((t - lastFrameTime), 0), 0.05) : 0;
+  lastFrameTime = t;
 
-  if (starField) {
-    const positions = starField.geometry.attributes.position.array;
-    for (let i = 2; i < positions.length; i += 3) {
-      positions[i] += 0.3;
-      if (positions[i] > 10) positions[i] = -500;
-    }
-    starField.geometry.attributes.position.needsUpdate = true;
+  if (starMaterial?.uniforms?.uTime) {
+    starMaterial.uniforms.uTime.value = t;
+  }
+  if (starField && camera) {
+    starField.position.copy(camera.position);
+    starField.rotation.y = t * 0.001;
   }
 
   activeAnimatedMeshes.forEach((anim) => {
-    if (anim.mesh && anim.runtimeFn) {
-      try {
-        anim.runtimeFn(anim.mesh, t);
-      } catch (e) {
-        anim.mesh.rotation.y += 0.005;
+    if (anim.mesh && anim.mesh.parent) {
+      if (anim.type === 'spin') {
+        anim.mesh.rotation.y += anim.speed * (dt * 60);
       }
     }
   });
 
+  if (controls) controls.update();
   renderer.render(scene, camera);
 }
 
