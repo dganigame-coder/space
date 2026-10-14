@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Autonomous NASA 3D Explorer with Gemini Model Fallbacks</title>
+    <title>Autonomous NASA 3D Explorer with Dynamic Gemini Waterfall</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -138,7 +138,7 @@
 
         <div class="math-box">
             <strong>Active Physics Engine:</strong><br>
-            Spherical-to-Cartesian Mapping & Stefan-Boltzmann Radiative Flux active. Model Fallback Queue Enabled.
+            Spherical-to-Cartesian Mapping & Dynamic Waterfall Model Discovery Active.
         </div>
     </div>
 
@@ -162,26 +162,103 @@
         scene.add(starGroup);
         let activeObjects = [];
 
-        // --- GEMINI MODEL FALLBACK WRAPPER ---
-        async function callGeminiWithFallback(promptText, apiKey) {
-            // Sequence of fallback models if one fails, is pending, or rate-limited
-            const models = [
-                'gemini-3.8-flash',
-                'gemini-3.5-flash',
-                'gemini-2.5-flash',
-                'gemini-3.1-pro-preview'
-            ];
+        // --- DYNAMIC MODEL DISCOVERY & NEWEST-FIRST WATERFALL QUEUE ---
+        let dynamicModelQueue = ['gemini-2.5-flash', 'gemini-1.5-flash']; // Safe default fallback stack
+
+        async function discoverGeminiModels(apiKey) {
+            try {
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                
+                const data = await res.json();
+                if (data && data.models) {
+                    const validModels = data.models
+                        .filter(m => 
+                            m.supportedGenerationMethods?.includes('generateContent') &&
+                            !m.name.includes('tts') &&
+                            !m.name.includes('embedding') &&
+                            !m.name.includes('transcribe') &&
+                            !m.name.includes('image') &&
+                            !m.name.includes('gemma')
+                        )
+                        .map(m => ({
+                            id: m.name.replace('models/', ''),
+                            versionString: m.version || '',
+                            description: m.description || ''
+                        }));
+
+                    // Sort models from NEWEST (First) to OLDEST (Last)
+                    validModels.sort((a, b) => {
+                        const getVer = (str) => {
+                            const match = str.match(/(\d+(\.\d+)?)/);
+                            return match ? parseFloat(match[0]) : 0;
+                        };
+
+                        const vA = getVer(a.id);
+                        const vB = getVer(b.id);
+
+                        if (vA !== vB) return vB - vA;
+
+                        const getDateVal = (str) => {
+                            const match = str.match(/(\d{2})-(\d{4})/);
+                            if (match) return parseInt(match[2]) * 100 + parseInt(match[1]);
+                            return 0;
+                        };
+
+                        const dateA = getDateVal(a.versionString);
+                        const dateB = getDateVal(b.versionString);
+
+                        if (dateA !== dateB) return dateB - dateA;
+
+                        const aFlash = a.id.includes('flash') ? 1 : 0;
+                        const bFlash = b.id.includes('flash') ? 1 : 0;
+                        return bFlash - aFlash;
+                    });
+
+                    if (validModels.length > 0) {
+                        dynamicModelQueue = validModels.map(m => m.id);
+                        console.log("Successfully compiled newest-first Gemini model waterfall:", dynamicModelQueue);
+                    }
+                }
+            } catch (err) {
+                console.warn("Could not fetch dynamic model list, using default fallback queue.", err);
+            }
+        }
+
+        // --- TIMEOUT-PROTECTED WATERFALL EXECUTION WRAPPER ---
+        async function callGeminiWithFallback(promptText, apiKey, expectJson = false) {
+            // Attempt to dynamically discover models if queue has only defaults
+            if (dynamicModelQueue.length <= 2 && apiKey) {
+                await discoverGeminiModels(apiKey);
+            }
 
             let lastError = null;
 
-            for (const model of models) {
+            for (const model of dynamicModelQueue) {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 12000); // 12-second hang prevention timer
+
                 try {
                     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+                    const bodyPayload = { contents: [{ parts: [{ text: promptText }] }] };
+                    if (expectJson) {
+                        bodyPayload.generationConfig = { responseMimeType: "application/json" };
+                    }
+
                     const response = await fetch(url, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
+                        body: JSON.stringify(bodyPayload),
+                        signal: controller.signal
                     });
+
+                    clearTimeout(timeoutId);
+
+                    // Intercept rate limits and server overloads to cascade immediately
+                    if (response.status === 429 || response.status === 503) {
+                        console.warn(`Model ${model} returned status ${response.status}. Cascading down waterfall...`);
+                        continue;
+                    }
 
                     if (!response.ok) {
                         const errBody = await response.json().catch(() => ({}));
@@ -195,15 +272,21 @@
                         throw new Error(`Model ${model} returned empty response content.`);
                     }
 
-                    console.log(`Successfully completed request using fallback model: ${model}`);
+                    console.log(`Successfully completed request using waterfall model: ${model}`);
                     return text;
+
                 } catch (err) {
-                    console.warn(`Model ${model} failed or pending. Trying next fallback option... Error:`, err.message);
+                    clearTimeout(timeoutId);
+                    if (err.name === 'AbortError') {
+                        console.warn(`Model ${model} request timed out after 12s. Cascading down waterfall...`);
+                    } else {
+                        console.warn(`Model ${model} failed or pending. Trying next fallback option... Error:`, err.message);
+                    }
                     lastError = err;
                 }
             }
 
-            throw new Error(`All fallback models failed. Last encountered error: ${lastError?.message || 'Unknown network error'}`);
+            throw new Error(`All waterfall models failed. Last encountered error: ${lastError?.message || 'Unknown network error'}`);
         }
 
         // 2. Main Agent Execution Pipeline
@@ -218,8 +301,8 @@
                 return;
             }
 
-            statusBar.textContent = "🤖 Gemini Agent parsing query with model fallback queue...";
-            agentLog.textContent = "Evaluating intent and querying model stack...";
+            statusBar.textContent = "🤖 Gemini Agent parsing query with dynamic waterfall queue...";
+            agentLog.textContent = "Discovering models, evaluating intent, and querying model stack...";
 
             try {
                 const agentPrompt = `You are an autonomous astrophysics AI agent. User command: "${userPrompt}"
@@ -231,8 +314,8 @@
                 - "maxRecords": number (40 to 100)
                 - "briefing": string (short 2-sentence mission briefing).`;
 
-                // Execute with automatic fallback wrapper
-                const rawText = await callGeminiWithFallback(agentPrompt, apiKey);
+                // Execute with dynamic waterfall model discovery and JSON enforcement
+                const rawText = await callGeminiWithFallback(agentPrompt, apiKey, true);
                 
                 const jsonMatch = rawText.match(/\{[\s\S]*\}/);
                 if (!jsonMatch) throw new Error("Agent response did not contain structured parameters JSON.");
@@ -340,7 +423,7 @@
             }
         });
 
-        // 5. Click Event: Trigger AI Educational Briefing with Fallback Support
+        // 5. Click Event: Trigger AI Educational Briefing with Waterfall Fallback Support
         window.addEventListener('click', async (event) => {
             if (event.target.closest('.hud-panel')) return;
 
@@ -357,7 +440,7 @@
                 const apiKey = document.getElementById('apiKey').value.trim();
 
                 dossierPanel.style.display = 'block';
-                dossierContent.textContent = `🪐 Querying model fallback sequence to build physical model and educational briefing for ${data.name}...`;
+                dossierContent.textContent = `🪐 Querying waterfall model sequence to build physical model and educational briefing for ${data.name}...`;
 
                 if (!apiKey) {
                     dossierContent.textContent = "Please enter your Gemini API key in the control panel.";
@@ -381,12 +464,12 @@
                     2. Astrophysical Derivations & Formulas: Explanation of 3D spatial coordinate calculations and thermal equilibrium bounds.
                     3. Astrobiological Potential: Assessment of habitability chemistry.`;
 
-                    // Trigger fallback wrapper for dossier generation
-                    const text = await callGeminiWithFallback(prompt, apiKey);
+                    // Trigger waterfall wrapper for dossier generation
+                    const text = await callGeminiWithFallback(prompt, apiKey, false);
                     dossierContent.textContent = text;
 
                 } catch (err) {
-                    dossierContent.textContent = "Failed to fetch AI briefing across all model fallbacks: " + err.message;
+                    dossierContent.textContent = "Failed to fetch AI briefing across all waterfall model fallbacks: " + err.message;
                 }
             }
         });
