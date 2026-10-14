@@ -259,7 +259,7 @@ function speakText(text) {
   window.speechSynthesis.speak(utterance);
 }
 
-// --- PROCESS COMMAND & SILENT CALIBRATION WATERFALL ---
+// --- PROCESS COMMAND & TIMEOUT-PROTECTED WATERFALL ---
 async function processCommand(commandText) {
   const transcriptEl = document.getElementById('transcript');
   const hudStatusEl = document.getElementById('hud-nav-status');
@@ -275,6 +275,10 @@ async function processCommand(commandText) {
 
   if (geminiKey && dynamicModelQueue.length > 0) {
     for (let i = 0; i < dynamicModelQueue.length; i++) {
+      // Create an AbortController with a 12-second timeout to prevent infinite pending hangs
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 12000);
+
       try {
         if (hudStatusEl) hudStatusEl.innerText = `UPLINK: CALIBRATING...`;
         speakText(`Calibrating spatial telemetry link.`);
@@ -286,8 +290,11 @@ async function processCommand(commandText) {
           body: JSON.stringify({
             contents: [{ parts: [{ text: buildPromptText(commandText) }] }],
             generationConfig: { responseMimeType: "application/json" }
-          })
+          }),
+          signal: controller.signal // Bind timeout controller signal
         });
+
+        clearTimeout(timeoutId); // Clear timeout since response arrived successfully
 
         if (res.status === 429 || res.status === 503) {
           console.warn(`Model returned status ${res.status}. Cascading down waterfall...`);
@@ -307,7 +314,13 @@ async function processCommand(commandText) {
           break; 
         }
       } catch (err) {
-        console.warn("Uplink calibration error:", err);
+        clearTimeout(timeoutId);
+        if (err.name === 'AbortError') {
+          console.warn(`Model ${dynamicModelQueue[i]} request timed out after 12s. Cascading down waterfall...`);
+          speakText(`Subspace relay timed out. Rerouting through secondary channel.`);
+        } else {
+          console.warn(`Uplink calibration error with ${dynamicModelQueue[i]}:`, err);
+        }
       }
     }
   }
@@ -315,14 +328,20 @@ async function processCommand(commandText) {
   if (!worldConfig) {
     speakText("Primary astrometric database unreachable. Engaging long-range archival database retrieval.");
     try {
+      const pController = new AbortController();
+      const pTimeoutId = setTimeout(() => pController.abort(), 10000);
+
       const pRes = await fetch('https://text.pollinations.ai/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: [{ role: 'user', content: buildPromptText(commandText) }],
           jsonMode: true
-        })
+        }),
+        signal: pController.signal
       });
+      clearTimeout(pTimeoutId);
+
       if (pRes.ok) {
         const pText = await pRes.text();
         let cleanJson = pText.trim();
@@ -333,7 +352,7 @@ async function processCommand(commandText) {
         speakText("Archival sector configuration successfully acquired.");
       }
     } catch (e) {
-      console.warn("Pollinations text router fallback failed.");
+      console.warn("Pollinations text router fallback failed or timed out.");
     }
   }
 
@@ -492,7 +511,6 @@ async function applyWorldConfig(config) {
     if (objConfig.customTextureUrl) {
       texUrl = objConfig.customTextureUrl;
     } else if (objConfig.prompt) {
-      // Enforce clean, flat equirectangular texture mapping with zero background elements or extra clutter
       const cleanPrompt = encodeURIComponent(`${objConfig.prompt}, flat equirectangular seamless texture map, pure planetary surface topography only, zero background stars, zero lighting effects, zero framing, high-resolution game asset`);
       texUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=1024&height=512&nologo=true&model=flux&seed=${Math.floor(Math.random()*99999)}`;
     }
@@ -613,6 +631,10 @@ function setupControls() {
     mobileToggleBtn.addEventListener('click', () => {
       sidebar.classList.toggle('mobile-open');
       mobileToggleBtn.innerText = sidebar.classList.contains('mobile-open') ? '✕ Close' : '⚙️ Controls';
+      
+      setTimeout(() => {
+        window.dispatchEvent(new Event('resize'));
+      }, 300);
     });
   }
 
