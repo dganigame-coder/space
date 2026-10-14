@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Autonomous NASA 3D Explorer with Dynamic Gemini Waterfall</title>
+    <title>Autonomous NASA 3D Explorer with Dynamic Gemini Waterfall & CORS Fix</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -227,7 +227,6 @@
 
         // --- TIMEOUT-PROTECTED WATERFALL EXECUTION WRAPPER ---
         async function callGeminiWithFallback(promptText, apiKey, expectJson = false) {
-            // Attempt to dynamically discover models if queue has only defaults
             if (dynamicModelQueue.length <= 2 && apiKey) {
                 await discoverGeminiModels(apiKey);
             }
@@ -236,7 +235,7 @@
 
             for (const model of dynamicModelQueue) {
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 12000); // 12-second hang prevention timer
+                const timeoutId = setTimeout(() => controller.abort(), 12000);
 
                 try {
                     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
@@ -254,7 +253,6 @@
 
                     clearTimeout(timeoutId);
 
-                    // Intercept rate limits and server overloads to cascade immediately
                     if (response.status === 429 || response.status === 503) {
                         console.warn(`Model ${model} returned status ${response.status}. Cascading down waterfall...`);
                         continue;
@@ -314,7 +312,6 @@
                 - "maxRecords": number (40 to 100)
                 - "briefing": string (short 2-sentence mission briefing).`;
 
-                // Execute with dynamic waterfall model discovery and JSON enforcement
                 const rawText = await callGeminiWithFallback(agentPrompt, apiKey, true);
                 
                 const jsonMatch = rawText.match(/\{[\s\S]*\}/);
@@ -323,13 +320,16 @@
                 const params = JSON.parse(jsonMatch[0]);
                 agentLog.textContent = `[Mission Briefing]: ${params.briefing}\n\n[Sector Bounds]: RA [${params.raMin}°-${params.raMax}°], Dec [${params.decMin}°-${params.decMax}°]`;
 
-                statusBar.textContent = "📡 Querying live NASA IPAC database...";
+                statusBar.textContent = "📡 Querying live NASA IPAC database via CORS proxy...";
                 
                 const adqlQuery = `select top ${params.maxRecords || 80} pl_name, hostname, ra, dec, sy_dist, pl_eqt, st_teff, st_rad, pl_bmasse from ps where sy_dist is not null and ra between ${params.raMin} and ${params.raMax} and dec between ${params.decMin} and ${params.decMax} and pl_eqt is not null`;
                 
-                const nasaUrl = `https://exoplanetarchive.ipac.caltech.edu/TAP/sync?query=${encodeURIComponent(adqlQuery)}&format=json`;
-                const nasaRes = await fetch(nasaUrl);
-                if (!nasaRes.ok) throw new Error("Failed to connect to NASA TAP endpoint.");
+                const targetNasaUrl = `https://exoplanetarchive.ipac.caltech.edu/TAP/sync?query=${encodeURIComponent(adqlQuery)}&format=json`;
+                // Route through a public CORS proxy to bypass browser restrictions
+                const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetNasaUrl)}`;
+
+                const nasaRes = await fetch(proxyUrl);
+                if (!nasaRes.ok) throw new Error("Failed to connect to NASA TAP endpoint through CORS proxy.");
                 
                 const spaceObjects = await nasaRes.json();
                 statusBar.textContent = `✨ Successfully rendered ${spaceObjects.length} celestial systems!`;
@@ -464,7 +464,6 @@
                     2. Astrophysical Derivations & Formulas: Explanation of 3D spatial coordinate calculations and thermal equilibrium bounds.
                     3. Astrobiological Potential: Assessment of habitability chemistry.`;
 
-                    // Trigger waterfall wrapper for dossier generation
                     const text = await callGeminiWithFallback(prompt, apiKey, false);
                     dossierContent.textContent = text;
 
