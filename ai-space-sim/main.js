@@ -455,8 +455,21 @@ async function applyWorldConfig(config) {
   activeAnimatedMeshes = [];
 
   if (config.cameraPosition && config.cameraTarget) {
-    const [cx, cy, cz] = config.cameraPosition;
+    let [cx, cy, cz] = config.cameraPosition;
     const [tx, ty, tz] = config.cameraTarget;
+
+    // --- RESPONSIVE BORDER ADJUSTMENT ---
+    const container = document.getElementById('viewport') || document.body;
+    const aspect = container.clientWidth / container.clientHeight;
+    
+    // If portrait mode (mobile phone), scale camera distance back so objects fit inside borders
+    if (aspect < 1) {
+      const portraitMultiplier = 1.35 / aspect; 
+      cx *= portraitMultiplier;
+      cy *= portraitMultiplier;
+      cz *= portraitMultiplier;
+    }
+
     camera.position.set(cx, cy, cz);
     if (typeof controls !== 'undefined' && controls) {
       controls.target.set(tx, ty, tz);
