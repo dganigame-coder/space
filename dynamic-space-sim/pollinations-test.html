@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pollinations.ai API Stress Tester</title>
+    <style>
+        body {
+            background-color: #0b0f19;
+            color: #00ffcc;
+            font-family: 'Courier New', Courier, monospace;
+            margin: 20px;
+            padding: 0;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: rgba(20, 30, 45, 0.8);
+            border: 1px solid #00ffcc;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0, 255, 204, 0.2);
+        }
+        h1, h2 {
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            border-bottom: 1px dashed rgba(0, 255, 204, 0.4);
+            padding-bottom: 10px;
+        }
+        .config-deck {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        label {
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+        input, textarea {
+            background: rgba(0, 20, 20, 0.6);
+            border: 1px solid #00ffcc;
+            color: #fff;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: inherit;
+            outline: none;
+        }
+        button {
+            background: transparent;
+            border: 1px solid #ffcc00;
+            color: #ffcc00;
+            padding: 12px;
+            border-radius: 4px;
+            font-family: inherit;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            grid-column: span 2;
+            transition: all 0.3s ease;
+        }
+        button:hover:not(:disabled) {
+            background: #ffcc00;
+            color: #0b0f19;
+            box-shadow: 0 0 12px rgba(255, 204, 0, 0.6);
+        }
+        button:disabled {
+            border-color: #555;
+            color: #555;
+            cursor: not-allowed;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .stat-box {
+            border: 1px solid rgba(0, 255, 204, 0.4);
+            padding: 10px;
+            border-radius: 4px;
+            background: rgba(0, 0, 0, 0.3);
+        }
+        .stat-val {
+            font-size: 24px;
+            font-weight: bold;
+            color: #fff;
+            margin-top: 5px;
+        }
+        .stat-box.fail .stat-val { color: #ff3333; }
+        .stat-box.success .stat-val { color: #33ff33; }
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid rgba(0, 255, 204, 0.2);
+            padding: 10px;
+            background: rgba(0,0,0,0.2);
+        }
+        .gallery-item {
+            position: relative;
+            border: 1px solid #333;
+            border-radius: 4px;
+            overflow: hidden;
+            background: #000;
+        }
+        .gallery-item img {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            display: block;
+        }
+        .item-label {
+            font-size: 10px;
+            padding: 5px;
+            background: rgba(0,0,0,0.8);
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .item-label.blocked {
+            color: #ff3333;
+            font-weight: bold;
+        }
+        .console-log {
+            background: #000;
+            border-left: 3px solid #ffcc00;
+            padding: 10px;
+            font-size: 12px;
+            color: #88ccff;
+            height: 120px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Pollinations.ai Rate-Limit Tester</h1>
+        <p style="font-size: 13px; color: rgba(0,255,204,0.7);">
+            Use this dashboard to find the absolute boundary limits of your queue. Test how low you can drop the delay before getting rate-limited.
+        </p>
+
+        <div class="config-deck">
+            <div class="input-group" style="grid-column: span 2;">
+                <label>Optional Authorization API Key (Leave blank to test anonymous tier)</label>
+                <input type="text" id="apiKeyInput" placeholder="Bearer token pointer string...">
+            </div>
+            
+            <div class="input-group">
+                <label>Delay Between Requests (Seconds)</label>
+                <input type="number" id="delayInput" value="3" min="0.5" step="0.5">
+            </div>
+
+            <div class="input-group">
+                <label>Total Pull Batches Count</label>
+                <input type="number" id="batchInput" value="10" min="1">
+            </div>
+
+            <div class="input-group" style="grid-column: span 2;">
+                <label>Base Prompt (A unique seed will automatically be added to every request)</label>
+                <textarea id="promptInput" rows="2">microscopic planetary texture surface map segment</textarea>
+            </div>
+
+            <button id="startBtn" onclick="runStressTest()">Begin Request Pull Sequence</button>
+        </div>
+
+        <h2>Telemetry Status</h2>
+        <div class="stats-grid">
+            <div class="stat-box"><label>Total Sent</label><div id="statSent" class="stat-val">0</div></div>
+            <div class="stat-box success"><label>Successful</label><div id="statSuccess" class="stat-val">0</div></div>
+            <div class="stat-box fail"><label>Rate Blocked</label><div id="statBlocked" class="stat-val">0</div></div>
+            <div class="stat-box"><label>Current Status</label><div id="statStatus" class="stat-val" style="font-size:16px; color:#ffcc00;">READY</div></div>
+        </div>
+
+        <h2>Live Buffer Pipeline</h2>
+        <div id="gallery" class="gallery">
+            <!-- Dynamically extracted assets show here -->
+        </div>
+
+        <h2>Console Diagnostics</h2>
+        <div id="consoleLog" class="console-log">Pipeline ready. Awaiting telemetry activation execution...</div>
+    </div>
+
+    <script>
+        const consoleLogEl = document.getElementById('consoleLog');
+        
+        function log(msg) {
+            const time = new Date().toLocaleTimeString();
+            consoleLogEl.innerHTML += `<div>[${time}] ${msg}</div>`;
+            consoleLogEl.scrollTop = consoleLogEl.scrollHeight;
+            console.log(msg);
+        }
+
+        async function runStressTest() {
+            // UI Toggle Configurations
+            const startBtn = document.getElementById('startBtn');
+            const delaySec = parseFloat(document.getElementById('delayInput').value);
+            const totalCount = parseInt(document.getElementById('batchInput').value);
+            const basePrompt = document.getElementById('promptInput').value;
+            const apiKey = document.getElementById('apiKeyInput').value.trim();
+            const gallery = document.getElementById('gallery');
+
+            // Counter Resets
+            let sent = 0, success = 0, blocked = 0;
+            document.getElementById('statSent').innerText = "0";
+            document.getElementById('statSuccess').innerText = "0";
+            document.getElementById('statBlocked').innerText = "0";
+            document.getElementById('statStatus').innerText = "ACTIVE";
+            gallery.innerHTML = "";
+            
+            startBtn.disabled = true;
+            log(`Starting loop sequence. Count: ${totalCount} | Delay interval: ${delaySec}s`);
+
+            for (let i = 0; i < totalCount; i++) {
+                sent++;
+                document.getElementById('statSent').innerText = sent;
+                
+                const seed = Math.floor(Math.random() * 999999);
+                const encodedPrompt = encodeURIComponent(`${basePrompt} texture fragment`);
+                const url = `https://pollinations.ai{encodedPrompt}?width=512&height=256&nologo=true&seed=${seed}`;
+                
+                log(`[Pull ${sent}/${totalCount}] Dispatching fetch pipeline...`);
+
+                try {
+                    const headers = {};
+                    if (apiKey) {
+                        headers["Authorization"] = apiKey.startsWith("Bearer ") ? apiKey : `Bearer ${apiKey}`;
+                    }
+
+                    const response = await fetch(url, { method: "GET", headers: headers });
+                    if (!response.ok) throw new Error(`HTTP Matrix Crash: ${response.status}`);
+
+                    const blob = await response.blob();
+                    const objectUrl = URL.createObjectURL(blob);
+
+                    // Create thumbnail item card template
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'gallery-item';
+                    
+                    const img = document.createElement('img');
+                    img.src = objectUrl;
+                    itemDiv.appendChild(img);
+
+                    const label = document.createElement('div');
+                    label.className = 'item-label';
+
+                    // 🛑 INTERCEPTION SAFEGUARD: If blob size breaches 1.1 MB, it's the blocked placeholder file
+                    if (blob.size > 1100000) {
+                        blocked++;
+                        document.getElementById('statBlocked').innerText = blocked;
+                        label.innerText = `[${sent}] RATE BLOCKED!`;
+                        label.className += ' blocked';
