@@ -44,9 +44,9 @@
         }
 
         #control-panel {
-            top: 20px; right: 20px; width: 360px;
+            top: 20px; right: 20px; width: 380px;
             display: flex; flex-direction: column; gap: 0.75rem;
-            max-height: 90vh; overflow-y: auto;
+            max-height: 92vh; overflow-y: auto;
         }
 
         #info-panel {
@@ -54,7 +54,7 @@
         }
 
         #dossier-panel {
-            bottom: 20px; left: 20px; width: 450px; max-height: 45vh; overflow-y: auto;
+            bottom: 20px; left: 20px; width: 460px; max-height: 50vh; overflow-y: auto;
             display: none; border-color: var(--accent-cyan);
         }
 
@@ -70,26 +70,34 @@
             font-size: 0.85rem; outline: none; font-family: 'Inter', sans-serif;
         }
         input:focus, textarea:focus { border-color: var(--accent-cyan); }
-        textarea { resize: vertical; height: 60px; }
+        textarea { resize: vertical; height: 55px; }
 
         button {
             background: linear-gradient(135deg, var(--accent-cyan), var(--accent-indigo));
-            color: #030712; border: none; padding: 0.7rem; font-weight: 600;
-            border-radius: 8px; cursor: pointer; font-size: 0.9rem;
+            color: #030712; border: none; padding: 0.65rem; font-weight: 600;
+            border-radius: 8px; cursor: pointer; font-size: 0.85rem;
             transition: opacity 0.2s, transform 0.1s;
         }
         button:hover { opacity: 0.9; transform: translateY(-1px); }
 
+        .btn-row { display: flex; gap: 0.5rem; }
+        .btn-secondary { background: #1f2937; color: var(--text-primary); border: 1px solid var(--card-border); flex: 1; }
+        .btn-secondary:hover { border-color: var(--accent-cyan); }
+
+        .filter-bar { display: flex; gap: 0.35rem; margin-top: 0.3rem; }
+        .filter-btn { background: #0b0f19; border: 1px solid var(--card-border); color: var(--text-secondary); padding: 0.4rem; font-size: 0.72rem; border-radius: 6px; cursor: pointer; flex: 1; text-align: center; }
+        .filter-btn.active { background: var(--accent-cyan); color: #030712; font-weight: 600; border-color: var(--accent-cyan); }
+
         .ai-log {
             background: #0b0f19; border: 1px solid var(--card-border);
             border-radius: 8px; padding: 0.75rem; font-size: 0.8rem;
-            color: var(--text-secondary); max-height: 110px; overflow-y: auto;
+            color: var(--text-secondary); max-height: 95px; overflow-y: auto;
             white-space: pre-wrap;
         }
 
         .math-box {
             background: rgba(3, 7, 18, 0.7); border-left: 3px solid var(--accent-indigo);
-            padding: 0.5rem 0.75rem; margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-secondary);
+            padding: 0.5rem 0.75rem; margin-top: 0.3rem; font-size: 0.78rem; color: var(--text-secondary);
         }
 
         #status-bar { font-size: 0.75rem; color: #34d399; text-align: center; font-weight: 500; }
@@ -112,6 +120,10 @@
         <div id="dossierContent" style="font-size: 0.825rem; color: var(--text-secondary); white-space: pre-wrap; margin-top: 0.5rem;">
             Click a celestial body in the 3D viewport to focus camera and stream an AI educational briefing.
         </div>
+        <div class="btn-row" style="margin-top: 0.75rem;">
+            <button class="btn-secondary" onclick="speakDossier()">🔊 Read Aloud</button>
+            <button class="btn-secondary" id="compareBtn" onclick="toggleComparisonTarget()">⚖️ Select for Comparison</button>
+        </div>
     </div>
 
     <!-- Gemini Mission Control Panel (Top Right) -->
@@ -126,9 +138,21 @@
         <div class="input-group">
             <label for="userPrompt">Natural Language Mission Command</label>
             <textarea id="userPrompt">Scan the sky sector for rocky exoplanets and potentially habitable worlds.</textarea>
+            <div class="btn-row">
+                <button onclick="runAgentPipeline()" style="flex: 2;">🚀 Deploy AI Agent</button>
+                <button class="btn-secondary" onclick="startVoiceCommand()" title="Speak Command">🎤 Speak</button>
+            </div>
         </div>
 
-        <button onclick="runAgentPipeline()">🚀 Deploy AI Agent & Render Universe</button>
+        <div class="input-group">
+            <label>Habitability Filters</label>
+            <div class="filter-bar">
+                <div class="filter-btn active" onclick="setFilter('all', this)">All</div>
+                <div class="filter-btn" onclick="setFilter('goldilocks', this)">Goldilocks (200-300K)</div>
+                <div class="filter-btn" onclick="setFilter('local', this)">Local (&lt;50pc)</div>
+            </div>
+        </div>
+
         <div id="status-bar">Agent Idle. Ready for deployment.</div>
 
         <div class="input-group">
@@ -137,8 +161,7 @@
         </div>
 
         <div class="math-box">
-            <strong>Active Physics Engine:</strong><br>
-            Spherical-to-Cartesian Mapping & Cinematic Focus Mode Active.
+            <strong>Active Suite:</strong> GitHub Data Pipeline, Voice Speech API, Starfield Parallax & Comparative AI.
         </div>
     </div>
 
@@ -148,7 +171,7 @@
         // 1. Scene, Camera, Renderer Setup
         const container = document.getElementById('webgl-container');
         const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 10000);
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 15000);
         camera.position.set(0, 0, 90);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -168,6 +191,34 @@
         let targetLookAt = new THREE.Vector3();
         let currentLookAt = new THREE.Vector3(0, 0, 0);
         let focusedObject = null;
+        let comparisonObject = null;
+
+        // --- FEATURE 3: PROCEDURAL STARFIELD GENERATOR ---
+        function initStarfield() {
+            const count = 3000;
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(count * 3);
+            const colors = new Float32Array(count * 3);
+
+            for (let i = 0; i < count * 3; i += 3) {
+                positions[i] = (Math.random() - 0.5) * 8000;
+                positions[i + 1] = (Math.random() - 0.5) * 8000;
+                positions[i + 2] = (Math.random() - 0.5) * 8000;
+
+                const shade = 0.5 + Math.random() * 0.5;
+                colors[i] = shade;
+                colors[i + 1] = shade;
+                colors[i + 2] = 1.0; // bluish stellar tint
+            }
+
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const material = new THREE.PointsMaterial({ size: 3, vertexColors: true, transparent: true, opacity: 0.7 });
+            const starField = new THREE.Points(geometry, material);
+            scene.add(starField);
+        }
+        initStarfield();
 
         // --- DYNAMIC GEMINI MODEL FALLBACK QUEUE ---
         let dynamicModelQueue = ['gemini-2.5-flash', 'gemini-1.5-flash'];
@@ -182,17 +233,11 @@
                     const validModels = data.models
                         .filter(m => 
                             m.supportedGenerationMethods?.includes('generateContent') &&
-                            !m.name.includes('tts') &&
-                            !m.name.includes('embedding') &&
-                            !m.name.includes('transcribe') &&
-                            !m.name.includes('image') &&
+                            !m.name.includes('tts') && !m.name.includes('embedding') &&
+                            !m.name.includes('transcribe') && !m.name.includes('image') &&
                             !m.name.includes('gemma')
                         )
-                        .map(m => ({
-                            id: m.name.replace('models/', ''),
-                            versionString: m.version || '',
-                            description: m.description || ''
-                        }));
+                        .map(m => ({ id: m.name.replace('models/', '') }));
 
                     validModels.sort((a, b) => {
                         const getVer = (str) => {
@@ -255,8 +300,18 @@
             throw new Error(`All waterfall models failed: ${lastError?.message}`);
         }
 
-        // --- BULLETPROOF ARCHIVAL & TELEMETRY MATRIX ---
+        // --- DATA PIPELINE (Reads GitHub Action JSON cache with Fallback) ---
         async function fetchCelestialData(params) {
+            try {
+                const res = await fetch('./nasa_data.json');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (Array.isArray(data) && data.length > 0) return data;
+                }
+            } catch (e) {
+                console.warn("Local nasa_data.json fetch failed, using fallback database.");
+            }
+
             return [
                 { pl_name: "Kepler-186 f", hostname: "Kepler-186", ra: 299.1, dec: 43.9, sy_dist: 178.5, pl_eqt: 233, st_teff: 3788, st_rad: 0.47, pl_bmasse: 1.17 },
                 { pl_name: "TRAPPIST-1 e", hostname: "TRAPPIST-1", ra: 346.6, dec: -5.0, sy_dist: 12.1, pl_eqt: 251, st_teff: 2566, st_rad: 0.12, pl_bmasse: 0.69 },
@@ -292,7 +347,7 @@
                 - "raMax": number (0 to 360)
                 - "decMin": number (-90 to 90)
                 - "decMax": number (-90 to 90)
-                - "maxRecords": number (40 to 100)
+                - "maxRecords": number (40 to 200)
                 - "briefing": string (short 2-sentence mission briefing).`;
 
                 const rawText = await callGeminiWithFallback(agentPrompt, apiKey, true);
@@ -302,7 +357,7 @@
                 const params = JSON.parse(jsonMatch[0]);
                 agentLog.textContent = `[Mission Briefing]: ${params.briefing}\n\n[Sector Bounds]: RA [${params.raMin}°-${params.raMax}°], Dec [${params.decMin}°-${params.decMax}°]`;
 
-                statusBar.textContent = "📡 Mapping celestial coordinates...";
+                statusBar.textContent = "📡 Mapping celestial coordinates from pipeline cache...";
                 
                 const spaceObjects = await fetchCelestialData(params);
                 statusBar.textContent = `✨ Successfully rendered ${spaceObjects.length} celestial systems!`;
@@ -310,14 +365,15 @@
                 while(starGroup.children.length > 0) { starGroup.remove(starGroup.children[0]); }
                 activeObjects = [];
                 focusedObject = null;
+                comparisonObject = null;
 
                 spaceObjects.forEach(row => {
                     const name = row.pl_name || "Unknown Exoplanet";
                     const starTemp = parseFloat(row.st_teff || 5778);
                     const distance = parseFloat(row.sy_dist || 10);
                     
-                    const raRad = THREE.MathUtils.degToRad(parseFloat(row.ra));
-                    const decRad = THREE.MathUtils.degToRad(parseFloat(row.dec));
+                    const raRad = THREE.MathUtils.degToRad(parseFloat(row.ra || 0));
+                    const decRad = THREE.MathUtils.degToRad(parseFloat(row.dec || 0));
 
                     const x = distance * Math.cos(decRad) * Math.cos(raRad);
                     const y = distance * Math.cos(decRad) * Math.sin(raRad);
@@ -337,12 +393,12 @@
                     mesh.position.set(x, y, z);
                     mesh.userData = { 
                         name: name, 
-                        host: row.hostname, 
+                        host: row.hostname || "Unknown", 
                         dist: distance, 
-                        temp: row.pl_eqt,
+                        temp: parseFloat(row.pl_eqt || 300),
                         mass: row.pl_bmasse || "Unknown",
-                        ra: row.ra,
-                        dec: row.dec,
+                        ra: row.ra || 0,
+                        dec: row.dec || 0,
                         st_teff: starTemp,
                         st_rad: row.st_rad || 1.0,
                         cartesian: { x: x.toFixed(2), y: y.toFixed(2), z: z.toFixed(2) }
@@ -359,12 +415,134 @@
             }
         }
 
+        // --- FEATURE 1: INTERACTIVE HABITABILITY FILTER SUITE ---
+        function setFilter(mode, btnElement) {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btnElement.classList.add('active');
+
+            activeObjects.forEach(mesh => {
+                const temp = mesh.userData.temp;
+                const dist = mesh.userData.dist;
+
+                if (mode === 'all') {
+                    mesh.visible = true;
+                } else if (mode === 'goldilocks') {
+                    // Goldilocks zone equilibrium temperature roughly 200K - 300K
+                    mesh.visible = (temp >= 200 && temp <= 300);
+                } else if (mode === 'local') {
+                    // Neighborhood within 50 parsecs
+                    mesh.visible = (dist <= 50);
+                }
+            });
+        }
+
+        // --- FEATURE 2: VOICE-POWERED GEMINI SPACE COMMANDER (Speech Recognition & TTS) ---
+        function startVoiceCommand() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                alert("Speech recognition is not supported in your browser. Please type your command.");
+                return;
+            }
+
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'en-US';
+            const statusBar = document.getElementById('status-bar');
+            const promptBox = document.getElementById('userPrompt');
+
+            statusBar.textContent = "🎙️ Listening for mission command...";
+            
+            recognition.onresult = (event) => {
+                const speechText = event.results[0][0].transcript;
+                promptBox.value = speechText;
+                statusBar.textContent = `🎙️ Heard: "${speechText}". Deploying agent...`;
+                runAgentPipeline();
+            };
+
+            recognition.onerror = () => {
+                statusBar.textContent = "❌ Voice command recognition failed.";
+            };
+
+            recognition.start();
+        }
+
+        function speakDossier() {
+            const textContent = document.getElementById('dossierContent').innerText;
+            if (!textContent || textContent.includes("Click a celestial body")) return;
+
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(textContent);
+            utterance.rate = 1.0;
+            utterance.pitch = 1.0;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // --- FEATURE 4: SIDE-BY-SIDE COMPARATIVE ANALYSIS ---
+        function toggleComparisonTarget() {
+            if (!focusedObject) return;
+            const btn = document.getElementById('compareBtn');
+
+            if (!comparisonObject) {
+                comparisonObject = focusedObject;
+                btn.textContent = `⚖️ Comparing with ${comparisonObject.userData.name}`;
+                btn.style.borderColor = 'var(--accent-cyan)';
+                document.getElementById('dossierContent').innerText += `\n\n[Comparison Active]: ${comparisonObject.userData.name} targeted. Click a second celestial body to execute AI Comparative Analysis.`;
+            } else if (comparisonObject === focusedObject) {
+                comparisonObject = null;
+                btn.textContent = "⚖️ Select for Comparison";
+                btn.style.borderColor = '';
+            } else {
+                // Execute comparison between comparisonObject and focusedObject
+                executeComparativeAnalysis(comparisonObject, focusedObject);
+            }
+        }
+
+        async function executeComparisonTargetClick(clickedMesh) {
+            if (comparisonObject && comparisonObject !== clickedMesh) {
+                await executeComparativeAnalysis(comparisonObject, clickedMesh);
+                comparisonObject = null;
+                document.getElementById('compareBtn').textContent = "⚖️ Select for Comparison";
+                return true;
+            }
+            return false;
+        }
+
+        async function executeComparativeAnalysis(planetA, planetB) {
+            const dossierContent = document.getElementById('dossierContent');
+            const apiKey = document.getElementById('apiKey').value.trim();
+
+            dossierContent.textContent = `⚖️ Requesting Gemini Comparative Analysis between ${planetA.userData.name} and ${planetB.userData.name}...`;
+
+            if (!apiKey) {
+                dossierContent.textContent = "Please provide your Gemini API key to run comparative analysis.";
+                return;
+            }
+
+            try {
+                const prompt = `You are an elite astrophysicist. Provide a rigorous side-by-side comparative analysis of two exoplanet systems:
+                
+                System 1: "${planetA.userData.name}" (Host: ${planetA.userData.host})
+                - Distance: ${planetA.userData.dist} pc | Temp: ${planetA.userData.temp} K | Mass: ${planetA.userData.mass} Earth masses | Star Teff: ${planetA.userData.st_teff} K
+
+                System 2: "${planetB.userData.name}" (Host: ${planetB.userData.host})
+                - Distance: ${planetB.userData.dist} pc | Temp: ${planetB.userData.temp} K | Mass: ${planetB.userData.mass} Earth masses | Star Teff: ${planetB.userData.st_teff} K
+
+                Structure your response into:
+                1. Orbital & Thermal Contrast: Compare their stellar radiation and equilibrium environments.
+                2. Planetary Classification & Mass Profiles: Contrast their physical composition likelihoods.
+                3. Habitability & Atmospheric Verdict: Which system holds higher astrobiological potential and why?`;
+
+                const text = await callGeminiWithFallback(prompt, apiKey, false);
+                dossierContent.textContent = text;
+            } catch (err) {
+                dossierContent.textContent = "Comparative analysis failed: " + err.message;
+            }
+        }
+
         // 3. Cinematic Animation Loop with Camera Interpolation
         function animate() {
             requestAnimationFrame(animate);
 
             if (!isTransitioning && !focusedObject) {
-                // Rotate universe slowly when no object is selected
                 starGroup.rotation.y += 0.0003;
             } else {
                 if (focusedObject) {
@@ -373,7 +551,6 @@
                     targetLookAt.copy(focusedObject.position);
                 }
 
-                // Smoothly glide camera position and look-at target
                 camera.position.lerp(targetCameraPos, 0.06);
                 currentLookAt.lerp(targetLookAt, 0.06);
                 camera.lookAt(currentLookAt);
@@ -396,7 +573,7 @@
             mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
             raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObjects(starGroup.children);
+            const intersects = raycaster.intersectObjects(starGroup.children.filter(m => m.visible));
 
             const titleEl = document.getElementById('objectTitle');
             const descEl = document.getElementById('objectDesc');
@@ -406,7 +583,7 @@
                 titleEl.textContent = data.name;
                 descEl.innerHTML = `Host Star: <strong>${data.host}</strong><br>` +
                                    `Distance: <strong>${data.dist} pc</strong> | Eq. Temp: <strong>${data.temp} K</strong><br>` +
-                                   `<span class="clickable-hint">👉 Click node to zoom in & view AI Dossier</span>`;
+                                   `<span class="clickable-hint">👉 Click node to focus & view AI Dossier</span>`;
             } else if (!focusedObject) {
                 titleEl.textContent = "Deep Space Sector";
                 descEl.innerHTML = "Hover over any star node to inspect live telemetry. <strong>Click an object</strong> to fly in close and generate a full AI Educational Dossier.";
@@ -421,7 +598,7 @@
             mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
             raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObjects(starGroup.children);
+            const intersects = raycaster.intersectObjects(starGroup.children.filter(m => m.visible));
 
             const dossierPanel = document.getElementById('dossier-panel');
             const dossierContent = document.getElementById('dossierContent');
@@ -431,10 +608,13 @@
                 const data = clickedMesh.userData;
                 const apiKey = document.getElementById('apiKey').value.trim();
 
+                // Check if we are selecting a second planet for comparison
+                const handledComparison = await executeComparisonTargetClick(clickedMesh);
+                if (handledComparison) return;
+
                 focusedObject = clickedMesh;
                 const radius = clickedMesh.geometry.parameters?.radius || 2.0;
                 
-                // Calculate precise cinematic framing position
                 targetCameraPos.copy(clickedMesh.position).add(new THREE.Vector3(0, radius * 0.5, radius * 3.5));
                 targetLookAt.copy(clickedMesh.position);
                 isTransitioning = true;
@@ -451,17 +631,16 @@
                     const prompt = `You are an elite astrophysicist and space educator. Provide a comprehensive educational briefing and mathematical/physical breakdown for the exoplanet system "${data.name}" orbiting host star "${data.host}".
 
                     Telemetry & Parameters:
-                    - Distance: ${data.dist} parsecs (d)
-                    - Coordinates: Right Ascension alpha = ${data.ra} degrees, Declination delta = ${data.dec} degrees
-                    - Derived 3D Cartesian Position (parsecs): x = ${data.cartesian.x}, y = ${data.cartesian.y}, z = ${data.cartesian.z}
+                    - Distance: ${data.dist} parsecs
+                    - Coordinates: Right Ascension ${data.ra}°, Declination ${data.dec}°
+                    - 3D Cartesian Position: x = ${data.cartesian.x}, y = ${data.cartesian.y}, z = ${data.cartesian.z}
                     - Planet Equilibrium Temperature: ${data.temp} Kelvin
                     - Planet Mass: ${data.mass} Earth masses
-                    - Host Star Effective Temperature: ${data.st_teff} Kelvin
-                    - Host Star Radius: ${data.st_rad} Solar radii
+                    - Host Star Temp: ${data.st_teff} Kelvin, Radius: ${data.st_rad} Solar radii
 
                     Structure your response into:
-                    1. Physical & Environmental Overview: Surface conditions, climate, and profile.
-                    2. Astrophysical Derivations & Formulas: Explanation of 3D spatial coordinate calculations and thermal equilibrium bounds.
+                    1. Physical & Environmental Overview: Surface conditions and climate profile.
+                    2. Astrophysical Derivations & Formulas: Explanation of 3D spatial coordinate calculations.
                     3. Astrobiological Potential: Assessment of habitability chemistry.`;
 
                     const text = await callGeminiWithFallback(prompt, apiKey, false);
@@ -471,7 +650,6 @@
                     dossierContent.textContent = "Failed to fetch AI briefing: " + err.message;
                 }
             } else {
-                // Clicking empty space resets focus
                 focusedObject = null;
                 dossierPanel.style.display = 'none';
             }
