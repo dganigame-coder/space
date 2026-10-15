@@ -1,9 +1,13 @@
 name: Fetch NASA Exoplanet Data
 
 on:
-  workflow_dispatch: # Allows you to click a button in GitHub to refresh data anytime
+  workflow_dispatch:
   schedule:
-    - cron: '0 0 * * *' # Runs automatically once a day
+    - cron: '0 0 * * *'
+
+# --- ADD THIS PERMISSIONS BLOCK ---
+permissions:
+  contents: write
 
 jobs:
   update-data:
@@ -22,7 +26,7 @@ jobs:
           node -e '
           const fs = require("fs");
           async function fetchNASA() {
-              const query = "select top 100 pl_name, hostname, ra, dec, sy_dist, pl_eqt, st_teff, st_rad, pl_bmasse from ps where sy_dist is not null and pl_eqt is not null";
+              const query = "select pl_name, hostname, ra, dec, sy_dist, pl_eqt, st_teff, st_rad, pl_bmasse from ps where sy_dist is not null and pl_eqt is not null";
               const url = `https://exoplanetarchive.ipac.caltech.edu/TAP/sync?query=${encodeURIComponent(query)}&format=json`;
               
               const res = await fetch(url);
