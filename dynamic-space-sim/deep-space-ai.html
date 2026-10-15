@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Autonomous NASA 3D Explorer & Gemini Engine</title>
+    <title>Autonomous NASA 3D Explorer & Cinematic Gemini Engine</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -103,14 +103,14 @@
     <!-- Quick Telemetry Inspector (Top Left) -->
     <div id="info-panel" class="hud-panel">
         <h3 id="objectTitle">Deep Space Sector</h3>
-        <p id="objectDesc" style="font-size: 0.825rem; color: var(--text-secondary);">Hover over any star node to inspect live telemetry. <strong>Click an object</strong> to generate a full AI Educational Dossier.</p>
+        <p id="objectDesc" style="font-size: 0.825rem; color: var(--text-secondary);">Hover over any star node to inspect live telemetry. <strong>Click an object</strong> to fly in close and generate a full AI Educational Dossier.</p>
     </div>
 
     <!-- Click-to-Explore AI Educational & Physics Dossier (Bottom Left) -->
     <div id="dossier-panel" class="hud-panel">
         <h3>🪐 AI Educational & Physics Dossier</h3>
         <div id="dossierContent" style="font-size: 0.825rem; color: var(--text-secondary); white-space: pre-wrap; margin-top: 0.5rem;">
-            Click a celestial body in the 3D viewport to compute its physical model and stream an AI educational briefing.
+            Click a celestial body in the 3D viewport to focus camera and stream an AI educational briefing.
         </div>
     </div>
 
@@ -138,7 +138,7 @@
 
         <div class="math-box">
             <strong>Active Physics Engine:</strong><br>
-            Spherical-to-Cartesian Mapping & High-Reliability Telemetry Matrix Active.
+            Spherical-to-Cartesian Mapping & Cinematic Focus Mode Active.
         </div>
     </div>
 
@@ -161,6 +161,13 @@
         let starGroup = new THREE.Group();
         scene.add(starGroup);
         let activeObjects = [];
+
+        // Cinematic Camera State Variables
+        let isTransitioning = false;
+        let targetCameraPos = new THREE.Vector3();
+        let targetLookAt = new THREE.Vector3();
+        let currentLookAt = new THREE.Vector3(0, 0, 0);
+        let focusedObject = null;
 
         // --- DYNAMIC GEMINI MODEL FALLBACK QUEUE ---
         let dynamicModelQueue = ['gemini-2.5-flash', 'gemini-1.5-flash'];
@@ -250,8 +257,7 @@
 
         // --- BULLETPROOF ARCHIVAL & TELEMETRY MATRIX ---
         async function fetchCelestialData(params) {
-            // Curated matrix of real NASA confirmed exoplanets with verified astrophysical telemetry
-            const celestialDatabase = [
+            return [
                 { pl_name: "Kepler-186 f", hostname: "Kepler-186", ra: 299.1, dec: 43.9, sy_dist: 178.5, pl_eqt: 233, st_teff: 3788, st_rad: 0.47, pl_bmasse: 1.17 },
                 { pl_name: "TRAPPIST-1 e", hostname: "TRAPPIST-1", ra: 346.6, dec: -5.0, sy_dist: 12.1, pl_eqt: 251, st_teff: 2566, st_rad: 0.12, pl_bmasse: 0.69 },
                 { pl_name: "Proxima Centauri b", hostname: "Proxima Centauri", ra: 217.4, dec: -62.6, sy_dist: 1.3, pl_eqt: 234, st_teff: 3042, st_rad: 0.14, pl_bmasse: 1.27 },
@@ -262,8 +268,6 @@
                 { pl_name: "K2-18 b", hostname: "K2-18", ra: 172.6, dec: 7.6, sy_dist: 34.0, pl_eqt: 284, st_teff: 3503, st_rad: 0.41, pl_bmasse: 8.6 },
                 { pl_name: "TOI-700 d", hostname: "TOI-700", ra: 97.9, dec: -65.6, sy_dist: 31.1, pl_eqt: 268, st_teff: 3480, st_rad: 0.44, pl_bmasse: 1.72 }
             ];
-
-            return celestialDatabase;
         }
 
         // 2. Main Agent Execution Pipeline
@@ -305,6 +309,7 @@
 
                 while(starGroup.children.length > 0) { starGroup.remove(starGroup.children[0]); }
                 activeObjects = [];
+                focusedObject = null;
 
                 spaceObjects.forEach(row => {
                     const name = row.pl_name || "Unknown Exoplanet";
@@ -354,10 +359,30 @@
             }
         }
 
-        // 3. Animation loop
+        // 3. Cinematic Animation Loop with Camera Interpolation
         function animate() {
             requestAnimationFrame(animate);
-            starGroup.rotation.y += 0.0003;
+
+            if (!isTransitioning && !focusedObject) {
+                // Rotate universe slowly when no object is selected
+                starGroup.rotation.y += 0.0003;
+            } else {
+                if (focusedObject) {
+                    const radius = focusedObject.geometry.parameters?.radius || 2.0;
+                    targetCameraPos.copy(focusedObject.position).add(new THREE.Vector3(0, radius * 0.5, radius * 3.5));
+                    targetLookAt.copy(focusedObject.position);
+                }
+
+                // Smoothly glide camera position and look-at target
+                camera.position.lerp(targetCameraPos, 0.06);
+                currentLookAt.lerp(targetLookAt, 0.06);
+                camera.lookAt(currentLookAt);
+
+                if (camera.position.distanceTo(targetCameraPos) < 0.05) {
+                    isTransitioning = false;
+                }
+            }
+
             renderer.render(scene, camera);
         }
         animate();
@@ -381,14 +406,14 @@
                 titleEl.textContent = data.name;
                 descEl.innerHTML = `Host Star: <strong>${data.host}</strong><br>` +
                                    `Distance: <strong>${data.dist} pc</strong> | Eq. Temp: <strong>${data.temp} K</strong><br>` +
-                                   `<span class="clickable-hint">👉 Click node for full AI Educational & Physics Dossier</span>`;
-            } else {
+                                   `<span class="clickable-hint">👉 Click node to zoom in & view AI Dossier</span>`;
+            } else if (!focusedObject) {
                 titleEl.textContent = "Deep Space Sector";
-                descEl.innerHTML = "Hover over any star node to inspect live telemetry. <strong>Click an object</strong> to generate a full AI Educational Dossier.";
+                descEl.innerHTML = "Hover over any star node to inspect live telemetry. <strong>Click an object</strong> to fly in close and generate a full AI Educational Dossier.";
             }
         });
 
-        // 5. Click Event: Trigger AI Educational Briefing
+        // 5. Click Event: Trigger Cinematic Camera Zoom & AI Educational Briefing
         window.addEventListener('click', async (event) => {
             if (event.target.closest('.hud-panel')) return;
 
@@ -398,14 +423,24 @@
             raycaster.setFromCamera(mouse, camera);
             const intersects = raycaster.intersectObjects(starGroup.children);
 
+            const dossierPanel = document.getElementById('dossier-panel');
+            const dossierContent = document.getElementById('dossierContent');
+
             if (intersects.length > 0) {
-                const data = intersects[0].object.userData;
-                const dossierPanel = document.getElementById('dossier-panel');
-                const dossierContent = document.getElementById('dossierContent');
+                const clickedMesh = intersects[0].object;
+                const data = clickedMesh.userData;
                 const apiKey = document.getElementById('apiKey').value.trim();
 
+                focusedObject = clickedMesh;
+                const radius = clickedMesh.geometry.parameters?.radius || 2.0;
+                
+                // Calculate precise cinematic framing position
+                targetCameraPos.copy(clickedMesh.position).add(new THREE.Vector3(0, radius * 0.5, radius * 3.5));
+                targetLookAt.copy(clickedMesh.position);
+                isTransitioning = true;
+
                 dossierPanel.style.display = 'block';
-                dossierContent.textContent = `🪐 Querying waterfall model sequence for ${data.name}...`;
+                dossierContent.textContent = `🪐 Locking camera view onto ${data.name}... Streaming AI briefing...`;
 
                 if (!apiKey) {
                     dossierContent.textContent = "Please enter your Gemini API key in the control panel.";
@@ -435,6 +470,10 @@
                 } catch (err) {
                     dossierContent.textContent = "Failed to fetch AI briefing: " + err.message;
                 }
+            } else {
+                // Clicking empty space resets focus
+                focusedObject = null;
+                dossierPanel.style.display = 'none';
             }
         });
 
