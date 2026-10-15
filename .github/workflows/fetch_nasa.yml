@@ -1,0 +1,42 @@
+name: Fetch NASA Exoplanet Data
+
+on:
+  workflow_dispatch: # Allows you to click a button in GitHub to refresh data anytime
+  schedule:
+    - cron: '0 0 * * *' # Runs automatically once a day
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Fetch Data from NASA IPAC TAP
+        run: |
+          node -e '
+          const fs = require("fs");
+          async function fetchNASA() {
+              const query = "select top 100 pl_name, hostname, ra, dec, sy_dist, pl_eqt, st_teff, st_rad, pl_bmasse from ps where sy_dist is not null and pl_eqt is not null";
+              const url = `https://exoplanetarchive.ipac.caltech.edu/TAP/sync?query=${encodeURIComponent(query)}&format=json`;
+              
+              const res = await fetch(url);
+              const data = await res.json();
+              fs.writeFileSync("nasa_data.json", JSON.stringify(data, null, 2));
+              console.log(`Saved ${data.length} records!`);
+          }
+          fetchNASA();
+          '
+
+      - name: Commit and Push Updated Data
+        run: |
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "bot@github.com"
+          git add nasa_data.json
+          git commit -m "Auto-update NASA exoplanet dataset" || echo "No changes to commit"
+          git push
