@@ -464,48 +464,34 @@ You are an advanced 3D Real-Space Simulator Engine and Principal Planetary Scien
 User Command: "${commandText}"
 
 CRITICAL SCIENTIFIC INTEGRITY & STRUCTURE RULES:
-- Follow true astrophysical reality. 
-- FOR RINGED PLANETS (like Saturn): You MUST return MULTIPLE objects in the "objects" array: 
-  1. The central planetary body sphere (e.g., Saturn core).
-  2. A separate companion object with geometryType "disk" or "torus", matching the planet's position, representing the luminous ring system.
+- Follow true astrophysical reality based strictly on the user's command. 
+- DO NOT add rings to objects unless the user explicitly asks for a ringed planet (like Saturn or Uranus). 
+- For standard planets, stars, moons, or black holes, return only the necessary geometry (e.g., a single sphere for a planet/star, a black hole core with an accretion disk, or an icosahedron for an asteroid).
 - Every object in the "objects" array MUST have a unique, highly detailed "prompt" field describing its exact visual appearance.
 
-Return ONLY valid raw JSON:
+Return ONLY valid raw JSON matching this structure:
 {
   "sectorTitle": "Sector Name",
   "lore": "Detailed scientific telemetry explanation.",
   "speechResponse": "Concise voice announcement sentence for arrival.",
-  "cameraPosition": [16, 8, 24],
+  "cameraPosition": [14, 6, 22],
   "cameraTarget": [0, 0, 0],
   "objects": [
     {
-      "name": "Planet Name",
+      "name": "Object Name",
       "geometryType": "sphere",
       "geometryArgs": [2.0, 64, 48],
       "position": [0, 0, 0],
-      "color": "#e2bb75",
+      "color": "#38bdf8",
       "emissive": false,
       "roughness": 0.45,
       "metalness": 0.08,
-      "prompt": "Saturn gas giant golden storm bands, turbulent cloud layers",
+      "prompt": "Detailed visual description unique to this specific object",
       "animationType": "spin",
-      "animationSpeed": 0.04
-    },
-    {
-      "name": "Planet Rings",
-      "geometryType": "disk",
-      "geometryArgs": [2.6, 5.2, 96],
-      "position": [0, 0, 0],
-      "color": "#c4a47c",
-      "emissive": false,
-      "roughness": 0.3,
-      "metalness": 0.2,
-      "prompt": "icy planetary ring system particle belt, rocky ice chunks texture",
-      "animationType": "spin",
-      "animationSpeed": 0.02
+      "animationSpeed": 0.05
     }
   ],
-  "audioParams": { "baseFreq": 55.0, "filterCutoff": 380.0, "lfoRate": 1.0 }
+  "audioParams": { "baseFreq": 60.0, "filterCutoff": 400.0, "lfoRate": 1.0 }
 }
 `;
 }
