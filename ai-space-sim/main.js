@@ -458,15 +458,20 @@ async function processCommand(commandText) {
   await applyWorldConfig(worldConfig);
 }
 
-// Upgraded Prompt Architecture ensuring accurate astronomical alignment & high-fidelity texture instructions
 function buildPromptText(commandText) {
   return `
 You are an advanced 3D Real-Space Simulator Engine and Principal Planetary Scientist.
 User Command: "${commandText}"
 
-CRITICAL SCIENTIFIC INTEGRITY & ALIGNMENT RULES:
-1. ACCURATE ASTROPHYSICAL LAYOUT: Follow true astronomical reality. If the user asks for Saturn, Uranus, or a ringed world, return multiple objects (core sphere + separate companion object with geometryType "disk" or "torus" for rings positioned at [0,0,0]). For standard planets (Mars, Earth, Jupiter), return a single accurate sphere. For binary stars or moons, calculate correct relative positions.
-2. PRECISE TEXTURE PROMPTS: The "prompt" field for every object MUST be an ultra-detailed, high-frequency description of its unique geological or atmospheric surface features (e.g., "Jupiter orange and white turbulent ammonia storm bands, Great Red Spot vortex", "Mars rusty red iron oxide dusty cratered highlands, Olympus Mons shield volcano", "Sun churning golden plasma corona, solar flare granulation"). Never use generic or repeating text.
+CRITICAL SCIENTIFIC INTEGRITY & VARIETY RULES:
+1. MATCH REAL SHAPES & LAYOUTS: 
+   - Follow true astrophysical reality based strictly on the user's command.
+   - Use "sphere" for standard planets, gas giants, and stars.
+   - Use "icosahedron" (detail level 2) for jagged asteroids, moons, or crystalline worlds.
+   - Use "torus" or "disk" for ring systems or accretion disks.
+   - FOR RINGED PLANETS (like Saturn or Uranus): Return MULTIPLE objects in the "objects" array (e.g., core sphere + a separate companion object with geometryType "disk" or "torus" for the rings positioned at [0,0,0]).
+2. DYNAMIC ANIMATIONS: Choose appropriate animation types: "spin" for planets/rings, "tumble" for jagged asteroids, "pulse" for living stars or energy anomalies.
+3. PRECISE SURFACE PROMPTS: Write ultra-detailed descriptions focused purely on high-frequency geological or atmospheric surface features (e.g., turbulent ammonia storm bands, iron-oxide cratered highlands, icy tectonic fractures, or churning stellar plasma). Avoid generic terms.
 
 Return ONLY valid raw JSON matching this structure:
 {
