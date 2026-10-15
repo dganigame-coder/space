@@ -303,7 +303,7 @@
         // --- DATA PIPELINE (Reads GitHub Action JSON cache with Fallback) ---
         async function fetchCelestialData(params) {
             try {
-                const res = await fetch('./nasa_data.json');
+                const res = await fetch('https://cdn.jsdelivr.net/gh/dganigame-coder/space/nasa_data.json');
                 if (res.ok) {
                     const data = await res.json();
                     if (Array.isArray(data) && data.length > 0) return data;
