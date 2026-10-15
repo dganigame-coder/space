@@ -343,11 +343,17 @@ function updateAudioSynth(params) {
   if (params.lfoRate) lfoNode.frequency.linearRampToValueAtTime(params.lfoRate, now + 1.5);
 }
 
-function speakText(text) {
+// Robust Speech Queue & Cancellation (Prevents overlapping/stuttered recorder sounds)
+let lastSpokenText = '';
+function speakText(text, force = false) {
   if (!('speechSynthesis' in window)) return;
+  if (!force && text === lastSpokenText) return; // Prevent duplicate rapid triggers
+  lastSpokenText = text;
+  
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
-  utterance.pitch = 0.85; utterance.rate = 1.0;
+  utterance.pitch = 0.85; 
+  utterance.rate = 1.0;
   window.speechSynthesis.speak(utterance);
 }
 
@@ -366,7 +372,7 @@ async function processCommand(commandText) {
   if (transcriptEl) transcriptEl.innerText = `"${commandText}"`;
   if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: ASTROMETRIC_SCAN';
 
-  speakText(`Engaging long-range astrometric sensors for target vector: ${commandText}. Calibrating navigation arrays.`);
+  speakText(`Engaging sensors for target vector: ${commandText}.`);
 
   let worldConfig = null;
 
@@ -378,7 +384,6 @@ async function processCommand(commandText) {
 
       try {
         if (hudStatusEl) hudStatusEl.innerText = `UPLINK: CALIBRATING...`;
-        speakText(`Calibrating spatial telemetry link.`);
         
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${dynamicModelQueue[i]}:generateContent?key=${geminiKey}`;
         const res = await fetch(url, {
@@ -394,7 +399,6 @@ async function processCommand(commandText) {
         clearTimeout(timeoutId);
 
         if (res.status === 429 || res.status === 503) {
-          speakText(`Primary subspace relay congested. Recalibrating navigational frequency.`);
           continue; 
         }
 
@@ -406,7 +410,6 @@ async function processCommand(commandText) {
             rawJson = rawJson.substring(rawJson.indexOf('{'), rawJson.lastIndexOf('}') + 1);
           }
           worldConfig = JSON.parse(rawJson);
-          speakText("Sector topography mapped successfully. Initializing holographic materialization sequence.");
           break; 
         }
       } catch (err) {
@@ -416,7 +419,6 @@ async function processCommand(commandText) {
   }
 
   if (!worldConfig && requestId === commandSequence) {
-    speakText("Primary astrometric database unreachable. Engaging archival retrieval.");
     try {
       const pController = new AbortController();
       const pTimeoutId = setTimeout(() => pController.abort(), 10000);
@@ -438,13 +440,11 @@ async function processCommand(commandText) {
           cleanJson = cleanJson.substring(cleanJson.indexOf('{'), cleanJson.lastIndexOf('}') + 1);
         }
         worldConfig = JSON.parse(cleanJson);
-        speakText("Archival sector configuration successfully acquired.");
       }
     } catch (e) {}
   }
 
   if (!worldConfig && requestId === commandSequence) {
-    speakText("External telemetry offline. Engaging internal stellar synthesis matrix.");
     worldConfig = generateFallbackWorld(commandText);
   }
 
@@ -455,19 +455,18 @@ async function processCommand(commandText) {
   if (loreEl && worldConfig.lore) loreEl.innerText = worldConfig.lore;
   if (worldConfig.audioParams) updateAudioSynth(worldConfig.audioParams);
 
-  applyWorldConfig(worldConfig);
+  await applyWorldConfig(worldConfig);
 }
 
+// Upgraded Prompt Architecture ensuring accurate astronomical alignment & high-fidelity texture instructions
 function buildPromptText(commandText) {
   return `
 You are an advanced 3D Real-Space Simulator Engine and Principal Planetary Scientist.
 User Command: "${commandText}"
 
-CRITICAL SCIENTIFIC INTEGRITY & STRUCTURE RULES:
-- Follow true astrophysical reality based strictly on the user's command. 
-- DO NOT add rings to objects unless the user explicitly asks for a ringed planet (like Saturn or Uranus). 
-- For standard planets, stars, moons, or black holes, return only the necessary geometry (e.g., a single sphere for a planet/star, a black hole core with an accretion disk, or an icosahedron for an asteroid).
-- Every object in the "objects" array MUST have a unique, highly detailed "prompt" field describing its exact visual appearance.
+CRITICAL SCIENTIFIC INTEGRITY & ALIGNMENT RULES:
+1. ACCURATE ASTROPHYSICAL LAYOUT: Follow true astronomical reality. If the user asks for Saturn, Uranus, or a ringed world, return multiple objects (core sphere + separate companion object with geometryType "disk" or "torus" for rings positioned at [0,0,0]). For standard planets (Mars, Earth, Jupiter), return a single accurate sphere. For binary stars or moons, calculate correct relative positions.
+2. PRECISE TEXTURE PROMPTS: The "prompt" field for every object MUST be an ultra-detailed, high-frequency description of its unique geological or atmospheric surface features (e.g., "Jupiter orange and white turbulent ammonia storm bands, Great Red Spot vortex", "Mars rusty red iron oxide dusty cratered highlands, Olympus Mons shield volcano", "Sun churning golden plasma corona, solar flare granulation"). Never use generic or repeating text.
 
 Return ONLY valid raw JSON matching this structure:
 {
@@ -486,7 +485,7 @@ Return ONLY valid raw JSON matching this structure:
       "emissive": false,
       "roughness": 0.45,
       "metalness": 0.08,
-      "prompt": "Detailed visual description unique to this specific object",
+      "prompt": "Detailed specific surface feature description",
       "animationType": "spin",
       "animationSpeed": 0.05
     }
@@ -503,7 +502,7 @@ async function loadTextureWithRetry(url, maxRetries = 2, delay = 4000) {
       const response = await fetch(url);
       if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
       const blob = await response.blob();
-      if (blob.size > 1200000) throw new Error("Rate-limit block image detected.");
+      if (blob.size > 1400000) throw new Error("Rate-limit block image detected.");
       blobUrl = URL.createObjectURL(blob);
       const texture = await textureLoader.loadAsync(blobUrl);
       URL.revokeObjectURL(blobUrl);
@@ -516,7 +515,7 @@ async function loadTextureWithRetry(url, maxRetries = 2, delay = 4000) {
   }
 }
 
-// --- INSTANT MATERIALIZATION WITH TELEMETRY & FADE-IN ---
+// --- ZERO-POP-IN PRELOADED TEXTURE & MATERIALIZATION PIPELINE ---
 async function applyWorldConfig(config) {
   const hudStatusEl = document.getElementById('hud-nav-status');
 
@@ -557,19 +556,45 @@ async function applyWorldConfig(config) {
   }
 
   const spaceObjects = config.objects || [config];
-  if (hudStatusEl) hudStatusEl.innerText = `PROTOCOL: MATERIALIZING SECTOR`;
+  if (hudStatusEl) hudStatusEl.innerText = `PROTOCOL: MAPPING SECTOR`;
 
-  // Materialize objects immediately with PBR styling and ghost opacity
-  spaceObjects.forEach((objConfig) => {
+  // Preload textures and prepare fully mapped meshes before adding to scene (Eliminates blank pop-in)
+  for (let i = 0; i < spaceObjects.length; i++) {
+    const objConfig = spaceObjects[i];
+    if (hudStatusEl) hudStatusEl.innerText = `MAPPING: ${objConfig.name.toUpperCase()}`;
+    speakText(`Calibrating albedo and topography maps for ${objConfig.name}.`);
+
+    let loadedTexture = null;
+    let texUrl = objConfig.customTextureUrl;
+
+    if (!texUrl && objConfig.prompt) {
+      const specificPrompt = encodeURIComponent(
+        `${objConfig.prompt}, flat equirectangular seamless texture map, pure planetary surface topography only, micro-surface relief, high-frequency textural detail, crisp albedo, zero background stars, zero lighting effects, zero framing, 4k resolution game asset`
+      );
+      texUrl = `https://image.pollinations.ai/prompt/${specificPrompt}?width=2048&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 99999)}`;
+    }
+
+    if (texUrl) {
+      try {
+        textureLoader.setCrossOrigin('anonymous');
+        loadedTexture = await loadTextureWithRetry(texUrl, 2, 4000);
+        if (loadedTexture) {
+          loadedTexture.colorSpace = THREE.SRGBColorSpace;
+          loadedTexture.needsUpdate = true;
+        }
+      } catch (err) {
+        console.warn(`Texture load failed for ${objConfig.name}, using PBR fallback.`);
+      }
+    }
+
     const geom = createDynamicGeometry(objConfig.geometryType, objConfig.geometryArgs);
     const mat = new THREE.MeshStandardMaterial({
-      color: new THREE.Color(objConfig.color || 0x38bdf8),
+      color: loadedTexture ? 0xffffff : new THREE.Color(objConfig.color || 0x38bdf8),
       roughness: objConfig.roughness || 0.4,
       metalness: objConfig.metalness || 0.1,
       emissive: objConfig.emissive ? new THREE.Color(objConfig.emissiveColor || 0xffaa00) : 0x000000,
       emissiveIntensity: objConfig.emissive ? (objConfig.emissiveIntensity || 0.9) : 0,
-      transparent: true,
-      opacity: 0.15
+      map: loadedTexture || null
     });
 
     const mesh = new THREE.Mesh(geom, mat);
@@ -592,74 +617,15 @@ async function applyWorldConfig(config) {
       type: objConfig.animationType || 'spin',
       speed: objConfig.animationSpeed || 0.05
     });
-  });
-
-  // Background streaming with telemetry updates per object
-  for (let i = 0; i < spaceObjects.length; i++) {
-    const objConfig = spaceObjects[i];
-    const mesh = systemGroup.children[i];
-    if (!mesh) continue;
-
-    if (hudStatusEl) hudStatusEl.innerText = `MAPPING: ${objConfig.name.toUpperCase()}`;
-    speakText(`Calibrating surface albedo and topography maps for ${objConfig.name}.`);
-
-    if (objConfig.prompt || objConfig.customTextureUrl) {
-      await loadTextureWithFade(mesh, objConfig);
-    } else {
-      fadeInMesh(mesh);
-    }
 
     if (i < spaceObjects.length - 1) {
       if (hudStatusEl) hudStatusEl.innerText = `COOLDOWN: STABILIZING ORBIT...`;
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise(resolve => setTimeout(resolve, 800));
     }
   }
 
   if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: SECURED_TARGET';
   if (config.speechResponse) speakText(config.speechResponse);
-}
-
-async function loadTextureWithFade(mesh, objConfig) {
-  let texUrl = objConfig.customTextureUrl;
-  if (!texUrl && objConfig.prompt) {
-    const specificPrompt = encodeURIComponent(
-      `${objConfig.prompt}, flat equirectangular seamless texture map, pure surface topography only, micro-surface relief, high-frequency textural detail, crisp albedo, zero background stars, zero lighting effects, zero framing, high-resolution game asset`
-    );
-    texUrl = `https://image.pollinations.ai/prompt/${specificPrompt}?width=2048&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 99999)}`;
-  }
-
-  if (!texUrl) {
-    fadeInMesh(mesh);
-    return;
-  }
-
-  try {
-    const texture = await loadTextureWithRetry(texUrl, 2, 4000);
-    if (texture && mesh.material) {
-      texture.colorSpace = THREE.SRGBColorSpace;
-      texture.needsUpdate = true;
-      mesh.material.map = texture;
-      mesh.material.color.set(0xffffff);
-      mesh.material.needsUpdate = true;
-    }
-    fadeInMesh(mesh);
-  } catch (err) {
-    console.warn(`Background texture stream failed for ${objConfig.name}, keeping PBR fallback.`);
-    fadeInMesh(mesh);
-  }
-}
-
-function fadeInMesh(mesh) {
-  let currentOpacity = mesh.material.opacity;
-  const fadeInterval = setInterval(() => {
-    currentOpacity += 0.08;
-    if (currentOpacity >= 1.0) {
-      mesh.material.opacity = 1.0;
-      clearInterval(fadeInterval);
-    } else {
-      mesh.material.opacity = currentOpacity;
-    }
-  }, 25);
 }
 
 function generateFallbackWorld(input) {
