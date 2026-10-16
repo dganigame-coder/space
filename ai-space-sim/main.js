@@ -526,13 +526,17 @@ Return ONLY valid raw JSON matching this structure:
 `;
 }
 
-// FIXED: Removed restrictive 1.4MB blob size check so 2K textures load correctly without failing
-async function loadTextureWithRetry(url, maxRetries = 2, delay = 4000) {
+// STABILIZED: Robust texture retry with intelligent rate-limit (402/429) backoff handling
+async function loadTextureWithRetry(url, maxRetries = 3, initialDelay = 5000) {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     let blobUrl = null;
     try {
       const response = await fetch(url);
+      if (response.status === 402 || response.status === 429) {
+        throw new Error(`RATE_LIMIT_${response.status}`);
+      }
       if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
+      
       const blob = await response.blob();
       blobUrl = URL.createObjectURL(blob);
       const texture = await textureLoader.loadAsync(blobUrl);
@@ -541,12 +545,16 @@ async function loadTextureWithRetry(url, maxRetries = 2, delay = 4000) {
     } catch (err) {
       if (blobUrl) URL.revokeObjectURL(blobUrl);
       if (attempt === maxRetries) throw err;
-      await new Promise(resolve => setTimeout(resolve, delay * (attempt + 1)));
+
+      const multiplier = err.message.includes('RATE_LIMIT') ? 2.5 : (attempt + 1);
+      const waitTime = initialDelay * multiplier;
+      console.warn(`[TEXTURE ENGINE] Attempt ${attempt + 1} failed (${err.message}). Retrying in ${waitTime / 1000}s...`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
     }
   }
 }
 
-// --- ZERO-POP-IN PRELOADED TEXTURE & MATERIALIZATION PIPELINE (WITH LOGGING) ---
+// --- ZERO-POP-IN PRELOADED TEXTURE & MATERIALIZATION PIPELINE (WITH STAGGERED PACING) ---
 async function applyWorldConfig(config) {
   const hudStatusEl = document.getElementById('hud-nav-status');
 
@@ -601,7 +609,6 @@ async function applyWorldConfig(config) {
     let texUrl = objConfig.customTextureUrl;
 
     if (!texUrl && objConfig.prompt) {
-      // Enhanced prompt formulation for ultra-realistic surface maps
       const specificPrompt = encodeURIComponent(
         `${objConfig.prompt}, flat equirectangular seamless texture map, pure planetary surface topography only, micro-surface relief, high-frequency textural detail, crisp albedo, zero background stars, zero lighting effects, zero framing, 4k resolution game asset`
       );
@@ -611,15 +618,21 @@ async function applyWorldConfig(config) {
     if (texUrl) {
       try {
         textureLoader.setCrossOrigin('anonymous');
-        loadedTexture = await loadTextureWithRetry(texUrl, 2, 4000);
+        
+        // STAGGERED THRESHOLD PACING: Prevents HTTP 402 flooding on large multi-object commands
+        if (i > 0) {
+          await new Promise(resolve => setTimeout(resolve, 1400));
+        }
+
+        loadedTexture = await loadTextureWithRetry(texUrl, 2, 5000);
         if (loadedTexture) {
           loadedTexture.colorSpace = THREE.SRGBColorSpace;
           loadedTexture.needsUpdate = true;
           successfulTextures++;
-          console.log(`[ASTROMETRIC ENGINE] ✔ Texture successfully acquired and loaded for object [${objConfig.name}] (${successfulTextures}/${spaceObjects.length})`);
+          console.log(`[ASTROMETRIC ENGINE] ✔ Texture successfully acquired for object [${objConfig.name}] (${successfulTextures}/${spaceObjects.length})`);
         }
       } catch (err) {
-        console.warn(`[ASTROMETRIC ENGINE] ✖ Texture load failed for object [${objConfig.name}], falling back to PBR material.`, err);
+        console.warn(`[ASTROMETRIC ENGINE] ✖ Texture load failed for object [${objConfig.name}], falling back to PBR procedural material.`);
       }
     }
 
@@ -664,11 +677,6 @@ async function applyWorldConfig(config) {
       type: objConfig.animationType || 'spin',
       speed: objConfig.animationSpeed || 0.05
     });
-
-    if (i < spaceObjects.length - 1) {
-      if (hudStatusEl) hudStatusEl.innerText = `COOLDOWN: STABILIZING ORBIT...`;
-      await new Promise(resolve => setTimeout(resolve, 800));
-    }
   }
 
   console.log(`[ASTROMETRIC ENGINE] 🚀 Sector Materialization Complete. Total Objects Created: ${spaceObjects.length} | Successfully Textured: ${successfulTextures}/${spaceObjects.length}`);
