@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI Horde — Standalone Image Generator</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; color: #edf4ff;
+      font: 15px/1.55 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: radial-gradient(ellipse at top, #192650 0%, #0a1020 48%, #050811 100%);
+    }
+    .shell { width: min(1100px, calc(100% - 32px)); margin: 0 auto; padding: 34px 0 48px; }
+    header { margin-bottom: 24px; }
+    .eyebrow { color: #91aaff; text-transform: uppercase; letter-spacing: .16em; font-size: .76rem; font-weight: 750; }
+    h1 { margin: 8px 0; line-height: 1.15; font-size: clamp(2rem, 5vw, 3.3rem); letter-spacing: -.04em; }
+    .sub { max-width: 750px; color: #b7c5e3; margin: 0; }
+    .layout { display: grid; grid-template-columns: minmax(280px, .85fr) minmax(0, 1.15fr); gap: 20px; align-items: start; }
+    .card { background: rgba(12, 19, 39, .88); border: 1px solid #293757; border-radius: 18px; padding: 21px; box-shadow: 0 18px 50px #0003; }
+    h2 { margin: 0 0 16px; font-size: 1.12rem; }
+    label { display: block; font-size: .9rem; font-weight: 650; color: #d9e3f8; margin: 15px 0 7px; }
+    textarea, input, select {
+      display: block; width: 100%; border: 1px solid #354666; border-radius: 10px;
+      background: #090f20; color: #eff6ff; padding: 11px 12px; font: inherit; outline: none;
+    }
+    textarea { resize: vertical; min-height: 130px; }
+    input:focus, textarea:focus, select:focus { border-color: #7d9bff; box-shadow: 0 0 0 3px #617dff22; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .hint { font-size: .79rem; color: #91a1c2; margin-top: 6px; }
+    .buttons { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+    button, .link-button {
+      cursor: pointer; border: 1px solid transparent; border-radius: 10px; padding: 11px 15px;
+      color: white; font: inherit; font-weight: 750; text-decoration: none;
+    }
+    button:disabled { cursor: wait; opacity: .55; }
+    .primary { background: linear-gradient(135deg, #657cff, #9869ff); flex: 1; min-width: 170px; }
+    .secondary { background: #192540; border-color: #354666; }
+    .status { white-space: pre-wrap; overflow-wrap: anywhere; background: #080d1b; border: 1px solid #263452; border-radius: 11px; padding: 12px; color: #d8e5ff; margin: 0 0 14px; }
+    .status[data-kind="error"] { color: #fecaca; border-color: #7f303c; }
+    .status[data-kind="success"] { color: #bbf7d0; border-color: #286849; }
+    .progress-track { height: 6px; overflow: hidden; border-radius: 20px; background: #222e4c; margin: 10px 0 18px; }
+    .progress-bar { height: 100%; width: 0%; background: linear-gradient(90deg, #6f8cff, #c084fc); transition: width .25s ease; }
+    .result-box { min-height: 330px; display: grid; place-items: center; border: 1px dashed #344363; border-radius: 13px; overflow: hidden; background: #070c19; }
+    .placeholder { padding: 28px; text-align: center; color: #8191b2; }
+    .placeholder .emoji { display: block; font-size: 3rem; margin-bottom: 10px; }
+    .result-box img { width: 100%; height: auto; display: block; }
+    .result-meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; margin-top: 12px; font-size: .84rem; color: #9fb0d2; }
+    .result-meta a { color: #a9c5ff; }
+    .note { margin-top: 20px; border-left: 3px solid #687fff; padding: 10px 13px; background: #111b34; border-radius: 0 10px 10px 0; color: #b8c7e5; font-size: .85rem; }
+    code { color: #c4b5fd; }
+    footer { color: #7889ab; font-size: .8rem; margin-top: 20px; }
+    @media (max-width: 780px) { .layout { grid-template-columns: 1fr; } .result-box { min-height: 250px; } }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div class="eyebrow">Community-powered text-to-image</div>
+      <h1>🌌 AI Horde Image Generator</h1>
+      <p class="sub">Enter a prompt, submit it to AI Horde, watch the queue status, and view the returned image. No API key purchase is needed for anonymous access.</p>
+    </header>
+
+    <div class="layout">
+      <section class="card" aria-labelledby="settings-title">
+        <h2 id="settings-title">Generation settings</h2>
+        <form id="generator-form">
+          <label for="prompt">Image prompt</label>
+          <textarea id="prompt" required maxlength="1800">A hyper-realistic 4K cosmic nebula, glowing violet and golden gas clouds, distant galaxies, cinematic lighting, deep space, intricate details</textarea>
+          <div class="hint">Describe the subject, setting, lighting, style, and composition.</div>
+
+          <label for="negative">Negative prompt (optional)</label>
+          <input id="negative" type="text" placeholder="e.g. blurry, low quality, watermark" />
+
+          <label for="model">Model (optional)</label>
+          <input id="model" type="text" placeholder="Leave blank to let compatible workers choose" />
+          <div class="hint">An unavailable model can prevent the request from being fulfilled.</div>
+
+          <div class="row">
+            <div>
+              <label for="size">Image size</label>
+              <select id="size">
+                <option value="512">512 × 512</option>
+                <option value="640">640 × 640</option>
+                <option value="768">768 × 768</option>
+              </select>
+            </div>
+            <div>
+              <label for="steps">Steps</label>
+              <select id="steps">
+                <option value="15">15 — quicker</option>
+                <option value="20" selected>20 — balanced</option>
+                <option value="25">25</option>
+                <option value="30">30 — slower</option>
+              </select>
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <label for="cfg">Guidance (CFG)</label>
+              <select id="cfg">
+                <option value="5">5</option>
+                <option value="7" selected>7</option>
+                <option value="9">9</option>
+              </select>
+            </div>
+            <div>
+              <label for="wait-limit">Max wait</label>
+              <select id="wait-limit">
+                <option value="5">5 minutes</option>
+                <option value="10" selected>10 minutes</option>
+                <option value="20">20 minutes</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="buttons">
+            <button class="primary" type="submit" id="generate-btn">Generate image</button>
+            <button class="secondary" type="button" id="clear-btn">Clear result</button>
+          </div>
+        </form>
+        <div class="note"><strong>Anonymous mode:</strong> this page uses the public anonymous key <code>0000000000</code>. Requests may wait a long time or fail when volunteer workers are busy. Do not submit private prompts.</div>
+      </section>
+
+      <section class="card" aria-labelledby="result-title">
+        <h2 id="result-title">Generation result</h2>
+        <div class="status" id="status" role="status" aria-live="polite">Ready. Enter a prompt and select Generate image.</div>
+        <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progress"></div></div>
+        <div class="result-box" id="result-box">
+          <div class="placeholder"><span class="emoji">🪐</span>Your generated image will appear here.</div>
+        </div>
+        <div class="result-meta" id="result-meta"></div>
+      </section>
+    </div>
+
+    <footer>
+      This is a browser-only demonstration using the AI Horde API. Browser CORS policies can prevent a local file from calling the API. If that happens, run this HTML through a local server such as VS Code Live Server and check the browser Console for the exact error.
+    </footer>
+  </main>
+
+  <script>
+    (() => {
+      "use strict";
+      const API_BASE = "https://aihorde.net/api/v2";
+      const ANONYMOUS_API_KEY = "0000000000";
+      // The AI Horde integration guide asks clients to identify themselves.
+      // Change this identifier if you adapt this demo for a public application.
+      const CLIENT_AGENT = "StandaloneAIHordeHTML:1.0:browser-demo";
+
+      const form = document.getElementById("generator-form");
+      const generateButton = document.getElementById("generate-btn");
+      const clearButton = document.getElementById("clear-btn");
+      const statusEl = document.getElementById("status");
+      const progressEl = document.getElementById("progress");
+      const resultBox = document.getElementById("result-box");
+      const resultMeta = document.getElementById("result-meta");
+      let active = false;
+      let activeRequestId = null;
+
+      function setStatus(message, kind = "info") {
+        statusEl.textContent = message;
+        statusEl.dataset.kind = kind;
+      }
+
+      function setProgress(percent) {
+        progressEl.style.width = `${Math.max(0, Math.min(100, percent))}%`;
+      }
+
+      function wait(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+      }
+
+      async function apiRequest(path, options = {}) {
+        let response;
+        try {
+          response = await fetch(`${API_BASE}${path}`, {
+            ...options,
+            headers: {
+              "apikey": ANONYMOUS_API_KEY,
+              "Client-Agent": CLIENT_AGENT,
+              ...(options.body ? { "Content-Type": "application/json" } : {}),
+              ...(options.headers || {})
+            }
+          });
+        } catch (error) {
+          if (error instanceof TypeError) {
+            throw new Error(
+              "The browser could not reach AI Horde. This may be a CORS restriction when opening the page as file://. Try running it from localhost (for example, VS Code Live Server), then check DevTools Console. Original error: " + error.message
+            );
+          }
+          throw error;
+        }
+
+        const raw = await response.text();
+        let data;
+        try { data = raw ? JSON.parse(raw) : {}; }
+        catch { data = { message: raw || response.statusText }; }
+
+        if (!response.ok) {
+          const detail = data.message || data.error || data.rc || JSON.stringify(data);
+          throw new Error(`AI Horde returned HTTP ${response.status}: ${detail}`);
+        }
+        return data;
+      }
+
+      function clearResult() {
+        resultBox.replaceChildren();
+        const placeholder = document.createElement("div");
+        placeholder.className = "placeholder";
+        const emoji = document.createElement("span");
+        emoji.className = "emoji";
+        emoji.textContent = "🪐";
+        placeholder.append(emoji, document.createTextNode("Your generated image will appear here."));
+        resultBox.appendChild(placeholder);
+        resultMeta.replaceChildren();
+      }
+
+      function addMeta(text, linkUrl) {
+        const item = document.createElement(linkUrl ? "a" : "span");
+        item.textContent = text;
+        if (linkUrl) {
+          item.href = linkUrl;
+          item.target = "_blank";
+          item.rel = "noopener noreferrer";
+        }
+        resultMeta.appendChild(item);
+      }
+
+      function normalizeImageSource(source) {
+        if (typeof source !== "string" || !source.trim()) return null;
+        const value = source.trim();
+        if (/^(https?:|data:|blob:)/i.test(value)) return value;
+        // API responses may contain an encoded image rather than a hosted URL.
+        if (/^[A-Za-z0-9+/=\r\n]+$/.test(value) && value.length > 100) {
+          return "data:image/webp;base64," + value.replace(/\s/g, "");
+        }
+        return value;
+      }
+
+      async function submitGeneration(event) {
+        event.preventDefault();
+        if (active) return;
+
+        const positivePrompt = document.getElementById("prompt").value.trim();
+        const negativePrompt = document.getElementById("negative").value.trim();
+        const modelName = document.getElementById("model").value.trim();
+        const dimension = Number(document.getElementById("size").value);
+        const steps = Number(document.getElementById("steps").value);
+        const cfg = Number(document.getElementById("cfg").value);
+        const maxWaitMinutes = Number(document.getElementById("wait-limit").value);
+
+        if (!positivePrompt) {
+          setStatus("Please enter an image prompt.", "error");
+          return;
+        }
+
+        active = true;
+        activeRequestId = null;
+        generateButton.disabled = true;
+        clearButton.disabled = true;
+        clearResult();
+        setProgress(4);
+        setStatus("Submitting your prompt to AI Horde…");
+
+        try {
+          const combinedPrompt = negativePrompt
+            ? `${positivePrompt} ### ${negativePrompt}`
+            : positivePrompt;
+
+          const payload = {
+            prompt: combinedPrompt,
+            params: {
+              width: dimension,
+              height: dimension,
+              steps,
+              cfg_scale: cfg,
+              n: 1
+            },
+            nsfw: false,
+            censor_nsfw: true,
+            r2: true,
+            slow_workers: true,
+            extra_slow_workers: true,
+            dry_run: false
+          };
+          if (modelName) payload.models = [modelName];
+
+          console.log("[AI Horde] Submitting payload:", payload);
+          const submitted = await apiRequest("/generate/async", {
+            method: "POST",
+            body: JSON.stringify(payload)
+          });
+
+          if (!submitted.id) {
+            throw new Error("The API did not return a generation request ID: " + JSON.stringify(submitted));
+          }
+          activeRequestId = submitted.id;
+          console.log("[AI Horde] Request accepted:", submitted);
+          setProgress(8);
+          setStatus(`Request accepted. ID: ${activeRequestId}\nWaiting for a volunteer worker…`);
+
+          const maxChecks = Math.ceil(maxWaitMinutes * 60 / 3);
+          let check;
+          let finished = false;
+
+          for (let attempt = 1; attempt <= maxChecks; attempt++) {
+            await wait(3000);
+            check = await apiRequest(`/generate/check/${encodeURIComponent(activeRequestId)}`);
+            console.log("[AI Horde] Queue check:", check);
+
+            if (check.faulted) {
+              throw new Error("AI Horde marked the request as faulted. See Console for API details.");
+            }
+            if (check.is_possible === false) {
+              throw new Error("AI Horde reports that no currently available worker can fulfill this request. Try removing the model restriction or changing the prompt/settings.");
+            }
+
+            const finishedCount = Number(check.finished || 0);
+            if (check.done === true || finishedCount >= 1) {
+              finished = true;
+              setProgress(90);
+              break;
+            }
+
+            const queuePosition = check.queue_position ?? "unknown";
+            const waitSeconds = check.wait_time ?? "unknown";
+            const progress = Math.min(82, 8 + (attempt / maxChecks) * 72);
+            setProgress(progress);
+            setStatus(
+              `Waiting for volunteer workers…\nQueue position: ${queuePosition}\nEstimated wait: ${waitSeconds}s\nElapsed: ${Math.round(attempt * 3 / 60 * 10) / 10} min\nRequest ID: ${activeRequestId}`
+            );
+          }
+
+          if (!finished) {
+            setProgress(0);
+            setStatus(
+              `The page stopped checking after ${maxWaitMinutes} minutes, but this does not necessarily cancel the job.\nRequest ID: ${activeRequestId}\nYou can try again later or inspect the browser Console.`,
+              "error"
+            );
+            console.warn("[AI Horde] Polling limit reached; request ID:", activeRequestId);
+            return;
+          }
+
+          setStatus("Generation finished. Retrieving image result…");
+          const result = await apiRequest(`/generate/status/${encodeURIComponent(activeRequestId)}`);
+          console.log("[AI Horde] Final result:", result);
+          const generations = Array.isArray(result.generations) ? result.generations : [];
+          const usable = generations.filter(item => item && item.img);
+
+          if (!usable.length) {
+            throw new Error("The request finished, but the response did not contain an image URL. Check the final API response in Console.");
+          }
+
+          resultBox.replaceChildren();
+          let imageCount = 0;
+          for (const generation of usable) {
+            const src = normalizeImageSource(generation.img);
+            if (!src) continue;
+            const img = document.createElement("img");
+            img.alt = positivePrompt;
+            img.loading = "lazy";
+            img.src = src;
+            img.addEventListener("error", () => {
+              img.alt = "Could not load this generated image. Open the image URL from the Console to inspect it.";
+              img.style.minHeight = "100px";
+              img.style.background = "#321b27";
+              console.error("[AI Horde] Image failed to load:", src);
+            });
+            resultBox.appendChild(img);
+            imageCount++;
+
+            if (generation.model) addMeta(`Model: ${generation.model}`);
+            if (generation.seed !== undefined) addMeta(`Seed: ${generation.seed}`);
+            if (/^https?:\/\//i.test(src)) addMeta("Open image", src);
+          }
+
+          if (!imageCount) {
+            throw new Error("No displayable image source was returned. Check the response in Console.");
+          }
+          if (result.kudos !== undefined) addMeta(`Kudos: ${result.kudos}`);
+          setProgress(100);
+          setStatus("Image generated successfully!", "success");
+          console.log("[AI Horde] Image displayed. Request ID:", activeRequestId);
+
+        } catch (error) {
+          console.error("[AI Horde] Generation failed:", error);
+          setProgress(0);
+          setStatus(`Generation failed: ${error.message}`, "error");
+        } finally {
+          active = false;
+          generateButton.disabled = false;
+          clearButton.disabled = false;
+        }
+      }
+
+      form.addEventListener("submit", submitGeneration);
+      clearButton.addEventListener("click", () => {
+        if (!active) {
+          clearResult();
+          setProgress(0);
+          setStatus("Result cleared. Enter a prompt and generate another image.");
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
