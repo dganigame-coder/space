@@ -91,7 +91,7 @@ async function discoverGeminiModels() {
 
       if (validModels.length > 0) {
         dynamicModelQueue = validModels.map(m => m.id);
-        speakText("Astrometric telemetry online. Subspace neural calibration sequence complete.");
+        speakText("Astrometric navigation telemetry online. Subspace ephemeris calibration complete.");
       }
     }
   } catch (err) {
@@ -121,7 +121,7 @@ function setupSecurity() {
       if (key) {
         localStorage.setItem('gemini_api_key', key);
         geminiKey = key;
-        status.innerText = "Gemini Key Saved! AI Engine Active.";
+        status.innerText = "Gemini Key Saved! AI Navigation Active.";
         status.style.color = "#4ade80";
         await discoverGeminiModels();
       } else {
@@ -194,7 +194,8 @@ function createInitialPlanet() {
   activeAnimatedMeshes.push({
     mesh: planet,
     type: 'spin',
-    speed: 0.05
+    speed: 0.05,
+    distance: 0
   });
 }
 
@@ -396,7 +397,7 @@ async function processCommand(commandText) {
   if (transcriptEl) transcriptEl.innerText = `"${commandText}"`;
   if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: ASTROMETRIC_SCAN';
 
-  speakText(`Engaging sensors for target vector: ${commandText}.`);
+  speakText(`Engaging navigational sensors for vector: ${commandText}.`);
 
   let worldConfig = null;
 
@@ -407,7 +408,7 @@ async function processCommand(commandText) {
       const timeoutId = setTimeout(() => timeoutController.abort(), 12000);
 
       try {
-        if (hudStatusEl) hudStatusEl.innerText = `UPLINK: CALIBRATING...`;
+        if (hudStatusEl) hudStatusEl.innerText = `EPHEMERIS: CALCULATING...`;
         
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${dynamicModelQueue[i]}:generateContent?key=${geminiKey}`;
         const res = await fetch(url, {
@@ -482,26 +483,24 @@ async function processCommand(commandText) {
   await applyWorldConfig(worldConfig);
 }
 
-// --- MCGS v1.0 & REALISTIC TEXTURE PROMPT ARCHITECTURE ---
+// --- ONBOARD ASTROMETRIC NAVIGATION & EPHEMERAL COMPUTER PROMPT ---
 function buildPromptText(commandText) {
   return `
-You are an advanced 3D Real-Space Simulator Engine and Principal Planetary Scientist operating under Master Celestial Generation Specification (MCGS v1.0).
-User Command: "${commandText}"
+You are the Onboard Astrometric Navigation and Ephemeris Computer of an advanced deep-space exploration vessel operating under Astrometric Protocol v2.0.
+User Navigation Command: "${commandText}"
 
-MCGS v1.0 STRUCTURAL RULES:
-1. CATEGORY 1 (Solid/Spheroid): Use "sphere" for standard planets, gas giants, and stars.
-2. CATEGORY 2 (Irregular/Asteroid): Use "icosahedron" for jagged asteroids, moons, or comets with "tumble" animation.
-3. CATEGORY 3 (Disks/Rings): Use "ring" or "accretion_disk" with rotational alignment. For ringed planets (Saturn/Uranus), return multi-part arrays (core sphere + companion ring disk).
-4. CATEGORY 4 (Supernova/Nebula): Use concentric "shell" primitives for expanding shockwaves.
-5. CATEGORY 5 (Relativistic Engines - BLACK HOLES, PULSARS, QUASARS): Return multi-component assemblies (Core sphere + Accretion Disk torus + Tilted Cone jets).
-6. PRECISE TEXTURE PROMPTS: Provide ultra-detailed surface feature descriptions for high-resolution albedo mapping.
+NAVIGATIONAL & EPHEMERIS COMPUTATION RULES:
+1. CALCULATE REAL COORDINATES: If a known system is requested (e.g., Sol System / Solar System), compute exact relative orbital distances, sizes, and Keplerian velocities for all planets. For custom sectors, calculate a scientifically plausible spatial layout.
+2. ORBITAL MECHANICS: Every orbiting body must include a "distance" from center origin (0 for central star), an "orbitalSpeed", and coordinates.
+3. COMPONENT HIERARCHY: Multi-part structures (like black holes with accretion disks, or planets with rings) must share precise relative coordinates.
+4. PRECISE TEXTURE PROMPTS: Provide ultra-detailed surface feature descriptions for high-resolution albedo mapping.
 
 Return ONLY valid raw JSON matching this structure:
 {
-  "sectorTitle": "Sector Name",
-  "lore": "Detailed scientific telemetry explanation.",
-  "speechResponse": "Concise voice announcement sentence for arrival.",
-  "cameraPosition": [14, 6, 22],
+  "sectorTitle": "Sector Name & Navigation Class",
+  "lore": "Ship computer astrometric log and telemetry description.",
+  "speechResponse": "Concise voice announcement for the ship's audio system upon warp arrival.",
+  "cameraPosition": [0, 25, 50],
   "cameraTarget": [0, 0, 0],
   "objects": [
     {
@@ -510,6 +509,8 @@ Return ONLY valid raw JSON matching this structure:
       "geometryArgs": [2.0, 64, 48],
       "position": [0, 0, 0],
       "rotation": [0, 0, 0],
+      "distance": 12.0,
+      "orbitalSpeed": 0.02,
       "color": "#38bdf8",
       "emissive": false,
       "emissiveColor": "#ffaa00",
@@ -517,8 +518,8 @@ Return ONLY valid raw JSON matching this structure:
       "roughness": 0.45,
       "metalness": 0.08,
       "prompt": "Detailed specific surface feature description",
-      "animationType": "spin",
-      "animationSpeed": 0.05
+      "animationType": "orbit",
+      "animationSpeed": 0.02
     }
   ],
   "audioParams": { "baseFreq": 60.0, "filterCutoff": 400.0, "lfoRate": 1.0 }
@@ -597,13 +598,13 @@ async function applyWorldConfig(config) {
   const spaceObjects = config.objects || [config];
   let successfulTextures = 0;
 
-  console.log(`[ASTROMETRIC ENGINE] 🌌 Initializing Sector: "${config.sectorTitle || 'Unknown Sector'}". Target Object Count: ${spaceObjects.length}`);
+  console.log(`[ASTROMETRIC NAVIGATION] 🌌 Initializing Sector: "${config.sectorTitle || 'Unknown Sector'}". Target Object Count: ${spaceObjects.length}`);
   if (hudStatusEl) hudStatusEl.innerText = `PROTOCOL: MAPPING SECTOR`;
 
   for (let i = 0; i < spaceObjects.length; i++) {
     const objConfig = spaceObjects[i];
     if (hudStatusEl) hudStatusEl.innerText = `MAPPING: ${objConfig.name.toUpperCase()}`;
-    speakText(`Calibrating albedo and topography maps for ${objConfig.name}.`);
+    speakText(`Calibrating astrometric albedo maps for ${objConfig.name}.`);
 
     let loadedTexture = null;
     let texUrl = objConfig.customTextureUrl;
@@ -629,10 +630,10 @@ async function applyWorldConfig(config) {
           loadedTexture.colorSpace = THREE.SRGBColorSpace;
           loadedTexture.needsUpdate = true;
           successfulTextures++;
-          console.log(`[ASTROMETRIC ENGINE] ✔ Texture successfully acquired for object [${objConfig.name}] (${successfulTextures}/${spaceObjects.length})`);
+          console.log(`[ASTROMETRIC NAVIGATION] ✔ Texture successfully acquired for object [${objConfig.name}] (${successfulTextures}/${spaceObjects.length})`);
         }
       } catch (err) {
-        console.warn(`[ASTROMETRIC ENGINE] ✖ Texture load failed for object [${objConfig.name}], falling back to PBR procedural material.`);
+        console.warn(`[ASTROMETRIC NAVIGATION] ✖ Texture load failed for object [${objConfig.name}], falling back to PBR procedural material.`);
       }
     }
 
@@ -675,11 +676,13 @@ async function applyWorldConfig(config) {
     activeAnimatedMeshes.push({
       mesh: mesh,
       type: objConfig.animationType || 'spin',
-      speed: objConfig.animationSpeed || 0.05
+      speed: objConfig.animationSpeed || objConfig.orbitalSpeed || 0.05,
+      distance: objConfig.distance || 0,
+      phaseOffset: Math.random() * Math.PI * 2
     });
   }
 
-  console.log(`[ASTROMETRIC ENGINE] 🚀 Sector Materialization Complete. Total Objects Created: ${spaceObjects.length} | Successfully Textured: ${successfulTextures}/${spaceObjects.length}`);
+  console.log(`[ASTROMETRIC NAVIGATION] 🚀 Ephemeris Materialization Complete. Total Objects Created: ${spaceObjects.length} | Successfully Textured: ${successfulTextures}/${spaceObjects.length}`);
 
   if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: SECURED_TARGET';
   if (config.speechResponse) speakText(config.speechResponse);
@@ -689,7 +692,7 @@ function generateFallbackWorld(input) {
   const shortTitle = input.length > 25 ? input.substring(0, 25) + "..." : input;
   return {
     sectorTitle: `Sector: ${shortTitle.toUpperCase()}`,
-    lore: `Long-range sensors locked onto target coordinates for: "${input}".`,
+    lore: `Ship navigation sensors locked onto target coordinates for: "${input}".`,
     speechResponse: `Warp vector locked. Approaching coordinate sector.`,
     cameraPosition: [14, 6, 22],
     cameraTarget: [0, 0, 0],
@@ -698,6 +701,7 @@ function generateFallbackWorld(input) {
       geometryType: 'sphere',
       geometryArgs: [2.0, 64, 48],
       position: [0, 0, 0],
+      distance: 0,
       color: "#38bdf8",
       emissive: false,
       roughness: 0.4,
@@ -794,7 +798,7 @@ function setupControls() {
   }
 }
 
-// --- EXPANDED ANIMATION HANDLERS ---
+// --- DYNAMIC EPHEMERIS ANIMATION HANDLERS ---
 const animationHandlers = {
   spin(anim, dt) {
     anim.mesh.rotation.y += anim.speed * (dt * 60);
@@ -808,10 +812,15 @@ const animationHandlers = {
     const scale = 1.0 + Math.sin(time * 3.0 * anim.speed) * 0.04;
     anim.mesh.scale.set(scale, scale, scale);
   },
-  orbit(anim, time) {
-    const angle = time * anim.speed;
-    anim.mesh.position.x = Math.cos(angle) * (anim.radius || 5);
-    anim.mesh.position.z = Math.sin(angle) * (anim.radius || 5);
+  orbit(anim, time, dt) {
+    // True navigational Keplerian orbital revolution simulation
+    if (anim.distance && anim.distance > 0) {
+      const angle = time * anim.speed + (anim.phaseOffset || 0);
+      anim.mesh.position.x = Math.cos(angle) * anim.distance;
+      anim.mesh.position.z = Math.sin(angle) * anim.distance;
+    }
+    // Axial self-rotation day/night spin
+    anim.mesh.rotation.y += anim.speed * 0.5 * (dt * 60);
   }
 };
 
@@ -833,7 +842,7 @@ function animate(time) {
   activeAnimatedMeshes.forEach((anim) => {
     if (anim.mesh && anim.mesh.parent) {
       const handler = animationHandlers[anim.type] || animationHandlers.spin;
-      handler(anim, dt || t);
+      handler(anim, t, dt || t);
     }
   });
 
