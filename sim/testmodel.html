@@ -251,8 +251,9 @@
     <div class="warning">
         <strong>Security notice:</strong>
         This demo sends your API key directly from your browser to OpenRouter.
-        Use it only in a trusted environment. Do not publish a shared API key
-        or commit credentials to source control.
+        Use a dedicated/restricted key when possible. Never publish a shared key
+        or commit credentials to source control. For a public application, move
+        the API call to your own server so the secret never reaches the browser.
     </div>
 
     <!-- SECTION 1: CONFIGURATION -->
@@ -273,7 +274,9 @@
         <p class="help">
             The key is held in page memory and is not saved to local storage.
             Clearing or reloading the page removes it from this application's
-            JavaScript state.
+            JavaScript state. Paste only the key itself (for example
+            <code>sk-or-v1-...</code>); an optional <code>Bearer </code> prefix
+            is also accepted and normalized automatically.
         </p>
 
         <div class="row">
@@ -518,7 +521,59 @@ function setModelStatus(message, isError = false) {
 --------------------------------------------------------- */
 
 function getApiKey() {
-    return elements.apiKey.value.trim();
+    let key = elements.apiKey.value.trim();
+
+    // Accept either:
+    //   sk-or-v1-...
+    // or an accidentally pasted:
+    //   Bearer sk-or-v1-...
+    // The API request itself always adds the Bearer prefix exactly once.
+    key = key.replace(/^Bearer\\s+/i, '').trim();
+
+    return key;
+}
+
+function validateApiKey(apiKey) {
+    if (!apiKey) {
+        throw new Error('OpenRouter API key is empty.');
+    }
+
+    // OpenRouter keys normally use this prefix. Keep the check helpful,
+    // rather than silently sending an obviously malformed credential.
+    if (!/^sk-or-v1-/i.test(apiKey)) {
+        throw new Error(
+            'This does not look like an OpenRouter API key. ' +
+            'Use a key beginning with "sk-or-v1-".'
+        );
+    }
+
+    return apiKey;
+}
+
+function getAuthHeaders(apiKey, includeJson = false) {
+    const key = validateApiKey(apiKey);
+
+    const headers = new Headers();
+    headers.set('Authorization', `Bearer ${key}`);
+    headers.set('Accept', 'application/json');
+
+    if (includeJson) {
+        headers.set('Content-Type', 'application/json');
+    }
+
+    // These are optional OpenRouter attribution headers.
+    // They are intentionally not required for authentication.
+    try {
+        const pageUrl = window.location.href;
+        if (/^https?:$/i.test(window.location.protocol)) {
+            headers.set('HTTP-Referer', pageUrl);
+            headers.set('X-Title', 'OpenRouter Dynamic Waterfall');
+        }
+    } catch {
+        // Ignore attribution-header failures; authentication is independent.
+    }
+
+    return headers;
 }
 
 function parseModelChain() {
@@ -579,10 +634,22 @@ async function requestJson(url, options = {}, timeoutMs = 30000) {
     }, timeoutMs);
 
     try {
-        const response = await fetch(url, {
+        const requestOptions = {
             ...options,
-            signal: controller.signal
-        });
+            signal: controller.signal,
+            // An auth header can be stripped by browsers when following
+            // certain cross-origin redirects. OpenRouter's API endpoint
+            // should be called directly, so fail loudly instead.
+            redirect: 'error'
+        };
+
+        if (options.headers) {
+            requestOptions.headers = options.headers instanceof Headers
+                ? options.headers
+                : new Headers(options.headers);
+        }
+
+        const response = await fetch(url, requestOptions);
 
         const text = await response.text();
 
@@ -621,6 +688,14 @@ async function requestJson(url, options = {}, timeoutMs = 30000) {
         return data;
 
     } catch (error) {
+        if (error.name === 'TypeError' && error.message) {
+            // Keep the original error for classifyError(), but annotate it
+            // when the browser likely blocked the request.
+            error.browserHint =
+                'The browser may have blocked the request or a redirect may ' +
+                'have prevented the Authorization header from reaching OpenRouter.';
+        }
+
         if (timedOut) {
             const timeoutError = new Error(
                 `Request timed out after ${timeoutMs / 1000} seconds.`
@@ -653,8 +728,12 @@ async function fetchModels() {
 
     const apiKey = getApiKey();
 
-    if (!apiKey) {
-        alert('Please enter your OpenRouter API key.');
+    try {
+        validateApiKey(apiKey);
+    } catch (error) {
+        alert(error.message);
+        setModelStatus(error.message, true);
+        log(`Authentication setup error: ${error.message}`, 'ERROR');
         return;
     }
 
@@ -670,10 +749,7 @@ async function fetchModels() {
             `${API_BASE}/models`,
             {
                 method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${apiKey}`,
-                    'Accept': 'application/json'
-                }
+                headers: getAuthHeaders(apiKey)
             },
             30000
         );
@@ -1006,14 +1082,7 @@ async function executeModel(
         {
             method: 'POST',
 
-            headers: {
-                'Authorization': `Bearer ${apiKey}`,
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-
-                'HTTP-Referer': window.location.href,
-                'X-Title': 'OpenRouter Dynamic Waterfall'
-            },
+            headers: getAuthHeaders(apiKey, true),
 
             body: JSON.stringify(body)
         },
@@ -1056,8 +1125,11 @@ async function runWaterfall() {
     const prompt = elements.prompt.value.trim();
     const modelChain = parseModelChain();
 
-    if (!apiKey) {
-        alert('Please enter your OpenRouter API key.');
+    try {
+        validateApiKey(apiKey);
+    } catch (error) {
+        alert(error.message);
+        log(`Authentication setup error: ${error.message}`, 'ERROR');
         return;
     }
 
@@ -1209,6 +1281,22 @@ async function runWaterfall() {
                         `${classification.category}: ${error.message}`,
                         'ERROR'
                     );
+
+                    if (
+                        classification.category === 'NETWORK_OR_BROWSER_REQUEST_ERROR' &&
+                        error.browserHint
+                    ) {
+                        log(error.browserHint, 'ERROR');
+                    }
+
+                    if (classification.category === 'AUTHENTICATION') {
+                        log(
+                            'OpenRouter rejected the authentication header. ' +
+                            'Make sure the field contains the actual OpenRouter key ' +
+                            '(sk-or-v1-...), not an OpenAI key or a key prefixed twice.',
+                            'ERROR'
+                        );
+                    }
 
                     if (classification.fatal) {
                         log(
