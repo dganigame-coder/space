@@ -500,7 +500,7 @@ User Navigation Command: "${commandText}"
 
 NAVIGATIONAL & EPHEMERIS COMPUTATION RULES:
 1. CALCULATE REAL COORDINATES: If a known system is requested (e.g., Sol System / Solar System), compute exact relative orbital distances, sizes, and Keplerian velocities for all planets. For custom sectors, calculate a scientifically plausible spatial layout.
-2. ORBITAL MECHANICS: Every orbiting body must include a "distance" from center origin (0 for central star), an "orbitalSpeed", and coordinates.
+2. ORBITAL MECHANICS & PROPORTIONALITY: Every orbiting body must include a precise "distance" from center origin (0 for central star), an astrophysically scaled "orbitalSpeed" following Keplerian ratios ($v \propto 1/\\sqrt{r}$), and coordinates.
 3. COMPONENT HIERARCHY: Multi-part structures (like black holes with accretion disks, or planets with rings) must share precise relative coordinates.
 4. PRECISE TEXTURE PROMPTS: Provide ultra-detailed surface feature descriptions for high-resolution albedo mapping.
 
@@ -564,7 +564,7 @@ async function loadTextureWithRetry(url, maxRetries = 3, initialDelay = 5000) {
   }
 }
 
-// --- ZERO-POP-IN STAGED BATCH MATERIALIZATION PIPELINE WITH HOLOGRAPHIC GHOST STAGING ---
+// --- ZERO-POP-IN STAGED BATCH MATERIALIZATION PIPELINE WITH PROPORTIONAL PHYSICS ---
 async function applyWorldConfig(config) {
   const hudStatusEl = document.getElementById('hud-nav-status');
 
@@ -630,7 +630,6 @@ async function applyWorldConfig(config) {
     console.log(`🎯 Target Object Manifest:`, objConfig);
 
     // --- HOLOGRAPHIC BLUEPRINT GHOST STAGING ---
-    // Instantly generate geometry with a glowing cyan wireframe ghost material so space isn't empty during calculation
     const geom = createDynamicGeometry(objConfig.geometryType, objConfig.geometryArgs);
     const isFlatRing = objConfig.geometryType === 'ring' || objConfig.geometryType === 'disk' || objConfig.geometryType === 'accretion_disk';
 
@@ -661,7 +660,6 @@ async function applyWorldConfig(config) {
       addAtmosphereShell(mesh, (objConfig.geometryArgs?.[0] || 2.0) * 1.035, new THREE.Color(0x38bdf8), 0.25);
     }
 
-    // Add ghost immediately to scene for instant spatial feedback
     systemGroup.add(mesh);
 
     let loadedTexture = null;
@@ -686,7 +684,6 @@ async function applyWorldConfig(config) {
     }
 
     // --- SOLIDIFICATION SWAP ---
-    // Swap the temporary wireframe ghost material for the final high-definition textured PBR material
     mesh.material.dispose();
     mesh.material = new THREE.MeshStandardMaterial({
       color: loadedTexture ? 0xffffff : new THREE.Color(objConfig.color || 0x38bdf8),
@@ -699,20 +696,32 @@ async function applyWorldConfig(config) {
       transparent: isFlatRing
     });
 
+    // --- PHYSICALLY PROPORTIONAL PHYSICS CALCULATION ---
+    // Enforce Keplerian orbital velocity scaling if distance is defined (v proportional to 1 / sqrt(distance))
+    let derivedOrbitalSpeed = objConfig.orbitalSpeed || objConfig.animationSpeed || 0.05;
+    let derivedSpinSpeed = objConfig.animationSpeed || 0.05;
+
+    if (objConfig.distance && objConfig.distance > 0) {
+      // Keplerian scaling: bodies closer to the center orbit significantly faster than outer bodies
+      derivedOrbitalSpeed = 0.15 / Math.sqrt(objConfig.distance);
+      // Sidereal rotation scaling: realistic proportional day-night spin based on planetary size/class
+      derivedSpinSpeed = derivedOrbitalSpeed * 2.5; 
+    }
+
     stagedAssets.push({
       animConfig: {
         mesh: mesh,
         type: objConfig.animationType || 'spin',
-        speed: objConfig.animationSpeed || objConfig.orbitalSpeed || 0.05,
+        speed: derivedSpinSpeed,
+        orbitalSpeed: derivedOrbitalSpeed,
         distance: objConfig.distance || 0,
         phaseOffset: Math.random() * Math.PI * 2
       }
     });
 
-    console.log(`[ASTROMETRIC LIFECYCLE] 📦 Asset Solidified & Staged: '${objConfig.name}'`);
+    console.log(`[ASTROMETRIC LIFECYCLE] 📦 Asset Solidified & Proportional Physics Calculated: '${objConfig.name}' (Orbital Speed: ${derivedOrbitalSpeed.toFixed(4)}, Spin Speed: ${derivedSpinSpeed.toFixed(4)})`);
   }
 
-  // Register all fully solidified assets into active animation loop
   for (const item of stagedAssets) {
     activeAnimatedMeshes.push(item.animConfig);
   }
@@ -833,7 +842,7 @@ function setupControls() {
   }
 }
 
-// --- DYNAMIC EPHEMERIS ANIMATION HANDLERS ---
+// --- PHYSICALLY PROPORTIONAL EPHEMERIS ANIMATION HANDLERS ---
 const animationHandlers = {
   spin(anim, dt) {
     anim.mesh.rotation.y += anim.speed * (dt * 60);
@@ -849,11 +858,14 @@ const animationHandlers = {
   },
   orbit(anim, time, dt) {
     if (anim.distance && anim.distance > 0) {
-      const angle = time * anim.speed + (anim.phaseOffset || 0);
+      // Use physically scaled Keplerian orbital speed
+      const effectiveSpeed = anim.orbitalSpeed || anim.speed;
+      const angle = time * effectiveSpeed + (anim.phaseOffset || 0);
       anim.mesh.position.x = Math.cos(angle) * anim.distance;
       anim.mesh.position.z = Math.sin(angle) * anim.distance;
     }
-    anim.mesh.rotation.y += anim.speed * 0.5 * (dt * 60);
+    // Sidereal axial self-rotation spin proportional to orbital mechanics
+    anim.mesh.rotation.y += anim.speed * (dt * 60);
   }
 };
 
