@@ -231,6 +231,8 @@ const elements = {
 let cachedModels = [];
 let cachedProvider = null;
 let modelById = new Map();
+// Remember models that returned a model-specific 404/deprecation error for this page session.
+const unavailableModelIds = new Set();
 const selectedModelIds = new Set();
 let intelligenceSortUsed = false;
 let executionInProgress = false;
@@ -443,7 +445,10 @@ async function fetchModels(options = {}) {
     if (!Array.isArray(data?.data)) throw new Error('Unexpected model-list response: expected a data array.');
 
     const rawModels = data.data.filter(isLikelyChatModel);
-    if (cachedProvider && cachedProvider !== provider) selectedModelIds.clear();
+    if (cachedProvider && cachedProvider !== provider) {
+      selectedModelIds.clear();
+      unavailableModelIds.clear();
+    }
     cachedModels = rawModels.map((model, index) => ({ ...model, __intelligenceRank: index }));
     cachedProvider = provider;
     modelById = new Map(cachedModels.map(model => [model.id, model]));
@@ -577,7 +582,9 @@ function promptFitBonus(model, task) {
 
 function rankModels(prompt, strategy, requestedOutputTokens) {
   const task = classifyPrompt(prompt);
-  let candidates = cachedModels.filter(model => modelFitsPrompt(model, prompt, requestedOutputTokens));
+  let candidates = cachedModels.filter(model =>
+    !unavailableModelIds.has(model.id) && modelFitsPrompt(model, prompt, requestedOutputTokens)
+  );
   if (!candidates.length) candidates = [...cachedModels];
 
   if (strategy === 'newest') {
@@ -630,7 +637,7 @@ function buildExecutionChain(prompt, settings) {
   const strategy = elements.selectionMode.value;
   const limit = Number(elements.maxModels.value);
   const provider = getProviderForKey(getApiKey());
-  const manualIds = parseModelChain().filter(id => id !== 'openrouter/auto');
+  const manualIds = parseModelChain().filter(id => id !== 'openrouter/auto' && !unavailableModelIds.has(id));
 
   if (strategy === 'manual') return uniqueIds(manualIds).slice(0, limit);
 
@@ -648,18 +655,30 @@ function buildExecutionChain(prompt, settings) {
 
 function classifyError(error) {
   const message = String(error?.message || '').toLowerCase();
+  const apiError = error?.responseData?.error || {};
+  const apiCode = String(apiError.code || '').toLowerCase();
+  const apiType = String(apiError.type || '').toLowerCase();
+
   if (error?.code === 'TIMEOUT') return { category: 'TIMEOUT', retryable: true, fatal: false };
   if (error?.code === 'ABORTED' || error?.name === 'AbortError') return { category: 'ABORTED', retryable: false, fatal: true };
   if (error?.code === 'EMPTY_RESPONSE') return { category: 'EMPTY_RESPONSE', retryable: false, fatal: false };
   if (error?.code === 'INCOMPLETE_RESPONSE') return { category: 'INCOMPLETE_RESPONSE', retryable: false, fatal: false };
   if (error?.code === 'INVALID_JSON') return { category: 'INVALID_JSON', retryable: true, fatal: false };
+
+  // Do not retry exhausted credits, insufficient_quota, or enforced spend/usage limits
+  // against every model: these are account/project-wide problems, not model failures.
+  const billingQuotaError = /insufficient_quota|credit_balance_exhausted|organization_(usage|spend)_limit_exceeded|project_spend_limit_exceeded|no credits remaining|out of credits|exceeded.*(quota|billing|spend limit)|billing.*(limit|credit)|quota.*exceeded/.test(
+    `${apiCode} ${apiType} ${message}`
+  );
+  if (billingQuotaError) return { category: 'BILLING_OR_USAGE_LIMIT', retryable: false, fatal: true };
+
   if (error?.status === 401) return { category: 'AUTHENTICATION', retryable: false, fatal: true };
   if (error?.status === 402) return { category: 'PAYMENT_OR_CREDITS', retryable: false, fatal: true };
   if (error?.status === 403) return { category: 'PERMISSION_OR_MODEL_ACCESS', retryable: false, fatal: false };
   if (error?.status === 429) return { category: 'RATE_LIMIT', retryable: true, fatal: false };
 
   if (error?.status === 400 || error?.status === 422) {
-    const modelSpecific = /context length|maximum context|too many tokens|model not found|model.*not available|not available.*model|unsupported.*(parameter|token|temperature)|does not support|not supported.*(parameter|token)|provider.*unavailable/.test(message);
+    const modelSpecific = /context length|maximum context|too many tokens|model not found|model.*not available|not available.*model|deprecated|unknown model|unsupported.*(parameter|token|temperature)|does not support|not supported.*(parameter|token)|provider.*unavailable/.test(message);
     return modelSpecific
       ? { category: 'MODEL_SPECIFIC_REQUEST_LIMIT', retryable: false, fatal: false }
       : { category: 'INVALID_REQUEST', retryable: false, fatal: true };
@@ -760,6 +779,7 @@ async function runWaterfall() {
   if (cachedProvider && cachedProvider !== provider) {
     cachedModels = [];
     modelById = new Map();
+    unavailableModelIds.clear();
     cachedProvider = null;
     intelligenceSortUsed = false;
     log('API provider changed; clearing model metadata fetched from the previous provider.');
@@ -867,6 +887,14 @@ async function runWaterfall() {
 
           if (classification.category === 'AUTHENTICATION') {
             log(`The ${provider === 'openai' ? 'OpenAI' : 'OpenRouter'} API rejected the key. Verify it belongs to that provider, is active, and has the required access/credits.`, 'ERROR');
+          }
+          if (classification.category === 'BILLING_OR_USAGE_LIMIT' || classification.category === 'PAYMENT_OR_CREDITS') {
+            log('Stopping the waterfall: billing/credit/usage limits affect the account or project, so trying more model IDs will not fix this. Check API billing and usage limits, then run again.', 'ERROR');
+          }
+          if (classification.category === 'MODEL_OR_ENDPOINT_NOT_FOUND' ||
+              (classification.category === 'MODEL_SPECIFIC_REQUEST_LIMIT' && /deprecated|unknown model|model not found|not available/.test(String(error.message || '').toLowerCase()))) {
+            unavailableModelIds.add(modelId);
+            log(`Marking ${modelId} unavailable for this page session so it will be excluded from future automatic/manual chains. Refreshing the page clears this temporary exclusion.`, 'WARN');
           }
           if (classification.fatal) {
             log('Stopping because this error is unlikely to be fixed by switching models.', 'ERROR');
