@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OpenRouter Dynamic Model Waterfall</title>
+  <title>OpenAI / OpenRouter Dynamic Model Waterfall</title>
   <style>
     :root {
       font-family: Arial, sans-serif;
@@ -55,18 +55,18 @@
   </style>
 </head>
 <body>
-  <h1>OpenRouter Dynamic Model Waterfall</h1>
-  <p class="subtitle">Discover available models, route each prompt intelligently, and fall back to other models when a request fails or produces a truncated answer.</p>
+  <h1>OpenAI / OpenRouter Dynamic Model Waterfall</h1>
+  <p class="subtitle">Use an OpenAI or OpenRouter API key, discover available models, and fall back to other models when a request fails or produces a truncated answer.</p>
 
   <div class="warning">
-    <strong>Security notice:</strong> This standalone demo sends your API key directly from your browser to OpenRouter. The key is held only in page memory—not in localStorage or sessionStorage—and is cleared when the page is hidden or unloaded. For a public application, proxy API requests through your own server so the secret never reaches the browser. Never publish or commit a real key.
+    <strong>Security notice:</strong> This standalone demo sends your key directly from your browser to the matching provider (OpenAI or OpenRouter). The key is held only in page memory—not in localStorage or sessionStorage—and is cleared when the page is hidden or unloaded. For a public application, proxy API requests through your own server so the secret never reaches the browser. Never publish or commit a real key.
   </div>
 
   <section class="card">
-    <h2>1. Configure OpenRouter</h2>
-    <label for="apiKey">OpenRouter API Key</label>
-    <input id="apiKey" type="password" placeholder="sk-or-v1-..." autocomplete="off" spellcheck="false">
-    <p class="help">Paste the key itself. An accidental <code>Bearer </code> prefix is accepted and normalized. The application checks the expected OpenRouter key prefix locally, but only OpenRouter can confirm whether the key is valid.</p>
+    <h2>1. Configure API access</h2>
+    <label for="apiKey">OpenAI or OpenRouter API Key</label>
+    <input id="apiKey" type="password" placeholder="sk-proj-... or sk-or-v1-..." autocomplete="off" spellcheck="false">
+    <p class="help">Paste the key itself. An accidental <code>Bearer </code> prefix is accepted and normalized. Keys beginning with <code>sk-proj-</code> are sent to OpenAI; keys beginning with <code>sk-or-v1-</code> are sent to OpenRouter. A matching prefix is only a local format check—the provider must still validate the key.</p>
 
     <div class="row">
       <div>
@@ -93,7 +93,7 @@
 
     <label for="selectionMode">Model selection strategy</label>
     <select id="selectionMode">
-      <option value="auto-router" selected>OpenRouter Auto Router + ranked fallbacks (recommended)</option>
+      <option value="auto-router" selected>OpenRouter Auto Router + ranked fallbacks (recommended for OpenRouter)</option>
       <option value="prompt-aware">Prompt-aware local ranking + fallbacks</option>
       <option value="intelligence">Highest intelligence ranking</option>
       <option value="newest">Newest releases first</option>
@@ -176,7 +176,8 @@
 <script>
 'use strict';
 
-const API_BASE = 'https://openrouter.ai/api/v1';
+const OPENROUTER_API_BASE = 'https://openrouter.ai/api/v1';
+const OPENAI_API_BASE = 'https://api.openai.com/v1';
 const OVERALL_DEADLINE_MS = 180000;
 const RETRIES_PER_MODEL = 1;
 const RETRY_DELAY_MS = 1000;
@@ -210,6 +211,7 @@ const elements = {
 };
 
 let cachedModels = [];
+let cachedProvider = null;
 let modelById = new Map();
 let intelligenceSortUsed = false;
 let executionInProgress = false;
@@ -238,30 +240,42 @@ function getApiKey() {
   return elements.apiKey.value.trim().replace(/^Bearer\s+/i, '').trim();
 }
 
+function getProviderForKey(apiKey) {
+  const key = String(apiKey || '').trim().replace(/^Bearer\s+/i, '').trim();
+  if (!key) throw new Error('API key is empty.');
+  if (/^sk-or-v1-/i.test(key)) return 'openrouter';
+  if (/^sk-proj-/i.test(key) || /^sk-svcacct-/i.test(key) || /^sk-(?!or-v1-)[A-Za-z0-9_-]+$/i.test(key)) return 'openai';
+  throw new Error('Unrecognized API key prefix. Use an OpenAI key (usually sk-proj-...) or an OpenRouter key (sk-or-v1-...).');
+}
+
+function getApiBase(apiKey) {
+  return getProviderForKey(apiKey) === 'openai' ? OPENAI_API_BASE : OPENROUTER_API_BASE;
+}
+
 function validateApiKey(apiKey) {
-  if (!apiKey) throw new Error('OpenRouter API key is empty.');
-  if (!/^sk-or-v1-/i.test(apiKey)) {
-    throw new Error('This does not look like an OpenRouter API key. Use a key beginning with "sk-or-v1-".');
-  }
+  getProviderForKey(apiKey); // Local format/provider detection only; it cannot verify the key is active.
   return apiKey;
 }
 
 function getAuthHeaders(apiKey, includeJson = false) {
   const key = validateApiKey(apiKey);
+  const provider = getProviderForKey(key);
   const headers = new Headers({
     'Authorization': `Bearer ${key}`,
     'Accept': 'application/json'
   });
   if (includeJson) headers.set('Content-Type', 'application/json');
 
-  // Optional attribution headers; the origin avoids transmitting the page path/query string.
-  try {
-    if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
-      headers.set('HTTP-Referer', window.location.origin);
-      headers.set('X-Title', 'OpenRouter Dynamic Waterfall');
+  // These attribution headers are specific to OpenRouter and are omitted for OpenAI.
+  if (provider === 'openrouter') {
+    try {
+      if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
+        headers.set('HTTP-Referer', window.location.origin);
+        headers.set('X-Title', 'OpenAI / OpenRouter Dynamic Waterfall');
+      }
+    } catch (_) {
+      // Authentication does not depend on attribution metadata.
     }
-  } catch (_) {
-    // Authentication does not depend on attribution metadata.
   }
   return headers;
 }
@@ -308,7 +322,7 @@ async function requestJson(url, options = {}, timeoutMs = 30000) {
         data = JSON.parse(rawText);
       } catch (_) {
         if (response.ok) {
-          const invalidJsonError = new Error('OpenRouter returned a successful HTTP status but the body was not valid JSON.');
+          const invalidJsonError = new Error('The API returned a successful HTTP status but the body was not valid JSON.');
           invalidJsonError.code = 'INVALID_JSON';
           throw invalidJsonError;
         }
@@ -353,7 +367,7 @@ function isLikelyChatModel(model) {
   const modality = String(model?.architecture?.modality || '').toLowerCase();
   const outputModalities = model?.architecture?.output_modalities;
   if (Array.isArray(outputModalities) && outputModalities.length && !outputModalities.includes('text')) return false;
-  if (/\b(embedding|embeddings|rerank|reranker|moderation|text-to-speech|speech-to-text|whisper|stable-diffusion|image-generation)\b/.test(`${id} ${name}`)) return false;
+  if (/\b(embedding|embeddings|rerank|reranker|moderation|text-to-speech|speech-to-text|whisper|stable-diffusion|image-generation|realtime|transcribe|tts)\b/.test(`${id} ${name}`)) return false;
   if (modality && !modality.includes('text')) return false;
   return Boolean(model?.id);
 }
@@ -372,25 +386,36 @@ async function fetchModels(options = {}) {
     return false;
   }
 
+  const provider = getProviderForKey(apiKey);
+  const apiBase = getApiBase(apiKey);
   fetchInProgress = true;
   elements.fetchButton.disabled = true;
-  setModelStatus('Fetching model metadata from OpenRouter...');
-  log('Fetching model metadata with the API intelligence ranking.');
+  setModelStatus(`Fetching model metadata from ${provider === 'openai' ? 'OpenAI' : 'OpenRouter'}...`);
+  log(`Fetching model metadata from ${provider === 'openai' ? 'OpenAI' : 'OpenRouter'}.`);
 
   try {
     let data;
     intelligenceSortUsed = false;
-    try {
+    if (provider === 'openrouter') {
+      try {
+        data = await requestJson(
+          `${apiBase}/models?output_modalities=text&sort=intelligence-high-to-low`,
+          { method: 'GET', headers: getAuthHeaders(apiKey) },
+          30000
+        );
+        intelligenceSortUsed = true;
+      } catch (sortedError) {
+        log(`Sorted model discovery failed; retrying the standard text-model listing: ${sortedError.message}`, 'WARN');
+        data = await requestJson(
+          `${apiBase}/models?output_modalities=text`,
+          { method: 'GET', headers: getAuthHeaders(apiKey) },
+          30000
+        );
+      }
+    } else {
+      // OpenAI's /models endpoint doesn't provide OpenRouter-style pricing, context, or intelligence rankings.
       data = await requestJson(
-        `${API_BASE}/models?output_modalities=text&sort=intelligence-high-to-low`,
-        { method: 'GET', headers: getAuthHeaders(apiKey) },
-        30000
-      );
-      intelligenceSortUsed = true;
-    } catch (sortedError) {
-      log(`Sorted model discovery failed; retrying the standard text-model listing: ${sortedError.message}`, 'WARN');
-      data = await requestJson(
-        `${API_BASE}/models?output_modalities=text`,
+        `${apiBase}/models`,
         { method: 'GET', headers: getAuthHeaders(apiKey) },
         30000
       );
@@ -400,12 +425,15 @@ async function fetchModels(options = {}) {
 
     const rawModels = data.data.filter(isLikelyChatModel);
     cachedModels = rawModels.map((model, index) => ({ ...model, __intelligenceRank: index }));
+    cachedProvider = provider;
     modelById = new Map(cachedModels.map(model => [model.id, model]));
 
-    setModelStatus(intelligenceSortUsed
-      ? `Loaded ${cachedModels.length} text-generating models, sorted by OpenRouter's intelligence ranking.`
-      : `Loaded ${cachedModels.length} text-generating models. Intelligence sorting was unavailable, so the API's default order will be used as a fallback baseline.`);
-    log(`Retrieved ${cachedModels.length} likely chat-capable models.`);
+    setModelStatus(provider === 'openrouter'
+      ? (intelligenceSortUsed
+        ? `Loaded ${cachedModels.length} text-generating models, sorted by OpenRouter's intelligence ranking.`
+        : `Loaded ${cachedModels.length} text-generating models. OpenRouter intelligence sorting was unavailable; using the API's default order as a fallback baseline.`)
+      : `Loaded ${cachedModels.length} models visible to this OpenAI API key. OpenAI's model-list endpoint does not provide price or intelligence ranking metadata; local ranking will use model IDs and available creation dates.`);
+    log(`Retrieved ${cachedModels.length} likely chat-capable models from ${provider === 'openai' ? 'OpenAI' : 'OpenRouter'}.`);
     renderModelList();
     return cachedModels.length > 0;
   } catch (error) {
@@ -581,6 +609,7 @@ function uniqueIds(ids) {
 function buildExecutionChain(prompt, settings) {
   const strategy = elements.selectionMode.value;
   const limit = Number(elements.maxModels.value);
+  const provider = getProviderForKey(getApiKey());
   const manualIds = parseModelChain().filter(id => id !== 'openrouter/auto');
 
   if (strategy === 'manual') return uniqueIds(manualIds).slice(0, limit);
@@ -590,8 +619,8 @@ function buildExecutionChain(prompt, settings) {
     : 'prompt-aware';
   const rankedIds = rankModels(prompt, rankedStrategy, settings.maxTokens).map(model => model.id).filter(id => id !== 'openrouter/auto');
 
-  if (strategy === 'auto-router') {
-    // Auto Router chooses the first actual model; direct models are explicit client-side fallbacks.
+  if (strategy === 'auto-router' && provider === 'openrouter') {
+    // OpenRouter chooses the first actual model; direct models are explicit client-side fallbacks.
     return uniqueIds(['openrouter/auto', ...manualIds, ...rankedIds]).slice(0, limit);
   }
   return uniqueIds([...rankedIds, ...manualIds]).slice(0, limit);
@@ -622,17 +651,24 @@ function classifyError(error) {
   return { category: 'UNKNOWN_ERROR', retryable: false, fatal: false };
 }
 
-function getModelRequestSettings(modelId, settings) {
+function getModelRequestSettings(modelId, settings, provider) {
   const model = modelById.get(modelId);
   const supported = Array.isArray(model?.supported_parameters) ? model.supported_parameters : null;
   const body = {};
-
-  if (!supported || supported.includes('temperature')) body.temperature = settings.temperature;
 
   let tokenLimit = settings.maxTokens;
   const providerLimit = parseNumber(model?.top_provider?.max_completion_tokens);
   if (providerLimit !== null && providerLimit > 0) tokenLimit = Math.min(tokenLimit, providerLimit);
 
+  if (provider === 'openai') {
+    // OpenAI reasoning-style model families generally use max_completion_tokens and may reject temperature.
+    const reasoningStyle = /^(o[1-9](?:-|$)|gpt-[5-9](?:[.-]|$))/i.test(modelId);
+    if (!reasoningStyle) body.temperature = settings.temperature;
+    body[reasoningStyle ? 'max_completion_tokens' : 'max_tokens'] = tokenLimit;
+    return body;
+  }
+
+  if (!supported || supported.includes('temperature')) body.temperature = settings.temperature;
   if (supported && supported.includes('max_completion_tokens') && !supported.includes('max_tokens')) {
     body.max_completion_tokens = tokenLimit;
   } else {
@@ -641,21 +677,21 @@ function getModelRequestSettings(modelId, settings) {
   return body;
 }
 
-async function executeModel(modelId, apiKey, prompt, settings, timeoutMs) {
+async function executeModel(modelId, apiKey, provider, prompt, settings, timeoutMs) {
   const body = {
     model: modelId,
     messages: [{ role: 'user', content: prompt }],
-    ...getModelRequestSettings(modelId, settings)
+    ...getModelRequestSettings(modelId, settings, provider)
   };
 
-  if (modelId === 'openrouter/auto') {
+  if (provider === 'openrouter' && modelId === 'openrouter/auto') {
     body.cost_tier = elements.costTier.value;
-  } else {
+  } else if (provider === 'openrouter') {
     // One requested model per client-side step; the page controls cross-model fallback order.
     body.provider = { allow_fallbacks: false };
   }
 
-  const data = await requestJson(`${API_BASE}/chat/completions`, {
+  const data = await requestJson(`${getApiBase(apiKey)}/chat/completions`, {
     method: 'POST',
     headers: getAuthHeaders(apiKey, true),
     body: JSON.stringify(body)
@@ -692,12 +728,21 @@ async function runWaterfall() {
 
   const apiKey = getApiKey();
   const prompt = elements.prompt.value.trim();
+  let provider;
   try {
     validateApiKey(apiKey);
+    provider = getProviderForKey(apiKey);
   } catch (error) {
     alert(error.message);
     log(`API key setup error: ${error.message}`, 'ERROR');
     return;
+  }
+  if (cachedProvider && cachedProvider !== provider) {
+    cachedModels = [];
+    modelById = new Map();
+    cachedProvider = null;
+    intelligenceSortUsed = false;
+    log('API provider changed; clearing model metadata fetched from the previous provider.');
   }
   if (!prompt) {
     alert('Please enter a prompt.');
@@ -735,13 +780,21 @@ async function runWaterfall() {
     if (elements.selectionMode.value !== 'manual' && cachedModels.length === 0) {
       log('No cached model metadata; fetching it automatically before selection.');
       await fetchModels({ allowDuringExecution: true, silent: true });
+    } else if (elements.selectionMode.value === 'manual' && cachedProvider && cachedProvider !== provider) {
+      cachedModels = [];
+      modelById = new Map();
+      cachedProvider = null;
     }
 
     const modelChain = buildExecutionChain(prompt, settings);
     if (!modelChain.length) throw new Error('No usable models were selected. Fetch models or provide IDs in the manual chain.');
 
     log(`Prompt category estimate: ${classifyPrompt(prompt)}.`);
-    log(intelligenceSortUsed ? 'Model metadata includes OpenRouter intelligence sorting.' : 'Intelligence sorting was unavailable; local ranking uses a weaker returned-order baseline.', intelligenceSortUsed ? 'INFO' : 'WARN');
+    if (provider === 'openrouter') {
+      log(intelligenceSortUsed ? 'Model metadata includes OpenRouter intelligence sorting.' : 'OpenRouter intelligence sorting was unavailable; local ranking uses the returned-order baseline.', intelligenceSortUsed ? 'INFO' : 'WARN');
+    } else {
+      log('Using the OpenAI API. Its model list does not include prices or intelligence rankings, so local task matching is heuristic.', 'WARN');
+    }
     log(`Selection strategy: ${elements.selectionMode.options[elements.selectionMode.selectedIndex].text}.`);
     log(`Execution chain (${modelChain.length} model(s)): ${modelChain.join(' → ')}`);
     log(`Timeout per request: ${timeoutMs / 1000} seconds; overall deadline: ${OVERALL_DEADLINE_MS / 1000} seconds.`);
@@ -770,7 +823,7 @@ async function runWaterfall() {
         elements.attemptCount.textContent = String(requestCount);
 
         try {
-          const response = await executeModel(modelId, apiKey, prompt, settings, effectiveTimeout);
+          const response = await executeModel(modelId, apiKey, provider, prompt, settings, effectiveTimeout);
           if (response.incomplete) {
             log(`${modelId} returned text but finish_reason was "length"; treating it as truncated and trying a fallback.`, 'WARN');
             if (!bestPartial) bestPartial = { ...response, requestedModel: modelId };
@@ -793,7 +846,7 @@ async function runWaterfall() {
           if (error.browserHint) log(error.browserHint, 'ERROR');
 
           if (classification.category === 'AUTHENTICATION') {
-            log('OpenRouter rejected the API key. Verify it is an OpenRouter key and that it has not been revoked.', 'ERROR');
+            log(`The ${provider === 'openai' ? 'OpenAI' : 'OpenRouter'} API rejected the key. Verify it belongs to that provider, is active, and has the required access/credits.`, 'ERROR');
           }
           if (classification.fatal) {
             log('Stopping because this error is unlikely to be fixed by switching models.', 'ERROR');
@@ -845,10 +898,30 @@ async function runWaterfall() {
 }
 
 function updateSelectionUI() {
-  const isAutoRouter = elements.selectionMode.value === 'auto-router';
+  let provider = null;
+  try { provider = getProviderForKey(getApiKey()); } catch (_) { /* API key not entered yet */ }
+
+  // OpenAI's /models endpoint doesn't return the pricing, context-window, or intelligence-ranking fields needed by these modes.
+  for (const option of elements.selectionMode.options) {
+    if (!option.dataset.baseLabel) option.dataset.baseLabel = option.textContent.replace(' (OpenRouter metadata only)', '');
+    const needsOpenRouterMetadata = ['cost', 'context', 'intelligence'].includes(option.value);
+    option.disabled = provider === 'openai' && needsOpenRouterMetadata;
+    option.textContent = option.dataset.baseLabel + (provider === 'openai' && needsOpenRouterMetadata ? ' (OpenRouter metadata only)' : '');
+  }
+  if (elements.selectionMode.selectedOptions[0]?.disabled) elements.selectionMode.value = 'auto-router';
+
+  const autoOption = [...elements.selectionMode.options].find(option => option.value === 'auto-router');
+  if (autoOption) {
+    autoOption.textContent = provider === 'openai'
+      ? 'Automatic prompt-aware ranking + fallbacks (OpenAI API)'
+      : 'OpenRouter Auto Router + ranked fallbacks (recommended for OpenRouter)';
+  }
+  const isAutoRouter = elements.selectionMode.value === 'auto-router' && provider !== 'openai';
   elements.autoRouterSettings.hidden = !isAutoRouter;
   elements.modelSortInfo.value = cachedModels.length
-    ? (intelligenceSortUsed ? `Loaded ${cachedModels.length}; API intelligence order available` : `Loaded ${cachedModels.length}; default API order only`)
+    ? (provider === 'openai'
+      ? `Loaded ${cachedModels.length}; OpenAI model list has no price/intelligence ranking metadata`
+      : (intelligenceSortUsed ? `Loaded ${cachedModels.length}; OpenRouter intelligence order available` : `Loaded ${cachedModels.length}; default API order only`))
     : 'Fetch model metadata when needed';
 }
 
@@ -858,6 +931,7 @@ elements.executeButton.addEventListener('click', runWaterfall);
 elements.clearButton.addEventListener('click', clearLogs);
 elements.modelFilter.addEventListener('input', renderModelList);
 elements.selectionMode.addEventListener('change', updateSelectionUI);
+elements.apiKey.addEventListener('input', updateSelectionUI);
 
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') elements.apiKey.value = '';
@@ -866,7 +940,7 @@ window.addEventListener('pagehide', () => { elements.apiKey.value = ''; });
 
 updateSelectionUI();
 log('Application initialized. API keys are not written to browser storage.');
-log('Default mode: OpenRouter Auto Router first, then ranked direct-model fallbacks.');
+log('Provider is detected from the key prefix: sk-or-v1- routes to OpenRouter; sk-proj- routes to OpenAI.');
 </script>
 </body>
 </html>
