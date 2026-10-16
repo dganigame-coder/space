@@ -183,9 +183,7 @@ function createInitialPlanet() {
   const planetMaterial = new THREE.MeshStandardMaterial({ 
     color: 0x197da8, 
     roughness: 0.55, 
-    metalness: 0.05,
-    transparent: true,
-    opacity: 1.0
+    metalness: 0.05
   });
   const planet = new THREE.Mesh(geo, planetMaterial);
   planet.name = 'Starter World';
@@ -196,7 +194,7 @@ function createInitialPlanet() {
   activeAnimatedMeshes.push({
     mesh: planet,
     type: 'spin',
-    config: { speed: 0.1, axis: 'y' }
+    speed: 0.05
   });
 }
 
@@ -296,22 +294,30 @@ function addAtmosphereShell(parent, radius, color, opacity = 0.5) {
   return shell;
 }
 
+// --- MCGS v1.0 GEOMETRY FACTORY ---
 function createDynamicGeometry(type, args) {
   const p = args || [];
   switch (type ? type.toLowerCase() : 'sphere') {
     case 'torus':
-      return new THREE.TorusGeometry(p[0] || 3.2, p[1] || 0.25, p[2] || 32, p[3] || 128);
+    case 'accretion_disk':
+      return new THREE.TorusGeometry(p[0] || 3.2, p[1] || 0.3, p[2] || 32, p[3] || 128);
     case 'disk':
     case 'ring':
-    case 'ring_world':
+    case 'planetary_ring':
       return new THREE.RingGeometry(p[0] || 2.4, p[1] || 4.8, p[2] || 128);
     case 'icosahedron':
-    case 'crystal':
     case 'asteroid':
+    case 'comet':
       return new THREE.IcosahedronGeometry(p[0] || 2.0, p[1] || 2);
+    case 'cone':
+    case 'jet':
+      return new THREE.ConeGeometry(p[0] || 0.2, p[1] || 15.0, p[2] || 32);
+    case 'shell':
+    case 'supernova_shell':
+      return new THREE.SphereGeometry(p[0] || 6.0, p[1] || 32, p[2] || 24);
     case 'sphere':
     default:
-      return new THREE.SphereGeometry(p[0] || 2.0, p[1] || 64, p[2] || 48);
+      return new THREE.SphereGeometry(p[0] || 2.0, p[1] || 64, p[2] || 64);
   }
 }
 
@@ -347,7 +353,7 @@ function updateAudioSynth(params) {
 let lastSpokenText = '';
 function speakText(text, force = false) {
   if (!('speechSynthesis' in window)) return;
-  if (!force && text === lastSpokenText) return; // Prevent duplicate rapid triggers
+  if (!force && text === lastSpokenText) return;
   lastSpokenText = text;
   
   window.speechSynthesis.cancel();
@@ -458,20 +464,19 @@ async function processCommand(commandText) {
   await applyWorldConfig(worldConfig);
 }
 
+// --- MCGS v1.0 PROMPT ARCHITECTURE ---
 function buildPromptText(commandText) {
   return `
-You are an advanced 3D Real-Space Simulator Engine and Principal Planetary Scientist.
+You are an advanced 3D Real-Space Simulator Engine and Principal Planetary Scientist operating under Master Celestial Generation Specification (MCGS v1.0).
 User Command: "${commandText}"
 
-CRITICAL SCIENTIFIC INTEGRITY & VARIETY RULES:
-1. MATCH REAL SHAPES & LAYOUTS: 
-   - Follow true astrophysical reality based strictly on the user's command.
-   - Use "sphere" for standard planets, gas giants, and stars.
-   - Use "icosahedron" (detail level 2) for jagged asteroids, moons, or crystalline worlds.
-   - Use "torus" or "disk" for ring systems or accretion disks.
-   - FOR RINGED PLANETS (like Saturn or Uranus): Return MULTIPLE objects in the "objects" array (e.g., core sphere + a separate companion object with geometryType "disk" or "torus" for the rings positioned at [0,0,0]).
-2. DYNAMIC ANIMATIONS: Choose appropriate animation types: "spin" for planets/rings, "tumble" for jagged asteroids, "pulse" for living stars or energy anomalies.
-3. PRECISE SURFACE PROMPTS: Write ultra-detailed descriptions focused purely on high-frequency geological or atmospheric surface features (e.g., turbulent ammonia storm bands, iron-oxide cratered highlands, icy tectonic fractures, or churning stellar plasma). Avoid generic terms.
+MCGS v1.0 STRUCTURAL RULES:
+1. CATEGORY 1 (Solid/Spheroid): Use "sphere" for standard planets, gas giants, and stars.
+2. CATEGORY 2 (Irregular/Asteroid): Use "icosahedron" for jagged asteroids, moons, or comets with "tumble" animation.
+3. CATEGORY 3 (Disks/Rings): Use "ring" or "accretion_disk" with rotational alignment. For ringed planets (Saturn/Uranus), return multi-part arrays (core sphere + companion ring disk).
+4. CATEGORY 4 (Supernova/Nebula): Use concentric "shell" primitives for expanding shockwaves.
+5. CATEGORY 5 (Relativistic Engines - BLACK HOLES, PULSARS, QUASARS): Return multi-component assemblies (Core sphere + Accretion Disk torus + Tilted Cone jets).
+6. PRECISE TEXTURE PROMPTS: Provide ultra-detailed surface feature descriptions for high-resolution albedo mapping.
 
 Return ONLY valid raw JSON matching this structure:
 {
@@ -486,8 +491,11 @@ Return ONLY valid raw JSON matching this structure:
       "geometryType": "sphere",
       "geometryArgs": [2.0, 64, 48],
       "position": [0, 0, 0],
+      "rotation": [0, 0, 0],
       "color": "#38bdf8",
       "emissive": false,
+      "emissiveColor": "#ffaa00",
+      "emissiveIntensity": 0,
       "roughness": 0.45,
       "metalness": 0.08,
       "prompt": "Detailed specific surface feature description",
@@ -563,7 +571,6 @@ async function applyWorldConfig(config) {
   const spaceObjects = config.objects || [config];
   if (hudStatusEl) hudStatusEl.innerText = `PROTOCOL: MAPPING SECTOR`;
 
-  // Preload textures and prepare fully mapped meshes before adding to scene (Eliminates blank pop-in)
   for (let i = 0; i < spaceObjects.length; i++) {
     const objConfig = spaceObjects[i];
     if (hudStatusEl) hudStatusEl.innerText = `MAPPING: ${objConfig.name.toUpperCase()}`;
@@ -593,22 +600,36 @@ async function applyWorldConfig(config) {
     }
 
     const geom = createDynamicGeometry(objConfig.geometryType, objConfig.geometryArgs);
+    
+    // Check if object is a ring, disk, or accretion disk requiring double-sided rendering
+    const isFlatRing = objConfig.geometryType === 'ring' || objConfig.geometryType === 'disk' || objConfig.geometryType === 'accretion_disk';
+
     const mat = new THREE.MeshStandardMaterial({
       color: loadedTexture ? 0xffffff : new THREE.Color(objConfig.color || 0x38bdf8),
       roughness: objConfig.roughness || 0.4,
       metalness: objConfig.metalness || 0.1,
       emissive: objConfig.emissive ? new THREE.Color(objConfig.emissiveColor || 0xffaa00) : 0x000000,
       emissiveIntensity: objConfig.emissive ? (objConfig.emissiveIntensity || 0.9) : 0,
-      map: loadedTexture || null
+      map: loadedTexture || null,
+      side: isFlatRing ? THREE.DoubleSide : THREE.FrontSide,
+      transparent: isFlatRing
     });
 
     const mesh = new THREE.Mesh(geom, mat);
+    
+    // Prevent culling artifacts on rings at acute camera angles
+    if (isFlatRing) {
+      mesh.frustumCulled = false;
+    }
+
     if (objConfig.position && Array.isArray(objConfig.position)) {
       mesh.position.set(...objConfig.position);
     }
 
-    if (objConfig.geometryType === 'disk' || objConfig.geometryType === 'ring') {
-      mesh.rotation.x = Math.PI / 2;
+    if (objConfig.rotation && Array.isArray(objConfig.rotation)) {
+      mesh.rotation.set(...objConfig.rotation);
+    } else if (isFlatRing) {
+      mesh.rotation.x = Math.PI / 2; // Default horizontal alignment for equatorial rings
     }
 
     if (objConfig.geometryType === 'sphere' && !objConfig.emissive) {
@@ -742,6 +763,27 @@ function setupControls() {
   }
 }
 
+// --- EXPANDED ANIMATION HANDLERS ---
+const animationHandlers = {
+  spin(anim, dt) {
+    anim.mesh.rotation.y += anim.speed * (dt * 60);
+  },
+  tumble(anim, dt) {
+    anim.mesh.rotation.x += anim.speed * 0.7 * (dt * 60);
+    anim.mesh.rotation.y += anim.speed * (dt * 60);
+    anim.mesh.rotation.z += anim.speed * 0.4 * (dt * 60);
+  },
+  pulse(anim, time) {
+    const scale = 1.0 + Math.sin(time * 3.0 * anim.speed) * 0.04;
+    anim.mesh.scale.set(scale, scale, scale);
+  },
+  orbit(anim, time) {
+    const angle = time * anim.speed;
+    anim.mesh.position.x = Math.cos(angle) * (anim.radius || 5);
+    anim.mesh.position.z = Math.sin(angle) * (anim.radius || 5);
+  }
+};
+
 // --- ANIMATION LOOP ---
 function animate(time) {
   requestAnimationFrame(animate);
@@ -759,9 +801,8 @@ function animate(time) {
 
   activeAnimatedMeshes.forEach((anim) => {
     if (anim.mesh && anim.mesh.parent) {
-      if (anim.type === 'spin') {
-        anim.mesh.rotation.y += anim.speed * (dt * 60);
-      }
+      const handler = animationHandlers[anim.type] || animationHandlers.spin;
+      handler(anim, dt || t);
     }
   });
 
