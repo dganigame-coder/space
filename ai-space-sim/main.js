@@ -382,7 +382,7 @@ function speakText(text, force = false) {
   window.speechSynthesis.speak(utterance);
 }
 
-// --- PROCESS COMMAND WITH WATERFALL & 12S TIMEOUT ---
+// --- PROCESS COMMAND WITH LIFECYCLE TELEMETRY LOGS ---
 async function processCommand(commandText) {
   const requestId = ++commandSequence;
   if (currentCommandAbort) currentCommandAbort.abort();
@@ -398,6 +398,11 @@ async function processCommand(commandText) {
   if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: ASTROMETRIC_SCAN';
 
   speakText(`Engaging navigational sensors for vector: ${commandText}.`);
+
+  console.log(`%c[ASTROMETRIC LIFECYCLE] 🚀 STAGE 1: INPUT TO AI NAVIGATION COMPUTER`, `color: #38bdf8; font-weight: bold;`);
+  console.log(`👉 User Nav Command: "${commandText}"`);
+  const aiPromptPayload = buildPromptText(commandText);
+  console.log(`📝 Full Prompt Payload Sent to AI:\n`, aiPromptPayload);
 
   let worldConfig = null;
 
@@ -415,7 +420,7 @@ async function processCommand(commandText) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            contents: [{ parts: [{ text: buildPromptText(commandText) }] }],
+            contents: [{ parts: [{ text: aiPromptPayload }] }],
             generationConfig: { responseMimeType: "application/json" }
           }),
           signal: timeoutController.signal
@@ -451,7 +456,7 @@ async function processCommand(commandText) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: [{ role: 'user', content: buildPromptText(commandText) }],
+          messages: [{ role: 'user', content: aiPromptPayload }],
           jsonMode: true
         }),
         signal: pController.signal
@@ -470,10 +475,14 @@ async function processCommand(commandText) {
   }
 
   if (!worldConfig && requestId === commandSequence) {
+    console.warn(`[ASTROMETRIC LIFECYCLE] ⚠ AI generation failed or timed out. Falling back to local procedural world generator.`);
     worldConfig = generateFallbackWorld(commandText);
   }
 
   if (requestId !== commandSequence) return;
+
+  console.log(`%c[ASTROMETRIC LIFECYCLE] 🤖 STAGE 2: OUTPUT FROM AI NAVIGATION COMPUTER`, `color: #4ade80; font-weight: bold;`);
+  console.log(`📦 Parsed Sector Ephemeris Object (JSON Output):`, worldConfig);
 
   if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: SECURED_TARGET';
   if (titleEl && worldConfig.sectorTitle) titleEl.innerText = worldConfig.sectorTitle;
@@ -555,10 +564,11 @@ async function loadTextureWithRetry(url, maxRetries = 3, initialDelay = 5000) {
   }
 }
 
-// --- ZERO-POP-IN PRELOADED TEXTURE & MATERIALIZATION PIPELINE (WITH DETAILED AUDIT LOGS) ---
+// --- ZERO-POP-IN STAGED BATCH MATERIALIZATION PIPELINE WITH HOLOGRAPHIC GHOST STAGING ---
 async function applyWorldConfig(config) {
   const hudStatusEl = document.getElementById('hud-nav-status');
 
+  // Clear existing scene objects
   while (systemGroup.children.length > 0) {
     const obj = systemGroup.children[0];
     obj.traverse(child => {
@@ -597,6 +607,7 @@ async function applyWorldConfig(config) {
 
   const spaceObjects = config.objects || [config];
   let successfulTextures = 0;
+  const stagedAssets = []; // Temporary staging buffer
 
   console.log(`[ASTROMETRIC NAVIGATION] 🌌 Initializing Sector: "${config.sectorTitle || 'Unknown Sector'}". Target Object Count: ${spaceObjects.length}`);
   if (hudStatusEl) hudStatusEl.innerText = `PROTOCOL: MAPPING SECTOR`;
@@ -606,19 +617,6 @@ async function applyWorldConfig(config) {
     if (hudStatusEl) hudStatusEl.innerText = `MAPPING: ${objConfig.name.toUpperCase()}`;
     speakText(`Calibrating astrometric albedo maps for ${objConfig.name}.`);
 
-    // --- AUDIT LOG 1: EXPECTED OBJECT TELEMETRY FROM NAVIGATION COMPUTER ---
-    console.log(`[ASTROMETRIC AUDIT] 🔭 Object Manifest [${i+1}/${spaceObjects.length}]:`, {
-      name: objConfig.name,
-      geometryType: objConfig.geometryType,
-      geometryArgs: objConfig.geometryArgs,
-      position: objConfig.position || [0, 0, 0],
-      orbitalDistance: objConfig.distance || 0,
-      orbitalSpeed: objConfig.orbitalSpeed || 0,
-      animationType: objConfig.animationType,
-      aiPrompt: objConfig.prompt
-    });
-
-    let loadedTexture = null;
     let texUrl = objConfig.customTextureUrl;
 
     if (!texUrl && objConfig.prompt) {
@@ -628,41 +626,22 @@ async function applyWorldConfig(config) {
       texUrl = `https://image.pollinations.ai/prompt/${specificPrompt}?width=2048&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 99999)}`;
     }
 
-    if (texUrl) {
-      try {
-        textureLoader.setCrossOrigin('anonymous');
-        
-        if (i > 0) {
-          await new Promise(resolve => setTimeout(resolve, 1400));
-        }
+    console.log(`%c[ASTROMETRIC LIFECYCLE] 🎨 STAGE 3: TEXTURE PIPELINE FOR [${objConfig.name}]`, `color: #fbbf24; font-weight: bold;`);
+    console.log(`🎯 Target Object Manifest:`, objConfig);
 
-        loadedTexture = await loadTextureWithRetry(texUrl, 2, 5000);
-        if (loadedTexture) {
-          loadedTexture.colorSpace = THREE.SRGBColorSpace;
-          loadedTexture.needsUpdate = true;
-          successfulTextures++;
-          console.log(`[ASTROMETRIC NAVIGATION] ✔ Texture successfully acquired for object [${objConfig.name}] (${successfulTextures}/${spaceObjects.length})`);
-        }
-      } catch (err) {
-        console.warn(`[ASTROMETRIC NAVIGATION] ✖ Texture load failed for object [${objConfig.name}], falling back to PBR procedural material.`);
-      }
-    }
-
+    // --- HOLOGRAPHIC BLUEPRINT GHOST STAGING ---
+    // Instantly generate geometry with a glowing cyan wireframe ghost material so space isn't empty during calculation
     const geom = createDynamicGeometry(objConfig.geometryType, objConfig.geometryArgs);
     const isFlatRing = objConfig.geometryType === 'ring' || objConfig.geometryType === 'disk' || objConfig.geometryType === 'accretion_disk';
 
-    const mat = new THREE.MeshStandardMaterial({
-      color: loadedTexture ? 0xffffff : new THREE.Color(objConfig.color || 0x38bdf8),
-      roughness: objConfig.roughness || 0.4,
-      metalness: objConfig.metalness || 0.1,
-      emissive: objConfig.emissive ? new THREE.Color(objConfig.emissiveColor || 0xffaa00) : 0x000000,
-      emissiveIntensity: objConfig.emissive ? (objConfig.emissiveIntensity || 0.9) : 0,
-      map: loadedTexture || null,
-      side: isFlatRing ? THREE.DoubleSide : THREE.FrontSide,
-      transparent: isFlatRing
+    const ghostMat = new THREE.MeshBasicMaterial({
+      color: 0x38bdf8,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.35
     });
 
-    const mesh = new THREE.Mesh(geom, mat);
+    const mesh = new THREE.Mesh(geom, ghostMat);
     
     if (isFlatRing) {
       mesh.frustumCulled = false;
@@ -679,24 +658,66 @@ async function applyWorldConfig(config) {
     }
 
     if (objConfig.geometryType === 'sphere' && !objConfig.emissive) {
-      addAtmosphereShell(mesh, (objConfig.geometryArgs?.[0] || 2.0) * 1.035, new THREE.Color(0x38bdf8), 0.45);
+      addAtmosphereShell(mesh, (objConfig.geometryArgs?.[0] || 2.0) * 1.035, new THREE.Color(0x38bdf8), 0.25);
     }
 
+    // Add ghost immediately to scene for instant spatial feedback
     systemGroup.add(mesh);
 
-    activeAnimatedMeshes.push({
-      mesh: mesh,
-      type: objConfig.animationType || 'spin',
-      speed: objConfig.animationSpeed || objConfig.orbitalSpeed || 0.05,
-      distance: objConfig.distance || 0,
-      phaseOffset: Math.random() * Math.PI * 2
+    let loadedTexture = null;
+    if (texUrl) {
+      try {
+        textureLoader.setCrossOrigin('anonymous');
+        
+        if (i > 0) {
+          await new Promise(resolve => setTimeout(resolve, 1400));
+        }
+
+        loadedTexture = await loadTextureWithRetry(texUrl, 2, 5000);
+        if (loadedTexture) {
+          loadedTexture.colorSpace = THREE.SRGBColorSpace;
+          loadedTexture.needsUpdate = true;
+          successfulTextures++;
+          console.log(`[ASTROMETRIC LIFECYCLE] ✔ Texture SUCCESS for [${objConfig.name}] (${successfulTextures}/${spaceObjects.length})`);
+        }
+      } catch (err) {
+        console.warn(`[ASTROMETRIC LIFECYCLE] ✖ Texture FAILED. Falling back to PBR material for [${objConfig.name}].`, err);
+      }
+    }
+
+    // --- SOLIDIFICATION SWAP ---
+    // Swap the temporary wireframe ghost material for the final high-definition textured PBR material
+    mesh.material.dispose();
+    mesh.material = new THREE.MeshStandardMaterial({
+      color: loadedTexture ? 0xffffff : new THREE.Color(objConfig.color || 0x38bdf8),
+      roughness: objConfig.roughness || 0.4,
+      metalness: objConfig.metalness || 0.1,
+      emissive: objConfig.emissive ? new THREE.Color(objConfig.emissiveColor || 0xffaa00) : 0x000000,
+      emissiveIntensity: objConfig.emissive ? (objConfig.emissiveIntensity || 0.9) : 0,
+      map: loadedTexture || null,
+      side: isFlatRing ? THREE.DoubleSide : THREE.FrontSide,
+      transparent: isFlatRing
     });
 
-    // --- AUDIT LOG 2: ACTUAL VISUAL RESULT INSTANTIATED ---
-    console.log(`[ASTROMETRIC AUDIT] 👁 Visual Render Status for [${objConfig.name}]: Mesh instantiated. Geometry Type: '${objConfig.geometryType}' | Render Mode: ${loadedTexture ? 'AI Equirectangular Texture Mapped' : 'Procedural PBR Shading Fallback'}`);
+    stagedAssets.push({
+      animConfig: {
+        mesh: mesh,
+        type: objConfig.animationType || 'spin',
+        speed: objConfig.animationSpeed || objConfig.orbitalSpeed || 0.05,
+        distance: objConfig.distance || 0,
+        phaseOffset: Math.random() * Math.PI * 2
+      }
+    });
+
+    console.log(`[ASTROMETRIC LIFECYCLE] 📦 Asset Solidified & Staged: '${objConfig.name}'`);
   }
 
-  console.log(`[ASTROMETRIC NAVIGATION] 🚀 Ephemeris Materialization Complete. Total Objects Created: ${spaceObjects.length} | Successfully Textured: ${successfulTextures}/${spaceObjects.length}`);
+  // Register all fully solidified assets into active animation loop
+  for (const item of stagedAssets) {
+    activeAnimatedMeshes.push(item.animConfig);
+  }
+
+  console.log(`[ASTROMETRIC NAVIGATION] 🚀 Sector Materialization Complete. Total Objects Established: ${spaceObjects.length} | Successfully Textured: ${successfulTextures}/${spaceObjects.length}`);
 
   if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: SECURED_TARGET';
   if (config.speechResponse) speakText(config.speechResponse);
