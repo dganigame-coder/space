@@ -555,7 +555,7 @@ async function loadTextureWithRetry(url, maxRetries = 3, initialDelay = 5000) {
   }
 }
 
-// --- ZERO-POP-IN PRELOADED TEXTURE & MATERIALIZATION PIPELINE (WITH STAGGERED PACING) ---
+// --- ZERO-POP-IN PRELOADED TEXTURE & MATERIALIZATION PIPELINE (WITH DETAILED AUDIT LOGS) ---
 async function applyWorldConfig(config) {
   const hudStatusEl = document.getElementById('hud-nav-status');
 
@@ -606,6 +606,18 @@ async function applyWorldConfig(config) {
     if (hudStatusEl) hudStatusEl.innerText = `MAPPING: ${objConfig.name.toUpperCase()}`;
     speakText(`Calibrating astrometric albedo maps for ${objConfig.name}.`);
 
+    // --- AUDIT LOG 1: EXPECTED OBJECT TELEMETRY FROM NAVIGATION COMPUTER ---
+    console.log(`[ASTROMETRIC AUDIT] 🔭 Object Manifest [${i+1}/${spaceObjects.length}]:`, {
+      name: objConfig.name,
+      geometryType: objConfig.geometryType,
+      geometryArgs: objConfig.geometryArgs,
+      position: objConfig.position || [0, 0, 0],
+      orbitalDistance: objConfig.distance || 0,
+      orbitalSpeed: objConfig.orbitalSpeed || 0,
+      animationType: objConfig.animationType,
+      aiPrompt: objConfig.prompt
+    });
+
     let loadedTexture = null;
     let texUrl = objConfig.customTextureUrl;
 
@@ -620,7 +632,6 @@ async function applyWorldConfig(config) {
       try {
         textureLoader.setCrossOrigin('anonymous');
         
-        // STAGGERED THRESHOLD PACING: Prevents HTTP 402 flooding on large multi-object commands
         if (i > 0) {
           await new Promise(resolve => setTimeout(resolve, 1400));
         }
@@ -680,6 +691,9 @@ async function applyWorldConfig(config) {
       distance: objConfig.distance || 0,
       phaseOffset: Math.random() * Math.PI * 2
     });
+
+    // --- AUDIT LOG 2: ACTUAL VISUAL RESULT INSTANTIATED ---
+    console.log(`[ASTROMETRIC AUDIT] 👁 Visual Render Status for [${objConfig.name}]: Mesh instantiated. Geometry Type: '${objConfig.geometryType}' | Render Mode: ${loadedTexture ? 'AI Equirectangular Texture Mapped' : 'Procedural PBR Shading Fallback'}`);
   }
 
   console.log(`[ASTROMETRIC NAVIGATION] 🚀 Ephemeris Materialization Complete. Total Objects Created: ${spaceObjects.length} | Successfully Textured: ${successfulTextures}/${spaceObjects.length}`);
@@ -813,13 +827,11 @@ const animationHandlers = {
     anim.mesh.scale.set(scale, scale, scale);
   },
   orbit(anim, time, dt) {
-    // True navigational Keplerian orbital revolution simulation
     if (anim.distance && anim.distance > 0) {
       const angle = time * anim.speed + (anim.phaseOffset || 0);
       anim.mesh.position.x = Math.cos(angle) * anim.distance;
       anim.mesh.position.z = Math.sin(angle) * anim.distance;
     }
-    // Axial self-rotation day/night spin
     anim.mesh.rotation.y += anim.speed * 0.5 * (dt * 60);
   }
 };
