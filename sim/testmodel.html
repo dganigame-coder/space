@@ -3,135 +3,1334 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OpenRouter Model Waterfall Runner</title>
+
+    <title>OpenRouter Dynamic Model Waterfall</title>
+
     <style>
-        body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; background: #f9f9f9; color: #333; }
-        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        label { display: block; margin-top: 10px; font-weight: bold; }
-        input, textarea, select { width: 100%; padding: 8px; margin-top: 5px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
-        button { background: #0070f3; color: white; border: none; padding: 10px 15px; margin-top: 15px; border-radius: 4px; cursor: pointer; font-size: 16px; }
-        button:hover { background: #0051a2; }
-        pre { background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 4px; overflow-x: auto; white-space: pre-wrap; }
+        :root {
+            font-family: Arial, sans-serif;
+            color: #252525;
+            background: #f4f6f9;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            max-width: 950px;
+            margin: 30px auto;
+            padding: 20px;
+        }
+
+        h1 {
+            margin-bottom: 8px;
+        }
+
+        h2 {
+            margin-top: 0;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 25px;
+        }
+
+        .card {
+            background: white;
+            padding: 22px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-top: 15px;
+            margin-bottom: 6px;
+            font-weight: bold;
+        }
+
+        input,
+        textarea,
+        select {
+            display: block;
+            width: 100%;
+            padding: 11px;
+            border: 1px solid #cbd0d8;
+            border-radius: 5px;
+            font: inherit;
+        }
+
+        textarea {
+            resize: vertical;
+        }
+
+        input:focus,
+        textarea:focus,
+        select:focus {
+            outline: 2px solid #9bc4ff;
+            border-color: #0070f3;
+        }
+
+        button {
+            background: #0070f3;
+            color: white;
+            border: none;
+            padding: 11px 16px;
+            margin-top: 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 15px;
+        }
+
+        button:hover {
+            background: #0057bd;
+        }
+
+        button:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        button.secondary {
+            background: #586474;
+        }
+
+        button.secondary:hover {
+            background: #3f4854;
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .help {
+            font-size: 13px;
+            color: #666;
+            line-height: 1.5;
+        }
+
+        .status {
+            margin-top: 12px;
+            padding: 10px;
+            background: #f1f4f8;
+            border-radius: 5px;
+            overflow-wrap: anywhere;
+        }
+
+        .warning {
+            padding: 12px;
+            background: #fff4d6;
+            border-left: 4px solid #e2a300;
+            border-radius: 4px;
+            line-height: 1.5;
+        }
+
+        .success {
+            color: #147d39;
+        }
+
+        .error {
+            color: #c62828;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .stat {
+            background: #f1f4f8;
+            padding: 12px;
+            border-radius: 6px;
+            overflow-wrap: anywhere;
+        }
+
+        .stat strong {
+            display: block;
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .stat span {
+            font-size: 15px;
+            font-weight: bold;
+        }
+
+        pre {
+            background: #171a21;
+            color: #d8e0eb;
+            padding: 16px;
+            border-radius: 6px;
+            overflow: auto;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            min-height: 100px;
+            max-height: 500px;
+            line-height: 1.5;
+        }
+
+        #result {
+            min-height: 80px;
+            background: #f1f4f8;
+            color: #252525;
+        }
+
+        .model-list {
+            max-height: 280px;
+            overflow: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-top: 12px;
+        }
+
+        .model-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .model-item:last-child {
+            border-bottom: none;
+        }
+
+        .model-item input {
+            width: auto;
+            margin-top: 3px;
+        }
+
+        .model-details {
+            min-width: 0;
+            overflow-wrap: anywhere;
+        }
+
+        .model-details small {
+            display: block;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        @media (max-width: 650px) {
+            body {
+                margin: 10px auto;
+                padding: 12px;
+            }
+
+            .row {
+                grid-template-columns: 1fr;
+                gap: 0;
+            }
+
+            .stats {
+                grid-template-columns: 1fr;
+            }
+
+            .card {
+                padding: 16px;
+            }
+        }
     </style>
 </head>
+
 <body>
 
-    <div class="card">
+    <h1>OpenRouter Dynamic Model Waterfall</h1>
+
+    <p class="subtitle">
+        Discover models, configure a fallback chain, and execute chat completions.
+    </p>
+
+    <div class="warning">
+        <strong>Security notice:</strong>
+        This demo sends your API key directly from your browser to OpenRouter.
+        Use it only in a trusted environment. Do not publish a shared API key
+        or commit credentials to source control.
+    </div>
+
+    <!-- SECTION 1: CONFIGURATION -->
+
+    <section class="card">
         <h2>1. Configure OpenRouter</h2>
-        <label for="apiKey">OpenRouter API Key:</label>
-        <input type="password" id="apiKey" placeholder="sk-or-v1-...">
-        <button onclick="fetchModels()">Fetch Available Models</button>
-        <div id="modelStatus" style="margin-top: 10px; font-size: 14px; color: #666;"></div>
-    </div>
 
-    <div class="card">
-        <h2>2. Run Waterfall Chat Completion</h2>
-        <label for="modelChain">Waterfall Model Chain (comma-separated IDs):</label>
-        <input type="text" id="modelChain" value="anthropic/claude-3.5-sonnet, openai/gpt-4o-mini, google/gemini-flash-1.5">
-        
-        <label for="prompt">Prompt:</label>
-        <textarea id="prompt" rows="3">Explain quantum computing in one sentence.</textarea>
-        
-        <button onclick="runWaterfall()">Execute Waterfall</button>
-    </div>
+        <label for="apiKey">OpenRouter API Key</label>
 
-    <div class="card">
-        <h2>Output / Logs</h2>
-        <pre id="output">Results and logs will appear here...</pre>
-    </div>
+        <input
+            id="apiKey"
+            type="password"
+            placeholder="sk-or-v1-..."
+            autocomplete="off"
+            spellcheck="false"
+        >
 
-    <script>
-        const logArea = document.getElementById('output');
+        <p class="help">
+            The key is held in page memory and is not saved to local storage.
+            Clearing or reloading the page removes it from this application's
+            JavaScript state.
+        </p>
 
-        function log(message) {
-            console.log(message);
-            logArea.textContent += message + '\n';
-            logArea.scrollTop = logArea.scrollHeight;
-        }
+        <div class="row">
+            <div>
+                <label for="maxModels">Maximum models in fallback chain</label>
+                <select id="maxModels">
+                    <option value="2">2 models</option>
+                    <option value="3" selected>3 models</option>
+                    <option value="5">5 models</option>
+                    <option value="10">10 models</option>
+                    <option value="20">20 models</option>
+                </select>
+            </div>
 
-        async function fetchModels() {
-            const apiKey = document.getElementById('apiKey').value.trim();
-            const statusDiv = document.getElementById('modelStatus');
-            
-            if (!apiKey) {
-                alert('Please enter your OpenRouter API key first.');
-                return;
+            <div>
+                <label for="timeout">Timeout per attempt (seconds)</label>
+                <select id="timeout">
+                    <option value="10">10 seconds</option>
+                    <option value="20">20 seconds</option>
+                    <option value="30" selected>30 seconds</option>
+                    <option value="60">60 seconds</option>
+                    <option value="120">120 seconds</option>
+                </select>
+            </div>
+        </div>
+
+        <button id="fetchButton" type="button">
+            Fetch Available Models
+        </button>
+
+        <div id="modelStatus" class="status" role="status">
+            Enter your API key and fetch the model list.
+        </div>
+
+        <div id="modelBrowser" hidden>
+            <label>Filter models</label>
+
+            <input
+                id="modelFilter"
+                type="search"
+                placeholder="Search model IDs or names..."
+            >
+
+            <p class="help">
+                Select models to add to the chain. The order in the chain
+                determines the fallback order.
+            </p>
+
+            <div id="modelList" class="model-list"></div>
+
+            <button id="addSelectedButton" type="button">
+                Add Selected Models to Chain
+            </button>
+        </div>
+    </section>
+
+    <!-- SECTION 2: WATERFALL -->
+
+    <section class="card">
+        <h2>2. Configure Waterfall</h2>
+
+        <label for="modelChain">
+            Model Chain (comma-separated model IDs)
+        </label>
+
+        <textarea
+            id="modelChain"
+            rows="4"
+            placeholder="provider/model-a, provider/model-b, provider/model-c"
+            spellcheck="false"
+        ></textarea>
+
+        <p class="help">
+            Models are attempted in the order listed. Duplicate IDs are
+            removed automatically when execution starts.
+        </p>
+
+        <label for="prompt">Prompt</label>
+
+        <textarea id="prompt" rows="4">Explain quantum computing in one sentence.</textarea>
+
+        <div class="row">
+            <div>
+                <label for="temperature">Temperature</label>
+
+                <input
+                    id="temperature"
+                    type="number"
+                    min="0"
+                    max="2"
+                    step="0.1"
+                    value="0.7"
+                >
+            </div>
+
+            <div>
+                <label for="maxTokens">Maximum output tokens</label>
+
+                <input
+                    id="maxTokens"
+                    type="number"
+                    min="1"
+                    max="32768"
+                    step="1"
+                    value="500"
+                >
+            </div>
+        </div>
+
+        <button id="executeButton" type="button">
+            Execute Waterfall
+        </button>
+
+        <button id="clearButton" class="secondary" type="button">
+            Clear Logs
+        </button>
+    </section>
+
+    <!-- SECTION 3: RESULT -->
+
+    <section class="card">
+        <h2>3. Execution Summary</h2>
+
+        <div class="stats">
+            <div class="stat">
+                <strong>Successful Model</strong>
+                <span id="successfulModel">—</span>
+            </div>
+
+            <div class="stat">
+                <strong>Execution Time</strong>
+                <span id="executionTime">—</span>
+            </div>
+
+            <div class="stat">
+                <strong>Attempts</strong>
+                <span id="attemptCount">—</span>
+            </div>
+        </div>
+
+        <label>Final Response</label>
+
+        <pre id="result">The model response will appear here.</pre>
+    </section>
+
+    <!-- SECTION 4: LOGS -->
+
+    <section class="card">
+        <h2>4. Execution Logs</h2>
+
+        <pre id="output" aria-live="polite">Ready.</pre>
+    </section>
+
+<script>
+'use strict';
+
+/*
+ * OpenRouter Dynamic Model Waterfall
+ *
+ * Architecture:
+ *   1. Fetch model metadata.
+ *   2. Select an ordered list of model IDs.
+ *   3. Execute each model sequentially.
+ *   4. Classify errors.
+ *   5. Retry transient failures when appropriate.
+ *   6. Validate responses.
+ *   7. Stop after the first usable response.
+ *
+ * This is a browser-based demonstration, not a secure public backend.
+ */
+
+const API_BASE = 'https://openrouter.ai/api/v1';
+
+const elements = {
+    apiKey: document.getElementById('apiKey'),
+    maxModels: document.getElementById('maxModels'),
+    timeout: document.getElementById('timeout'),
+
+    fetchButton: document.getElementById('fetchButton'),
+    modelStatus: document.getElementById('modelStatus'),
+    modelBrowser: document.getElementById('modelBrowser'),
+    modelFilter: document.getElementById('modelFilter'),
+    modelList: document.getElementById('modelList'),
+    addSelectedButton: document.getElementById('addSelectedButton'),
+
+    modelChain: document.getElementById('modelChain'),
+    prompt: document.getElementById('prompt'),
+    temperature: document.getElementById('temperature'),
+    maxTokens: document.getElementById('maxTokens'),
+
+    executeButton: document.getElementById('executeButton'),
+    clearButton: document.getElementById('clearButton'),
+
+    successfulModel: document.getElementById('successfulModel'),
+    executionTime: document.getElementById('executionTime'),
+    attemptCount: document.getElementById('attemptCount'),
+
+    result: document.getElementById('result'),
+    output: document.getElementById('output')
+};
+
+let cachedModels = [];
+let executionInProgress = false;
+let fetchInProgress = false;
+
+/* ---------------------------------------------------------
+   Logging
+--------------------------------------------------------- */
+
+function log(message, level = 'INFO') {
+    const timestamp = new Date().toLocaleTimeString();
+
+    const line = `[${timestamp}] [${level}] ${message}`;
+
+    console.log(line);
+
+    elements.output.textContent += line + '\n';
+
+    // Keep the log bounded during long sessions.
+    const MAX_LOG_LENGTH = 50000;
+
+    if (elements.output.textContent.length > MAX_LOG_LENGTH) {
+        elements.output.textContent =
+            elements.output.textContent.slice(-MAX_LOG_LENGTH);
+    }
+
+    elements.output.scrollTop = elements.output.scrollHeight;
+}
+
+function clearLogs() {
+    elements.output.textContent = '';
+}
+
+function setModelStatus(message, isError = false) {
+    elements.modelStatus.textContent = message;
+    elements.modelStatus.className =
+        'status ' + (isError ? 'error' : '');
+}
+
+/* ---------------------------------------------------------
+   Input validation
+--------------------------------------------------------- */
+
+function getApiKey() {
+    return elements.apiKey.value.trim();
+}
+
+function parseModelChain() {
+    const raw = elements.modelChain.value;
+
+    const seen = new Set();
+
+    return raw
+        .split(',')
+        .map(id => id.trim())
+        .filter(id => {
+            if (!id || seen.has(id)) {
+                return false;
             }
 
-            statusDiv.textContent = 'Fetching models...';
+            seen.add(id);
+            return true;
+        });
+}
+
+function validateGenerationSettings() {
+    const temperature = Number(elements.temperature.value);
+    const maxTokens = Number(elements.maxTokens.value);
+
+    if (
+        !Number.isFinite(temperature) ||
+        temperature < 0 ||
+        temperature > 2
+    ) {
+        throw new Error('Temperature must be between 0 and 2.');
+    }
+
+    if (
+        !Number.isInteger(maxTokens) ||
+        maxTokens < 1 ||
+        maxTokens > 32768
+    ) {
+        throw new Error(
+            'Maximum output tokens must be an integer between 1 and 32768.'
+        );
+    }
+
+    return { temperature, maxTokens };
+}
+
+/* ---------------------------------------------------------
+   HTTP request helper
+--------------------------------------------------------- */
+
+async function requestJson(url, options = {}, timeoutMs = 30000) {
+    const controller = new AbortController();
+
+    let timedOut = false;
+
+    const timeoutId = setTimeout(() => {
+        timedOut = true;
+        controller.abort();
+    }, timeoutMs);
+
+    try {
+        const response = await fetch(url, {
+            ...options,
+            signal: controller.signal
+        });
+
+        const text = await response.text();
+
+        let data = null;
+
+        if (text) {
             try {
-                const response = await fetch('https://openrouter.ai/api/v1/models', {
-                    headers: { 'Authorization': `Bearer ${apiKey}` }
-                });
-                
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                
-                const data = await response.json();
-                const count = data.data.length;
-                statusDiv.textContent = `Successfully fetched ${count} models!`;
-                log(`[Info] Retrieved ${count} models from OpenRouter.`);
-            } catch (error) {
-                statusDiv.textContent = 'Failed to fetch models. Check console/logs.';
-                log(`[Error] ${error.message}`);
+                data = JSON.parse(text);
+            } catch {
+                if (response.ok) {
+                    throw new Error(
+                        'The API returned a successful HTTP status ' +
+                        'but the response was not valid JSON.'
+                    );
+                }
             }
         }
 
-        async function runWaterfall() {
-            const apiKey = document.getElementById('apiKey').value.trim();
-            const chainInput = document.getElementById('modelChain').value;
-            const prompt = document.getElementById('prompt').value;
+        if (!response.ok) {
+            const message =
+                data?.error?.message ||
+                data?.message ||
+                text ||
+                `HTTP ${response.status}`;
 
-            if (!apiKey) {
-                alert('Please enter your OpenRouter API key.');
-                return;
+            const error = new Error(
+                `HTTP ${response.status}: ${message}`
+            );
+
+            error.status = response.status;
+            error.responseData = data;
+
+            throw error;
+        }
+
+        return data;
+
+    } catch (error) {
+        if (timedOut) {
+            const timeoutError = new Error(
+                `Request timed out after ${timeoutMs / 1000} seconds.`
+            );
+
+            timeoutError.code = 'TIMEOUT';
+
+            throw timeoutError;
+        }
+
+        if (error.name === 'AbortError') {
+            error.code = 'ABORTED';
+        }
+
+        throw error;
+
+    } finally {
+        clearTimeout(timeoutId);
+    }
+}
+
+/* ---------------------------------------------------------
+   Model discovery
+--------------------------------------------------------- */
+
+async function fetchModels() {
+    if (fetchInProgress || executionInProgress) {
+        return;
+    }
+
+    const apiKey = getApiKey();
+
+    if (!apiKey) {
+        alert('Please enter your OpenRouter API key.');
+        return;
+    }
+
+    fetchInProgress = true;
+    elements.fetchButton.disabled = true;
+
+    setModelStatus('Fetching models from OpenRouter...');
+
+    log('Fetching model metadata.');
+
+    try {
+        const data = await requestJson(
+            `${API_BASE}/models`,
+            {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Accept': 'application/json'
+                }
+            },
+            30000
+        );
+
+        if (!Array.isArray(data?.data)) {
+            throw new Error(
+                'Unexpected model-list response format.'
+            );
+        }
+
+        cachedModels = data.data.filter(model =>
+            typeof model?.id === 'string' &&
+            model.id.length > 0
+        );
+
+        setModelStatus(
+            `Successfully fetched ${cachedModels.length} model entries.`
+        );
+
+        log(`Retrieved ${cachedModels.length} models.`);
+
+        renderModelList();
+
+        /*
+         * Do not silently assume that the first three models are best.
+         * If no chain exists, show a small initial selection to the user.
+         * The user can edit the chain before execution.
+         */
+
+        if (!elements.modelChain.value.trim()) {
+            const initialSelection = cachedModels
+                .filter(model => {
+                    const pricing = model.pricing || {};
+
+                    return (
+                        model.id &&
+                        model.architecture &&
+                        model.context_length
+                    ) || model.id;
+                })
+                .slice(0, 3)
+                .map(model => model.id);
+
+            if (initialSelection.length > 0) {
+                elements.modelChain.value =
+                    initialSelection.join(', ');
+
+                log(
+                    'Created an editable starter chain from the model list. ' +
+                    'Review the model IDs before execution.'
+                );
+            }
+        }
+
+    } catch (error) {
+        setModelStatus(
+            `Failed to fetch models: ${error.message}`,
+            true
+        );
+
+        log(`Model discovery failed: ${error.message}`, 'ERROR');
+
+    } finally {
+        fetchInProgress = false;
+        elements.fetchButton.disabled = false;
+    }
+}
+
+/* ---------------------------------------------------------
+   Model list UI
+--------------------------------------------------------- */
+
+function formatModelDetails(model) {
+    const parts = [];
+
+    if (Number.isFinite(model.context_length)) {
+        parts.push(
+            `Context: ${model.context_length.toLocaleString()} tokens`
+        );
+    }
+
+    if (model.pricing) {
+        if (model.pricing.prompt !== undefined) {
+            parts.push(
+                `Input price: ${model.pricing.prompt} per token`
+            );
+        }
+
+        if (model.pricing.completion !== undefined) {
+            parts.push(
+                `Output price: ${model.pricing.completion} per token`
+            );
+        }
+    }
+
+    return parts.join(' | ') || 'Additional metadata unavailable';
+}
+
+function renderModelList() {
+    const filter = elements.modelFilter.value
+        .trim()
+        .toLowerCase();
+
+    const filtered = cachedModels.filter(model => {
+        const name = model.name || '';
+
+        return (
+            model.id.toLowerCase().includes(filter) ||
+            name.toLowerCase().includes(filter)
+        );
+    });
+
+    elements.modelList.replaceChildren();
+
+    const fragment = document.createDocumentFragment();
+
+    for (const model of filtered) {
+        const row = document.createElement('div');
+        row.className = 'model-item';
+
+        const checkbox = document.createElement('input');
+
+        checkbox.type = 'checkbox';
+        checkbox.value = model.id;
+        checkbox.className = 'model-checkbox';
+        checkbox.setAttribute(
+            'aria-label',
+            `Select ${model.id}`
+        );
+
+        const details = document.createElement('div');
+        details.className = 'model-details';
+
+        const title = document.createElement('div');
+        title.textContent = model.name
+            ? `${model.name} (${model.id})`
+            : model.id;
+
+        const metadata = document.createElement('small');
+        metadata.textContent = formatModelDetails(model);
+
+        details.append(title, metadata);
+        row.append(checkbox, details);
+        fragment.appendChild(row);
+    }
+
+    elements.modelList.appendChild(fragment);
+
+    elements.modelBrowser.hidden = cachedModels.length === 0;
+
+    if (filtered.length === 0 && cachedModels.length > 0) {
+        const empty = document.createElement('p');
+        empty.className = 'help';
+        empty.textContent = 'No matching models.';
+        elements.modelList.appendChild(empty);
+    }
+}
+
+function addSelectedModels() {
+    const selected = [
+        ...elements.modelList.querySelectorAll(
+            '.model-checkbox:checked'
+        )
+    ].map(checkbox => checkbox.value);
+
+    if (selected.length === 0) {
+        alert('Select at least one model.');
+        return;
+    }
+
+    const existing = parseModelChain();
+
+    const combined = [...existing];
+
+    for (const id of selected) {
+        if (!combined.includes(id)) {
+            combined.push(id);
+        }
+    }
+
+    elements.modelChain.value = combined.join(', ');
+
+    log(`Added ${selected.length} selected model(s) to the chain.`);
+}
+
+/* ---------------------------------------------------------
+   Error classification
+--------------------------------------------------------- */
+
+function classifyError(error) {
+    if (error.code === 'TIMEOUT') {
+        return {
+            category: 'TIMEOUT',
+            retryable: true,
+            fatal: false
+        };
+    }
+
+    if (
+        error.code === 'ABORTED' ||
+        error.name === 'AbortError'
+    ) {
+        return {
+            category: 'ABORTED',
+            retryable: false,
+            fatal: true
+        };
+    }
+
+    if (error.status === 401) {
+        return {
+            category: 'AUTHENTICATION',
+            retryable: false,
+            fatal: true
+        };
+    }
+
+    if (error.status === 403) {
+        return {
+            category: 'PERMISSION',
+            retryable: false,
+            fatal: false
+        };
+    }
+
+    if (error.status === 400 || error.status === 422) {
+        return {
+            category: 'INVALID_REQUEST',
+            retryable: false,
+            fatal: true
+        };
+    }
+
+    if (error.status === 402) {
+        return {
+            category: 'PAYMENT_OR_CREDITS',
+            retryable: false,
+            fatal: false
+        };
+    }
+
+    if (error.status === 429) {
+        return {
+            category: 'RATE_LIMIT',
+            retryable: true,
+            fatal: false
+        };
+    }
+
+    if (
+        error.status === 408 ||
+        error.status === 425 ||
+        error.status === 500 ||
+        error.status === 502 ||
+        error.status === 503 ||
+        error.status === 504
+    ) {
+        return {
+            category: 'TRANSIENT_SERVER_ERROR',
+            retryable: true,
+            fatal: false
+        };
+    }
+
+    if (error.status) {
+        return {
+            category: 'HTTP_ERROR',
+            retryable: false,
+            fatal: false
+        };
+    }
+
+    /*
+     * Browser fetch network failures commonly surface as TypeError.
+     * CORS failures can look similar, so the actual cause might not
+     * be identifiable from browser JavaScript alone.
+     */
+
+    if (error instanceof TypeError) {
+        return {
+            category: 'NETWORK_OR_BROWSER_REQUEST_ERROR',
+            retryable: true,
+            fatal: false
+        };
+    }
+
+    return {
+        category: 'UNKNOWN_ERROR',
+        retryable: false,
+        fatal: false
+    };
+}
+
+/* ---------------------------------------------------------
+   Chat completion
+--------------------------------------------------------- */
+
+async function executeModel(
+    modelId,
+    apiKey,
+    prompt,
+    settings,
+    timeoutMs
+) {
+    const body = {
+        model: modelId,
+
+        messages: [
+            {
+                role: 'user',
+                content: prompt
+            }
+        ],
+
+        temperature: settings.temperature,
+        max_tokens: settings.maxTokens,
+
+        /*
+         * Ask OpenRouter to return an error rather than silently
+         * substituting a different model. This keeps the waterfall
+         * sequence explicit and observable.
+         */
+        provider: {
+            allow_fallbacks: false
+        }
+    };
+
+    const data = await requestJson(
+        `${API_BASE}/chat/completions`,
+        {
+            method: 'POST',
+
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+
+                'HTTP-Referer': window.location.href,
+                'X-Title': 'OpenRouter Dynamic Waterfall'
+            },
+
+            body: JSON.stringify(body)
+        },
+        timeoutMs
+    );
+
+    const content = data?.choices?.[0]?.message?.content;
+
+    if (
+        typeof content !== 'string' ||
+        content.trim().length === 0
+    ) {
+        const finishReason = data?.choices?.[0]?.finish_reason;
+
+        throw new Error(
+            'Model returned no usable text response' +
+            (finishReason ? ` (finish reason: ${finishReason})` : '') +
+            '.'
+        );
+    }
+
+    return {
+        content,
+        usage: data.usage || null,
+        id: data.id || null,
+        finishReason: data.choices[0].finish_reason || null
+    };
+}
+
+/* ---------------------------------------------------------
+   Waterfall execution
+--------------------------------------------------------- */
+
+async function runWaterfall() {
+    if (executionInProgress || fetchInProgress) {
+        return;
+    }
+
+    const apiKey = getApiKey();
+    const prompt = elements.prompt.value.trim();
+    const modelChain = parseModelChain();
+
+    if (!apiKey) {
+        alert('Please enter your OpenRouter API key.');
+        return;
+    }
+
+    if (!prompt) {
+        alert('Please enter a prompt.');
+        return;
+    }
+
+    if (modelChain.length === 0) {
+        alert('Enter at least one model ID or fetch available models.');
+        return;
+    }
+
+    let settings;
+
+    try {
+        settings = validateGenerationSettings();
+    } catch (error) {
+        alert(error.message);
+        return;
+    }
+
+    executionInProgress = true;
+    elements.executeButton.disabled = true;
+    elements.fetchButton.disabled = true;
+
+    clearLogs();
+
+    elements.result.textContent = 'Execution in progress...';
+    elements.successfulModel.textContent = '—';
+    elements.executionTime.textContent = '—';
+    elements.attemptCount.textContent = '0';
+
+    const overallStart = performance.now();
+
+    const timeoutMs =
+        Number(elements.timeout.value) * 1000;
+
+    /*
+     * Bound total runtime as well as per-request runtime.
+     * This prevents a very long chain of slow requests.
+     */
+    const overallDeadlineMs = 180000;
+
+    let success = false;
+    let attempts = 0;
+
+    log('Starting waterfall execution.');
+    log(`Models in chain: ${modelChain.length}`);
+    log(`Timeout per attempt: ${timeoutMs / 1000} seconds.`);
+    log(`Overall execution limit: ${overallDeadlineMs / 1000} seconds.`);
+
+    try {
+        for (let index = 0; index < modelChain.length; index++) {
+            const modelId = modelChain[index];
+
+            if (
+                performance.now() - overallStart >=
+                overallDeadlineMs
+            ) {
+                log(
+                    'Overall execution deadline reached.',
+                    'ERROR'
+                );
+
+                break;
             }
 
-            const modelChain = chainInput.split(',').map(m => m.trim()).filter(Boolean);
-            logArea.textContent = '--- Starting Waterfall Execution ---\n';
+            attempts++;
 
-            let success = false;
+            log(
+                `Attempt ${attempts}/${modelChain.length}: ${modelId}`
+            );
 
-            for (const modelId of modelChain) {
-                log(`-> Attempting request with model: ${modelId}`);
-                
+            const attemptStart = performance.now();
+
+            /*
+             * Retry a transient error once, then continue to the next
+             * model. Authentication and invalid-request failures stop
+             * the waterfall immediately.
+             */
+            let attemptSucceeded = false;
+
+            for (let retry = 0; retry <= 1; retry++) {
                 try {
-                    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${apiKey}`,
-                            'Content-Type': 'application/json',
-                            'HTTP-Referer': window.location.href, // Optional for OpenRouter rankings
-                            'X-Title': 'JS Waterfall Demo'          // Optional
-                        },
-                        body: JSON.stringify({
-                            model: modelId,
-                            messages: [{ role: 'user', content: prompt }]
-                        })
-                    });
+                    const remainingMs =
+                        overallDeadlineMs -
+                        (performance.now() - overallStart);
 
-                    if (!response.ok) {
-                        const errText = await response.text();
-                        throw new Error(`Server returned status ${response.status}: ${errText}`);
+                    if (remainingMs <= 0) {
+                        throw new Error(
+                            'Overall execution deadline reached.'
+                        );
                     }
 
-                    const data = await response.json();
-                    const content = data.choices[0].message.content;
+                    const effectiveTimeout = Math.max(
+                        1,
+                        Math.min(timeoutMs, remainingMs)
+                    );
 
-                    log(`✓ Success with model: ${modelId}`);
-                    log(`\nFinal Response:\n${content}`);
+                    const response = await executeModel(
+                        modelId,
+                        apiKey,
+                        prompt,
+                        settings,
+                        effectiveTimeout
+                    );
+
+                    const attemptElapsed =
+                        performance.now() - attemptStart;
+
+                    log(
+                        `Success: ${modelId} in ` +
+                        `${(attemptElapsed / 1000).toFixed(2)} seconds.`,
+                        'SUCCESS'
+                    );
+
+                    elements.result.textContent = response.content;
+
+                    elements.successfulModel.textContent = modelId;
+
+                    elements.executionTime.textContent =
+                        `${((performance.now() - overallStart) / 1000).toFixed(2)} s`;
+
+                    elements.attemptCount.textContent =
+                        String(attempts);
+
+                    if (response.finishReason) {
+                        log(
+                            `Finish reason: ${response.finishReason}`
+                        );
+                    }
+
+                    if (response.usage) {
+                        log(
+                            `Usage: ${JSON.stringify(response.usage)}`
+                        );
+                    }
+
                     success = true;
-                    break; // Stop waterfall on success
+                    attemptSucceeded = true;
+
+                    break;
 
                 } catch (error) {
-                    log(`x Model ${modelId} failed. Error: ${error.message}`);
-                    log(`-> Falling back to next model...\n`);
+                    const classification = classifyError(error);
+
+                    log(
+                        `${classification.category}: ${error.message}`,
+                        'ERROR'
+                    );
+
+                    if (classification.fatal) {
+                        log(
+                            'Stopping because the request cannot be ' +
+                            'fixed by switching models.',
+                            'ERROR'
+                        );
+
+                        throw error;
+                    }
+
+                    if (
+                        classification.retryable &&
+                        retry === 0
+                    ) {
+                        const delayMs = 1000;
+
+                        const remainingMs =
+                            overallDeadlineMs -
+                            (performance.now() - overallStart);
+
+                        if (remainingMs > delayMs + 250) {
+                            log(
+                                `Retrying ${modelId} once after ` +
+                                `${delayMs} ms.`
+                            );
+
+                            await new Promise(resolve =>
+                                setTimeout(resolve, delayMs)
+                            );
+
+                            continue;
+                        }
+                    }
+
+                    log(
+                        `Moving to the next model after ${modelId}.`
+                    );
+
+                    break;
                 }
             }
 
-            if (!success) {
-                log(`❌ Fatal: All models in the waterfall failed.`);
+            if (attemptSucceeded) {
+                break;
             }
         }
-    </script>
+
+        if (!success) {
+            elements.result.textContent =
+                'All eligible attempts failed. Review the execution logs.';
+
+            log(
+                'Waterfall finished without a successful response.',
+                'ERROR'
+            );
+        }
+
+    } catch (error) {
+        elements.result.textContent =
+            `Execution stopped: ${error.message}`;
+
+        log(
+            `Waterfall terminated: ${error.message}`,
+            'ERROR'
+        );
+
+    } finally {
+        const elapsed =
+            (performance.now() - overallStart) / 1000;
+
+        elements.executionTime.textContent =
+            `${elapsed.toFixed(2)} s`;
+
+        elements.attemptCount.textContent = String(attempts);
+
+        executionInProgress = false;
+        elements.executeButton.disabled = false;
+        elements.fetchButton.disabled = false;
+
+        log(`Total execution time: ${elapsed.toFixed(2)} seconds.`);
+    }
+}
+
+/* ---------------------------------------------------------
+   Event listeners
+--------------------------------------------------------- */
+
+elements.fetchButton.addEventListener('click', fetchModels);
+
+elements.addSelectedButton.addEventListener(
+    'click',
+    addSelectedModels
+);
+
+elements.executeButton.addEventListener(
+    'click',
+    runWaterfall
+);
+
+elements.clearButton.addEventListener('click', clearLogs);
+
+elements.modelFilter.addEventListener(
+    'input',
+    renderModelList
+);
+
+/*
+ * Never store the API key in localStorage or sessionStorage.
+ * Clearing the field also removes the visible copy.
+ */
+window.addEventListener('pagehide', () => {
+    elements.apiKey.value = '';
+});
+
+/*
+ * Initialize the UI.
+ */
+log('Application initialized.');
+log('Enter your OpenRouter API key to begin.');
+
+</script>
+
 </body>
 </html>
