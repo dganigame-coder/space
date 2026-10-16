@@ -321,21 +321,40 @@ function createDynamicGeometry(type, args) {
   }
 }
 
-// --- AUDIO SYSTEM ---
+// --- AUDIO SYSTEM (Refined Warm Ambient Space Pad) ---
 function initWebAudio() {
   if (audioInitialized) return;
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  osc1 = audioCtx.createOscillator(); osc2 = audioCtx.createOscillator();
-  osc1.type = 'sawtooth'; osc2.type = 'sine';
+  
+  osc1 = audioCtx.createOscillator(); 
+  osc2 = audioCtx.createOscillator();
+  osc1.type = 'sine'; 
+  osc2.type = 'triangle';
+  osc2.detune.value = 6; // Gentle warm chorus detune
+
   filterNode = audioCtx.createBiquadFilter();
-  filterNode.type = 'lowpass'; filterNode.frequency.value = 300;
-  lfoNode = audioCtx.createOscillator(); lfoGain = audioCtx.createGain();
-  lfoNode.frequency.value = 1.0; lfoGain.gain.value = 150;
-  lfoNode.connect(lfoGain); lfoGain.connect(filterNode.frequency);
-  const masterGain = audioCtx.createGain(); masterGain.gain.value = 0.12;
-  osc1.connect(filterNode); osc2.connect(filterNode);
-  filterNode.connect(masterGain); masterGain.connect(audioCtx.destination);
-  osc1.start(); osc2.start(); lfoNode.start();
+  filterNode.type = 'lowpass'; 
+  filterNode.frequency.value = 240; // Soft, smooth ambient cutoff
+
+  lfoNode = audioCtx.createOscillator(); 
+  lfoGain = audioCtx.createGain();
+  lfoNode.frequency.value = 0.35; // Slow, breathing modulation
+  lfoGain.gain.value = 70;
+  
+  lfoNode.connect(lfoGain); 
+  lfoGain.connect(filterNode.frequency);
+
+  const masterGain = audioCtx.createGain(); 
+  masterGain.gain.value = 0.08; // Pleasant, gentle background volume
+
+  osc1.connect(filterNode); 
+  osc2.connect(filterNode);
+  filterNode.connect(masterGain); 
+  masterGain.connect(audioCtx.destination);
+
+  osc1.start(); 
+  osc2.start(); 
+  lfoNode.start();
   audioInitialized = true;
 }
 
@@ -528,7 +547,7 @@ async function loadTextureWithRetry(url, maxRetries = 2, delay = 4000) {
   }
 }
 
-// --- ZERO-POP-IN PRELOADED TEXTURE & MATERIALIZATION PIPELINE ---
+// --- ZERO-POP-IN PRELOADED TEXTURE & MATERIALIZATION PIPELINE (WITH LOGGING) ---
 async function applyWorldConfig(config) {
   const hudStatusEl = document.getElementById('hud-nav-status');
 
@@ -569,6 +588,9 @@ async function applyWorldConfig(config) {
   }
 
   const spaceObjects = config.objects || [config];
+  let successfulTextures = 0;
+
+  console.log(`[ASTROMETRIC ENGINE] 🌌 Initializing Sector: "${config.sectorTitle || 'Unknown Sector'}". Target Object Count: ${spaceObjects.length}`);
   if (hudStatusEl) hudStatusEl.innerText = `PROTOCOL: MAPPING SECTOR`;
 
   for (let i = 0; i < spaceObjects.length; i++) {
@@ -593,15 +615,15 @@ async function applyWorldConfig(config) {
         if (loadedTexture) {
           loadedTexture.colorSpace = THREE.SRGBColorSpace;
           loadedTexture.needsUpdate = true;
+          successfulTextures++;
+          console.log(`[ASTROMETRIC ENGINE] ✔ Texture successfully acquired and loaded for object [${objConfig.name}] (${successfulTextures}/${spaceObjects.length})`);
         }
       } catch (err) {
-        console.warn(`Texture load failed for ${objConfig.name}, using PBR fallback.`);
+        console.warn(`[ASTROMETRIC ENGINE] ✖ Texture load failed for object [${objConfig.name}], falling back to PBR material.`, err);
       }
     }
 
     const geom = createDynamicGeometry(objConfig.geometryType, objConfig.geometryArgs);
-    
-    // Check if object is a ring, disk, or accretion disk requiring double-sided rendering
     const isFlatRing = objConfig.geometryType === 'ring' || objConfig.geometryType === 'disk' || objConfig.geometryType === 'accretion_disk';
 
     const mat = new THREE.MeshStandardMaterial({
@@ -617,7 +639,6 @@ async function applyWorldConfig(config) {
 
     const mesh = new THREE.Mesh(geom, mat);
     
-    // Prevent culling artifacts on rings at acute camera angles
     if (isFlatRing) {
       mesh.frustumCulled = false;
     }
@@ -649,6 +670,8 @@ async function applyWorldConfig(config) {
       await new Promise(resolve => setTimeout(resolve, 800));
     }
   }
+
+  console.log(`[ASTROMETRIC ENGINE] 🚀 Sector Materialization Complete. Total Objects Created: ${spaceObjects.length} | Successfully Textured: ${successfulTextures}/${spaceObjects.length}`);
 
   if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: SECURED_TARGET';
   if (config.speechResponse) speakText(config.speechResponse);
