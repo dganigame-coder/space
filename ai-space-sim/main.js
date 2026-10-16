@@ -330,22 +330,22 @@ function initWebAudio() {
   osc2 = audioCtx.createOscillator();
   osc1.type = 'sine'; 
   osc2.type = 'triangle';
-  osc2.detune.value = 6; // Gentle warm chorus detune
+  osc2.detune.value = 6;
 
   filterNode = audioCtx.createBiquadFilter();
   filterNode.type = 'lowpass'; 
-  filterNode.frequency.value = 240; // Soft, smooth ambient cutoff
+  filterNode.frequency.value = 240;
 
   lfoNode = audioCtx.createOscillator(); 
   lfoGain = audioCtx.createGain();
-  lfoNode.frequency.value = 0.35; // Slow, breathing modulation
+  lfoNode.frequency.value = 0.35;
   lfoGain.gain.value = 70;
   
   lfoNode.connect(lfoGain); 
   lfoGain.connect(filterNode.frequency);
 
   const masterGain = audioCtx.createGain(); 
-  masterGain.gain.value = 0.08; // Pleasant, gentle background volume
+  masterGain.gain.value = 0.08;
 
   osc1.connect(filterNode); 
   osc2.connect(filterNode);
@@ -368,7 +368,6 @@ function updateAudioSynth(params) {
   if (params.lfoRate) lfoNode.frequency.linearRampToValueAtTime(params.lfoRate, now + 1.5);
 }
 
-// Robust Speech Queue & Cancellation (Prevents overlapping/stuttered recorder sounds)
 let lastSpokenText = '';
 function speakText(text, force = false) {
   if (!('speechSynthesis' in window)) return;
@@ -483,7 +482,7 @@ async function processCommand(commandText) {
   await applyWorldConfig(worldConfig);
 }
 
-// --- MCGS v1.0 PROMPT ARCHITECTURE ---
+// --- MCGS v1.0 & REALISTIC TEXTURE PROMPT ARCHITECTURE ---
 function buildPromptText(commandText) {
   return `
 You are an advanced 3D Real-Space Simulator Engine and Principal Planetary Scientist operating under Master Celestial Generation Specification (MCGS v1.0).
@@ -527,6 +526,7 @@ Return ONLY valid raw JSON matching this structure:
 `;
 }
 
+// FIXED: Removed restrictive 1.4MB blob size check so 2K textures load correctly without failing
 async function loadTextureWithRetry(url, maxRetries = 2, delay = 4000) {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     let blobUrl = null;
@@ -534,7 +534,6 @@ async function loadTextureWithRetry(url, maxRetries = 2, delay = 4000) {
       const response = await fetch(url);
       if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
       const blob = await response.blob();
-      if (blob.size > 1400000) throw new Error("Rate-limit block image detected.");
       blobUrl = URL.createObjectURL(blob);
       const texture = await textureLoader.loadAsync(blobUrl);
       URL.revokeObjectURL(blobUrl);
@@ -602,6 +601,7 @@ async function applyWorldConfig(config) {
     let texUrl = objConfig.customTextureUrl;
 
     if (!texUrl && objConfig.prompt) {
+      // Enhanced prompt formulation for ultra-realistic surface maps
       const specificPrompt = encodeURIComponent(
         `${objConfig.prompt}, flat equirectangular seamless texture map, pure planetary surface topography only, micro-surface relief, high-frequency textural detail, crisp albedo, zero background stars, zero lighting effects, zero framing, 4k resolution game asset`
       );
@@ -650,7 +650,7 @@ async function applyWorldConfig(config) {
     if (objConfig.rotation && Array.isArray(objConfig.rotation)) {
       mesh.rotation.set(...objConfig.rotation);
     } else if (isFlatRing) {
-      mesh.rotation.x = Math.PI / 2; // Default horizontal alignment for equatorial rings
+      mesh.rotation.x = Math.PI / 2;
     }
 
     if (objConfig.geometryType === 'sphere' && !objConfig.emissive) {
