@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Puter.js — AI Image Generator Test</title>
+  <style>
+    :root {
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #eef2ff;
+      background: #070b18;
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(ellipse at 15% 10%, rgba(84, 58, 173, .24), transparent 36%),
+        radial-gradient(ellipse at 85% 25%, rgba(8, 145, 178, .14), transparent 34%),
+        #070b18;
+    }
+    .page { width: min(1100px, calc(100% - 32px)); margin: 0 auto; padding: 42px 0 56px; }
+    .eyebrow { color: #a5b4fc; font-size: .78rem; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
+    h1 { margin: 9px 0 10px; font-size: clamp(2rem, 5vw, 3.6rem); letter-spacing: -.045em; line-height: 1.06; }
+    .subtitle { max-width: 690px; margin: 0; color: #aeb9d4; line-height: 1.65; }
+    .layout { display: grid; grid-template-columns: minmax(280px, .88fr) minmax(0, 1.12fr); gap: 20px; margin-top: 30px; align-items: start; }
+    .card { min-width: 0; border: 1px solid rgba(148, 163, 184, .23); border-radius: 20px; background: rgba(15, 23, 42, .82); box-shadow: 0 18px 55px rgba(0, 0, 0, .22); overflow: hidden; }
+    .card-inner { padding: 22px; }
+    h2 { margin: 0 0 18px; font-size: 1.08rem; }
+    label { display: block; margin: 0 0 8px; color: #d9e1f5; font-size: .88rem; font-weight: 700; }
+    textarea, select { width: 100%; color: #f8fafc; background: #0a1022; border: 1px solid #34415e; border-radius: 12px; outline: none; font: inherit; }
+    textarea { min-height: 158px; resize: vertical; padding: 14px; line-height: 1.55; }
+    select { padding: 11px 12px; }
+    textarea:focus, select:focus { border-color: #818cf8; box-shadow: 0 0 0 3px rgba(129, 140, 248, .15); }
+    .helper { margin: 8px 0 18px; color: #91a0bd; font-size: .79rem; line-height: 1.5; }
+    .row { display: grid; grid-template-columns: 1fr; gap: 14px; }
+    .buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
+    button { min-height: 44px; border: 1px solid transparent; border-radius: 11px; padding: 10px 13px; cursor: pointer; color: #fff; font: inherit; font-size: .87rem; font-weight: 750; transition: transform .12s ease, opacity .12s ease, border-color .12s ease; }
+    button:hover { transform: translateY(-1px); }
+    button:disabled { opacity: .55; cursor: wait; transform: none; }
+    .primary { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+    .secondary { background: #18233c; border-color: #34415e; }
+    .examples { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 15px; }
+    .chip { min-height: 34px; padding: 7px 10px; color: #c7d2fe; background: #111a32; border-color: #303d5c; font-size: .76rem; }
+    .note { margin-top: 16px; padding: 12px 13px; border-radius: 12px; color: #c5d0e7; background: rgba(30, 41, 59, .55); font-size: .78rem; line-height: 1.55; }
+    .note strong { color: #f0f4ff; }
+    .status { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 16px; padding: 12px 13px; border-radius: 12px; color: #bdc9e2; background: #0a1022; border: 1px solid #263450; font-size: .86rem; line-height: 1.5; overflow-wrap: anywhere; }
+    .status-dot { flex: 0 0 auto; width: 8px; height: 8px; margin-top: 5px; border-radius: 50%; background: #94a3b8; }
+    .status[data-kind="busy"] .status-dot { background: #fbbf24; box-shadow: 0 0 12px #fbbf24; animation: pulse 1s infinite; }
+    .status[data-kind="success"] .status-dot { background: #34d399; }
+    .status[data-kind="error"] .status-dot { background: #fb7185; }
+    @keyframes pulse { 50% { opacity: .35; } }
+    .preview { display: grid; place-items: center; min-height: 390px; border: 1px dashed #34415e; border-radius: 15px; background: radial-gradient(ellipse at center, rgba(67, 56, 202, .12), transparent 68%), #080e1e; overflow: hidden; }
+    .placeholder { max-width: 280px; padding: 26px; text-align: center; color: #7f8dad; line-height: 1.6; }
+    .placeholder .orb { display: block; margin: 0 auto 13px; font-size: 2.9rem; filter: drop-shadow(0 0 20px rgba(129,140,248,.35)); }
+    .preview img { display: block; width: 100%; height: auto; max-height: 70vh; object-fit: contain; }
+    .result-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-top: 13px; color: #8190ad; font-size: .78rem; }
+    .result-footer a { color: #c7d2fe; text-decoration: none; }
+    .result-footer a:hover { text-decoration: underline; }
+    .hidden { display: none !important; }
+    .footer { margin-top: 22px; color: #71809e; font-size: .78rem; line-height: 1.6; }
+    code { color: #c4b5fd; }
+    @media (max-width: 780px) { .page { padding-top: 28px; } .layout { grid-template-columns: 1fr; } .preview { min-height: 270px; } }
+    @media (max-width: 420px) { .buttons { grid-template-columns: 1fr; } .card-inner { padding: 16px; } }
+  </style>
+  <!-- Load Puter.js directly in the HTML rather than injecting its URL from the console. -->
+  <script src="https://js.puter.com/v2/"></script>
+</head>
+<body>
+  <main class="page">
+    <div class="eyebrow">Browser API playground</div>
+    <h1>🌌 AI Image Generator</h1>
+    <p class="subtitle">Test text-to-image generation with Puter.js. Enter a visual description, send it to the image model, and view the returned image here.</p>
+
+    <div class="layout">
+      <section class="card" aria-labelledby="controls-heading">
+        <div class="card-inner">
+          <h2 id="controls-heading">1. Describe your image</h2>
+          <label for="prompt">Text prompt</label>
+          <textarea id="prompt" spellcheck="true">A hyper-realistic cinematic 4K deep-space nebula, glowing violet and golden gas clouds, distant spiral galaxies, luminous stars, subtle cosmic dust, dramatic volumetric lighting, scientifically inspired, rich detail</textarea>
+          <p class="helper">Be specific about the subject, environment, colors, mood, lighting, composition, and style.</p>
+
+          <div class="row">
+            <div>
+              <label for="ratio">Image shape</label>
+              <select id="ratio">
+                <option value="1:1">Square — 1:1</option>
+                <option value="16:9" selected>Landscape — 16:9</option>
+                <option value="9:16">Portrait — 9:16</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="buttons">
+            <button id="generate" class="primary" type="button">Generate from prompt</button>
+            <button id="test" class="secondary" type="button">Test SDK (sample)</button>
+          </div>
+
+          <div class="examples" aria-label="Example prompts">
+            <button class="chip" type="button" data-prompt="A supermassive black hole with a brilliant accretion disk, strong gravitational lensing, distant stars bending around the event horizon, cinematic deep space, scientifically inspired 4K illustration">Black hole</button>
+            <button class="chip" type="button" data-prompt="A mysterious alien ocean beneath an enormous ringed planet, bioluminescent waves, misty cliffs, distant moons, photorealistic science fiction environment, cinematic light">Alien ocean</button>
+            <button class="chip" type="button" data-prompt="A detailed astronomical visualization of the cosmic web, glowing filaments of galaxies connecting vast dark voids, scientific data-art, deep indigo background, golden highlights">Cosmic web</button>
+          </div>
+
+          <div class="note"><strong>Usage note:</strong> “Generate from prompt” requests a real image and may consume usage or credits depending on your Puter account and the selected provider. “Test SDK (sample)” uses Puter’s test mode without image-generation credits, but the returned sample is <em>not</em> generated from your prompt.</div>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="result-heading">
+        <div class="card-inner">
+          <h2 id="result-heading">2. Result</h2>
+          <div id="status" class="status" role="status" aria-live="polite" data-kind="idle">
+            <span class="status-dot"></span>
+            <span id="status-text">Ready. Enter a prompt and choose an action.</span>
+          </div>
+          <div id="preview" class="preview">
+            <div id="placeholder" class="placeholder">
+              <span class="orb">✧</span>
+              Your generated image will appear here.
+            </div>
+          </div>
+          <div id="result-footer" class="result-footer hidden">
+            <span id="result-meta">Image returned by Puter.js</span>
+            <a id="open-image" href="#" target="_blank" rel="noopener noreferrer">Open image in new tab ↗</a>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <p class="footer">Powered by <a href="https://docs.puter.com/AI/txt2img/" target="_blank" rel="noopener noreferrer" style="color:#a5b4fc">Puter.js txt2img documentation</a>. This demo does not contain or expose an API key. You may need to authorize Puter or sign in, depending on the service’s current requirements.</p>
+  </main>
+
+  <script>
+    (() => {
+      const promptEl = document.getElementById('prompt');
+      const ratioEl = document.getElementById('ratio');
+      const generateBtn = document.getElementById('generate');
+      const testBtn = document.getElementById('test');
+      const statusEl = document.getElementById('status');
+      const statusText = document.getElementById('status-text');
+      const preview = document.getElementById('preview');
+      const placeholder = document.getElementById('placeholder');
+      const footer = document.getElementById('result-footer');
+      const meta = document.getElementById('result-meta');
+      const openLink = document.getElementById('open-image');
+      let busy = false;
+
+      function setStatus(message, kind = 'idle') {
+        statusText.textContent = message;
+        statusEl.dataset.kind = kind;
+      }
+
+      function setBusy(value) {
+        busy = value;
+        generateBtn.disabled = value;
+        testBtn.disabled = value;
+        generateBtn.textContent = value ? 'Working…' : 'Generate from prompt';
+        testBtn.textContent = value ? 'Please wait…' : 'Test SDK (sample)';
+      }
+
+      function getErrorMessage(error) {
+        if (error && typeof error.message === 'string') {
+          const code = error.code || error.errorCode;
+          return code ? `${error.message} (code: ${code})` : error.message;
+        }
+        try { return JSON.stringify(error); } catch { return String(error); }
+      }
+
+      function getRatio() {
+        const [w, h] = ratioEl.value.split(':').map(Number);
+        return { w, h };
+      }
+
+      async function runGeneration(testMode) {
+        if (busy) return;
+        const prompt = promptEl.value.trim();
+        if (!prompt) {
+          setStatus('Please enter a text prompt first.', 'error');
+          promptEl.focus();
+          return;
+        }
+        if (!window.puter?.ai?.txt2img) {
+          setStatus('Puter.js has not loaded. Check your connection, reload this page, and try again.', 'error');
+          console.error('[Puter.js demo] window.puter.ai.txt2img is unavailable.');
+          return;
+        }
+
+        setBusy(true);
+        footer.classList.add('hidden');
+        const started = performance.now();
+        placeholder.classList.remove('hidden');
+        placeholder.textContent = testMode
+          ? 'Requesting a sample image from Puter.js test mode…'
+          : 'Generating an image from your text prompt…';
+        // Remove the previous image, if any.
+        const previousImage = preview.querySelector('img');
+        if (previousImage) previousImage.remove();
+        setStatus(
+          testMode
+            ? 'Testing the SDK in no-credit sample mode. The sample will not reflect your prompt.'
+            : 'Sending your prompt to the image-generation service. This may take a little while…',
+          'busy'
+        );
+        console.info('[Puter.js demo] Mode:', testMode ? 'sample test mode' : 'prompt-based generation');
+        console.info('[Puter.js demo] Prompt:', prompt);
+
+        try {
+          // The official API accepts either testMode=true or an options object.
+          // Real generation sends the selected aspect ratio; test mode returns a sample.
+          const image = testMode
+            ? await window.puter.ai.txt2img(prompt, true)
+            : await window.puter.ai.txt2img(prompt, { ratio: getRatio() });
+
+          if (!(image instanceof HTMLImageElement)) {
+            throw new Error('Puter.js did not return an HTML image element. See the browser console for details.');
+          }
+          image.alt = testMode ? 'Puter.js test-mode sample image' : prompt;
+          image.style.cssText = 'display:block;width:100%;height:auto;max-height:70vh;object-fit:contain;border-radius:12px;';
+          preview.appendChild(image);
+          placeholder.classList.add('hidden');
+
+          const seconds = ((performance.now() - started) / 1000).toFixed(1);
+          setStatus(
+            testMode
+              ? `SDK test succeeded in ${seconds}s. This is a sample image, not an image made from your prompt.`
+              : `Image generated successfully in ${seconds}s.`,
+            'success'
+          );
+          meta.textContent = testMode ? 'Puter.js sample image · no-credit test mode' : `Prompt-based image · ${seconds}s`;
+          openLink.href = image.src;
+          footer.classList.remove('hidden');
+          console.info('[Puter.js demo] Image returned:', image);
+          console.info('[Puter.js demo] Image source:', image.src);
+        } catch (error) {
+          console.error('[Puter.js demo] Generation failed:', error);
+          placeholder.classList.remove('hidden');
+          placeholder.textContent = 'No image was returned. See the status message and browser console for details.';
+          setStatus('Generation failed: ' + getErrorMessage(error), 'error');
+        } finally {
+          setBusy(false);
+        }
+      }
+
+      generateBtn.addEventListener('click', () => runGeneration(false));
+      testBtn.addEventListener('click', () => runGeneration(true));
+
+      document.querySelectorAll('[data-prompt]').forEach(button => {
+        button.addEventListener('click', () => {
+          promptEl.value = button.dataset.prompt;
+          promptEl.focus();
+        });
+      });
+
+      promptEl.addEventListener('keydown', event => {
+        if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+          runGeneration(false);
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
