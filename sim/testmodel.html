@@ -1,1424 +1,872 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>OpenRouter Dynamic Model Waterfall</title>
-
-    <style>
-        :root {
-            font-family: Arial, sans-serif;
-            color: #252525;
-            background: #f4f6f9;
-        }
-
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            max-width: 950px;
-            margin: 30px auto;
-            padding: 20px;
-        }
-
-        h1 {
-            margin-bottom: 8px;
-        }
-
-        h2 {
-            margin-top: 0;
-        }
-
-        .subtitle {
-            color: #666;
-            margin-bottom: 25px;
-        }
-
-        .card {
-            background: white;
-            padding: 22px;
-            border-radius: 10px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
-            margin-bottom: 20px;
-        }
-
-        label {
-            display: block;
-            margin-top: 15px;
-            margin-bottom: 6px;
-            font-weight: bold;
-        }
-
-        input,
-        textarea,
-        select {
-            display: block;
-            width: 100%;
-            padding: 11px;
-            border: 1px solid #cbd0d8;
-            border-radius: 5px;
-            font: inherit;
-        }
-
-        textarea {
-            resize: vertical;
-        }
-
-        input:focus,
-        textarea:focus,
-        select:focus {
-            outline: 2px solid #9bc4ff;
-            border-color: #0070f3;
-        }
-
-        button {
-            background: #0070f3;
-            color: white;
-            border: none;
-            padding: 11px 16px;
-            margin-top: 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 15px;
-        }
-
-        button:hover {
-            background: #0057bd;
-        }
-
-        button:disabled {
-            opacity: 0.55;
-            cursor: not-allowed;
-        }
-
-        button.secondary {
-            background: #586474;
-        }
-
-        button.secondary:hover {
-            background: #3f4854;
-        }
-
-        .row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-        }
-
-        .help {
-            font-size: 13px;
-            color: #666;
-            line-height: 1.5;
-        }
-
-        .status {
-            margin-top: 12px;
-            padding: 10px;
-            background: #f1f4f8;
-            border-radius: 5px;
-            overflow-wrap: anywhere;
-        }
-
-        .warning {
-            padding: 12px;
-            background: #fff4d6;
-            border-left: 4px solid #e2a300;
-            border-radius: 4px;
-            line-height: 1.5;
-        }
-
-        .success {
-            color: #147d39;
-        }
-
-        .error {
-            color: #c62828;
-        }
-
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            margin-top: 15px;
-        }
-
-        .stat {
-            background: #f1f4f8;
-            padding: 12px;
-            border-radius: 6px;
-            overflow-wrap: anywhere;
-        }
-
-        .stat strong {
-            display: block;
-            font-size: 12px;
-            color: #666;
-            margin-bottom: 5px;
-        }
-
-        .stat span {
-            font-size: 15px;
-            font-weight: bold;
-        }
-
-        pre {
-            background: #171a21;
-            color: #d8e0eb;
-            padding: 16px;
-            border-radius: 6px;
-            overflow: auto;
-            white-space: pre-wrap;
-            overflow-wrap: anywhere;
-            min-height: 100px;
-            max-height: 500px;
-            line-height: 1.5;
-        }
-
-        #result {
-            min-height: 80px;
-            background: #f1f4f8;
-            color: #252525;
-        }
-
-        .model-list {
-            max-height: 280px;
-            overflow: auto;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            margin-top: 12px;
-        }
-
-        .model-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 10px;
-            padding: 10px;
-            border-bottom: 1px solid #eee;
-        }
-
-        .model-item:last-child {
-            border-bottom: none;
-        }
-
-        .model-item input {
-            width: auto;
-            margin-top: 3px;
-        }
-
-        .model-details {
-            min-width: 0;
-            overflow-wrap: anywhere;
-        }
-
-        .model-details small {
-            display: block;
-            color: #666;
-            margin-top: 4px;
-        }
-
-        @media (max-width: 650px) {
-            body {
-                margin: 10px auto;
-                padding: 12px;
-            }
-
-            .row {
-                grid-template-columns: 1fr;
-                gap: 0;
-            }
-
-            .stats {
-                grid-template-columns: 1fr;
-            }
-
-            .card {
-                padding: 16px;
-            }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenRouter Dynamic Model Waterfall</title>
+  <style>
+    :root {
+      font-family: Arial, sans-serif;
+      color: #252525;
+      background: #f4f6f9;
+      color-scheme: light;
+    }
+    * { box-sizing: border-box; }
+    body { max-width: 1050px; margin: 30px auto; padding: 20px; }
+    h1 { margin-bottom: 8px; }
+    h2 { margin-top: 0; }
+    .subtitle { color: #666; margin-bottom: 25px; line-height: 1.5; }
+    .card { background: white; padding: 22px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,.07); margin-bottom: 20px; }
+    label { display: block; margin-top: 15px; margin-bottom: 6px; font-weight: bold; }
+    input, textarea, select { display: block; width: 100%; padding: 11px; border: 1px solid #cbd0d8; border-radius: 5px; font: inherit; background: #fff; color: #252525; }
+    textarea { resize: vertical; }
+    input:focus, textarea:focus, select:focus { outline: 2px solid #9bc4ff; border-color: #0070f3; }
+    button { background: #0070f3; color: white; border: none; padding: 11px 16px; margin-top: 15px; border-radius: 5px; cursor: pointer; font-size: 15px; }
+    button:hover { background: #0057bd; }
+    button:disabled { opacity: .55; cursor: not-allowed; }
+    button.secondary { background: #586474; }
+    button.secondary:hover { background: #3f4854; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .help { font-size: 13px; color: #666; line-height: 1.5; }
+    .status { margin-top: 12px; padding: 10px; background: #f1f4f8; border-radius: 5px; overflow-wrap: anywhere; line-height: 1.5; }
+    .warning { padding: 12px; background: #fff4d6; border-left: 4px solid #e2a300; border-radius: 4px; line-height: 1.5; margin-bottom: 20px; }
+    .success { color: #147d39; }
+    .error { color: #c62828; }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px; }
+    .stat { background: #f1f4f8; padding: 12px; border-radius: 6px; overflow-wrap: anywhere; min-width: 0; }
+    .stat strong { display: block; font-size: 12px; color: #666; margin-bottom: 5px; }
+    .stat span { font-size: 15px; font-weight: bold; }
+    pre { background: #171a21; color: #d8e0eb; padding: 16px; border-radius: 6px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; min-height: 100px; max-height: 500px; line-height: 1.5; }
+    #result { min-height: 80px; background: #f1f4f8; color: #252525; }
+    .model-list { max-height: 300px; overflow: auto; border: 1px solid #ddd; border-radius: 5px; margin-top: 12px; }
+    .model-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px; border-bottom: 1px solid #eee; }
+    .model-item:last-child { border-bottom: none; }
+    .model-item input { width: auto; margin-top: 3px; }
+    .model-details { min-width: 0; overflow-wrap: anywhere; }
+    .model-details small { display: block; color: #666; margin-top: 4px; line-height: 1.45; }
+    .inline-check { display: flex; align-items: flex-start; gap: 9px; margin-top: 13px; font-weight: normal; line-height: 1.5; }
+    .inline-check input { width: auto; margin-top: 4px; }
+    .pill { display: inline-block; background: #edf2fa; border-radius: 99px; padding: 3px 8px; font-size: 12px; margin-left: 6px; color: #334155; }
+    @media (max-width: 650px) {
+      body { margin: 10px auto; padding: 12px; }
+      .row, .stats { grid-template-columns: 1fr; gap: 0; }
+      .card { padding: 16px; }
+    }
+  </style>
 </head>
-
 <body>
+  <h1>OpenRouter Dynamic Model Waterfall</h1>
+  <p class="subtitle">Discover available models, route each prompt intelligently, and fall back to other models when a request fails or produces a truncated answer.</p>
 
-    <h1>OpenRouter Dynamic Model Waterfall</h1>
+  <div class="warning">
+    <strong>Security notice:</strong> This standalone demo sends your API key directly from your browser to OpenRouter. The key is held only in page memory—not in localStorage or sessionStorage—and is cleared when the page is hidden or unloaded. For a public application, proxy API requests through your own server so the secret never reaches the browser. Never publish or commit a real key.
+  </div>
 
-    <p class="subtitle">
-        Discover models, configure a fallback chain, and execute chat completions.
-    </p>
+  <section class="card">
+    <h2>1. Configure OpenRouter</h2>
+    <label for="apiKey">OpenRouter API Key</label>
+    <input id="apiKey" type="password" placeholder="sk-or-v1-..." autocomplete="off" spellcheck="false">
+    <p class="help">Paste the key itself. An accidental <code>Bearer </code> prefix is accepted and normalized. The application checks the expected OpenRouter key prefix locally, but only OpenRouter can confirm whether the key is valid.</p>
 
-    <div class="warning">
-        <strong>Security notice:</strong>
-        This demo sends your API key directly from your browser to OpenRouter.
-        Use a dedicated/restricted key when possible. Never publish a shared key
-        or commit credentials to source control. For a public application, move
-        the API call to your own server so the secret never reaches the browser.
+    <div class="row">
+      <div>
+        <label for="maxModels">Maximum models in the waterfall</label>
+        <select id="maxModels">
+          <option value="2">2 models</option>
+          <option value="3" selected>3 models</option>
+          <option value="5">5 models</option>
+          <option value="10">10 models</option>
+          <option value="20">20 models</option>
+        </select>
+      </div>
+      <div>
+        <label for="timeout">Timeout per request (seconds)</label>
+        <select id="timeout">
+          <option value="10">10 seconds</option>
+          <option value="20">20 seconds</option>
+          <option value="30" selected>30 seconds</option>
+          <option value="60">60 seconds</option>
+          <option value="120">120 seconds</option>
+        </select>
+      </div>
     </div>
 
-    <!-- SECTION 1: CONFIGURATION -->
+    <label for="selectionMode">Model selection strategy</label>
+    <select id="selectionMode">
+      <option value="auto-router" selected>OpenRouter Auto Router + ranked fallbacks (recommended)</option>
+      <option value="prompt-aware">Prompt-aware local ranking + fallbacks</option>
+      <option value="intelligence">Highest intelligence ranking</option>
+      <option value="newest">Newest releases first</option>
+      <option value="cost">Lowest combined input/output price</option>
+      <option value="context">Largest context window</option>
+      <option value="manual">Manual chain only</option>
+    </select>
+    <p class="help">Auto Router delegates first-choice selection to OpenRouter's prompt-aware router. Other automatic modes rank model metadata locally and use task-keyword heuristics; those heuristics are useful signals, not a guarantee of answer quality. In automatic modes, IDs in your manual chain are appended as user-defined fallbacks (immediately after Auto Router in the recommended mode).</p>
 
-    <section class="card">
-        <h2>1. Configure OpenRouter</h2>
+    <div class="row" id="autoRouterSettings">
+      <div>
+        <label for="costTier">Auto Router cost / quality tier</label>
+        <select id="costTier">
+          <option value="low" selected>Low — prioritize cost efficiency</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+          <option value="xhigh">Extra high</option>
+          <option value="max">Maximum capability / least cost sensitivity</option>
+        </select>
+      </div>
+      <div>
+        <label for="modelSortInfo">Metadata ranking</label>
+        <input id="modelSortInfo" value="Intelligence-ranked model metadata" readonly>
+      </div>
+    </div>
 
-        <label for="apiKey">OpenRouter API Key</label>
+    <button id="fetchButton" type="button">Fetch / Refresh Available Models</button>
+    <div id="modelStatus" class="status" role="status">Enter your API key. Automatic modes fetch model metadata when needed.</div>
 
-        <input
-            id="apiKey"
-            type="password"
-            placeholder="sk-or-v1-..."
-            autocomplete="off"
-            spellcheck="false"
-        >
+    <div id="modelBrowser" hidden>
+      <label for="modelFilter">Filter available models</label>
+      <input id="modelFilter" type="search" placeholder="Search model IDs or names...">
+      <p class="help">Select model IDs and add them to the manual chain. Automatic selection still builds its own primary candidates; the manual IDs are used as additional fallbacks.</p>
+      <div id="modelList" class="model-list"></div>
+      <button id="addSelectedButton" type="button">Add Selected Models to Manual Chain</button>
+    </div>
+  </section>
 
-        <p class="help">
-            The key is held in page memory and is not saved to local storage.
-            Clearing or reloading the page removes it from this application's
-            JavaScript state. Paste only the key itself (for example
-            <code>sk-or-v1-...</code>); an optional <code>Bearer </code> prefix
-            is also accepted and normalized automatically.
-        </p>
+  <section class="card">
+    <h2>2. Configure the request</h2>
+    <label for="modelChain">Manual model IDs / extra fallbacks (comma-separated)</label>
+    <textarea id="modelChain" rows="4" placeholder="provider/model-a, provider/model-b" spellcheck="false"></textarea>
+    <p class="help">In Manual chain only mode, these are the exact models and order used. In automatic modes, they are appended to the automatically ranked candidates. Duplicate IDs are removed and the maximum-model setting is enforced.</p>
 
-        <div class="row">
-            <div>
-                <label for="maxModels">Maximum models in fallback chain</label>
-                <select id="maxModels">
-                    <option value="2">2 models</option>
-                    <option value="3" selected>3 models</option>
-                    <option value="5">5 models</option>
-                    <option value="10">10 models</option>
-                    <option value="20">20 models</option>
-                </select>
-            </div>
+    <label for="prompt">Prompt</label>
+    <textarea id="prompt" rows="5">Explain quantum computing in one sentence.</textarea>
 
-            <div>
-                <label for="timeout">Timeout per attempt (seconds)</label>
-                <select id="timeout">
-                    <option value="10">10 seconds</option>
-                    <option value="20">20 seconds</option>
-                    <option value="30" selected>30 seconds</option>
-                    <option value="60">60 seconds</option>
-                    <option value="120">120 seconds</option>
-                </select>
-            </div>
-        </div>
+    <div class="row">
+      <div>
+        <label for="temperature">Temperature</label>
+        <input id="temperature" type="number" min="0" max="2" step="0.1" value="0.7">
+      </div>
+      <div>
+        <label for="maxTokens">Maximum output tokens</label>
+        <input id="maxTokens" type="number" min="1" max="32768" step="1" value="500">
+      </div>
+    </div>
 
-        <button id="fetchButton" type="button">
-            Fetch Available Models
-        </button>
+    <p class="help">The same prompt is sent to each attempted model. For models that publish parameter compatibility metadata, the application avoids sending temperature when unsupported and caps output tokens to the listed provider limit when available.</p>
+    <button id="executeButton" type="button">Select Models & Execute Waterfall</button>
+    <button id="clearButton" class="secondary" type="button">Clear Logs</button>
+  </section>
 
-        <div id="modelStatus" class="status" role="status">
-            Enter your API key and fetch the model list.
-        </div>
+  <section class="card">
+    <h2>3. Execution Summary</h2>
+    <div class="stats">
+      <div class="stat"><strong>Successful / Best Available Model</strong><span id="successfulModel">—</span></div>
+      <div class="stat"><strong>Total Execution Time</strong><span id="executionTime">—</span></div>
+      <div class="stat"><strong>HTTP Requests</strong><span id="attemptCount">—</span></div>
+    </div>
+    <label for="result">Final Response</label>
+    <pre id="result">The model response will appear here.</pre>
+  </section>
 
-        <div id="modelBrowser" hidden>
-            <label>Filter models</label>
-
-            <input
-                id="modelFilter"
-                type="search"
-                placeholder="Search model IDs or names..."
-            >
-
-            <p class="help">
-                Select models to add to the chain. The order in the chain
-                determines the fallback order.
-            </p>
-
-            <div id="modelList" class="model-list"></div>
-
-            <button id="addSelectedButton" type="button">
-                Add Selected Models to Chain
-            </button>
-        </div>
-    </section>
-
-    <!-- SECTION 2: WATERFALL -->
-
-    <section class="card">
-        <h2>2. Configure Waterfall</h2>
-
-        <label for="modelChain">
-            Model Chain (comma-separated model IDs)
-        </label>
-
-        <textarea
-            id="modelChain"
-            rows="4"
-            placeholder="provider/model-a, provider/model-b, provider/model-c"
-            spellcheck="false"
-        ></textarea>
-
-        <p class="help">
-            Models are attempted in the order listed. Duplicate IDs are
-            removed automatically when execution starts.
-        </p>
-
-        <label for="prompt">Prompt</label>
-
-        <textarea id="prompt" rows="4">Explain quantum computing in one sentence.</textarea>
-
-        <div class="row">
-            <div>
-                <label for="temperature">Temperature</label>
-
-                <input
-                    id="temperature"
-                    type="number"
-                    min="0"
-                    max="2"
-                    step="0.1"
-                    value="0.7"
-                >
-            </div>
-
-            <div>
-                <label for="maxTokens">Maximum output tokens</label>
-
-                <input
-                    id="maxTokens"
-                    type="number"
-                    min="1"
-                    max="32768"
-                    step="1"
-                    value="500"
-                >
-            </div>
-        </div>
-
-        <button id="executeButton" type="button">
-            Execute Waterfall
-        </button>
-
-        <button id="clearButton" class="secondary" type="button">
-            Clear Logs
-        </button>
-    </section>
-
-    <!-- SECTION 3: RESULT -->
-
-    <section class="card">
-        <h2>3. Execution Summary</h2>
-
-        <div class="stats">
-            <div class="stat">
-                <strong>Successful Model</strong>
-                <span id="successfulModel">—</span>
-            </div>
-
-            <div class="stat">
-                <strong>Execution Time</strong>
-                <span id="executionTime">—</span>
-            </div>
-
-            <div class="stat">
-                <strong>Attempts</strong>
-                <span id="attemptCount">—</span>
-            </div>
-        </div>
-
-        <label>Final Response</label>
-
-        <pre id="result">The model response will appear here.</pre>
-    </section>
-
-    <!-- SECTION 4: LOGS -->
-
-    <section class="card">
-        <h2>4. Execution Logs</h2>
-
-        <pre id="output" aria-live="polite">Ready.</pre>
-    </section>
+  <section class="card">
+    <h2>4. Execution Logs</h2>
+    <pre id="output" aria-live="polite">Ready.</pre>
+  </section>
 
 <script>
 'use strict';
 
-/*
- * OpenRouter Dynamic Model Waterfall
- *
- * Architecture:
- *   1. Fetch model metadata.
- *   2. Select an ordered list of model IDs.
- *   3. Execute each model sequentially.
- *   4. Classify errors.
- *   5. Retry transient failures when appropriate.
- *   6. Validate responses.
- *   7. Stop after the first usable response.
- *
- * This is a browser-based demonstration, not a secure public backend.
- */
-
 const API_BASE = 'https://openrouter.ai/api/v1';
+const OVERALL_DEADLINE_MS = 180000;
+const RETRIES_PER_MODEL = 1;
+const RETRY_DELAY_MS = 1000;
+const MAX_LOG_LENGTH = 50000;
 
 const elements = {
-    apiKey: document.getElementById('apiKey'),
-    maxModels: document.getElementById('maxModels'),
-    timeout: document.getElementById('timeout'),
-
-    fetchButton: document.getElementById('fetchButton'),
-    modelStatus: document.getElementById('modelStatus'),
-    modelBrowser: document.getElementById('modelBrowser'),
-    modelFilter: document.getElementById('modelFilter'),
-    modelList: document.getElementById('modelList'),
-    addSelectedButton: document.getElementById('addSelectedButton'),
-
-    modelChain: document.getElementById('modelChain'),
-    prompt: document.getElementById('prompt'),
-    temperature: document.getElementById('temperature'),
-    maxTokens: document.getElementById('maxTokens'),
-
-    executeButton: document.getElementById('executeButton'),
-    clearButton: document.getElementById('clearButton'),
-
-    successfulModel: document.getElementById('successfulModel'),
-    executionTime: document.getElementById('executionTime'),
-    attemptCount: document.getElementById('attemptCount'),
-
-    result: document.getElementById('result'),
-    output: document.getElementById('output')
+  apiKey: document.getElementById('apiKey'),
+  maxModels: document.getElementById('maxModels'),
+  timeout: document.getElementById('timeout'),
+  selectionMode: document.getElementById('selectionMode'),
+  costTier: document.getElementById('costTier'),
+  autoRouterSettings: document.getElementById('autoRouterSettings'),
+  modelSortInfo: document.getElementById('modelSortInfo'),
+  fetchButton: document.getElementById('fetchButton'),
+  modelStatus: document.getElementById('modelStatus'),
+  modelBrowser: document.getElementById('modelBrowser'),
+  modelFilter: document.getElementById('modelFilter'),
+  modelList: document.getElementById('modelList'),
+  addSelectedButton: document.getElementById('addSelectedButton'),
+  modelChain: document.getElementById('modelChain'),
+  prompt: document.getElementById('prompt'),
+  temperature: document.getElementById('temperature'),
+  maxTokens: document.getElementById('maxTokens'),
+  executeButton: document.getElementById('executeButton'),
+  clearButton: document.getElementById('clearButton'),
+  successfulModel: document.getElementById('successfulModel'),
+  executionTime: document.getElementById('executionTime'),
+  attemptCount: document.getElementById('attemptCount'),
+  result: document.getElementById('result'),
+  output: document.getElementById('output')
 };
 
 let cachedModels = [];
+let modelById = new Map();
+let intelligenceSortUsed = false;
 let executionInProgress = false;
 let fetchInProgress = false;
 
-/* ---------------------------------------------------------
-   Logging
---------------------------------------------------------- */
-
 function log(message, level = 'INFO') {
-    const timestamp = new Date().toLocaleTimeString();
-
-    const line = `[${timestamp}] [${level}] ${message}`;
-
-    console.log(line);
-
-    elements.output.textContent += line + '\n';
-
-    // Keep the log bounded during long sessions.
-    const MAX_LOG_LENGTH = 50000;
-
-    if (elements.output.textContent.length > MAX_LOG_LENGTH) {
-        elements.output.textContent =
-            elements.output.textContent.slice(-MAX_LOG_LENGTH);
-    }
-
-    elements.output.scrollTop = elements.output.scrollHeight;
+  const line = `[${new Date().toLocaleTimeString()}] [${level}] ${message}`;
+  console.log(line);
+  elements.output.textContent += line + '\n';
+  if (elements.output.textContent.length > MAX_LOG_LENGTH) {
+    elements.output.textContent = elements.output.textContent.slice(-MAX_LOG_LENGTH);
+  }
+  elements.output.scrollTop = elements.output.scrollHeight;
 }
 
 function clearLogs() {
-    elements.output.textContent = '';
+  elements.output.textContent = '';
 }
 
 function setModelStatus(message, isError = false) {
-    elements.modelStatus.textContent = message;
-    elements.modelStatus.className =
-        'status ' + (isError ? 'error' : '');
+  elements.modelStatus.textContent = message;
+  elements.modelStatus.className = 'status ' + (isError ? 'error' : '');
 }
 
-/* ---------------------------------------------------------
-   Input validation
---------------------------------------------------------- */
-
 function getApiKey() {
-    let key = elements.apiKey.value.trim();
-
-    // Accept either:
-    //   sk-or-v1-...
-    // or an accidentally pasted:
-    //   Bearer sk-or-v1-...
-    // The API request itself always adds the Bearer prefix exactly once.
-    key = key.replace(/^Bearer\\s+/i, '').trim();
-
-    return key;
+  return elements.apiKey.value.trim().replace(/^Bearer\s+/i, '').trim();
 }
 
 function validateApiKey(apiKey) {
-    if (!apiKey) {
-        throw new Error('OpenRouter API key is empty.');
-    }
-
-    // OpenRouter keys normally use this prefix. Keep the check helpful,
-    // rather than silently sending an obviously malformed credential.
-    if (!/^sk-or-v1-/i.test(apiKey)) {
-        throw new Error(
-            'This does not look like an OpenRouter API key. ' +
-            'Use a key beginning with "sk-or-v1-".'
-        );
-    }
-
-    return apiKey;
+  if (!apiKey) throw new Error('OpenRouter API key is empty.');
+  if (!/^sk-or-v1-/i.test(apiKey)) {
+    throw new Error('This does not look like an OpenRouter API key. Use a key beginning with "sk-or-v1-".');
+  }
+  return apiKey;
 }
 
 function getAuthHeaders(apiKey, includeJson = false) {
-    const key = validateApiKey(apiKey);
+  const key = validateApiKey(apiKey);
+  const headers = new Headers({
+    'Authorization': `Bearer ${key}`,
+    'Accept': 'application/json'
+  });
+  if (includeJson) headers.set('Content-Type', 'application/json');
 
-    const headers = new Headers();
-    headers.set('Authorization', `Bearer ${key}`);
-    headers.set('Accept', 'application/json');
-
-    if (includeJson) {
-        headers.set('Content-Type', 'application/json');
+  // Optional attribution headers; the origin avoids transmitting the page path/query string.
+  try {
+    if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
+      headers.set('HTTP-Referer', window.location.origin);
+      headers.set('X-Title', 'OpenRouter Dynamic Waterfall');
     }
-
-    // These are optional OpenRouter attribution headers.
-    // They are intentionally not required for authentication.
-    try {
-        const pageUrl = window.location.href;
-        if (/^https?:$/i.test(window.location.protocol)) {
-            headers.set('HTTP-Referer', pageUrl);
-            headers.set('X-Title', 'OpenRouter Dynamic Waterfall');
-        }
-    } catch {
-        // Ignore attribution-header failures; authentication is independent.
-    }
-
-    return headers;
+  } catch (_) {
+    // Authentication does not depend on attribution metadata.
+  }
+  return headers;
 }
 
 function parseModelChain() {
-    const raw = elements.modelChain.value;
-
-    const seen = new Set();
-
-    return raw
-        .split(',')
-        .map(id => id.trim())
-        .filter(id => {
-            if (!id || seen.has(id)) {
-                return false;
-            }
-
-            seen.add(id);
-            return true;
-        });
+  const seen = new Set();
+  return elements.modelChain.value.split(',').map(id => id.trim()).filter(id => {
+    if (!id || seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
 }
 
 function validateGenerationSettings() {
-    const temperature = Number(elements.temperature.value);
-    const maxTokens = Number(elements.maxTokens.value);
-
-    if (
-        !Number.isFinite(temperature) ||
-        temperature < 0 ||
-        temperature > 2
-    ) {
-        throw new Error('Temperature must be between 0 and 2.');
-    }
-
-    if (
-        !Number.isInteger(maxTokens) ||
-        maxTokens < 1 ||
-        maxTokens > 32768
-    ) {
-        throw new Error(
-            'Maximum output tokens must be an integer between 1 and 32768.'
-        );
-    }
-
-    return { temperature, maxTokens };
+  const temperature = Number(elements.temperature.value);
+  const maxTokens = Number(elements.maxTokens.value);
+  if (!Number.isFinite(temperature) || temperature < 0 || temperature > 2) {
+    throw new Error('Temperature must be a number between 0 and 2.');
+  }
+  if (!Number.isInteger(maxTokens) || maxTokens < 1 || maxTokens > 32768) {
+    throw new Error('Maximum output tokens must be an integer between 1 and 32768.');
+  }
+  return { temperature, maxTokens };
 }
-
-/* ---------------------------------------------------------
-   HTTP request helper
---------------------------------------------------------- */
 
 async function requestJson(url, options = {}, timeoutMs = 30000) {
-    const controller = new AbortController();
+  const controller = new AbortController();
+  let timedOut = false;
+  const timeoutId = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, Math.max(1, timeoutMs));
 
-    let timedOut = false;
-
-    const timeoutId = setTimeout(() => {
-        timedOut = true;
-        controller.abort();
-    }, timeoutMs);
-
-    try {
-        const requestOptions = {
-            ...options,
-            signal: controller.signal,
-            // An auth header can be stripped by browsers when following
-            // certain cross-origin redirects. OpenRouter's API endpoint
-            // should be called directly, so fail loudly instead.
-            redirect: 'error'
-        };
-
-        if (options.headers) {
-            requestOptions.headers = options.headers instanceof Headers
-                ? options.headers
-                : new Headers(options.headers);
-        }
-
-        const response = await fetch(url, requestOptions);
-
-        const text = await response.text();
-
-        let data = null;
-
-        if (text) {
-            try {
-                data = JSON.parse(text);
-            } catch {
-                if (response.ok) {
-                    throw new Error(
-                        'The API returned a successful HTTP status ' +
-                        'but the response was not valid JSON.'
-                    );
-                }
-            }
-        }
-
-        if (!response.ok) {
-            const message =
-                data?.error?.message ||
-                data?.message ||
-                text ||
-                `HTTP ${response.status}`;
-
-            const error = new Error(
-                `HTTP ${response.status}: ${message}`
-            );
-
-            error.status = response.status;
-            error.responseData = data;
-
-            throw error;
-        }
-
-        return data;
-
-    } catch (error) {
-        if (error.name === 'TypeError' && error.message) {
-            // Keep the original error for classifyError(), but annotate it
-            // when the browser likely blocked the request.
-            error.browserHint =
-                'The browser may have blocked the request or a redirect may ' +
-                'have prevented the Authorization header from reaching OpenRouter.';
-        }
-
-        if (timedOut) {
-            const timeoutError = new Error(
-                `Request timed out after ${timeoutMs / 1000} seconds.`
-            );
-
-            timeoutError.code = 'TIMEOUT';
-
-            throw timeoutError;
-        }
-
-        if (error.name === 'AbortError') {
-            error.code = 'ABORTED';
-        }
-
-        throw error;
-
-    } finally {
-        clearTimeout(timeoutId);
+  try {
+    const requestOptions = { ...options, signal: controller.signal, redirect: 'error' };
+    if (options.headers) {
+      requestOptions.headers = options.headers instanceof Headers ? options.headers : new Headers(options.headers);
     }
+    const response = await fetch(url, requestOptions);
+    const rawText = await response.text();
+    let data = null;
+    if (rawText) {
+      try {
+        data = JSON.parse(rawText);
+      } catch (_) {
+        if (response.ok) {
+          const invalidJsonError = new Error('OpenRouter returned a successful HTTP status but the body was not valid JSON.');
+          invalidJsonError.code = 'INVALID_JSON';
+          throw invalidJsonError;
+        }
+      }
+    }
+
+    if (!response.ok) {
+      const message = data?.error?.message || data?.message || rawText || `HTTP ${response.status}`;
+      const error = new Error(`HTTP ${response.status}: ${message}`);
+      error.status = response.status;
+      error.responseData = data;
+      const retryAfter = response.headers.get('Retry-After');
+      if (retryAfter) error.retryAfterSeconds = Number(retryAfter);
+      throw error;
+    }
+    return data;
+  } catch (error) {
+    if (timedOut) {
+      const timeoutError = new Error(`Request timed out after ${(timeoutMs / 1000).toFixed(1)} seconds.`);
+      timeoutError.code = 'TIMEOUT';
+      throw timeoutError;
+    }
+    if (error && error.name === 'AbortError') error.code = 'ABORTED';
+    if (error instanceof TypeError) {
+      error.browserHint = 'This may be a network, CORS, browser, or redirect issue. Browser JavaScript often cannot determine the exact cause.';
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
-/* ---------------------------------------------------------
-   Model discovery
---------------------------------------------------------- */
-
-async function fetchModels() {
-    if (fetchInProgress || executionInProgress) {
-        return;
-    }
-
-    const apiKey = getApiKey();
-
-    try {
-        validateApiKey(apiKey);
-    } catch (error) {
-        alert(error.message);
-        setModelStatus(error.message, true);
-        log(`Authentication setup error: ${error.message}`, 'ERROR');
-        return;
-    }
-
-    fetchInProgress = true;
-    elements.fetchButton.disabled = true;
-
-    setModelStatus('Fetching models from OpenRouter...');
-
-    log('Fetching model metadata.');
-
-    try {
-        const data = await requestJson(
-            `${API_BASE}/models`,
-            {
-                method: 'GET',
-                headers: getAuthHeaders(apiKey)
-            },
-            30000
-        );
-
-        if (!Array.isArray(data?.data)) {
-            throw new Error(
-                'Unexpected model-list response format.'
-            );
-        }
-
-        cachedModels = data.data.filter(model =>
-            typeof model?.id === 'string' &&
-            model.id.length > 0
-        );
-
-        setModelStatus(
-            `Successfully fetched ${cachedModels.length} model entries.`
-        );
-
-        log(`Retrieved ${cachedModels.length} models.`);
-
-        renderModelList();
-
-        /*
-         * Do not silently assume that the first three models are best.
-         * If no chain exists, show a small initial selection to the user.
-         * The user can edit the chain before execution.
-         */
-
-        if (!elements.modelChain.value.trim()) {
-            const initialSelection = cachedModels
-                .filter(model => {
-                    const pricing = model.pricing || {};
-
-                    return (
-                        model.id &&
-                        model.architecture &&
-                        model.context_length
-                    ) || model.id;
-                })
-                .slice(0, 3)
-                .map(model => model.id);
-
-            if (initialSelection.length > 0) {
-                elements.modelChain.value =
-                    initialSelection.join(', ');
-
-                log(
-                    'Created an editable starter chain from the model list. ' +
-                    'Review the model IDs before execution.'
-                );
-            }
-        }
-
-    } catch (error) {
-        setModelStatus(
-            `Failed to fetch models: ${error.message}`,
-            true
-        );
-
-        log(`Model discovery failed: ${error.message}`, 'ERROR');
-
-    } finally {
-        fetchInProgress = false;
-        elements.fetchButton.disabled = false;
-    }
+function parseNumber(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const number = Number(value);
+  return Number.isFinite(number) && number >= 0 ? number : null;
 }
 
-/* ---------------------------------------------------------
-   Model list UI
---------------------------------------------------------- */
+function isLikelyChatModel(model) {
+  const id = String(model?.id || '').toLowerCase();
+  const name = String(model?.name || '').toLowerCase();
+  const modality = String(model?.architecture?.modality || '').toLowerCase();
+  const outputModalities = model?.architecture?.output_modalities;
+  if (Array.isArray(outputModalities) && outputModalities.length && !outputModalities.includes('text')) return false;
+  if (/\b(embedding|embeddings|rerank|reranker|moderation|text-to-speech|speech-to-text|whisper|stable-diffusion|image-generation)\b/.test(`${id} ${name}`)) return false;
+  if (modality && !modality.includes('text')) return false;
+  return Boolean(model?.id);
+}
+
+async function fetchModels(options = {}) {
+  const allowDuringExecution = Boolean(options.allowDuringExecution);
+  if (fetchInProgress || (executionInProgress && !allowDuringExecution)) return false;
+
+  let apiKey;
+  try {
+    apiKey = validateApiKey(getApiKey());
+  } catch (error) {
+    setModelStatus(error.message, true);
+    if (!options.silent) alert(error.message);
+    log(`API key setup error: ${error.message}`, 'ERROR');
+    return false;
+  }
+
+  fetchInProgress = true;
+  elements.fetchButton.disabled = true;
+  setModelStatus('Fetching model metadata from OpenRouter...');
+  log('Fetching model metadata with the API intelligence ranking.');
+
+  try {
+    let data;
+    intelligenceSortUsed = false;
+    try {
+      data = await requestJson(
+        `${API_BASE}/models?output_modalities=text&sort=intelligence-high-to-low`,
+        { method: 'GET', headers: getAuthHeaders(apiKey) },
+        30000
+      );
+      intelligenceSortUsed = true;
+    } catch (sortedError) {
+      log(`Sorted model discovery failed; retrying the standard text-model listing: ${sortedError.message}`, 'WARN');
+      data = await requestJson(
+        `${API_BASE}/models?output_modalities=text`,
+        { method: 'GET', headers: getAuthHeaders(apiKey) },
+        30000
+      );
+    }
+
+    if (!Array.isArray(data?.data)) throw new Error('Unexpected model-list response: expected a data array.');
+
+    const rawModels = data.data.filter(isLikelyChatModel);
+    cachedModels = rawModels.map((model, index) => ({ ...model, __intelligenceRank: index }));
+    modelById = new Map(cachedModels.map(model => [model.id, model]));
+
+    setModelStatus(intelligenceSortUsed
+      ? `Loaded ${cachedModels.length} text-generating models, sorted by OpenRouter's intelligence ranking.`
+      : `Loaded ${cachedModels.length} text-generating models. Intelligence sorting was unavailable, so the API's default order will be used as a fallback baseline.`);
+    log(`Retrieved ${cachedModels.length} likely chat-capable models.`);
+    renderModelList();
+    return cachedModels.length > 0;
+  } catch (error) {
+    setModelStatus(`Failed to fetch models: ${error.message}`, true);
+    log(`Model discovery failed: ${error.message}`, 'ERROR');
+    return false;
+  } finally {
+    fetchInProgress = false;
+    elements.fetchButton.disabled = executionInProgress;
+  }
+}
 
 function formatModelDetails(model) {
-    const parts = [];
-
-    if (Number.isFinite(model.context_length)) {
-        parts.push(
-            `Context: ${model.context_length.toLocaleString()} tokens`
-        );
-    }
-
-    if (model.pricing) {
-        if (model.pricing.prompt !== undefined) {
-            parts.push(
-                `Input price: ${model.pricing.prompt} per token`
-            );
-        }
-
-        if (model.pricing.completion !== undefined) {
-            parts.push(
-                `Output price: ${model.pricing.completion} per token`
-            );
-        }
-    }
-
-    return parts.join(' | ') || 'Additional metadata unavailable';
+  const parts = [];
+  if (Number.isFinite(model.context_length)) parts.push(`Context: ${model.context_length.toLocaleString()} tokens`);
+  if (model.pricing) {
+    const input = parseNumber(model.pricing.prompt);
+    const output = parseNumber(model.pricing.completion);
+    if (input !== null) parts.push(`Input: $${(input * 1_000_000).toFixed(input < 0.000001 ? 4 : 2)}/1M tokens`);
+    if (output !== null) parts.push(`Output: $${(output * 1_000_000).toFixed(output < 0.000001 ? 4 : 2)}/1M tokens`);
+  }
+  if (Number.isFinite(model.created) && model.created > 0) parts.push(`Created: ${new Date(model.created * 1000).toLocaleDateString()}`);
+  return parts.join(' | ') || 'Additional metadata unavailable';
 }
 
 function renderModelList() {
-    const filter = elements.modelFilter.value
-        .trim()
-        .toLowerCase();
+  const filter = elements.modelFilter.value.trim().toLowerCase();
+  const filtered = cachedModels.filter(model => {
+    return String(model.id).toLowerCase().includes(filter) || String(model.name || '').toLowerCase().includes(filter);
+  });
+  elements.modelList.replaceChildren();
+  const fragment = document.createDocumentFragment();
+  for (const model of filtered) {
+    const row = document.createElement('div');
+    row.className = 'model-item';
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.value = model.id;
+    checkbox.className = 'model-checkbox';
+    checkbox.setAttribute('aria-label', `Select ${model.id}`);
 
-    const filtered = cachedModels.filter(model => {
-        const name = model.name || '';
-
-        return (
-            model.id.toLowerCase().includes(filter) ||
-            name.toLowerCase().includes(filter)
-        );
-    });
-
-    elements.modelList.replaceChildren();
-
-    const fragment = document.createDocumentFragment();
-
-    for (const model of filtered) {
-        const row = document.createElement('div');
-        row.className = 'model-item';
-
-        const checkbox = document.createElement('input');
-
-        checkbox.type = 'checkbox';
-        checkbox.value = model.id;
-        checkbox.className = 'model-checkbox';
-        checkbox.setAttribute(
-            'aria-label',
-            `Select ${model.id}`
-        );
-
-        const details = document.createElement('div');
-        details.className = 'model-details';
-
-        const title = document.createElement('div');
-        title.textContent = model.name
-            ? `${model.name} (${model.id})`
-            : model.id;
-
-        const metadata = document.createElement('small');
-        metadata.textContent = formatModelDetails(model);
-
-        details.append(title, metadata);
-        row.append(checkbox, details);
-        fragment.appendChild(row);
-    }
-
-    elements.modelList.appendChild(fragment);
-
-    elements.modelBrowser.hidden = cachedModels.length === 0;
-
-    if (filtered.length === 0 && cachedModels.length > 0) {
-        const empty = document.createElement('p');
-        empty.className = 'help';
-        empty.textContent = 'No matching models.';
-        elements.modelList.appendChild(empty);
-    }
+    const details = document.createElement('div');
+    details.className = 'model-details';
+    const title = document.createElement('div');
+    title.textContent = model.name ? `${model.name} (${model.id})` : model.id;
+    const metadata = document.createElement('small');
+    metadata.textContent = formatModelDetails(model);
+    details.append(title, metadata);
+    row.append(checkbox, details);
+    fragment.appendChild(row);
+  }
+  elements.modelList.appendChild(fragment);
+  elements.modelBrowser.hidden = cachedModels.length === 0;
+  if (filtered.length === 0 && cachedModels.length > 0) {
+    const empty = document.createElement('p');
+    empty.className = 'help';
+    empty.textContent = 'No matching models.';
+    elements.modelList.appendChild(empty);
+  }
 }
 
 function addSelectedModels() {
-    const selected = [
-        ...elements.modelList.querySelectorAll(
-            '.model-checkbox:checked'
-        )
-    ].map(checkbox => checkbox.value);
-
-    if (selected.length === 0) {
-        alert('Select at least one model.');
-        return;
-    }
-
-    const existing = parseModelChain();
-
-    const combined = [...existing];
-
-    for (const id of selected) {
-        if (!combined.includes(id)) {
-            combined.push(id);
-        }
-    }
-
-    elements.modelChain.value = combined.join(', ');
-
-    log(`Added ${selected.length} selected model(s) to the chain.`);
+  const selected = [...elements.modelList.querySelectorAll('.model-checkbox:checked')].map(input => input.value);
+  if (!selected.length) {
+    alert('Select at least one model first.');
+    return;
+  }
+  const combined = parseModelChain();
+  for (const id of selected) if (!combined.includes(id)) combined.push(id);
+  elements.modelChain.value = combined.join(', ');
+  log(`Added ${selected.length} model ID(s) to the manual chain.`);
 }
 
-/* ---------------------------------------------------------
-   Error classification
---------------------------------------------------------- */
+function classifyPrompt(prompt) {
+  const text = prompt.toLowerCase();
+  if (prompt.length > 12000 || /\b(entire document|long document|large codebase|whole book|long context|many pages)\b/.test(text)) return 'long-context';
+  if (/\b(code|coding|programming|javascript|typescript|python|html|css|debug|bug|function|api|sql|react|three\.js|stack trace|compiler|software|script)\b/.test(text)) return 'coding';
+  if (/\b(prove|proof|math|mathematics|logic|reason|reasoning|quantum|physics|algorithm|analy[sz]e|derive|step.by.step|strategy|scientific|research|solve|equation|calculus)\b/.test(text)) return 'reasoning';
+  if (/\b(story|poem|creative|fiction|novel|dialogue|screenplay|brainstorm|rewrite|writing|marketing|headline|imaginative|prose)\b/.test(text)) return 'creative';
+  return 'general';
+}
+
+function estimatePromptTokens(prompt) {
+  // Deliberately conservative rough estimate, not a tokenizer.
+  return Math.ceil(prompt.length / 3.5);
+}
+
+function modelFitsPrompt(model, prompt, requestedOutputTokens) {
+  const contextLength = parseNumber(model.context_length);
+  if (!contextLength) return true;
+  const estimatedInput = estimatePromptTokens(prompt);
+  return estimatedInput + Math.min(requestedOutputTokens, contextLength) < contextLength;
+}
+
+function getCombinedPrice(model) {
+  const input = parseNumber(model?.pricing?.prompt);
+  const output = parseNumber(model?.pricing?.completion);
+  if (input === null || output === null) return null;
+  return input + output;
+}
+
+function recencyScore(model) {
+  const created = parseNumber(model.created);
+  if (!created) return 0;
+  const ageDays = Math.max(0, (Date.now() / 1000 - created) / 86400);
+  return Math.max(0, 12 - Math.log2(ageDays + 1) * 1.8);
+}
+
+function promptFitBonus(model, task) {
+  const searchable = `${model.id || ''} ${model.name || ''} ${model.description || ''}`.toLowerCase();
+  let bonus = 0;
+  if (task === 'coding' && /coder|coding|code|programming|devstral|starcoder|codestral/.test(searchable)) bonus += 22;
+  if (task === 'reasoning' && /reason|thinking|deepseek-r1|\br1\b|\bo1\b|\bo3\b|qwq|logic|math/.test(searchable)) bonus += 18;
+  if (task === 'creative' && /creative|writing|narrative|claude|sonnet|opus|command-r/.test(searchable)) bonus += 10;
+  if (task === 'long-context') {
+    const context = parseNumber(model.context_length) || 0;
+    bonus += Math.min(25, Math.log2(Math.max(1, context) / 8192) * 5);
+  }
+  return bonus;
+}
+
+function rankModels(prompt, strategy, requestedOutputTokens) {
+  const task = classifyPrompt(prompt);
+  let candidates = cachedModels.filter(model => modelFitsPrompt(model, prompt, requestedOutputTokens));
+  if (!candidates.length) candidates = [...cachedModels];
+
+  if (strategy === 'newest') {
+    return candidates.sort((a, b) => (parseNumber(b.created) ?? -1) - (parseNumber(a.created) ?? -1));
+  }
+  if (strategy === 'cost') {
+    return candidates.sort((a, b) => {
+      const pa = getCombinedPrice(a);
+      const pb = getCombinedPrice(b);
+      if (pa === null && pb === null) return (a.__intelligenceRank ?? 1e9) - (b.__intelligenceRank ?? 1e9);
+      if (pa === null) return 1;
+      if (pb === null) return -1;
+      return pa - pb;
+    });
+  }
+  if (strategy === 'context') {
+    return candidates.sort((a, b) => (parseNumber(b.context_length) ?? 0) - (parseNumber(a.context_length) ?? 0));
+  }
+  if (strategy === 'intelligence') {
+    return candidates.sort((a, b) => (a.__intelligenceRank ?? 1e9) - (b.__intelligenceRank ?? 1e9));
+  }
+
+  // Prompt-aware local ranking: intelligence order is the baseline; transparent metadata heuristics adjust task fit.
+  return candidates.sort((a, b) => {
+    const score = model => {
+      const rank = model.__intelligenceRank ?? 1000;
+      const base = intelligenceSortUsed
+        ? Math.max(0, 100 - rank * 0.08)
+        : Math.max(0, 20 - rank * 0.02);
+      const fit = promptFitBonus(model, task);
+      const freshness = recencyScore(model) * 0.2;
+      return base + fit + freshness;
+    };
+    return score(b) - score(a);
+  });
+}
+
+function uniqueIds(ids) {
+  const seen = new Set();
+  return ids.filter(id => {
+    if (typeof id !== 'string' || !id.trim()) return false;
+    const clean = id.trim();
+    if (seen.has(clean)) return false;
+    seen.add(clean);
+    return true;
+  }).map(id => id.trim());
+}
+
+function buildExecutionChain(prompt, settings) {
+  const strategy = elements.selectionMode.value;
+  const limit = Number(elements.maxModels.value);
+  const manualIds = parseModelChain().filter(id => id !== 'openrouter/auto');
+
+  if (strategy === 'manual') return uniqueIds(manualIds).slice(0, limit);
+
+  const rankedStrategy = (strategy === 'newest' || strategy === 'cost' || strategy === 'context' || strategy === 'intelligence')
+    ? strategy
+    : 'prompt-aware';
+  const rankedIds = rankModels(prompt, rankedStrategy, settings.maxTokens).map(model => model.id).filter(id => id !== 'openrouter/auto');
+
+  if (strategy === 'auto-router') {
+    // Auto Router chooses the first actual model; direct models are explicit client-side fallbacks.
+    return uniqueIds(['openrouter/auto', ...manualIds, ...rankedIds]).slice(0, limit);
+  }
+  return uniqueIds([...rankedIds, ...manualIds]).slice(0, limit);
+}
 
 function classifyError(error) {
-    if (error.code === 'TIMEOUT') {
-        return {
-            category: 'TIMEOUT',
-            retryable: true,
-            fatal: false
-        };
-    }
+  const message = String(error?.message || '').toLowerCase();
+  if (error?.code === 'TIMEOUT') return { category: 'TIMEOUT', retryable: true, fatal: false };
+  if (error?.code === 'ABORTED' || error?.name === 'AbortError') return { category: 'ABORTED', retryable: false, fatal: true };
+  if (error?.code === 'EMPTY_RESPONSE') return { category: 'EMPTY_RESPONSE', retryable: false, fatal: false };
+  if (error?.code === 'INCOMPLETE_RESPONSE') return { category: 'INCOMPLETE_RESPONSE', retryable: false, fatal: false };
+  if (error?.code === 'INVALID_JSON') return { category: 'INVALID_JSON', retryable: true, fatal: false };
+  if (error?.status === 401) return { category: 'AUTHENTICATION', retryable: false, fatal: true };
+  if (error?.status === 402) return { category: 'PAYMENT_OR_CREDITS', retryable: false, fatal: true };
+  if (error?.status === 403) return { category: 'PERMISSION_OR_MODEL_ACCESS', retryable: false, fatal: false };
+  if (error?.status === 429) return { category: 'RATE_LIMIT', retryable: true, fatal: false };
 
-    if (
-        error.code === 'ABORTED' ||
-        error.name === 'AbortError'
-    ) {
-        return {
-            category: 'ABORTED',
-            retryable: false,
-            fatal: true
-        };
-    }
-
-    if (error.status === 401) {
-        return {
-            category: 'AUTHENTICATION',
-            retryable: false,
-            fatal: true
-        };
-    }
-
-    if (error.status === 403) {
-        return {
-            category: 'PERMISSION',
-            retryable: false,
-            fatal: false
-        };
-    }
-
-    if (error.status === 400 || error.status === 422) {
-        return {
-            category: 'INVALID_REQUEST',
-            retryable: false,
-            fatal: true
-        };
-    }
-
-    if (error.status === 402) {
-        return {
-            category: 'PAYMENT_OR_CREDITS',
-            retryable: false,
-            fatal: false
-        };
-    }
-
-    if (error.status === 429) {
-        return {
-            category: 'RATE_LIMIT',
-            retryable: true,
-            fatal: false
-        };
-    }
-
-    if (
-        error.status === 408 ||
-        error.status === 425 ||
-        error.status === 500 ||
-        error.status === 502 ||
-        error.status === 503 ||
-        error.status === 504
-    ) {
-        return {
-            category: 'TRANSIENT_SERVER_ERROR',
-            retryable: true,
-            fatal: false
-        };
-    }
-
-    if (error.status) {
-        return {
-            category: 'HTTP_ERROR',
-            retryable: false,
-            fatal: false
-        };
-    }
-
-    /*
-     * Browser fetch network failures commonly surface as TypeError.
-     * CORS failures can look similar, so the actual cause might not
-     * be identifiable from browser JavaScript alone.
-     */
-
-    if (error instanceof TypeError) {
-        return {
-            category: 'NETWORK_OR_BROWSER_REQUEST_ERROR',
-            retryable: true,
-            fatal: false
-        };
-    }
-
-    return {
-        category: 'UNKNOWN_ERROR',
-        retryable: false,
-        fatal: false
-    };
+  if (error?.status === 400 || error?.status === 422) {
+    const modelSpecific = /context length|maximum context|too many tokens|model not found|model.*not available|not available.*model|unsupported.*(parameter|token|temperature)|does not support|not supported.*(parameter|token)|provider.*unavailable/.test(message);
+    return modelSpecific
+      ? { category: 'MODEL_SPECIFIC_REQUEST_LIMIT', retryable: false, fatal: false }
+      : { category: 'INVALID_REQUEST', retryable: false, fatal: true };
+  }
+  if (error?.status === 404) return { category: 'MODEL_OR_ENDPOINT_NOT_FOUND', retryable: false, fatal: false };
+  if ([408, 425, 500, 502, 503, 504].includes(error?.status)) return { category: 'TRANSIENT_SERVER_ERROR', retryable: true, fatal: false };
+  if (error?.status) return { category: 'HTTP_ERROR', retryable: false, fatal: false };
+  if (error instanceof TypeError) return { category: 'NETWORK_OR_BROWSER_REQUEST_ERROR', retryable: true, fatal: false };
+  return { category: 'UNKNOWN_ERROR', retryable: false, fatal: false };
 }
 
-/* ---------------------------------------------------------
-   Chat completion
---------------------------------------------------------- */
+function getModelRequestSettings(modelId, settings) {
+  const model = modelById.get(modelId);
+  const supported = Array.isArray(model?.supported_parameters) ? model.supported_parameters : null;
+  const body = {};
 
-async function executeModel(
-    modelId,
-    apiKey,
-    prompt,
-    settings,
-    timeoutMs
-) {
-    const body = {
-        model: modelId,
+  if (!supported || supported.includes('temperature')) body.temperature = settings.temperature;
 
-        messages: [
-            {
-                role: 'user',
-                content: prompt
-            }
-        ],
+  let tokenLimit = settings.maxTokens;
+  const providerLimit = parseNumber(model?.top_provider?.max_completion_tokens);
+  if (providerLimit !== null && providerLimit > 0) tokenLimit = Math.min(tokenLimit, providerLimit);
 
-        temperature: settings.temperature,
-        max_tokens: settings.maxTokens,
-
-        /*
-         * Ask OpenRouter to return an error rather than silently
-         * substituting a different model. This keeps the waterfall
-         * sequence explicit and observable.
-         */
-        provider: {
-            allow_fallbacks: false
-        }
-    };
-
-    const data = await requestJson(
-        `${API_BASE}/chat/completions`,
-        {
-            method: 'POST',
-
-            headers: getAuthHeaders(apiKey, true),
-
-            body: JSON.stringify(body)
-        },
-        timeoutMs
-    );
-
-    const content = data?.choices?.[0]?.message?.content;
-
-    if (
-        typeof content !== 'string' ||
-        content.trim().length === 0
-    ) {
-        const finishReason = data?.choices?.[0]?.finish_reason;
-
-        throw new Error(
-            'Model returned no usable text response' +
-            (finishReason ? ` (finish reason: ${finishReason})` : '') +
-            '.'
-        );
-    }
-
-    return {
-        content,
-        usage: data.usage || null,
-        id: data.id || null,
-        finishReason: data.choices[0].finish_reason || null
-    };
+  if (supported && supported.includes('max_completion_tokens') && !supported.includes('max_tokens')) {
+    body.max_completion_tokens = tokenLimit;
+  } else {
+    body.max_tokens = tokenLimit;
+  }
+  return body;
 }
 
-/* ---------------------------------------------------------
-   Waterfall execution
---------------------------------------------------------- */
+async function executeModel(modelId, apiKey, prompt, settings, timeoutMs) {
+  const body = {
+    model: modelId,
+    messages: [{ role: 'user', content: prompt }],
+    ...getModelRequestSettings(modelId, settings)
+  };
+
+  if (modelId === 'openrouter/auto') {
+    body.cost_tier = elements.costTier.value;
+  } else {
+    // One requested model per client-side step; the page controls cross-model fallback order.
+    body.provider = { allow_fallbacks: false };
+  }
+
+  const data = await requestJson(`${API_BASE}/chat/completions`, {
+    method: 'POST',
+    headers: getAuthHeaders(apiKey, true),
+    body: JSON.stringify(body)
+  }, timeoutMs);
+
+  const choice = data?.choices?.[0];
+  let content = choice?.message?.content;
+  if (Array.isArray(content)) {
+    content = content.map(part => typeof part === 'string' ? part : (typeof part?.text === 'string' ? part.text : '')).join('');
+  }
+  if (typeof content !== 'string' || content.trim().length === 0) {
+    const error = new Error('Model returned no usable text response.');
+    error.code = 'EMPTY_RESPONSE';
+    throw error;
+  }
+
+  const finishReason = choice?.finish_reason || null;
+  return {
+    content,
+    usage: data?.usage || null,
+    id: data?.id || null,
+    finishReason,
+    actualModel: data?.model || modelId,
+    incomplete: finishReason === 'length'
+  };
+}
+
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 async function runWaterfall() {
-    if (executionInProgress || fetchInProgress) {
-        return;
+  if (executionInProgress || fetchInProgress) return;
+
+  const apiKey = getApiKey();
+  const prompt = elements.prompt.value.trim();
+  try {
+    validateApiKey(apiKey);
+  } catch (error) {
+    alert(error.message);
+    log(`API key setup error: ${error.message}`, 'ERROR');
+    return;
+  }
+  if (!prompt) {
+    alert('Please enter a prompt.');
+    return;
+  }
+
+  let settings;
+  try {
+    settings = validateGenerationSettings();
+  } catch (error) {
+    alert(error.message);
+    return;
+  }
+  if (elements.selectionMode.value === 'manual' && parseModelChain().length === 0) {
+    alert('Manual chain mode requires at least one model ID.');
+    return;
+  }
+
+  executionInProgress = true;
+  elements.executeButton.disabled = true;
+  elements.fetchButton.disabled = true;
+  clearLogs();
+  elements.result.textContent = 'Selecting models and starting execution...';
+  elements.successfulModel.textContent = '—';
+  elements.executionTime.textContent = '—';
+  elements.attemptCount.textContent = '0';
+
+  const overallStart = performance.now();
+  const timeoutMs = Number(elements.timeout.value) * 1000;
+  let requestCount = 0;
+  let successful = false;
+  let bestPartial = null;
+
+  try {
+    if (elements.selectionMode.value !== 'manual' && cachedModels.length === 0) {
+      log('No cached model metadata; fetching it automatically before selection.');
+      await fetchModels({ allowDuringExecution: true, silent: true });
     }
 
-    const apiKey = getApiKey();
-    const prompt = elements.prompt.value.trim();
-    const modelChain = parseModelChain();
+    const modelChain = buildExecutionChain(prompt, settings);
+    if (!modelChain.length) throw new Error('No usable models were selected. Fetch models or provide IDs in the manual chain.');
 
-    try {
-        validateApiKey(apiKey);
-    } catch (error) {
-        alert(error.message);
-        log(`Authentication setup error: ${error.message}`, 'ERROR');
-        return;
-    }
+    log(`Prompt category estimate: ${classifyPrompt(prompt)}.`);
+    log(intelligenceSortUsed ? 'Model metadata includes OpenRouter intelligence sorting.' : 'Intelligence sorting was unavailable; local ranking uses a weaker returned-order baseline.', intelligenceSortUsed ? 'INFO' : 'WARN');
+    log(`Selection strategy: ${elements.selectionMode.options[elements.selectionMode.selectedIndex].text}.`);
+    log(`Execution chain (${modelChain.length} model(s)): ${modelChain.join(' → ')}`);
+    log(`Timeout per request: ${timeoutMs / 1000} seconds; overall deadline: ${OVERALL_DEADLINE_MS / 1000} seconds.`);
 
-    if (!prompt) {
-        alert('Please enter a prompt.');
-        return;
-    }
+    for (let modelIndex = 0; modelIndex < modelChain.length; modelIndex++) {
+      const modelId = modelChain[modelIndex];
+      if (performance.now() - overallStart >= OVERALL_DEADLINE_MS) {
+        log('Overall execution deadline reached before the next model.', 'ERROR');
+        break;
+      }
 
-    if (modelChain.length === 0) {
-        alert('Enter at least one model ID or fetch available models.');
-        return;
-    }
+      log(`Trying model ${modelIndex + 1}/${modelChain.length}: ${modelId}`);
+      let gotCompleteResponse = false;
+      let moveToNextModel = false;
 
-    let settings;
-
-    try {
-        settings = validateGenerationSettings();
-    } catch (error) {
-        alert(error.message);
-        return;
-    }
-
-    executionInProgress = true;
-    elements.executeButton.disabled = true;
-    elements.fetchButton.disabled = true;
-
-    clearLogs();
-
-    elements.result.textContent = 'Execution in progress...';
-    elements.successfulModel.textContent = '—';
-    elements.executionTime.textContent = '—';
-    elements.attemptCount.textContent = '0';
-
-    const overallStart = performance.now();
-
-    const timeoutMs =
-        Number(elements.timeout.value) * 1000;
-
-    /*
-     * Bound total runtime as well as per-request runtime.
-     * This prevents a very long chain of slow requests.
-     */
-    const overallDeadlineMs = 180000;
-
-    let success = false;
-    let attempts = 0;
-
-    log('Starting waterfall execution.');
-    log(`Models in chain: ${modelChain.length}`);
-    log(`Timeout per attempt: ${timeoutMs / 1000} seconds.`);
-    log(`Overall execution limit: ${overallDeadlineMs / 1000} seconds.`);
-
-    try {
-        for (let index = 0; index < modelChain.length; index++) {
-            const modelId = modelChain[index];
-
-            if (
-                performance.now() - overallStart >=
-                overallDeadlineMs
-            ) {
-                log(
-                    'Overall execution deadline reached.',
-                    'ERROR'
-                );
-
-                break;
-            }
-
-            attempts++;
-
-            log(
-                `Attempt ${attempts}/${modelChain.length}: ${modelId}`
-            );
-
-            const attemptStart = performance.now();
-
-            /*
-             * Retry a transient error once, then continue to the next
-             * model. Authentication and invalid-request failures stop
-             * the waterfall immediately.
-             */
-            let attemptSucceeded = false;
-
-            for (let retry = 0; retry <= 1; retry++) {
-                try {
-                    const remainingMs =
-                        overallDeadlineMs -
-                        (performance.now() - overallStart);
-
-                    if (remainingMs <= 0) {
-                        throw new Error(
-                            'Overall execution deadline reached.'
-                        );
-                    }
-
-                    const effectiveTimeout = Math.max(
-                        1,
-                        Math.min(timeoutMs, remainingMs)
-                    );
-
-                    const response = await executeModel(
-                        modelId,
-                        apiKey,
-                        prompt,
-                        settings,
-                        effectiveTimeout
-                    );
-
-                    const attemptElapsed =
-                        performance.now() - attemptStart;
-
-                    log(
-                        `Success: ${modelId} in ` +
-                        `${(attemptElapsed / 1000).toFixed(2)} seconds.`,
-                        'SUCCESS'
-                    );
-
-                    elements.result.textContent = response.content;
-
-                    elements.successfulModel.textContent = modelId;
-
-                    elements.executionTime.textContent =
-                        `${((performance.now() - overallStart) / 1000).toFixed(2)} s`;
-
-                    elements.attemptCount.textContent =
-                        String(attempts);
-
-                    if (response.finishReason) {
-                        log(
-                            `Finish reason: ${response.finishReason}`
-                        );
-                    }
-
-                    if (response.usage) {
-                        log(
-                            `Usage: ${JSON.stringify(response.usage)}`
-                        );
-                    }
-
-                    success = true;
-                    attemptSucceeded = true;
-
-                    break;
-
-                } catch (error) {
-                    const classification = classifyError(error);
-
-                    log(
-                        `${classification.category}: ${error.message}`,
-                        'ERROR'
-                    );
-
-                    if (
-                        classification.category === 'NETWORK_OR_BROWSER_REQUEST_ERROR' &&
-                        error.browserHint
-                    ) {
-                        log(error.browserHint, 'ERROR');
-                    }
-
-                    if (classification.category === 'AUTHENTICATION') {
-                        log(
-                            'OpenRouter rejected the authentication header. ' +
-                            'Make sure the field contains the actual OpenRouter key ' +
-                            '(sk-or-v1-...), not an OpenAI key or a key prefixed twice.',
-                            'ERROR'
-                        );
-                    }
-
-                    if (classification.fatal) {
-                        log(
-                            'Stopping because the request cannot be ' +
-                            'fixed by switching models.',
-                            'ERROR'
-                        );
-
-                        throw error;
-                    }
-
-                    if (
-                        classification.retryable &&
-                        retry === 0
-                    ) {
-                        const delayMs = 1000;
-
-                        const remainingMs =
-                            overallDeadlineMs -
-                            (performance.now() - overallStart);
-
-                        if (remainingMs > delayMs + 250) {
-                            log(
-                                `Retrying ${modelId} once after ` +
-                                `${delayMs} ms.`
-                            );
-
-                            await new Promise(resolve =>
-                                setTimeout(resolve, delayMs)
-                            );
-
-                            continue;
-                        }
-                    }
-
-                    log(
-                        `Moving to the next model after ${modelId}.`
-                    );
-
-                    break;
-                }
-            }
-
-            if (attemptSucceeded) {
-                break;
-            }
+      for (let retry = 0; retry <= RETRIES_PER_MODEL; retry++) {
+        const elapsedBeforeRequest = performance.now() - overallStart;
+        const remainingMs = OVERALL_DEADLINE_MS - elapsedBeforeRequest;
+        if (remainingMs <= 0) {
+          log('Overall execution deadline reached.', 'ERROR');
+          moveToNextModel = true;
+          break;
         }
+        const effectiveTimeout = Math.max(1, Math.min(timeoutMs, remainingMs));
+        requestCount++;
+        elements.attemptCount.textContent = String(requestCount);
 
-        if (!success) {
-            elements.result.textContent =
-                'All eligible attempts failed. Review the execution logs.';
+        try {
+          const response = await executeModel(modelId, apiKey, prompt, settings, effectiveTimeout);
+          if (response.incomplete) {
+            log(`${modelId} returned text but finish_reason was "length"; treating it as truncated and trying a fallback.`, 'WARN');
+            if (!bestPartial) bestPartial = { ...response, requestedModel: modelId };
+            moveToNextModel = true;
+            break;
+          }
 
-            log(
-                'Waterfall finished without a successful response.',
-                'ERROR'
-            );
+          const seconds = ((performance.now() - overallStart) / 1000).toFixed(2);
+          log(`Success: requested ${modelId}; actual model ${response.actualModel}; elapsed ${seconds}s.`, 'SUCCESS');
+          elements.result.textContent = response.content;
+          elements.successfulModel.textContent = response.actualModel;
+          if (response.finishReason) log(`Finish reason: ${response.finishReason}`);
+          if (response.usage) log(`Usage: ${JSON.stringify(response.usage)}`);
+          successful = true;
+          gotCompleteResponse = true;
+          break;
+        } catch (error) {
+          const classification = classifyError(error);
+          log(`${classification.category}: ${error.message}`, 'ERROR');
+          if (error.browserHint) log(error.browserHint, 'ERROR');
+
+          if (classification.category === 'AUTHENTICATION') {
+            log('OpenRouter rejected the API key. Verify it is an OpenRouter key and that it has not been revoked.', 'ERROR');
+          }
+          if (classification.fatal) {
+            log('Stopping because this error is unlikely to be fixed by switching models.', 'ERROR');
+            throw error;
+          }
+
+          if (classification.retryable && retry < RETRIES_PER_MODEL) {
+            let delayMs = RETRY_DELAY_MS;
+            if (Number.isFinite(error.retryAfterSeconds) && error.retryAfterSeconds >= 0) {
+              delayMs = Math.min(5000, Math.max(delayMs, error.retryAfterSeconds * 1000));
+            }
+            const availableMs = OVERALL_DEADLINE_MS - (performance.now() - overallStart);
+            if (availableMs > delayMs + 250) {
+              log(`Retrying ${modelId} once after ${delayMs} ms.`);
+              await delay(delayMs);
+              continue;
+            }
+          }
+          log(`Moving to the next model after ${modelId}.`);
+          moveToNextModel = true;
+          break;
         }
+      }
 
-    } catch (error) {
-        elements.result.textContent =
-            `Execution stopped: ${error.message}`;
-
-        log(
-            `Waterfall terminated: ${error.message}`,
-            'ERROR'
-        );
-
-    } finally {
-        const elapsed =
-            (performance.now() - overallStart) / 1000;
-
-        elements.executionTime.textContent =
-            `${elapsed.toFixed(2)} s`;
-
-        elements.attemptCount.textContent = String(attempts);
-
-        executionInProgress = false;
-        elements.executeButton.disabled = false;
-        elements.fetchButton.disabled = false;
-
-        log(`Total execution time: ${elapsed.toFixed(2)} seconds.`);
+      if (gotCompleteResponse) break;
+      if (moveToNextModel) continue;
     }
+
+    if (!successful && bestPartial) {
+      elements.result.textContent = bestPartial.content + '\n\n[Note: This response appears truncated because the model reached its output-token limit. No complete fallback response was available.]';
+      elements.successfulModel.textContent = `${bestPartial.actualModel} (partial)`;
+      log(`No complete answer was returned; displaying the partial response from ${bestPartial.actualModel}.`, 'WARN');
+    } else if (!successful) {
+      elements.result.textContent = 'All eligible model attempts failed. Review the execution logs.';
+      log('Waterfall finished without a usable response.', 'ERROR');
+    }
+  } catch (error) {
+    elements.result.textContent = `Execution stopped: ${error.message}`;
+    log(`Waterfall terminated: ${error.message}`, 'ERROR');
+  } finally {
+    const elapsed = (performance.now() - overallStart) / 1000;
+    elements.executionTime.textContent = `${elapsed.toFixed(2)} s`;
+    elements.attemptCount.textContent = String(requestCount);
+    executionInProgress = false;
+    elements.executeButton.disabled = false;
+    elements.fetchButton.disabled = fetchInProgress;
+    log(`Total execution time: ${elapsed.toFixed(2)} seconds; HTTP requests: ${requestCount}.`);
+  }
 }
 
-/* ---------------------------------------------------------
-   Event listeners
---------------------------------------------------------- */
+function updateSelectionUI() {
+  const isAutoRouter = elements.selectionMode.value === 'auto-router';
+  elements.autoRouterSettings.hidden = !isAutoRouter;
+  elements.modelSortInfo.value = cachedModels.length
+    ? (intelligenceSortUsed ? `Loaded ${cachedModels.length}; API intelligence order available` : `Loaded ${cachedModels.length}; default API order only`)
+    : 'Fetch model metadata when needed';
+}
 
-elements.fetchButton.addEventListener('click', fetchModels);
-
-elements.addSelectedButton.addEventListener(
-    'click',
-    addSelectedModels
-);
-
-elements.executeButton.addEventListener(
-    'click',
-    runWaterfall
-);
-
+elements.fetchButton.addEventListener('click', () => fetchModels());
+elements.addSelectedButton.addEventListener('click', addSelectedModels);
+elements.executeButton.addEventListener('click', runWaterfall);
 elements.clearButton.addEventListener('click', clearLogs);
+elements.modelFilter.addEventListener('input', renderModelList);
+elements.selectionMode.addEventListener('change', updateSelectionUI);
 
-elements.modelFilter.addEventListener(
-    'input',
-    renderModelList
-);
-
-/*
- * Never store the API key in localStorage or sessionStorage.
- * Clearing the field also removes the visible copy.
- */
-window.addEventListener('pagehide', () => {
-    elements.apiKey.value = '';
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') elements.apiKey.value = '';
 });
+window.addEventListener('pagehide', () => { elements.apiKey.value = ''; });
 
-/*
- * Initialize the UI.
- */
-log('Application initialized.');
-log('Enter your OpenRouter API key to begin.');
-
+updateSelectionUI();
+log('Application initialized. API keys are not written to browser storage.');
+log('Default mode: OpenRouter Auto Router first, then ranked direct-model fallbacks.');
 </script>
-
 </body>
 </html>
