@@ -124,9 +124,24 @@
     <div id="modelStatus" class="status" role="status">Enter your API key. Automatic modes fetch model metadata when needed.</div>
 
     <div id="modelBrowser" hidden>
-      <label for="modelFilter">Filter available models</label>
-      <input id="modelFilter" type="search" placeholder="Search model IDs or names...">
-      <p class="help">Select model IDs and add them to the manual chain. Automatic selection still builds its own primary candidates; the manual IDs are used as additional fallbacks.</p>
+      <div class="row">
+        <div>
+          <label for="modelFilter">Search available models</label>
+          <input id="modelFilter" type="search" placeholder="Search model IDs or names...">
+        </div>
+        <div>
+          <label for="modelPricingFilter">Filter by price</label>
+          <select id="modelPricingFilter">
+            <option value="all" selected>All models</option>
+            <option value="free">Free only — $0 input and output</option>
+            <option value="paid">Paid — at least one token price above $0</option>
+            <option value="unknown">Unknown pricing</option>
+          </select>
+        </div>
+      </div>
+      <p id="modelPricingHelp" class="help">Free-price filtering is available when models are fetched from OpenRouter. OpenAI's model-list endpoint does not include pricing metadata.</p>
+      <p id="modelListStatus" class="status" role="status"></p>
+      <p class="help">Select model IDs and add them to the manual chain. To run only the selected free models, choose “Manual chain only” under Model selection strategy after adding them.</p>
       <div id="modelList" class="model-list"></div>
       <button id="addSelectedButton" type="button">Add Selected Models to Manual Chain</button>
     </div>
@@ -195,6 +210,9 @@ const elements = {
   modelStatus: document.getElementById('modelStatus'),
   modelBrowser: document.getElementById('modelBrowser'),
   modelFilter: document.getElementById('modelFilter'),
+  modelPricingFilter: document.getElementById('modelPricingFilter'),
+  modelPricingHelp: document.getElementById('modelPricingHelp'),
+  modelListStatus: document.getElementById('modelListStatus'),
   modelList: document.getElementById('modelList'),
   addSelectedButton: document.getElementById('addSelectedButton'),
   modelChain: document.getElementById('modelChain'),
@@ -213,6 +231,7 @@ const elements = {
 let cachedModels = [];
 let cachedProvider = null;
 let modelById = new Map();
+const selectedModelIds = new Set();
 let intelligenceSortUsed = false;
 let executionInProgress = false;
 let fetchInProgress = false;
@@ -424,6 +443,7 @@ async function fetchModels(options = {}) {
     if (!Array.isArray(data?.data)) throw new Error('Unexpected model-list response: expected a data array.');
 
     const rawModels = data.data.filter(isLikelyChatModel);
+    if (cachedProvider && cachedProvider !== provider) selectedModelIds.clear();
     cachedModels = rawModels.map((model, index) => ({ ...model, __intelligenceRank: index }));
     cachedProvider = provider;
     modelById = new Map(cachedModels.map(model => [model.id, model]));
@@ -930,8 +950,9 @@ elements.addSelectedButton.addEventListener('click', addSelectedModels);
 elements.executeButton.addEventListener('click', runWaterfall);
 elements.clearButton.addEventListener('click', clearLogs);
 elements.modelFilter.addEventListener('input', renderModelList);
+elements.modelPricingFilter.addEventListener('change', renderModelList);
 elements.selectionMode.addEventListener('change', updateSelectionUI);
-elements.apiKey.addEventListener('input', updateSelectionUI);
+elements.apiKey.addEventListener('input', () => { updateSelectionUI(); updatePricingFilterUI(); });
 
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') elements.apiKey.value = '';
@@ -939,6 +960,7 @@ document.addEventListener('visibilitychange', () => {
 window.addEventListener('pagehide', () => { elements.apiKey.value = ''; });
 
 updateSelectionUI();
+updatePricingFilterUI();
 log('Application initialized. API keys are not written to browser storage.');
 log('Provider is detected from the key prefix: sk-or-v1- routes to OpenRouter; sk-proj- routes to OpenAI.');
 </script>
