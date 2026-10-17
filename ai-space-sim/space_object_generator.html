@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Autonomous 3D Space & AI Texture Generator</title>
+  <title>Autonomous 3D Space & AI Texture Generator — Debugged</title>
   <style>
     :root { color-scheme: dark; }
     * { box-sizing: border-box; }
@@ -246,6 +246,56 @@
       return detail ? `HTTP ${response.status}: ${detail}` : `HTTP ${response.status}`;
     }
 
+    // Some browser APIs reject with Event objects rather than Error instances.
+    // Never let those become the unhelpful log message "undefined".
+    function describeError(error, fallback = 'Unknown error (no details supplied by the browser).') {
+      if (error instanceof Error) return error.message || error.name || fallback;
+      if (typeof error === 'string' && error.trim()) return error;
+      if (error && typeof error === 'object') {
+        if (typeof error.message === 'string' && error.message.trim()) return error.message;
+        if (error.type && error.target) return `Browser event error: ${error.type}; image or network resource could not be loaded.`;
+        try {
+          const serialized = JSON.stringify(error);
+          if (serialized && serialized !== '{}') return serialized;
+        } catch (_) { /* ignore unstringifiable error values */ }
+      }
+      return fallback;
+    }
+
+    function loadImageForTexture(imageUrl, timeoutMs = 25000) {
+      return new Promise((resolve, reject) => {
+        const image = new Image();
+        let settled = false;
+        const timeout = setTimeout(() => {
+          if (settled) return;
+          settled = true;
+          image.src = '';
+          reject(new Error(`Image decoding timed out after ${Math.round(timeoutMs / 1000)} seconds.`));
+        }, timeoutMs);
+
+        // Must be set before src for external images so WebGL can safely upload them.
+        if (!/^(data:|blob:)/i.test(imageUrl)) image.crossOrigin = 'anonymous';
+        image.onload = () => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timeout);
+          if (!image.naturalWidth || !image.naturalHeight) {
+            reject(new Error('The returned image loaded but has zero width or height.'));
+            return;
+          }
+          resolve(image);
+        };
+        image.onerror = event => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timeout);
+          const kind = /^(data:|blob:)/i.test(imageUrl) ? 'AI Horde image data' : 'AI Horde image URL';
+          reject(new Error(`The browser could not decode the ${kind}. The response may be truncated, invalid, or blocked by CORS. ${describeError(event, '')}`.trim()));
+        };
+        image.src = imageUrl;
+      });
+    }
+
     function renderModelQueue() {
       const searchText = el.modelFilter.value.trim().toLowerCase();
       const filtered = modelQueue.filter(model => {
@@ -457,27 +507,49 @@
       throw new Error(`Every one of the ${modelQueue.length} waterfall model(s) failed. Last failures: ${sample || 'No detailed error returned.'}`);
     }
 
+    // AI Horde's generations[0].img is usually raw Base64-encoded WebP data,
+    // not a URL. Convert it into a data URI so <img> and Three.js can decode it.
+    function normalizeHordeImage(imageData) {
+      if (typeof imageData !== 'string' || !imageData.trim()) {
+        throw new Error('AI Horde returned an empty image field.');
+      }
+      const value = imageData.trim();
+      if (/^(data:image\/|https?:\/\/|blob:)/i.test(value)) return value;
+
+      const compact = value.replace(/\s+/g, '').replace(/-/g, '+').replace(/_/g, '/');
+      if (/^[A-Za-z0-9+/]+={0,2}$/.test(compact) && compact.length > 100) {
+        const padded = compact + '='.repeat((4 - (compact.length % 4)) % 4);
+        return `data:image/webp;base64,${padded}`;
+      }
+
+      throw new Error('AI Horde returned an unrecognized image format. Expected a WebP Base64 payload or an image URL.');
+    }
+
     async function generateTextureViaAIHorde(texturePrompt) {
       const payload = {
         prompt: `${texturePrompt} ### blurry, low quality, text, watermark`,
         params: { width: 512, height: 512, steps: 20, cfg_scale: 7, n: 1 },
         nsfw: false,
         censor_nsfw: true,
-        r2: true
+        // Ask AI Horde for Base64 WebP to avoid depending on external image-host CORS.
+        r2: false
       };
 
+      log('AI Horde: submitting the texture request (anonymous priority).');
+      setStatus('🎨 Sending texture request to AI Horde…');
       const submitResponse = await fetchWithTimeout(`${HORDE_API_BASE}/generate/async`, {
         method: 'POST',
         headers: {
           'apikey': '0000000000',
-          'Client-Agent': 'SpaceExplorer:1.1:anonymous',
+          'Client-Agent': 'SpaceExplorer:1.2:anonymous',
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(payload)
       }, 25000);
       if (!submitResponse.ok) throw new Error(`AI Horde submit failed: ${await readApiError(submitResponse)}`);
       const submitted = await submitResponse.json();
-      if (!submitted.id) throw new Error(`AI Horde did not return a job ID: ${JSON.stringify(submitted).slice(0, 240)}`);
+      if (!submitted.id) throw new Error(`AI Horde accepted no job ID. Response: ${JSON.stringify(submitted).slice(0, 400)}`);
+      log(`AI Horde accepted job ${submitted.id}. Waiting for an image result…`);
 
       for (let attempt = 0; attempt < 45; attempt += 1) {
         await new Promise(resolve => setTimeout(resolve, 4000));
@@ -485,17 +557,32 @@
         const checkResponse = await fetchWithTimeout(`${HORDE_API_BASE}/generate/check/${encodeURIComponent(submitted.id)}`, {}, 15000);
         if (!checkResponse.ok) throw new Error(`AI Horde status check failed: ${await readApiError(checkResponse)}`);
         const check = await checkResponse.json();
-        if (check.faulted) throw new Error('AI Horde reported that the texture job failed.');
+
+        if (attempt === 0 || (attempt + 1) % 4 === 0) {
+          const queue = Number.isFinite(check.queue_position) ? `; queue position ${check.queue_position}` : '';
+          const waiting = Number.isFinite(check.waiting) ? `; waiting ${check.waiting}` : '';
+          log(`AI Horde status ${attempt + 1}/45: ${check.done ? 'complete' : check.faulted ? 'faulted' : 'processing'}${queue}${waiting}.`);
+        }
+        if (check.faulted) {
+          throw new Error(`AI Horde marked job ${submitted.id} as faulted. ${check.message || check.fault || 'The worker did not provide a reason.'}`);
+        }
         if (!check.done) continue;
 
-        const resultResponse = await fetchWithTimeout(`${HORDE_API_BASE}/generate/status/${encodeURIComponent(submitted.id)}`, {}, 15000);
+        log('AI Horde reports the job is complete; retrieving the full result…');
+        const resultResponse = await fetchWithTimeout(`${HORDE_API_BASE}/generate/status/${encodeURIComponent(submitted.id)}`, {}, 20000);
         if (!resultResponse.ok) throw new Error(`AI Horde result request failed: ${await readApiError(resultResponse)}`);
         const result = await resultResponse.json();
-        const imageUrl = result.generations?.[0]?.img;
-        if (imageUrl) return imageUrl;
-        throw new Error('AI Horde completed the job but did not return an image.');
+        const generation = result.generations?.[0];
+        const imageData = generation?.img;
+        if (!imageData) {
+          throw new Error(`AI Horde completed job ${submitted.id} but returned no image. Result summary: ${JSON.stringify({ done: result.done, faulted: result.faulted, message: result.message, generationsCount: result.generations?.length || 0 }).slice(0, 400)}`);
+        }
+        if (generation.censored) log('Warning: AI Horde marked the returned generation as censored.');
+        const normalized = normalizeHordeImage(imageData);
+        log(`AI Horde returned an image (${normalized.startsWith('data:') ? 'Base64 data URI' : 'image URL'}); validating browser image decoding…`);
+        return normalized;
       }
-      throw new Error('AI Horde texture generation timed out. Try again; anonymous requests may wait longer.');
+      throw new Error(`AI Horde texture generation timed out after about 3 minutes. Job ID: ${submitted.id}. Anonymous requests can wait longer; try again later or use a registered AI Horde key.`);
     }
 
     function setTexturePreview(imageUrl) {
@@ -507,6 +594,9 @@
       img.alt = 'AI-generated celestial texture';
       img.src = imageUrl;
       img.referrerPolicy = 'no-referrer';
+      img.addEventListener('error', event => {
+        log(`Texture preview failed to display: ${describeError(event, 'image error event without a message')}`);
+      }, { once: true });
       el.textureBox.append(label, img);
     }
 
@@ -594,32 +684,57 @@
         setTexturePreview(imageUrl);
         setProgress(72);
 
-        setStatus('🪐 Loading the texture and building the 3D object…');
-        const textureLoader = new THREE.TextureLoader();
-        textureLoader.setCrossOrigin('anonymous');
-        const texture = await textureLoader.loadAsync(imageUrl);
-        texture.colorSpace = THREE.SRGBColorSpace || texture.colorSpace;
-
+        setStatus('🪐 Publishing the 3D object, then validating and applying its texture…');
+        // Publish the mesh to the scene before decoding the texture. If image
+        // decoding fails, the user still sees the object instead of a blank viewport.
         disposeObjectGroup();
         const geometry = new THREE.SphereGeometry(1.8, 64, 64);
+        const validColor = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(String(objDef.color || ''))
+          ? objDef.color : '#8ea6ff';
         const material = new THREE.MeshStandardMaterial({
-          color: 0xffffff,
+          color: validColor,
           roughness: Number.isFinite(Number(objDef.roughness)) ? Math.min(1, Math.max(0, Number(objDef.roughness))) : 0.5,
-          metalness: Number.isFinite(Number(objDef.metalness)) ? Math.min(1, Math.max(0, Number(objDef.metalness))) : 0.1,
-          map: texture
+          metalness: Number.isFinite(Number(objDef.metalness)) ? Math.min(1, Math.max(0, Number(objDef.metalness))) : 0.1
         });
         const mesh = new THREE.Mesh(geometry, material);
         mesh.name = objDef.name || 'Generated celestial object';
         objectGroup.add(mesh);
+        log(`3D object created: ${mesh.name}. Applying texture image…`);
+
+        try {
+          // Publish the mesh first so it remains visible even if image decoding fails.
+          const decodedImage = await loadImageForTexture(imageUrl);
+          log(`Image decoded successfully (${decodedImage.naturalWidth}×${decodedImage.naturalHeight}).`);
+          // Reuse the image already decoded by the browser, avoiding an opaque
+          // TextureLoader event rejection when the image can't be fetched/decoded.
+          const texture = new THREE.Texture(decodedImage);
+          texture.needsUpdate = true;
+          // This page uses Three.js r128, which uses texture.encoding rather than colorSpace.
+          if (THREE.sRGBEncoding !== undefined) texture.encoding = THREE.sRGBEncoding;
+          else if (THREE.SRGBColorSpace && 'colorSpace' in texture) texture.colorSpace = THREE.SRGBColorSpace;
+          material.map = texture;
+          material.color.set(0xffffff); // Let the generated texture's colors show accurately.
+          material.needsUpdate = true;
+          log('Texture successfully decoded and attached to the 3D object.');
+        } catch (textureError) {
+          const message = describeError(textureError, 'Texture assignment failed without a browser error message.');
+          setProgress(100);
+          setStatus(`Object rendered, but the texture could not be applied: ${message}`, 'error');
+          log(`TEXTURE ERROR: ${message}`);
+          log('The sphere remains visible with its fallback material. Check the browser Console for further details.');
+          console.error('Three.js texture loading failed:', textureError);
+          return;
+        }
 
         setProgress(100);
-        setStatus(`✨ Generation complete. Scene instructions came from ${generated.model}; texture and 3D preview are ready.`, 'success');
-        log(`Rendered object: ${mesh.name}.`);
+        setStatus(`✨ Generation complete. Scene instructions came from ${generated.model}; the textured 3D object is ready.`, 'success');
+        log(`Rendered textured object: ${mesh.name}.`);
       } catch (error) {
+        const message = describeError(error, 'The pipeline failed, but the browser supplied no error message. Check F12 → Console and Network.');
         setProgress(0);
-        setStatus(`Generation failed: ${error.message}`, 'error');
-        log(`ERROR: ${error.message}`);
-        console.error(error);
+        setStatus(`Generation failed: ${message}`, 'error');
+        log(`ERROR: ${message}`);
+        console.error('Space generator pipeline failure:', error);
       } finally {
         isGenerating = false;
         el.generateBtn.disabled = false;
