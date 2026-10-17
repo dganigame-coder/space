@@ -720,9 +720,12 @@ async function applyWorldConfig(config, hudStatusEl) {
     // Is it a spiral galaxy?
     const isSpiralGalaxy = geomLower === 'spiral_galaxy' || nameLower.includes('milky way') || nameLower.includes('galaxy') || nameLower.includes('andromeda');
 
+    // Is it a planetary ring or flat disc?
+    const isFlatRing = geomLower === 'ring' || geomLower === 'disk' || geomLower === 'planetary_ring' || geomLower === 'accretion_disk';
+
     // Strict Gaseous & Energy Phenomenon Detection (Excludes normal gas giant planets from plasma warping)
     const isGaseousPhenomenon = isSpiralGalaxy ||
-      ['jet', 'cone', 'accretion_disk', 'shell', 'supernova_shell'].includes(geomLower) ||
+      ['jet', 'cone', 'shell', 'supernova_shell'].includes(geomLower) ||
       nameLower.includes('nebula') || nameLower.includes('filament') || 
       nameLower.includes('plasma cloud') || nameLower.includes('synchrotron') ||
       promptLower.includes('nebula') || promptLower.includes('ionized gas cloud') || 
@@ -735,14 +738,12 @@ async function applyWorldConfig(config, hudStatusEl) {
     }
     speakText(`Materializing celestial component: ${objConfig.name}.`);
 
-    console.log(`%c[ASTROMETRIC LIFECYCLE] 🎨 MATERIALIZING OBJECT [${objConfig.name}] (Galaxy: ${isSpiralGalaxy}, Gaseous: ${isGaseousPhenomenon})`, `color: #fbbf24; font-weight: bold;`);
+    console.log(`%c[ASTROMETRIC LIFECYCLE] 🎨 MATERIALIZING OBJECT [${objConfig.name}] (Galaxy: ${isSpiralGalaxy}, Ring: ${isFlatRing})`, `color: #fbbf24; font-weight: bold;`);
 
     let mesh;
     let finalMaterial;
-    const isFlatRing = geomLower === 'ring' || geomLower === 'disk' || geomLower === 'accretion_disk';
 
     if (isSpiralGalaxy) {
-      // Create glorious procedural spiral galaxy particle system
       mesh = createSpiralGalaxyPoints(objConfig.color || '#38bdf8');
       mesh.frustumCulled = false;
       finalMaterial = mesh.material;
@@ -774,7 +775,6 @@ async function applyWorldConfig(config, hudStatusEl) {
           
           try {
             textureLoader.setCrossOrigin('anonymous');
-            // Staggered delay per index: ensures each texture request is spaced out by 800ms to guarantee high success rate
             const requestDelay = 600 + (index * 800);
             await new Promise(resolve => setTimeout(resolve, requestDelay));
 
@@ -796,8 +796,8 @@ async function applyWorldConfig(config, hudStatusEl) {
           emissive: objConfig.emissive ? new THREE.Color(objConfig.emissiveColor || 0xffaa00) : 0x000000,
           emissiveIntensity: objConfig.emissive ? (objConfig.emissiveIntensity || 0.9) : 0,
           map: loadedTexture || null,
-          side: isFlatRing ? THREE.DoubleSide : THREE.FrontSide,
-          transparent: isFlatRing
+          side: THREE.DoubleSide,
+          transparent: isFlatRing || (loadedTexture ? false : true)
         });
       }
 
@@ -810,10 +810,11 @@ async function applyWorldConfig(config, hudStatusEl) {
       mesh.position.set(...objConfig.position);
     }
 
+    // Correct ring rotation and orientation (give rings a natural planetary tilt like Saturn's ~26.7°)
     if (objConfig.rotation && Array.isArray(objConfig.rotation)) {
       mesh.rotation.set(...objConfig.rotation);
     } else if (isFlatRing) {
-      mesh.rotation.x = Math.PI / 2;
+      mesh.rotation.set(Math.PI / 2.8, 0.2, 0.1); // Natural tilted ring look, prevents rolling coin spin
     }
 
     systemGroup.add(mesh);
@@ -822,24 +823,25 @@ async function applyWorldConfig(config, hudStatusEl) {
       mesh.material = finalMaterial;
     }
 
-    // Keplerian Physics & Spin Calculations with Debug Log verification
+    // Keplerian Physics & Spin Calculations (Rings have zero axial spin so they don't roll like wheels)
     let derivedOrbitalSpeed = objConfig.orbitalSpeed || objConfig.animationSpeed || 0.05;
-    let derivedSpinSpeed = objConfig.animationSpeed || 0.05;
+    let derivedSpinSpeed = isFlatRing ? 0 : (objConfig.animationSpeed || 0.05);
 
     if (objConfig.distance && objConfig.distance > 0) {
       derivedOrbitalSpeed = 0.15 / Math.sqrt(objConfig.distance);
-      derivedSpinSpeed = derivedOrbitalSpeed * 2.5; 
+      if (!isFlatRing) derivedSpinSpeed = derivedOrbitalSpeed * 2.5; 
     }
 
-    console.log(`🔬 [PHYSICS DEBUG] Object: "${objConfig.name}" | Distance: ${objConfig.distance || 0} | Derived Orbital Speed: ${derivedOrbitalSpeed.toFixed(4)} | Derived Spin Speed: ${derivedSpinSpeed.toFixed(4)}`);
+    console.log(`🔬 [PHYSICS DEBUG] Object: "${objConfig.name}" | Ring: ${isFlatRing} | Distance: ${objConfig.distance || 0} | Derived Spin Speed: ${derivedSpinSpeed.toFixed(4)}`);
 
     return {
       mesh: mesh,
-      type: objConfig.animationType || 'spin',
+      type: isFlatRing ? 'orbit' : (objConfig.animationType || 'spin'),
       speed: derivedSpinSpeed,
       orbitalSpeed: derivedOrbitalSpeed,
       distance: objConfig.distance || 0,
-      phaseOffset: Math.random() * Math.PI * 2
+      phaseOffset: Math.random() * Math.PI * 2,
+      isRing: isFlatRing
     };
   });
 
@@ -968,14 +970,17 @@ function setupControls() {
 // --- ANIMATION HANDLERS ---
 const animationHandlers = {
   spin(anim, dt) {
+    if (anim.isRing) return; // Prevent rings from spinning like a wheel on their local axis
     anim.mesh.rotation.y += anim.speed * (dt * 60);
   },
   tumble(anim, dt) {
+    if (anim.isRing) return;
     anim.mesh.rotation.x += anim.speed * 0.7 * (dt * 60);
     anim.mesh.rotation.y += anim.speed * (dt * 60);
     anim.mesh.rotation.z += anim.speed * 0.4 * (dt * 60);
   },
   pulse(anim, time) {
+    if (anim.isRing) return;
     const scale = 1.0 + Math.sin(time * 3.0 * anim.speed) * 0.04;
     anim.mesh.scale.set(scale, scale, scale);
   },
@@ -986,7 +991,9 @@ const animationHandlers = {
       anim.mesh.position.x = Math.cos(angle) * anim.distance;
       anim.mesh.position.z = Math.sin(angle) * anim.distance;
     }
-    anim.mesh.rotation.y += anim.speed * (dt * 60);
+    if (!anim.isRing) {
+      anim.mesh.rotation.y += anim.speed * (dt * 60);
+    }
   }
 };
 
