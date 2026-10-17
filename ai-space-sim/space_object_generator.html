@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gemini 3D Universe & AI Horde Texture Synthesizer</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Three.js & OrbitControls -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #050811;
+      color: #edf4ff;
+      overflow-x: hidden;
+    }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0a1020; }
+    ::-webkit-scrollbar-thumb { background: #263452; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #405680; }
+
+    .glass-panel {
+      background: rgba(12, 19, 39, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glow-effect {
+      box-shadow: 0 0 25px rgba(99, 102, 241, 0.25);
+    }
+    #canvas-container {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 0;
+    }
+    .loader-spinner {
+      border: 3px solid rgba(255,255,255,0.1);
+      border-radius: 50%;
+      border-top: 3px solid #6366f1;
+      width: 24px;
+      height: 24px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body class="h-screen w-screen relative overflow-hidden flex flex-col md:flex-row">
+
+  <!-- 3D Canvas Background Container -->
+  <div id="canvas-container"></div>
+
+  <!-- UI Overlay Controls (Left Sidebar) -->
+  <aside class="relative z-10 w-full md:w-[420px] h-full flex flex-col glass-panel border-r border-slate-800/80 p-5 overflow-y-auto space-y-5">
+    
+    <!-- Title / Header -->
+    <header class="space-y-1">
+      <div class="flex items-center space-x-2">
+        <span class="p-2 bg-indigo-600/30 rounded-lg border border-indigo-500/40 text-indigo-400">
+          <i class="fa-solid fa-cube text-xl"></i>
+        </span>
+        <div>
+          <h1 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300">
+            3D Mesh & Texture AI Studio
+          </h1>
+          <p class="text-xs text-slate-400">Gemini Instructions &rarr; Three.js 3D &rarr; AI Horde Texture</p>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Prompt Input Card -->
+    <section class="bg-slate-900/70 border border-slate-800 rounded-xl p-4 space-y-3">
+      <label for="prompt-input" class="text-xs font-semibold uppercase tracking-wider text-indigo-300 flex items-center justify-between">
+        <span><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Universe / Object Prompt</span>
+      </label>
+      <textarea id="prompt-input" rows="3" class="w-full bg-slate-950/80 border border-slate-700/80 rounded-lg p-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all" placeholder="Describe a celestial body or object (e.g., 'a fiery lava planet with glowing obsidian cracks orbiting a dying red giant star inside a cosmic nebula')...">a fiery molten lava planet with glowing volcanic ridges, surrounded by crystalline asteroid rings orbiting a deep blue gas giant star</textarea>
+      
+      <!-- Action Buttons -->
+      <div class="flex items-center space-x-2 pt-1">
+        <button id="generate-btn" class="flex-1 py-2.5 px-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold rounded-lg text-sm transition-all shadow-lg shadow-indigo-600/30 flex items-center justify-center space-x-2">
+          <i class="fa-solid fa-rocket" id="btn-icon"></i>
+          <span id="btn-text">Generate 3D Object & Texture</span>
+        </button>
+        <button id="reset-cam-btn" title="Reset Camera View" class="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition-all">
+          <i class="fa-solid fa-arrows-to-eye"></i>
+        </button>
+      </div>
+    </section>
+
+    <!-- Generation Pipeline Status -->
+    <section class="bg-slate-900/50 border border-slate-800/80 rounded-xl p-4 space-y-3">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-300"><i class="fa-solid fa-diagram-project text-indigo-400 mr-1.5"></i> Synthesis Pipeline</h2>
+        <span id="status-badge" class="px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-slate-800 text-slate-400 border border-slate-700">Idle</span>
+      </div>
+
+      <!-- Step Indicators -->
+      <div class="space-y-2 text-xs">
+        <!-- Step 1: Gemini Translation -->
+        <div class="flex items-center justify-between p-2 rounded-lg bg-slate-950/40 border border-slate-800/50" id="step-1-box">
+          <div class="flex items-center space-x-2">
+            <span class="w-5 h-5 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center text-[10px] font-bold" id="step-1-num">1</span>
+            <span class="text-slate-300">Gemini 3D Structure Translation</span>
+          </div>
+          <span class="text-slate-500" id="step-1-status"><i class="fa-solid fa-minus"></i></span>
+        </div>
+
+        <!-- Step 2: Three.js Geometry Construction -->
+        <div class="flex items-center justify-between p-2 rounded-lg bg-slate-950/40 border border-slate-800/50" id="step-2-box">
+          <div class="flex items-center space-x-2">
+            <span class="w-5 h-5 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center text-[10px] font-bold" id="step-2-num">2</span>
+            <span class="text-slate-300">Procedural 3D Mesh Construction</span>
+          </div>
+          <span class="text-slate-500" id="step-2-status"><i class="fa-solid fa-minus"></i></span>
+        </div>
+
+        <!-- Step 3: AI Horde Texture Generation -->
+        <div class="flex items-center justify-between p-2 rounded-lg bg-slate-950/40 border border-slate-800/50" id="step-3-box">
+          <div class="flex items-center space-x-2">
+            <span class="w-5 h-5 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center text-[10px] font-bold" id="step-3-num">3</span>
+            <span class="text-slate-300">AI Horde Texture Rendering</span>
+          </div>
+          <span class="text-slate-500" id="step-3-status"><i class="fa-solid fa-minus"></i></span>
+        </div>
+      </div>
+
+      <!-- Live Status Text & Progress Bar -->
+      <div class="space-y-1.5 pt-1">
+        <div class="flex justify-between text-[11px] text-slate-400">
+          <span id="pipeline-status-text">Ready to transform prompt into 3D structure.</span>
+          <span id="pipeline-percent">0%</span>
+        </div>
+        <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+          <div id="pipeline-bar" class="bg-gradient-to-r from-indigo-500 to-purple-500 h-full w-0 transition-all duration-300"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Advanced Settings Collapsible -->
+    <details class="bg-slate-900/50 border border-slate-800/80 rounded-xl p-3 text-xs text-slate-300 group">
+      <summary class="font-semibold cursor-pointer flex items-center justify-between select-none list-none">
+        <span><i class="fa-solid fa-sliders text-indigo-400 mr-1.5"></i> Horde & Texture Parameters</span>
+        <i class="fa-solid fa-chevron-down group-open:rotate-180 transition-transform"></i>
+      </summary>
+      <div class="space-y-3 pt-3 border-t border-slate-800 mt-3">
+        <div>
+          <label class="block mb-1 text-slate-400">AI Horde Model Focus</label>
+          <input type="text" id="horde-model" placeholder="Leave blank for auto / default" value="" class="w-full bg-slate-950 border border-slate-700/80 rounded p-1.5 text-slate-200" />
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block mb-1 text-slate-400">Texture Size</label>
+            <select id="horde-size" class="w-full bg-slate-950 border border-slate-700/80 rounded p-1.5 text-slate-200">
+              <option value="512" selected>512 x 512</option>
+              <option value="768">768 x 768</option>
+            </select>
+          </div>
+          <div>
+            <label class="block mb-1 text-slate-400">Sampling Steps</label>
+            <select id="horde-steps" class="w-full bg-slate-950 border border-slate-700/80 rounded p-1.5 text-slate-200">
+              <option value="15">15 (Fast)</option>
+              <option value="20" selected>20 (Balanced)</option>
+              <option value="30">30 (High Quality)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <!-- Active Object Parameter Inspection / Gemini Output JSON -->
+    <section class="flex-1 bg-slate-900/50 border border-slate-800/80 rounded-xl p-4 flex flex-col min-h-[220px] overflow-hidden">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2 mb-2">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-300"><i class="fa-solid fa-code text-indigo-400 mr-1.5"></i> Translated 3D Schema</h2>
+        <span id="object-type-tag" class="text-[10px] bg-indigo-950 text-indigo-300 px-2 py-0.5 rounded border border-indigo-800/60 font-mono">Sphere Object</span>
+      </div>
+      
+      <!-- Texture Preview & JSON Tabs -->
+      <div class="flex-1 flex flex-col overflow-hidden space-y-2">
+        <div class="grid grid-cols-3 gap-2 text-center text-[10px]">
+          <div class="p-2 bg-slate-950/60 rounded border border-slate-800">
+            <span class="block text-slate-500 uppercase">Roughness</span>
+            <span id="param-roughness" class="font-mono text-slate-200 font-bold">0.40</span>
+          </div>
+          <div class="p-2 bg-slate-950/60 rounded border border-slate-800">
+            <span class="block text-slate-500 uppercase">Metalness</span>
+            <span id="param-metalness" class="font-mono text-slate-200 font-bold">0.10</span>
+          </div>
+          <div class="p-2 bg-slate-950/60 rounded border border-slate-800">
+            <span class="block text-slate-500 uppercase">Emissive</span>
+            <span id="param-emissive" class="font-mono text-slate-200 font-bold">0.80</span>
+          </div>
+        </div>
+
+        <div class="flex-1 bg-slate-950/90 rounded-lg p-2 font-mono text-[11px] text-indigo-300/90 overflow-y-auto border border-slate-800" id="json-viewer-container">
+          <pre id="json-viewer" class="whitespace-pre-wrap leading-tight">// Translated 3D geometry JSON will appear here after prompt analysis...</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer Info -->
+    <footer class="text-[11px] text-slate-500 flex justify-between items-center pt-1 border-t border-slate-800/60">
+      <span>Powered by Gemini & AI Horde</span>
+      <span>Three.js Visualizer</span>
+    </footer>
+  </aside>
+
+  <!-- Right Floating Texture Overlay Card -->
+  <main class="absolute top-4 right-4 z-10 hidden md:block">
+    <div class="glass-panel p-3 rounded-xl border border-slate-800 space-y-2 w-48 shadow-xl">
+      <div class="flex items-center justify-between">
+        <span class="text-[11px] font-bold text-slate-300 uppercase tracking-wider"><i class="fa-solid fa-image text-indigo-400 mr-1"></i> Active Texture</span>
+        <span id="texture-type-tag" class="text-[9px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded">Procedural</span>
+      </div>
+      <div class="w-full h-36 bg-slate-950 rounded-lg overflow-hidden border border-slate-800 relative group flex items-center justify-center">
+        <img id="texture-preview-img" src="" alt="Texture Preview" class="w-full h-full object-cover hidden" />
+        <canvas id="fallback-texture-canvas" class="w-full h-full object-cover"></canvas>
+        <div class="absolute inset-0 bg-slate-900/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-2 text-center text-[10px] text-slate-200">
+          Texture dynamically mapped onto 3D Sphere geometry
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Three.js App Logic -->
+  <script>
+    (() => {
+      "use strict";
+
+      // AI Horde API configuration constants
+      const HORDE_API_BASE = "https://aihorde.net/api/v2";
+      const ANONYMOUS_API_KEY = "0000000000";
+      const CLIENT_AGENT = "ThreeJSGeminiHordeStudio:v1.0:demo";
+
+      // State Management
+      let scene, camera, renderer, controls;
+      let primaryObjectMesh, secondaryStarMesh, ringMesh, particleSystem;
+      let currentMaterial;
+      let isGenerating = false;
+      let activeHordeRequestId = null;
+
+      // UI Element Bindings
+      const promptInput = document.getElementById("prompt-input");
+      const generateBtn = document.getElementById("generate-btn");
+      const btnText = document.getElementById("btn-text");
+      const btnIcon = document.getElementById("btn-icon");
+      const resetCamBtn = document.getElementById("reset-cam-btn");
+      const statusBadge = document.getElementById("status-badge");
+      const pipelineStatusText = document.getElementById("pipeline-status-text");
+      const pipelinePercent = document.getElementById("pipeline-percent");
+      const pipelineBar = document.getElementById("pipeline-bar");
+      
+      const step1Box = document.getElementById("step-1-box");
+      const step1Status = document.getElementById("step-1-status");
+      const step2Box = document.getElementById("step-2-box");
+      const step2Status = document.getElementById("step-2-status");
+      const step3Box = document.getElementById("step-3-box");
+      const step3Status = document.getElementById("step-3-status");
+
+      const paramRoughness = document.getElementById("param-roughness");
+      const paramMetalness = document.getElementById("param-metalness");
+      const paramEmissive = document.getElementById("param-emissive");
+      const jsonViewer = document.getElementById("json-viewer");
+      const objectTypeTag = document.getElementById("object-type-tag");
+      const textureTypeTag = document.getElementById("texture-type-tag");
+      const texturePreviewImg = document.getElementById("texture-preview-img");
+      const fallbackCanvas = document.getElementById("fallback-texture-canvas");
+
+      // ==========================================
+      // 1. THREE.JS SCENE INITIALIZATION & SETUP
+      // ==========================================
+      function initThreeJS() {
+        const container = document.getElementById("canvas-container");
+        
+        // Scene setup
+        scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x050811, 0.015);
+
+        // Camera setup
+        camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 2, 8);
+
+        // WebGL Renderer
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
+        container.appendChild(renderer.domElement);
+
+        // OrbitControls
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.maxDistance = 50;
+        controls.minDistance = 2;
+
+        // Ambient Light
+        const ambientLight = new THREE.AmbientLight(0x223355, 0.8);
+        scene.add(ambientLight);
+
+        // Directional Sun Light
+        const sunLight = new THREE.DirectionalLight(0xffffff, 2.5);
+        sunLight.position.set(10, 10, 10);
+        scene.add(sunLight);
+
+        // Point Light for local atmospheric glow
+        const pointLight = new THREE.PointLight(0x6366f1, 3, 20);
+        pointLight.position.set(-5, 3, -5);
+        scene.add(pointLight);
+
+        // Create Starfield Background Particles
+        createStarfield();
+
+        // Create initial default planet scene
+        createDefaultProceduralScene();
+
+        // Window Resize Listener
+        window.addEventListener("resize", onWindowResize);
+
+        // Start Animation Loop
+        animate();
+      }
+
+      function createStarfield() {
+        const particleCount = 2500;
+        const geometry = new THREE.BufferGeometry();
+        const positions = new Float32Array(particleCount * 3);
+        const colors = new Float32Array(particleCount * 3);
+
+        for (let i = 0; i < particleCount * 3; i += 3) {
+          positions[i] = (Math.random() - 0.5) * 120;
+          positions[i + 1] = (Math.random() - 0.5) * 120;
+          positions[i + 2] = (Math.random() - 0.5) * 120;
+
+          colors[i] = 0.6 + Math.random() * 0.4;
+          colors[i + 1] = 0.7 + Math.random() * 0.3;
+          colors[i + 2] = 1.0;
+        }
+
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+        const material = new THREE.PointsMaterial({
+          size: 0.15,
+          vertexColors: true,
+          transparent: true,
+          opacity: 0.8
+        });
+
+        particleSystem = new THREE.Points(geometry, material);
+        scene.add(particleSystem);
+      }
+
+      function createDefaultProceduralScene() {
+        // Generate initial fallback procedural noise texture on canvas
+        const defaultCanvasTexture = generateProceduralCanvasTexture("#ff4500", "#1a0500", "Lava World");
+        
+        // Geometry & Material
+        const geometry = new THREE.SphereGeometry(1.8, 64, 64);
+        const canvasTex = new THREE.CanvasTexture(defaultCanvasTexture);
+        canvasTex.wrapS = THREE.RepeatWrapping;
+        canvasTex.wrapT = THREE.RepeatWrapping;
+
+        currentMaterial = new THREE.MeshStandardMaterial({
+          map: canvasTex,
+          roughness: 0.4,
+          metalness: 0.2,
+          bumpMap: canvasTex,
+          bumpScale: 0.05
+        });
+
+        primaryObjectMesh = new THREE.Mesh(geometry, currentMaterial);
+        scene.add(primaryObjectMesh);
+
+        // Add secondary surrounding star/sun
+        const starGeom = new THREE.SphereGeometry(3, 32, 32);
+        const starMat = new THREE.MeshBasicMaterial({ color: 0x3b82f6 });
+        secondaryStarMesh = new THREE.Mesh(starGeom, starMat);
+        secondaryStarMesh.position.set(-18, 8, -20);
+        scene.add(secondaryStarMesh);
+
+        // Add rings
+        createRings(2.4, 3.8, 0x818cf8);
+      }
+
+      function createRings(innerRadius, outerRadius, colorHex) {
+        if (ringMesh) scene.remove(ringMesh);
+        
+        const geometry = new THREE.RingGeometry(innerRadius, outerRadius, 64);
+        // Rotate geometry UVs so texture wraps correctly along circumference
+        const pos = geometry.attributes.position;
+        const v3 = new THREE.Vector3();
+        for (let i = 0; i < pos.count; i++) {
+          v3.fromBufferAttribute(pos, i);
+          geometry.attributes.uv.setXY(i, v3.length() < (innerRadius + outerRadius) / 2 ? 0 : 1, 1);
+        }
+
+        const material = new THREE.MeshStandardMaterial({
+          color: colorHex,
+          side: THREE.DoubleSide,
+          transparent: true,
+          opacity: 0.7,
+          roughness: 0.3
+        });
+
+        ringMesh = new THREE.Mesh(geometry, material);
+        ringMesh.rotation.x = Math.PI / 2.3;
+        scene.add(ringMesh);
+      }
+
+      function animate() {
+        requestAnimationFrame(animate);
+
+        // Rotate main mesh
+        if (primaryObjectMesh) {
+          primaryObjectMesh.rotation.y += 0.003;
+          primaryObjectMesh.rotation.x += 0.0005;
+        }
+
+        // Rotate rings slowly
+        if (ringMesh) {
+          ringMesh.rotation.z -= 0.001;
+        }
+
+        // Rotate particles field
+        if (particleSystem) {
+          particleSystem.rotation.y += 0.0002;
+        }
+
+        controls.update();
+        renderer.render(scene, camera);
+      }
+
+      function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      }
+
+      // ==========================================
+      // 2. GEMINI 3 FLASH STRUCTURAL TRANSLATOR
+      // ==========================================
+      async function translatePromptWithGemini(userPrompt) {
+        updateStepUI(1, "loading", "Translating natural prompt into 3D JSON structure...");
+        updateProgress(15, "Connecting to Gemini 3 Flash API...");
+
+        const systemInstruction = `You are a 3D Graphics Architect AI. Your task is to analyze natural language descriptions and translate them into structured JSON metadata used to construct 3D Three.js scenes and synthesize optimized seamless textures via AI Horde.
+Return ONLY valid JSON matching this exact schema:
+{
+  "objectType": "planet" | "asteroid" | "crystal" | "star",
+  "radius": number (range 1.0 to 2.5),
+  "primaryColor": "hex string (e.g. #ff3300)",
+  "secondaryColor": "hex string",
+  "roughness": number (range 0.0 to 1.0),
+  "metalness": number (range 0.0 to 1.0),
+  "emissiveIntensity": number (range 0.0 to 1.0),
+  "hasRings": boolean,
+  "ringInnerRadius": number (range 2.0 to 2.5),
+  "ringOuterRadius": number (range 3.0 to 4.5),
+  "ringColor": "hex string",
+  "starColor": "hex string",
+  "texturePrompt": "Optimized seamless texture map prompt for Stable Diffusion / AI Horde describing surface patterns, macro details, height map, no lighting or shading (e.g. 'seamless texture map of molten volcanic lava crust, obsidian veins, glowing yellow cracks, top-down 8k game texture')"
+}`;
+
+        const payload = {
+          contents: [{ parts: [{ text: `Analyze prompt and generate 3D parameters: "${userPrompt}"` }] }],
+          generationConfig: {
+            responseMimeType: "application/json"
+          },
+          systemInstruction: { parts: [{ text: systemInstruction }] }
+        };
+
+        const apiKey = ""; // Canvas provides runtime API key seamlessly
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+        // Exponential backoff fetch function
+        let response, result;
+        let delay = 1000;
+        for (let attempt = 0; attempt < 3; attempt++) {
+          try {
+            response = await fetch(apiUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+            if (response.ok) break;
+          } catch (e) {
+            console.warn(`Gemini attempt ${attempt + 1} failed, retrying...`);
+          }
+          await new Promise(r => setTimeout(r, delay));
+          delay *= 2;
+        }
+
+        if (!response || !response.ok) {
+          throw new Error("Failed to communicate with Gemini API.");
+        }
+
+        result = await response.json();
+        const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+        
+        if (!jsonText) {
+          throw new Error("Invalid response format received from Gemini.");
+        }
+
+        const parsed3DData = JSON.parse(jsonText);
+        updateStepUI(1, "success", "Gemini 3D Structure parsed successfully!");
+        return parsed3DData;
+      }
+
+      // ==========================================
+      // 3. THREE.JS PROCEDURAL MESH GENERATION
+      // ==========================================
+      function update3DObjectFromSchema(schema) {
+        updateStepUI(2, "loading", "Constructing Three.js 3D Geometry & Material...");
+        updateProgress(40, "Building procedural meshes...");
+
+        // Update JSON Inspector
+        jsonViewer.textContent = JSON.stringify(schema, null, 2);
+        objectTypeTag.textContent = (schema.objectType || "Sphere").toUpperCase();
+        paramRoughness.textContent = (schema.roughness ?? 0.4).toFixed(2);
+        paramMetalness.textContent = (schema.metalness ?? 0.1).toFixed(2);
+        paramEmissive.textContent = (schema.emissiveIntensity ?? 0.2).toFixed(2);
+
+        // 1. Create Canvas Fallback Texture immediately while waiting for AI Horde
+        const canvasTex = generateProceduralCanvasTexture(
+          schema.primaryColor || "#ff4500",
+          schema.secondaryColor || "#110022",
+          schema.texturePrompt || "Surface Map"
+        );
+        const texture3D = new THREE.CanvasTexture(canvasTex);
+        texture3D.wrapS = THREE.RepeatWrapping;
+        texture3D.wrapT = THREE.RepeatWrapping;
+
+        // 2. Re-create or update primary Mesh
+        if (primaryObjectMesh) scene.remove(primaryObjectMesh);
+
+        let geometry;
+        const rad = schema.radius || 1.8;
+        if (schema.objectType === "crystal") {
+          geometry = new THREE.IcosahedronGeometry(rad, 1);
+        } else if (schema.objectType === "asteroid") {
+          geometry = new THREE.DodecahedronGeometry(rad, 2);
+          // Distort vertices slightly for rough asteroid shape
+          const pos = geometry.attributes.position;
+          for (let i = 0; i < pos.count; i++) {
+            pos.setXYZ(
+              i,
+              pos.getX(i) * (0.85 + Math.random() * 0.3),
+              pos.getY(i) * (0.85 + Math.random() * 0.3),
+              pos.getZ(i) * (0.85 + Math.random() * 0.3)
+            );
+          }
+          geometry.computeVertexNormals();
+        } else {
+          geometry = new THREE.SphereGeometry(rad, 64, 64);
+        }
+
+        currentMaterial = new THREE.MeshStandardMaterial({
+          map: texture3D,
+          bumpMap: texture3D,
+          bumpScale: 0.06,
+          roughness: schema.roughness ?? 0.4,
+          metalness: schema.metalness ?? 0.1,
+          emissive: new THREE.Color(schema.primaryColor || "#330000"),
+          emissiveIntensity: (schema.emissiveIntensity ?? 0.2) * 0.5
+        });
+
+        primaryObjectMesh = new THREE.Mesh(geometry, currentMaterial);
+        scene.add(primaryObjectMesh);
+
+        // 3. Update Secondary Star
+        if (secondaryStarMesh) {
+          secondaryStarMesh.material.color.set(schema.starColor || "#3b82f6");
+        }
+
+        // 4. Update Rings
+        if (schema.hasRings) {
+          createRings(
+            schema.ringInnerRadius || rad + 0.6,
+            schema.ringOuterRadius || rad + 1.8,
+            schema.ringColor || schema.primaryColor || "#818cf8"
+          );
+        } else if (ringMesh) {
+          scene.remove(ringMesh);
+          ringMesh = null;
+        }
+
+        updateStepUI(2, "success", "3D Procedural Mesh updated.");
+        textureTypeTag.textContent = "Canvas Fallback";
+      }
+
+      // Helper: Generate procedural pattern on canvas as initial texture
+      function generateProceduralCanvasTexture(col1Hex, col2Hex, label) {
+        fallbackCanvas.width = 512;
+        fallbackCanvas.height = 512;
+        const ctx = fallbackCanvas.getContext('2d');
+
+        // Background gradient
+        const grad = ctx.createLinearGradient(0, 0, 512, 512);
+        grad.addColorStop(0, col1Hex);
+        grad.addColorStop(1, col2Hex);
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 512, 512);
+
+        // Add procedural noise / noise spots
+        for (let i = 0; i < 400; i++) {
+          const x = Math.random() * 512;
+          const y = Math.random() * 512;
+          const r = Math.random() * 40 + 5;
+          ctx.beginPath();
+          ctx.arc(x, y, r, 0, Math.PI * 2);
+          ctx.fillStyle = (i % 2 === 0) ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.15)";
+          ctx.fill();
+        }
+
+        // Add subtle grid overlay to represent texture UV bounds
+        ctx.strokeStyle = "rgba(255,255,255,0.04)";
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 512; i += 32) {
+          ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 512); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(512, i); ctx.stroke();
+        }
+
+        texturePreviewImg.classList.add("hidden");
+        fallbackCanvas.classList.remove("hidden");
+
+        return fallbackCanvas;
+      }
+
+      // ==========================================
+      // 4. AI HORDE TEXTURE GENERATION PIPELINE
+      // ==========================================
+      async function generateHordeTexture(texturePrompt) {
+        updateStepUI(3, "loading", "Submitting texture request to AI Horde...");
+        updateProgress(55, "Dispatching prompt to AI Horde workers...");
+
+        const size = parseInt(document.getElementById("horde-size").value) || 512;
+        const steps = parseInt(document.getElementById("horde-steps").value) || 20;
+        const model = document.getElementById("horde-model").value.trim();
+
+        // Enforce seamless texture keywords in prompt
+        const finalPrompt = `seamless texture map, top-down view, isotropic pattern, ${texturePrompt}, high resolution, game asset 8k texture`;
+
+        const payload = {
+          prompt: finalPrompt,
+          params: {
+            width: size,
+            height: size,
+            steps: steps,
+            cfg_scale: 7.5,
+            n: 1
+          },
+          nsfw: false,
+          censor_nsfw: true,
+          r2: true,
+          slow_workers: true
+        };
+
+        if (model) payload.models = [model];
+
+        // Submit async request
+        const submitRes = await fetch(`${HORDE_API_BASE}/generate/async`, {
+          method: "POST",
+          headers: {
+            "apikey": ANONYMOUS_API_KEY,
+            "Client-Agent": CLIENT_AGENT,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!submitRes.ok) {
+          const errData = await submitRes.json().catch(() => ({}));
+          throw new Error(`AI Horde HTTP ${submitRes.status}: ${errData.message || 'Submission failed'}`);
+        }
+
+        const submitData = await submitRes.json();
+        if (!submitData.id) {
+          throw new Error("AI Horde did not return a valid task ID.");
+        }
+
+        activeHordeRequestId = submitData.id;
+        updateProgress(65, `Task ID: ${activeHordeRequestId.substring(0,8)}... Polling queue...`);
+
+        // Poll AI Horde status
+        const maxAttempts = 40; // ~2 minutes max
+        let finished = false;
+
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+          await new Promise(r => setTimeout(r, 3000));
+
+          const checkRes = await fetch(`${HORDE_API_BASE}/generate/check/${activeHordeRequestId}`, {
+            headers: { "Client-Agent": CLIENT_AGENT }
+          });
+
+          if (!checkRes.ok) continue;
+          const checkData = await checkRes.json();
+
+          if (checkData.faulted) {
+            throw new Error("AI Horde marked generation request as faulted.");
+          }
+
+          if (checkData.done || (checkData.finished && checkData.finished > 0)) {
+            finished = true;
+            break;
+          }
+
+          const queuePos = checkData.queue_position ?? "?";
+          const waitSec = checkData.wait_time ?? "?";
+          const pVal = Math.min(92, 65 + Math.floor((attempt / maxAttempts) * 25));
+          
+          updateProgress(pVal, `AI Horde Queue Position: ${queuePos} (Est. ${waitSec}s)`);
+        }
+
+        if (!finished) {
+          throw new Error("AI Horde polling timed out. Using canvas procedural fallback texture.");
+        }
+
+        // Retrieve result
+        updateProgress(93, "Retrieving generated AI texture...");
+        const statusRes = await fetch(`${HORDE_API_BASE}/generate/status/${activeHordeRequestId}`, {
+          headers: { "Client-Agent": CLIENT_AGENT }
+        });
+
+        if (!statusRes.ok) throw new Error("Failed to fetch final image status from AI Horde.");
+        const statusData = await statusRes.json();
+
+        const generation = statusData.generations?.[0];
+        if (!generation || !generation.img) {
+          throw new Error("No displayable image payload returned by AI Horde.");
+        }
+
+        // Format Image Source
+        let imgSrc = generation.img;
+        if (!/^https?:|^data:/i.test(imgSrc)) {
+          imgSrc = "data:image/webp;base64," + imgSrc;
+        }
+
+        // Apply texture to Three.js Object
+        applyTextureToMaterial(imgSrc);
+      }
+
+      function applyTextureToMaterial(imageSrc) {
+        updateProgress(98, "Applying AI texture map to Three.js 3D Mesh...");
+
+        const textureLoader = new THREE.TextureLoader();
+        textureLoader.load(
+          imageSrc,
+          (loadedTex) => {
+            loadedTex.wrapS = THREE.RepeatWrapping;
+            loadedTex.wrapT = THREE.RepeatWrapping;
+            
+            // Update 3D Material
+            currentMaterial.map = loadedTex;
+            currentMaterial.bumpMap = loadedTex;
+            currentMaterial.bumpScale = 0.08;
+            currentMaterial.needsUpdate = true;
+
+            // Update UI Sidebar Overlay
+            texturePreviewImg.src = imageSrc;
+            texturePreviewImg.classList.remove("hidden");
+            fallbackCanvas.classList.add("hidden");
+            textureTypeTag.textContent = "AI Horde SD";
+
+            updateStepUI(3, "success", "AI Horde Texture loaded!");
+            updateProgress(100, "Synthesis Complete!");
+            setStatusBadge("Active", "success");
+            finishGeneratingState();
+          },
+          undefined,
+          (err) => {
+            console.error("Texture loading error:", err);
+            updateStepUI(3, "error", "Failed to decode texture image.");
+            finishGeneratingState();
+          }
+        );
+      }
+
+      // ==========================================
+      // 5. UI PIPELINE & CONTROLLER FUNCTIONS
+      // ==========================================
+      async function runPipeline() {
+        if (isGenerating) return;
+        const prompt = promptInput.value.trim();
+        if (!prompt) return;
+
+        isGenerating = true;
+        setGeneratingState(true);
+        resetPipelineUI();
+
+        try {
+          // Step 1: Gemini Translation
+          const schema = await translatePromptWithGemini(prompt);
+
+          // Step 2: Three.js Geometry Setup
+          update3DObjectFromSchema(schema);
+
+          // Step 3: AI Horde Texture Generation
+          await generateHordeTexture(schema.texturePrompt || prompt);
+
+        } catch (error) {
+          console.error("Pipeline Error:", error);
+          updateProgress(100, `Pipeline Note: ${error.message}`);
+          setStatusBadge("Warning", "warning");
+          finishGeneratingState();
+        }
+      }
+
+      function updateProgress(percent, statusMsg) {
+        pipelinePercent.textContent = `${percent}%`;
+        pipelineBar.style.width = `${percent}%`;
+        pipelineStatusText.textContent = statusMsg;
+      }
+
+      function updateStepUI(stepNum, state, text) {
+        const box = document.getElementById(`step-${stepNum}-box`);
+        const numSpan = document.getElementById(`step-${stepNum}-num`);
+        const statusSpan = document.getElementById(`step-${stepNum}-status`);
+
+        box.className = "flex items-center justify-between p-2 rounded-lg transition-all border ";
+
+        if (state === "loading") {
+          box.classList.add("bg-indigo-950/40", "border-indigo-700/60");
+          numSpan.className = "w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[10px] font-bold animate-pulse";
+          statusSpan.innerHTML = `<div class="loader-spinner"></div>`;
+        } else if (state === "success") {
+          box.classList.add("bg-emerald-950/30", "border-emerald-700/50");
+          numSpan.className = "w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-bold";
+          statusSpan.innerHTML = `<i class="fa-solid fa-check text-emerald-400"></i>`;
+        } else if (state === "error") {
+          box.classList.add("bg-rose-950/30", "border-rose-700/50");
+          numSpan.className = "w-5 h-5 rounded-full bg-rose-600 text-white flex items-center justify-center text-[10px] font-bold";
+          statusSpan.innerHTML = `<i class="fa-solid fa-xmark text-rose-400"></i>`;
+        } else {
+          box.classList.add("bg-slate-950/40", "border-slate-800/50");
+          numSpan.className = "w-5 h-5 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center text-[10px] font-bold";
+          statusSpan.innerHTML = `<i class="fa-solid fa-minus text-slate-600"></i>`;
+        }
+      }
+
+      function resetPipelineUI() {
+        setStatusBadge("Processing", "info");
+        updateStepUI(1, "idle");
+        updateStepUI(2, "idle");
+        updateStepUI(3, "idle");
+        updateProgress(0, "Initiating synthesis flow...");
+      }
+
+      function setStatusBadge(text, type) {
+        statusBadge.textContent = text;
+        if (type === "success") {
+          statusBadge.className = "px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800";
+        } else if (type === "info") {
+          statusBadge.className = "px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-indigo-950 text-indigo-400 border border-indigo-800 animate-pulse";
+        } else if (type === "warning") {
+          statusBadge.className = "px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-amber-950 text-amber-400 border border-amber-800";
+        } else {
+          statusBadge.className = "px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-slate-800 text-slate-400 border border-slate-700";
+        }
+      }
+
+      function setGeneratingState(generating) {
+        generateBtn.disabled = generating;
+        if (generating) {
+          btnIcon.className = "fa-solid fa-spinner animate-spin";
+          btnText.textContent = "Processing Pipeline...";
+          generateBtn.classList.add("opacity-75");
+        } else {
+          btnIcon.className = "fa-solid fa-rocket";
+          btnText.textContent = "Generate 3D Object & Texture";
+          generateBtn.classList.remove("opacity-75");
+        }
+      }
+
+      function finishGeneratingState() {
+        isGenerating = false;
+        setGeneratingState(false);
+      }
+
+      // ==========================================
+      // 6. EVENT LISTENERS
+      // ==========================================
+      generateBtn.addEventListener("click", runPipeline);
+
+      promptInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+          runPipeline();
+        }
+      });
+
+      resetCamBtn.addEventListener("click", () => {
+        if (controls && camera) {
+          camera.position.set(0, 2, 8);
+          controls.target.set(0, 0, 0);
+          controls.update();
+        }
+      });
+
+      // Initialize on load
+      window.onload = () => {
+        initThreeJS();
+      };
+
+    })();
+  </script>
+</body>
+</html>
