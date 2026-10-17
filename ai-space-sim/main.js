@@ -312,7 +312,6 @@ function createDynamicGeometry(type, args) {
       return new THREE.IcosahedronGeometry(p[0] || 2.0, p[1] || 3);
     case 'cone':
     case 'jet':
-      // High segmentation to allow fluid turbulence displacement
       return new THREE.ConeGeometry(p[0] || 0.3, p[1] || 16.0, p[2] || 64, p[3] || 64);
     case 'shell':
     case 'supernova_shell':
@@ -335,7 +334,6 @@ function createPlasmaShaderMaterial(baseColorHex) {
       varying vec3 vNormal;
       varying vec3 vPosition;
 
-      // Simple pseudo-noise function for organic fluid displacement
       float noise(vec3 p) {
         return sin(p.x * 4.0 + uTime) * cos(p.y * 4.0 + uTime) * sin(p.z * 4.0 + uTime);
       }
@@ -343,10 +341,7 @@ function createPlasmaShaderMaterial(baseColorHex) {
       void main() {
         vNormal = normal;
         vPosition = position;
-        
-        // Displace vertices organically based on position and time to break rigid geometric shapes
         vec3 displaced = position + normal * (noise(position * 0.5) * 0.35);
-        
         vec4 mvPosition = modelViewMatrix * vec4(displaced, 1.0);
         gl_Position = projectionMatrix * mvPosition;
       }
@@ -358,7 +353,6 @@ function createPlasmaShaderMaterial(baseColorHex) {
       varying vec3 vPosition;
 
       void main() {
-        // Organic pulsing color gradient for gaseous/plasma phenomena
         float intensity = 0.6 + 0.4 * sin(vPosition.y * 0.8 + uTime * 2.0);
         vec3 finalColor = uBaseColor * intensity + vec3(0.2, 0.05, 0.4) * cos(uTime);
         gl_FragColor = vec4(finalColor, 0.82);
@@ -613,7 +607,7 @@ async function loadTextureWithRetry(url, maxRetries = 3, initialDelay = 5000) {
   }
 }
 
-// --- ZERO-POP-IN STAGED BATCH MATERIALIZATION PIPELINE WITH NEXT-GEN SHADER ROUTING ---
+// --- ASYNC PARALLEL MATERIALIZATION PIPELINE WITH RATE-LIMIT & SHADER SHIELDING ---
 async function applyWorldConfig(config) {
   const hudStatusEl = document.getElementById('hud-nav-status');
 
@@ -655,34 +649,27 @@ async function applyWorldConfig(config) {
   }
 
   const spaceObjects = config.objects || [config];
-  let successfulTextures = 0;
-  const stagedAssets = []; // Temporary staging buffer
-
   console.log(`[ASTROMETRIC NAVIGATION] 🌌 Initializing Sector: "${config.sectorTitle || 'Unknown Sector'}". Target Object Count: ${spaceObjects.length}`);
   if (hudStatusEl) hudStatusEl.innerText = `PROTOCOL: MAPPING SECTOR`;
 
-  for (let i = 0; i < spaceObjects.length; i++) {
-    const objConfig = spaceObjects[i];
-    if (hudStatusEl) hudStatusEl.innerText = `MAPPING: ${objConfig.name.toUpperCase()}`;
-    speakText(`Calibrating astrometric albedo maps for ${objConfig.name}.`);
+  // True parallel async loading pool with index-based rate-limit staggering
+  const assetPromises = spaceObjects.map(async (objConfig, index) => {
+    const nameLower = (objConfig.name || '').toLowerCase();
+    const promptLower = (objConfig.prompt || '').toLowerCase();
+    const geomLower = (objConfig.geometryType || '').toLowerCase();
 
-    const isGaseousPhenomenon = ['jet', 'cone', 'accretion_disk', 'shell', 'supernova_shell'].includes(objConfig.geometryType?.toLowerCase());
+    // Intelligent gaseous/plasma phenomenon detection (prevents sphere-based nebulae from triggering network texture fetches)
+    const isGaseousPhenomenon = 
+      ['jet', 'cone', 'accretion_disk', 'shell', 'supernova_shell'].includes(geomLower) ||
+      nameLower.includes('nebula') || nameLower.includes('gas') || nameLower.includes('filament') || 
+      nameLower.includes('cloud') || nameLower.includes('plasma') || nameLower.includes('synchrotron') ||
+      promptLower.includes('nebula') || promptLower.includes('gas') || promptLower.includes('filament') || 
+      promptLower.includes('plasma') || promptLower.includes('ionized');
 
-    let texUrl = objConfig.customTextureUrl;
+    console.log(`%c[ASTROMETRIC LIFECYCLE] 🎨 MATERIALIZING OBJECT [${objConfig.name}] (Gaseous: ${isGaseousPhenomenon})`, `color: #fbbf24; font-weight: bold;`);
 
-    if (!isGaseousPhenomenon && !texUrl && objConfig.prompt) {
-      const specificPrompt = encodeURIComponent(
-        `${objConfig.prompt}, flat equirectangular seamless texture map, pure planetary surface topography only, micro-surface relief, high-frequency textural detail, crisp albedo, zero background stars, zero lighting effects, zero framing, 4k resolution game asset`
-      );
-      texUrl = `https://image.pollinations.ai/prompt/${specificPrompt}?width=2048&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 99999)}`;
-    }
-
-    console.log(`%c[ASTROMETRIC LIFECYCLE] 🎨 STAGE 3: MATERIALIZATION PIPELINE FOR [${objConfig.name}]`, `color: #fbbf24; font-weight: bold;`);
-    console.log(`🎯 Target Object Manifest:`, objConfig);
-
-    // --- HOLOGRAPHIC BLUEPRINT GHOST STAGING ---
     const geom = createDynamicGeometry(objConfig.geometryType, objConfig.geometryArgs);
-    const isFlatRing = objConfig.geometryType === 'ring' || objConfig.geometryType === 'disk' || objConfig.geometryType === 'accretion_disk';
+    const isFlatRing = geomLower === 'ring' || geomLower === 'disk' || geomLower === 'accretion_disk';
 
     const ghostMat = new THREE.MeshBasicMaterial({
       color: 0x38bdf8,
@@ -707,41 +694,43 @@ async function applyWorldConfig(config) {
       mesh.rotation.x = Math.PI / 2;
     }
 
-    if (objConfig.geometryType === 'sphere' && !objConfig.emissive && !isGaseousPhenomenon) {
+    if (geomLower === 'sphere' && !objConfig.emissive && !isGaseousPhenomenon) {
       addAtmosphereShell(mesh, (objConfig.geometryArgs?.[0] || 2.0) * 1.035, new THREE.Color(0x38bdf8), 0.25);
     }
 
     systemGroup.add(mesh);
 
-    let loadedTexture = null;
     let finalMaterial;
 
     if (isGaseousPhenomenon) {
-      // Route energetic/gaseous phenomena through the Next-Gen Organic Plasma Fluid Shader to prevent geometric rigidity
+      // Route straight to next-gen procedural plasma turbulence shader — zero network calls, zero rate-limit errors!
       finalMaterial = createPlasmaShaderMaterial(objConfig.color || '#38bdf8');
-      console.log(`[ASTROMETRIC LIFECYCLE] 🌀 Procedural Plasma Shader Assigned to Gaseous Phenomenon [${objConfig.name}]`);
+      console.log(`[ASTROMETRIC LIFECYCLE] 🌀 Procedural Plasma Shader Assigned to [${objConfig.name}]`);
     } else {
-      if (texUrl) {
+      let loadedTexture = null;
+      if (objConfig.prompt) {
+        const specificPrompt = encodeURIComponent(
+          `${objConfig.prompt}, flat equirectangular seamless texture map, pure planetary surface topography only, micro-surface relief, high-frequency textural detail, crisp albedo, zero background stars, zero lighting effects, zero framing, 4k resolution game asset`
+        );
+        const texUrl = `https://image.pollinations.ai/prompt/${specificPrompt}?width=2048&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 99999)}`;
+        
         try {
           textureLoader.setCrossOrigin('anonymous');
-          
-          if (i > 0) {
-            await new Promise(resolve => setTimeout(resolve, 1400));
+          // Intelligent request staggering: index-based delay prevents hammering the external image server simultaneously
+          if (index > 0) {
+            await new Promise(resolve => setTimeout(resolve, index * 350));
           }
-
-          loadedTexture = await loadTextureWithRetry(texUrl, 2, 5000);
+          loadedTexture = await loadTextureWithRetry(texUrl, 2, 4000);
           if (loadedTexture) {
             loadedTexture.colorSpace = THREE.SRGBColorSpace;
             loadedTexture.needsUpdate = true;
-            successfulTextures++;
-            console.log(`[ASTROMETRIC LIFECYCLE] ✔ Texture SUCCESS for [${objConfig.name}] (${successfulTextures}/${spaceObjects.length})`);
+            console.log(`[ASTROMETRIC LIFECYCLE] ✔ Texture SUCCESS for [${objConfig.name}]`);
           }
         } catch (err) {
-          console.warn(`[ASTROMETRIC LIFECYCLE] ✖ Texture FAILED. Falling back to PBR material for [${objConfig.name}].`, err);
+          console.warn(`[ASTROMETRIC LIFECYCLE] ✖ Texture FAILED for [${objConfig.name}]. Falling back to PBR material.`, err);
         }
       }
 
-      // --- SOLIDIFICATION SWAP FOR SOLID BODIES ---
       finalMaterial = new THREE.MeshStandardMaterial({
         color: loadedTexture ? 0xffffff : new THREE.Color(objConfig.color || 0x38bdf8),
         roughness: objConfig.roughness || 0.4,
@@ -757,7 +746,7 @@ async function applyWorldConfig(config) {
     mesh.material.dispose();
     mesh.material = finalMaterial;
 
-    // --- PHYSICALLY PROPORTIONAL PHYSICS CALCULATION ---
+    // Physics calculations
     let derivedOrbitalSpeed = objConfig.orbitalSpeed || objConfig.animationSpeed || 0.05;
     let derivedSpinSpeed = objConfig.animationSpeed || 0.05;
 
@@ -766,25 +755,20 @@ async function applyWorldConfig(config) {
       derivedSpinSpeed = derivedOrbitalSpeed * 2.5; 
     }
 
-    stagedAssets.push({
-      animConfig: {
-        mesh: mesh,
-        type: objConfig.animationType || 'spin',
-        speed: derivedSpinSpeed,
-        orbitalSpeed: derivedOrbitalSpeed,
-        distance: objConfig.distance || 0,
-        phaseOffset: Math.random() * Math.PI * 2
-      }
-    });
+    return {
+      mesh: mesh,
+      type: objConfig.animationType || 'spin',
+      speed: derivedSpinSpeed,
+      orbitalSpeed: derivedOrbitalSpeed,
+      distance: objConfig.distance || 0,
+      phaseOffset: Math.random() * Math.PI * 2
+    };
+  });
 
-    console.log(`[ASTROMETRIC LIFECYCLE] 📦 Asset Solidified & Proportional Physics Calculated: '${objConfig.name}'`);
-  }
+  const resolvedAnims = await Promise.all(assetPromises);
+  activeAnimatedMeshes.push(...resolvedAnims);
 
-  for (const item of stagedAssets) {
-    activeAnimatedMeshes.push(item.animConfig);
-  }
-
-  console.log(`[ASTROMETRIC NAVIGATION] 🚀 Sector Materialization Complete. Total Objects Established: ${spaceObjects.length} | Successfully Textured: ${successfulTextures}/${spaceObjects.length}`);
+  console.log(`[ASTROMETRIC NAVIGATION] 🚀 Sector Materialization Complete. Total Objects Established: ${spaceObjects.length}`);
 
   if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: SECURED_TARGET';
   if (config.speechResponse) speakText(config.speechResponse);
