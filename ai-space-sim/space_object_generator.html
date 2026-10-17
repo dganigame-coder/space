@@ -6,259 +6,320 @@
   <title>Autonomous 3D Space & AI Texture Generator</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    :root { color-scheme: dark; --bg-color: #030712; --card-bg: rgba(17, 24, 39, 0.9); --accent-cyan: #38bdf8; --accent-indigo: #818cf8; }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Inter', sans-serif; background-color: var(--bg-color); color: #f9fafb; overflow: hidden; height: 100vh; }
-    #webgl-container { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
-    .hud-panel { position: absolute; background: var(--card-bg); border: 1px solid #1f2937; backdrop-filter: blur(12px); border-radius: 14px; padding: 1.25rem; z-index: 10; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.6); }
-    #control-panel { top: 20px; right: 20px; width: 380px; display: flex; flex-direction: column; gap: 0.75rem; max-height: 92vh; overflow-y: auto; }
-    #info-panel { top: 20px; left: 20px; width: 340px; pointer-events: none; }
-    h2 { font-size: 1rem; color: var(--accent-cyan); display: flex; align-items: center; gap: 0.5rem; }
-    h3 { font-size: 1.05rem; color: var(--accent-cyan); margin-bottom: 0.3rem; }
-    .input-group { display: flex; flex-direction: column; gap: 0.3rem; }
-    label { font-size: 0.75rem; color: #9ca3af; font-weight: 500; }
-    input, textarea { background: #0b0f19; border: 1px solid #1f2937; color: #f9fafb; padding: 0.6rem; border-radius: 8px; font-size: 0.85rem; outline: none; font-family: 'Inter', sans-serif; }
-    input:focus, textarea:focus { border-color: var(--accent-cyan); }
-    textarea { resize: vertical; height: 75px; }
-    button { background: linear-gradient(135deg, var(--accent-cyan), var(--accent-indigo)); color: #030712; border: none; padding: 0.7rem; font-weight: 600; border-radius: 8px; cursor: pointer; font-size: 0.9rem; transition: opacity 0.2s, transform 0.1s; }
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; color: #edf4ff;
+      font: 15px/1.55 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: radial-gradient(ellipse at top, #192650 0%, #0a1020 48%, #050811 100%);
+    }
+    .shell { width: min(1300px, calc(100% - 32px)); margin: 0 auto; padding: 24px 0 48px; }
+    header { margin-bottom: 20px; }
+    .eyebrow { color: #91aaff; text-transform: uppercase; letter-spacing: .16em; font-size: .76rem; font-weight: 750; }
+    h1 { margin: 6px 0; line-height: 1.15; font-size: clamp(1.8rem, 4vw, 2.8rem); letter-spacing: -.04em; }
+    .sub { max-width: 800px; color: #b7c5e3; margin: 0; font-size: 0.9rem; }
+    
+    .layout { display: grid; grid-template-columns: minmax(320px, .85fr) minmax(0, 1.15fr); gap: 20px; align-items: start; }
+    .card { background: rgba(12, 19, 39, .88); border: 1px solid #293757; border-radius: 18px; padding: 20px; box-shadow: 0 18px 50px #0003; }
+    h2 { margin: 0 0 14px; font-size: 1.12rem; color: #38bdf8; }
+    
+    label { display: block; font-size: .9rem; font-weight: 650; color: #d9e3f8; margin: 12px 0 6px; }
+    textarea, input, select {
+      display: block; width: 100%; border: 1px solid #354666; border-radius: 10px;
+      background: #090f20; color: #eff6ff; padding: 10px 12px; font: inherit; outline: none;
+    }
+    textarea:focus, input:focus { border-color: #7d9bff; box-shadow: 0 0 0 3px #617dff22; }
+    textarea { resize: vertical; min-height: 100px; }
+
+    button {
+      cursor: pointer; border: 1px solid transparent; border-radius: 10px; padding: 11px 15px;
+      color: white; font: inherit; font-weight: 750; text-decoration: none; width: 100%; margin-top: 15px;
+      background: linear-gradient(135deg, #657cff, #9869ff); transition: opacity 0.2s, transform 0.1s;
+    }
     button:hover { opacity: 0.9; transform: translateY(-1px); }
-    .ai-log { background: #0b0f19; border: 1px solid #1f2937; border-radius: 8px; padding: 0.75rem; font-size: 0.8rem; color: #9ca3af; max-height: 120px; overflow-y: auto; white-space: pre-wrap; }
-    #status-bar { font-size: 0.75rem; color: #34d399; text-align: center; font-weight: 500; }
+    button:disabled { cursor: wait; opacity: .55; }
+
+    .status { white-space: pre-wrap; overflow-wrap: anywhere; background: #080d1b; border: 1px solid #263452; border-radius: 11px; padding: 10px; color: #d8e5ff; margin: 0 0 10px; font-size: 0.82rem; }
+    .status[data-kind="error"] { color: #fecaca; border-color: #7f303c; }
+    .status[data-kind="success"] { color: #bbf7d0; border-color: #286849; }
+    
+    .progress-track { height: 6px; overflow: hidden; border-radius: 20px; background: #222e4c; margin: 8px 0 14px; }
+    .progress-bar { height: 100%; width: 0%; background: linear-gradient(90deg, #6f8cff, #c084fc); transition: width .25s ease; }
+    
+    .viewports-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
+    .viewport-container { min-height: 220px; border: 1px dashed #344363; border-radius: 12px; overflow: hidden; background: #070c19; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
+    .viewport-container img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    #webgl-viewport { width: 100%; height: 220px; }
+    .viewport-label { position: absolute; top: 8px; left: 8px; background: rgba(3, 7, 18, 0.75); padding: 3px 8px; font-size: 0.7rem; border-radius: 6px; color: #38bdf8; z-index: 5; }
+
+    .ai-log { background: #090f20; border: 1px solid #354666; border-radius: 10px; padding: 10px; font-size: 0.8rem; color: #9ca3af; max-height: 130px; overflow-y: auto; white-space: pre-wrap; margin-top: 10px; }
+    @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } .viewports-grid { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
+  <main class="shell">
+    <header>
+      <div class="eyebrow">Gemini 3 + AI Horde Pipeline</div>
+      <h1>🪐 Autonomous 3D Space & AI Texture Generator</h1>
+      <p class="sub">Enter a natural language prompt. Gemini translates it into object instructions and texture prompts, AI Horde generates the procedural texture, and Three.js renders the live 3D celestial body.</p>
+    </header>
 
-  <div id="webgl-container"></div>
-
-  <!-- Telemetry Inspector (Top Left) -->
-  <div id="info-panel" class="hud-panel">
-      <h3 id="objectTitle">Deep Space Sector</h3>
-      <p id="objectDesc" style="font-size: 0.825rem; color: #9ca3af;">Enter a custom prompt to instruct Gemini to compose 3D space objects and generate procedural textures via AI Horde.</p>
-  </div>
-
-  <!-- Gemini & AI Horde Control Panel (Top Right) -->
-  <div id="control-panel" class="hud-panel">
-      <h2>🌌 Gemini 3D & AI Horde Engine</h2>
-      
-      <div class="input-group">
+    <div class="layout">
+      <!-- Left Column: Settings & Prompts -->
+      <section class="card">
+        <h2>Generation Controls</h2>
+        <form id="generator-form" onsubmit="event.preventDefault(); runPipeline();">
           <label for="apiKey">Gemini API Key</label>
-          <input type="password" id="apiKey" placeholder="AIzaSy...">
-      </div>
+          <input id="apiKey" type="password" placeholder="AIzaSy..." />
 
-      <div class="input-group">
-          <label for="userPrompt">Natural Language Prompt</label>
-          <textarea id="userPrompt">A fiery volcanic planet with glowing lava cracks and dark basalt mountains orbiting a red giant star.</textarea>
-      </div>
+          <label for="prompt">Natural Language Prompt</label>
+          <textarea id="prompt" required>A fiery volcanic planet with glowing lava cracks and dark basalt mountains orbiting a red giant star.</textarea>
+          
+          <button type="submit" id="generate-btn">Translate & Generate 3D World</button>
+        </form>
 
-      <button onclick="runPipeline()">🚀 Translate, Texture & Render</button>
-      <div id="status-bar">System Idle. Ready.</div>
+        <label style="margin-top: 20px;">Agent Reasoning Log</label>
+        <div id="agentLog" class="ai-log">Waiting for execution...</div>
+      </section>
 
-      <div class="input-group">
-          <label>Gemini Architecture & AI Horde Log</label>
-          <div id="agentLog" class="ai-log">Waiting for prompt submission...</div>
-      </div>
-  </div>
+      <!-- Right Column: Status & Side-by-Side Visual Stage Outputs -->
+      <section class="card">
+        <h2>Pipeline Stages & Result Output</h2>
+        <div class="status" id="status" role="status" aria-live="polite">Ready. Enter a prompt and select Generate.</div>
+        <div class="progress-track"><div class="progress-bar" id="progress"></div></div>
+
+        <div class="viewports-grid">
+          <!-- Stage 1: AI Horde Generated Texture Preview -->
+          <div class="viewport-container" id="texture-box">
+            <div class="viewport-label">Stage 1: AI Horde Texture</div>
+            <div id="texture-placeholder" style="padding: 20px; text-align: center; color: #8191b2; font-size: 0.8rem;">
+              Generated texture map will appear here.
+            </div>
+          </div>
+
+          <!-- Stage 2: Three.js Live 3D Viewport -->
+          <div class="viewport-container">
+            <div class="viewport-label">Stage 2: Three.js 3D Viewport</div>
+            <div id="webgl-viewport"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
 
   <!-- Three.js Library -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script>
-      // 1. Scene, Camera, Renderer Setup
-      const container = document.getElementById('webgl-container');
-      const scene = new THREE.Scene();
-      const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 10000);
-      camera.position.set(0, 0, 15);
+    const API_BASE = "https://aihorde.net/api/v2";
 
-      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.setPixelRatio(window.devicePixelRatio);
-      container.appendChild(renderer.domElement);
+    function setStatus(message, kind = "info") {
+      const statusEl = document.getElementById("status");
+      statusEl.textContent = message;
+      statusEl.dataset.kind = kind;
+    }
 
-      scene.add(new THREE.AmbientLight(0xffffff, 0.9));
-      let objectGroup = new THREE.Group();
-      scene.add(objectGroup);
+    function setProgress(percent) {
+      document.getElementById("progress").style.width = `${Math.max(0, Math.min(100, percent))}%`;
+    }
 
-      // 2. Dynamic Gemini Model Waterfall Discovery
-      let dynamicModelQueue = ['gemini-2.5-flash', 'gemini-1.5-flash'];
+    // Three.js Scene Setup inside the right column viewport container
+    const viewportContainer = document.getElementById('webgl-viewport');
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(60, viewportContainer.clientWidth / viewportContainer.clientHeight, 0.1, 1000);
+    camera.position.set(0, 0, 5);
 
-      async function discoverGeminiModels(apiKey) {
-          if (!apiKey) return;
-          try {
-              const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-              if (!res.ok) throw new Error(`HTTP ${res.status}`);
-              const data = await res.json();
-              if (data && data.models) {
-                  const validModels = data.models
-                      .filter(m => m.supportedGenerationMethods?.includes('generateContent') && !m.name.includes('tts') && !m.name.includes('embedding') && !m.name.includes('gemma'))
-                      .map(m => m.name.replace('models/', ''));
-                  if (validModels.length > 0) {
-                      validModels.sort((a, b) => (b.includes('flash') ? 1 : 0) - (a.includes('flash') ? 1 : 0));
-                      dynamicModelQueue = validModels;
-                  }
-              }
-          } catch (err) {
-              console.warn("Using default model fallback queue.");
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(viewportContainer.clientWidth, viewportContainer.clientHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    viewportContainer.appendChild(renderer.domElement);
+
+    scene.add(new THREE.AmbientLight(0xffffff, 1.0));
+    const objectGroup = new THREE.Group();
+    scene.add(objectGroup);
+
+    // Dynamic Gemini Waterfall Queue
+    let dynamicModelQueue = ['gemini-2.5-flash', 'gemini-1.5-flash'];
+
+    async function discoverGeminiModels(apiKey) {
+      if (!apiKey) return;
+      try {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (data && data.models) {
+          const validModels = data.models
+            .filter(m => m.supportedGenerationMethods?.includes('generateContent') && !m.name.includes('tts') && !m.name.includes('embedding') && !m.name.includes('gemma'))
+            .map(m => m.name.replace('models/', ''));
+          if (validModels.length > 0) {
+            validModels.sort((a, b) => (b.includes('flash') ? 1 : 0) - (a.includes('flash') ? 1 : 0));
+            dynamicModelQueue = validModels;
           }
+        }
+      } catch (err) {
+        console.warn("Using default model fallback queue.");
+      }
+    }
+
+    async function callGeminiWithWaterfall(promptText, apiKey, expectJson = false) {
+      if (apiKey && dynamicModelQueue.length <= 2) {
+        await discoverGeminiModels(apiKey);
+      }
+      let lastError = null;
+      for (const model of dynamicModelQueue) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 12000);
+        try {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+          const bodyPayload = { contents: [{ parts: [{ text: promptText }] }] };
+          if (expectJson) bodyPayload.generationConfig = { responseMimeType: "application/json" };
+
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(bodyPayload),
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+          if (response.status === 429 || response.status === 503 || response.status === 403) continue;
+          if (!response.ok) throw new Error(`Model ${model} status ${response.status}`);
+          const data = await response.json();
+          const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (!text) throw new Error(`Model ${model} empty response`);
+          return text;
+        } catch (err) {
+          clearTimeout(timeoutId);
+          lastError = err;
+        }
+      }
+      throw new Error(`All waterfall models failed: ${lastError?.message}`);
+    }
+
+    async function generateTextureViaAIHorde(texturePrompt) {
+      const payload = {
+        prompt: texturePrompt + " ### blurry, low quality",
+        params: { width: 512, height: 512, steps: 20, cfg_scale: 7, n: 1 },
+        nsfw: false, censor_nsfw: true, r2: true
+      };
+
+      const submitted = await fetch(`${API_BASE}/generate/async`, {
+        method: "POST",
+        headers: { "apikey": "0000000000", "Client-Agent": "SpaceExplorer:1.0", "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      }).then(r => r.json());
+
+      if (!submitted.id) throw new Error("AI Horde request rejected.");
+      
+      for (let i = 0; i < 45; i++) {
+        await new Promise(r => setTimeout(r, 4000));
+        const check = await fetch(`${API_BASE}/generate/check/${submitted.id}`).then(r => r.json());
+        if (check.done) {
+          const status = await fetch(`${API_BASE}/generate/status/${submitted.id}`).then(r => r.json());
+          if (status.generations?.[0]?.img) {
+            return status.generations[0].img;
+          }
+        }
+      }
+      throw new Error("AI Horde generation timed out.");
+    }
+
+    async function runPipeline() {
+      const apiKey = document.getElementById('apiKey').value.trim();
+      const userPrompt = document.getElementById('prompt').value.trim();
+      const agentLog = document.getElementById('agentLog');
+      const generateBtn = document.getElementById('generate-btn');
+
+      if (!apiKey) {
+        alert('Please provide your Gemini API key.');
+        return;
       }
 
-      async function callGeminiWithWaterfall(promptText, apiKey, expectJson = false) {
-          if (apiKey && dynamicModelQueue.length <= 2) {
-              await discoverGeminiModels(apiKey);
-          }
-          let lastError = null;
-          for (const model of dynamicModelQueue) {
-              const controller = new AbortController();
-              const timeoutId = setTimeout(() => controller.abort(), 12000);
-              try {
-                  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-                  const bodyPayload = { contents: [{ parts: [{ text: promptText }] }] };
-                  if (expectJson) bodyPayload.generationConfig = { responseMimeType: "application/json" };
+      generateBtn.disabled = true;
+      setProgress(10);
+      setStatus("🤖 Gemini translating prompt into 3D scene instructions...");
+      agentLog.textContent = "Analyzing prompt & structuring celestial configuration...";
 
-                  const response = await fetch(url, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify(bodyPayload),
-                      signal: controller.signal
-                  });
-                  clearTimeout(timeoutId);
-                  if (response.status === 429 || response.status === 503 || response.status === 403) continue;
-                  if (!response.ok) throw new Error(`Model ${model} status ${response.status}`);
-                  const data = await response.json();
-                  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                  if (!text) throw new Error(`Model ${model} empty response`);
-                  return text;
-              } catch (err) {
-                  clearTimeout(timeoutId);
-                  lastError = err;
-              }
-          }
-          throw new Error(`All waterfall models failed: ${lastError?.message}`);
+      try {
+        const instructionPrompt = `You are an advanced astrophysical scene composer. Translate this user prompt into 3D scene objects and specific AI image generation prompts for textures.
+        User Prompt: "${userPrompt}"
+        
+        Return ONLY valid JSON with this exact structure:
+        {
+          "sectorTitle": "string",
+          "lore": "string",
+          "objects": [
+            {
+              "name": "string",
+              "geometryType": "sphere",
+              "color": "#38bdf8",
+              "roughness": 0.5,
+              "metalness": 0.1,
+              "texturePrompt": "Detailed prompt for generating surface texture map"
+            }
+          ]
+        }`;
+
+        const rawText = await callGeminiWithWaterfall(instructionPrompt, apiKey, true);
+        const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error("Invalid JSON returned from Gemini.");
+        
+        const sceneConfig = JSON.parse(jsonMatch[0]);
+        agentLog.textContent = `[Sector]: ${sceneConfig.sectorTitle}\n[Lore]: ${sceneConfig.lore}\n\nSubmitting texture request to AI Horde...`;
+        setProgress(35);
+        setStatus("🎨 Requesting procedural texture from AI Horde network...");
+
+        const objDef = sceneConfig.objects[0];
+        const imgUrl = await generateTextureViaAIHorde(objDef.texturePrompt);
+        
+        setProgress(75);
+        setStatus("🪐 Loading texture map and constructing 3D celestial object...");
+
+        // Display the texture in the side preview box
+        const textureBox = document.getElementById('texture-box');
+        textureBox.innerHTML = `<div class="viewport-label">Stage 1: AI Horde Texture</div><img src="${imgUrl}" alt="Generated Texture" />`;
+
+        const textureLoader = new THREE.TextureLoader();
+        textureLoader.setCrossOrigin('anonymous');
+        const texture = await textureLoader.loadAsync(imgUrl);
+
+        while(objectGroup.children.length > 0) { objectGroup.remove(objectGroup.children[0]); }
+
+        const geometry = new THREE.SphereGeometry(1.8, 64, 64);
+        const material = new THREE.MeshStandardMaterial({
+          color: 0xffffff,
+          roughness: objDef.roughness || 0.5,
+          metalness: objDef.metalness || 0.1,
+          map: texture
+        });
+
+        const mesh = new THREE.Mesh(geometry, material);
+        objectGroup.add(mesh);
+
+        setProgress(100);
+        setStatus("✨ Generation complete! Texture and 3D world rendered successfully.", "success");
+        agentLog.textContent += `\n\nSuccessfully rendered object: ${objDef.name}`;
+
+      } catch (error) {
+        setProgress(0);
+        setStatus(`Generation failed: ${error.message}`, "error");
+        agentLog.textContent += `\nError: ${error.message}`;
+        console.error(error);
+      } finally {
+        generateBtn.disabled = false;
       }
+    }
 
-      // 3. AI Horde Texture Generation Integration
-      async function generateTextureViaAIHorde(texturePrompt) {
-          const API_BASE = "https://aihorde.net/api/v2";
-          const payload = {
-              prompt: texturePrompt + " ### blurry, low quality",
-              params: { width: 512, height: 512, steps: 20, cfg_scale: 7, n: 1 },
-              nsfw: false, censor_nsfw: true, r2: true
-          };
+    function animate() {
+      requestAnimationFrame(animate);
+      objectGroup.rotation.y += 0.003;
+      renderer.render(scene, camera);
+    }
+    animate();
 
-          const submitted = await fetch(`${API_BASE}/generate/async`, {
-              method: "POST",
-              headers: { "apikey": "0000000000", "Client-Agent": "SpaceExplorer:1.0", "Content-Type": "application/json" },
-              body: JSON.stringify(payload)
-          }).then(r => r.json());
-
-          if (!submitted.id) throw new Error("AI Horde request rejected.");
-          
-          // Poll for completion (up to 3 minutes)
-          for (let i = 0; i < 45; i++) {
-              await new Promise(r => setTimeout(r, 4000));
-              const check = await fetch(`${API_BASE}/generate/check/${submitted.id}`).then(r => r.json());
-              if (check.done) {
-                  const status = await fetch(`${API_BASE}/generate/status/${submitted.id}`).then(r => r.json());
-                  if (status.generations?.[0]?.img) {
-                      return status.generations[0].img;
-                  }
-              }
-          }
-          throw new Error("AI Horde generation timed out.");
-      }
-
-      // 4. Main Pipeline Execution
-      async function runPipeline() {
-          const apiKey = document.getElementById('apiKey').value.trim();
-          const userPrompt = document.getElementById('userPrompt').value.trim();
-          const statusBar = document.getElementById('status-bar');
-          const agentLog = document.getElementById('agentLog');
-
-          if (!apiKey) {
-              alert('Please provide your Gemini API key.');
-              return;
-          }
-
-          statusBar.textContent = "🤖 Gemini translating prompt to instructions...";
-          agentLog.textContent = "Analyzing prompt structure & preparing object hierarchy...";
-
-          try {
-              const instructionPrompt = `You are an advanced astrophysical scene composer. Translate this user prompt into 3D scene objects and specific AI image generation prompts for textures.
-              User Prompt: "${userPrompt}"
-              
-              Return ONLY valid JSON with this exact structure:
-              {
-                "sectorTitle": "string",
-                "lore": "string",
-                "objects": [
-                  {
-                    "name": "string",
-                    "geometryType": "sphere",
-                    "color": "#38bdf8",
-                    "roughness": 0.5,
-                    "metalness": 0.1,
-                    "texturePrompt": "Detailed prompt for generating surface texture map"
-                  }
-                ]
-              }`;
-
-              const rawText = await callGeminiWithWaterfall(instructionPrompt, apiKey, true);
-              const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-              if (!jsonMatch) throw new Error("Invalid JSON returned from Gemini.");
-              
-              const sceneConfig = JSON.parse(jsonMatch[0]);
-              agentLog.textContent = `[Sector]: ${sceneConfig.sectorTitle}\n[Lore]: ${sceneConfig.lore}\n\nInitiating AI Horde texture generation...`;
-              statusBar.textContent = "🎨 Generating textures via AI Horde...";
-
-              while(objectGroup.children.length > 0) { objectGroup.remove(objectGroup.children[0]); }
-
-              const textureLoader = new THREE.TextureLoader();
-
-              for (const objDef of sceneConfig.objects) {
-                  let texture = null;
-                  try {
-                      const imgUrl = await generateTextureViaAIHorde(objDef.texturePrompt);
-                      texture = await textureLoader.loadAsync(imgUrl);
-                  } catch (e) {
-                      console.warn("AI Horde texture fallback to solid color:", e);
-                  }
-
-                  const geometry = new THREE.SphereGeometry(2.5, 64, 64);
-                  const material = new THREE.MeshStandardMaterial({
-                      color: texture ? 0xffffff : new THREE.Color(objDef.color || '#38bdf8'),
-                      roughness: objDef.roughness || 0.5,
-                      metalness: objDef.metalness || 0.1,
-                      map: texture
-                  });
-
-                  const mesh = new THREE.Mesh(geometry, material);
-                  objectGroup.add(mesh);
-                  
-                  document.getElementById('objectTitle').textContent = objDef.name;
-                  document.getElementById('objectDesc').innerHTML = `Sector: <strong>${sceneConfig.sectorTitle}</strong><br>${sceneConfig.lore}`;
-              }
-
-              statusBar.textContent = "✨ 3D Object & Textures successfully rendered!";
-              agentLog.textContent += "\n\nPipeline complete!";
-
-          } catch (error) {
-              statusBar.textContent = "❌ Pipeline error encountered.";
-              agentLog.textContent = "Error: " + error.message;
-              console.error(error);
-          }
-      }
-
-      // 5. Animation Loop
-      function animate() {
-          requestAnimationFrame(animate);
-          objectGroup.rotation.y += 0.003;
-          renderer.render(scene, camera);
-      }
-      animate();
-
-      window.addEventListener('resize', () => {
-          camera.aspect = window.innerWidth / window.innerHeight;
-          camera.updateProjectionMatrix();
-          renderer.setSize(window.innerWidth, window.innerHeight);
-      });
+    window.addEventListener('resize', () => {
+      camera.aspect = viewportContainer.clientWidth / viewportContainer.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(viewportContainer.clientWidth, viewportContainer.clientHeight);
+    });
   </script>
 </body>
 </html>
