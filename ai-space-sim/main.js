@@ -301,7 +301,7 @@ function createDynamicGeometry(type, args) {
   switch (type ? type.toLowerCase() : 'sphere') {
     case 'torus':
     case 'accretion_disk':
-      return new THREE.TorusGeometry(p[0] || 3.2, p[1] || 0.3, p[2] || 32, p[3] || 128);
+      return new THREE.TorusGeometry(p[0] || 3.2, p[1] || 0.3, p[2] || 64, p[3] || 128);
     case 'disk':
     case 'ring':
     case 'planetary_ring':
@@ -309,17 +309,66 @@ function createDynamicGeometry(type, args) {
     case 'icosahedron':
     case 'asteroid':
     case 'comet':
-      return new THREE.IcosahedronGeometry(p[0] || 2.0, p[1] || 2);
+      return new THREE.IcosahedronGeometry(p[0] || 2.0, p[1] || 3);
     case 'cone':
     case 'jet':
-      return new THREE.ConeGeometry(p[0] || 0.2, p[1] || 15.0, p[2] || 32);
+      // High segmentation to allow fluid turbulence displacement
+      return new THREE.ConeGeometry(p[0] || 0.3, p[1] || 16.0, p[2] || 64, p[3] || 64);
     case 'shell':
     case 'supernova_shell':
-      return new THREE.SphereGeometry(p[0] || 6.0, p[1] || 32, p[2] || 24);
+      return new THREE.SphereGeometry(p[0] || 6.0, p[1] || 64, p[2] || 64);
     case 'sphere':
     default:
       return new THREE.SphereGeometry(p[0] || 2.0, p[1] || 64, p[2] || 64);
   }
+}
+
+// --- NEXT-GEN PROCEDURAL PLASMA & FLUID TURBULENCE SHADER ---
+function createPlasmaShaderMaterial(baseColorHex) {
+  return new THREE.ShaderMaterial({
+    uniforms: {
+      uTime: { value: 0 },
+      uBaseColor: { value: new THREE.Color(baseColorHex || 0x38bdf8) }
+    },
+    vertexShader: `
+      uniform float uTime;
+      varying vec3 vNormal;
+      varying vec3 vPosition;
+
+      // Simple pseudo-noise function for organic fluid displacement
+      float noise(vec3 p) {
+        return sin(p.x * 4.0 + uTime) * cos(p.y * 4.0 + uTime) * sin(p.z * 4.0 + uTime);
+      }
+
+      void main() {
+        vNormal = normal;
+        vPosition = position;
+        
+        // Displace vertices organically based on position and time to break rigid geometric shapes
+        vec3 displaced = position + normal * (noise(position * 0.5) * 0.35);
+        
+        vec4 mvPosition = modelViewMatrix * vec4(displaced, 1.0);
+        gl_Position = projectionMatrix * mvPosition;
+      }
+    `,
+    fragmentShader: `
+      uniform float uTime;
+      uniform vec3 uBaseColor;
+      varying vec3 vNormal;
+      varying vec3 vPosition;
+
+      void main() {
+        // Organic pulsing color gradient for gaseous/plasma phenomena
+        float intensity = 0.6 + 0.4 * sin(vPosition.y * 0.8 + uTime * 2.0);
+        vec3 finalColor = uBaseColor * intensity + vec3(0.2, 0.05, 0.4) * cos(uTime);
+        gl_FragColor = vec4(finalColor, 0.82);
+      }
+    `,
+    transparent: true,
+    side: THREE.DoubleSide,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false
+  });
 }
 
 // --- AUDIO SYSTEM (Refined Warm Ambient Space Pad) ---
@@ -564,7 +613,7 @@ async function loadTextureWithRetry(url, maxRetries = 3, initialDelay = 5000) {
   }
 }
 
-// --- ZERO-POP-IN STAGED BATCH MATERIALIZATION PIPELINE WITH PROPORTIONAL PHYSICS ---
+// --- ZERO-POP-IN STAGED BATCH MATERIALIZATION PIPELINE WITH NEXT-GEN SHADER ROUTING ---
 async function applyWorldConfig(config) {
   const hudStatusEl = document.getElementById('hud-nav-status');
 
@@ -617,16 +666,18 @@ async function applyWorldConfig(config) {
     if (hudStatusEl) hudStatusEl.innerText = `MAPPING: ${objConfig.name.toUpperCase()}`;
     speakText(`Calibrating astrometric albedo maps for ${objConfig.name}.`);
 
+    const isGaseousPhenomenon = ['jet', 'cone', 'accretion_disk', 'shell', 'supernova_shell'].includes(objConfig.geometryType?.toLowerCase());
+
     let texUrl = objConfig.customTextureUrl;
 
-    if (!texUrl && objConfig.prompt) {
+    if (!isGaseousPhenomenon && !texUrl && objConfig.prompt) {
       const specificPrompt = encodeURIComponent(
         `${objConfig.prompt}, flat equirectangular seamless texture map, pure planetary surface topography only, micro-surface relief, high-frequency textural detail, crisp albedo, zero background stars, zero lighting effects, zero framing, 4k resolution game asset`
       );
       texUrl = `https://image.pollinations.ai/prompt/${specificPrompt}?width=2048&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 99999)}`;
     }
 
-    console.log(`%c[ASTROMETRIC LIFECYCLE] 🎨 STAGE 3: TEXTURE PIPELINE FOR [${objConfig.name}]`, `color: #fbbf24; font-weight: bold;`);
+    console.log(`%c[ASTROMETRIC LIFECYCLE] 🎨 STAGE 3: MATERIALIZATION PIPELINE FOR [${objConfig.name}]`, `color: #fbbf24; font-weight: bold;`);
     console.log(`🎯 Target Object Manifest:`, objConfig);
 
     // --- HOLOGRAPHIC BLUEPRINT GHOST STAGING ---
@@ -642,7 +693,7 @@ async function applyWorldConfig(config) {
 
     const mesh = new THREE.Mesh(geom, ghostMat);
     
-    if (isFlatRing) {
+    if (isFlatRing || isGaseousPhenomenon) {
       mesh.frustumCulled = false;
     }
 
@@ -656,55 +707,62 @@ async function applyWorldConfig(config) {
       mesh.rotation.x = Math.PI / 2;
     }
 
-    if (objConfig.geometryType === 'sphere' && !objConfig.emissive) {
+    if (objConfig.geometryType === 'sphere' && !objConfig.emissive && !isGaseousPhenomenon) {
       addAtmosphereShell(mesh, (objConfig.geometryArgs?.[0] || 2.0) * 1.035, new THREE.Color(0x38bdf8), 0.25);
     }
 
     systemGroup.add(mesh);
 
     let loadedTexture = null;
-    if (texUrl) {
-      try {
-        textureLoader.setCrossOrigin('anonymous');
-        
-        if (i > 0) {
-          await new Promise(resolve => setTimeout(resolve, 1400));
-        }
+    let finalMaterial;
 
-        loadedTexture = await loadTextureWithRetry(texUrl, 2, 5000);
-        if (loadedTexture) {
-          loadedTexture.colorSpace = THREE.SRGBColorSpace;
-          loadedTexture.needsUpdate = true;
-          successfulTextures++;
-          console.log(`[ASTROMETRIC LIFECYCLE] ✔ Texture SUCCESS for [${objConfig.name}] (${successfulTextures}/${spaceObjects.length})`);
+    if (isGaseousPhenomenon) {
+      // Route energetic/gaseous phenomena through the Next-Gen Organic Plasma Fluid Shader to prevent geometric rigidity
+      finalMaterial = createPlasmaShaderMaterial(objConfig.color || '#38bdf8');
+      console.log(`[ASTROMETRIC LIFECYCLE] 🌀 Procedural Plasma Shader Assigned to Gaseous Phenomenon [${objConfig.name}]`);
+    } else {
+      if (texUrl) {
+        try {
+          textureLoader.setCrossOrigin('anonymous');
+          
+          if (i > 0) {
+            await new Promise(resolve => setTimeout(resolve, 1400));
+          }
+
+          loadedTexture = await loadTextureWithRetry(texUrl, 2, 5000);
+          if (loadedTexture) {
+            loadedTexture.colorSpace = THREE.SRGBColorSpace;
+            loadedTexture.needsUpdate = true;
+            successfulTextures++;
+            console.log(`[ASTROMETRIC LIFECYCLE] ✔ Texture SUCCESS for [${objConfig.name}] (${successfulTextures}/${spaceObjects.length})`);
+          }
+        } catch (err) {
+          console.warn(`[ASTROMETRIC LIFECYCLE] ✖ Texture FAILED. Falling back to PBR material for [${objConfig.name}].`, err);
         }
-      } catch (err) {
-        console.warn(`[ASTROMETRIC LIFECYCLE] ✖ Texture FAILED. Falling back to PBR material for [${objConfig.name}].`, err);
       }
+
+      // --- SOLIDIFICATION SWAP FOR SOLID BODIES ---
+      finalMaterial = new THREE.MeshStandardMaterial({
+        color: loadedTexture ? 0xffffff : new THREE.Color(objConfig.color || 0x38bdf8),
+        roughness: objConfig.roughness || 0.4,
+        metalness: objConfig.metalness || 0.1,
+        emissive: objConfig.emissive ? new THREE.Color(objConfig.emissiveColor || 0xffaa00) : 0x000000,
+        emissiveIntensity: objConfig.emissive ? (objConfig.emissiveIntensity || 0.9) : 0,
+        map: loadedTexture || null,
+        side: isFlatRing ? THREE.DoubleSide : THREE.FrontSide,
+        transparent: isFlatRing
+      });
     }
 
-    // --- SOLIDIFICATION SWAP ---
     mesh.material.dispose();
-    mesh.material = new THREE.MeshStandardMaterial({
-      color: loadedTexture ? 0xffffff : new THREE.Color(objConfig.color || 0x38bdf8),
-      roughness: objConfig.roughness || 0.4,
-      metalness: objConfig.metalness || 0.1,
-      emissive: objConfig.emissive ? new THREE.Color(objConfig.emissiveColor || 0xffaa00) : 0x000000,
-      emissiveIntensity: objConfig.emissive ? (objConfig.emissiveIntensity || 0.9) : 0,
-      map: loadedTexture || null,
-      side: isFlatRing ? THREE.DoubleSide : THREE.FrontSide,
-      transparent: isFlatRing
-    });
+    mesh.material = finalMaterial;
 
     // --- PHYSICALLY PROPORTIONAL PHYSICS CALCULATION ---
-    // Enforce Keplerian orbital velocity scaling if distance is defined (v proportional to 1 / sqrt(distance))
     let derivedOrbitalSpeed = objConfig.orbitalSpeed || objConfig.animationSpeed || 0.05;
     let derivedSpinSpeed = objConfig.animationSpeed || 0.05;
 
     if (objConfig.distance && objConfig.distance > 0) {
-      // Keplerian scaling: bodies closer to the center orbit significantly faster than outer bodies
       derivedOrbitalSpeed = 0.15 / Math.sqrt(objConfig.distance);
-      // Sidereal rotation scaling: realistic proportional day-night spin based on planetary size/class
       derivedSpinSpeed = derivedOrbitalSpeed * 2.5; 
     }
 
@@ -719,7 +777,7 @@ async function applyWorldConfig(config) {
       }
     });
 
-    console.log(`[ASTROMETRIC LIFECYCLE] 📦 Asset Solidified & Proportional Physics Calculated: '${objConfig.name}' (Orbital Speed: ${derivedOrbitalSpeed.toFixed(4)}, Spin Speed: ${derivedSpinSpeed.toFixed(4)})`);
+    console.log(`[ASTROMETRIC LIFECYCLE] 📦 Asset Solidified & Proportional Physics Calculated: '${objConfig.name}'`);
   }
 
   for (const item of stagedAssets) {
@@ -842,7 +900,7 @@ function setupControls() {
   }
 }
 
-// --- PHYSICALLY PROPORTIONAL EPHEMERIS ANIMATION HANDLERS ---
+// --- ANIMATION HANDLERS ---
 const animationHandlers = {
   spin(anim, dt) {
     anim.mesh.rotation.y += anim.speed * (dt * 60);
@@ -858,13 +916,11 @@ const animationHandlers = {
   },
   orbit(anim, time, dt) {
     if (anim.distance && anim.distance > 0) {
-      // Use physically scaled Keplerian orbital speed
       const effectiveSpeed = anim.orbitalSpeed || anim.speed;
       const angle = time * effectiveSpeed + (anim.phaseOffset || 0);
       anim.mesh.position.x = Math.cos(angle) * anim.distance;
       anim.mesh.position.z = Math.sin(angle) * anim.distance;
     }
-    // Sidereal axial self-rotation spin proportional to orbital mechanics
     anim.mesh.rotation.y += anim.speed * (dt * 60);
   }
 };
@@ -884,8 +940,12 @@ function animate(time) {
     starField.rotation.y = t * 0.001;
   }
 
+  // Update procedural plasma shaders live per frame for organic turbulence
   activeAnimatedMeshes.forEach((anim) => {
     if (anim.mesh && anim.mesh.parent) {
+      if (anim.mesh.material && anim.mesh.material.uniforms && anim.mesh.material.uniforms.uTime) {
+        anim.mesh.material.uniforms.uTime.value = t;
+      }
       const handler = animationHandlers[anim.type] || animationHandlers.spin;
       handler(anim, t, dt || t);
     }
