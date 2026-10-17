@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Autonomous 3D Space & AI Texture Generator</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root { color-scheme: dark; }
     * { box-sizing: border-box; }
@@ -13,87 +12,109 @@
       font: 15px/1.55 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
       background: radial-gradient(ellipse at top, #192650 0%, #0a1020 48%, #050811 100%);
     }
-    .shell { width: min(1300px, calc(100% - 32px)); margin: 0 auto; padding: 24px 0 48px; }
+    .shell { width: min(1360px, calc(100% - 32px)); margin: 0 auto; padding: 24px 0 48px; }
     header { margin-bottom: 20px; }
     .eyebrow { color: #91aaff; text-transform: uppercase; letter-spacing: .16em; font-size: .76rem; font-weight: 750; }
     h1 { margin: 6px 0; line-height: 1.15; font-size: clamp(1.8rem, 4vw, 2.8rem); letter-spacing: -.04em; }
-    .sub { max-width: 800px; color: #b7c5e3; margin: 0; font-size: 0.9rem; }
-    
-    .layout { display: grid; grid-template-columns: minmax(320px, .85fr) minmax(0, 1.15fr); gap: 20px; align-items: start; }
-    .card { background: rgba(12, 19, 39, .88); border: 1px solid #293757; border-radius: 18px; padding: 20px; box-shadow: 0 18px 50px #0003; }
+    .sub { max-width: 900px; color: #b7c5e3; margin: 0; font-size: .92rem; }
+    .layout { display: grid; grid-template-columns: minmax(340px, .9fr) minmax(0, 1.1fr); gap: 20px; align-items: start; }
+    .card { min-width: 0; background: rgba(12, 19, 39, .88); border: 1px solid #293757; border-radius: 18px; padding: 20px; box-shadow: 0 18px 50px #0003; }
     h2 { margin: 0 0 14px; font-size: 1.12rem; color: #38bdf8; }
-    
     label { display: block; font-size: .9rem; font-weight: 650; color: #d9e3f8; margin: 12px 0 6px; }
     textarea, input {
       display: block; width: 100%; border: 1px solid #354666; border-radius: 10px;
       background: #090f20; color: #eff6ff; padding: 10px 12px; font: inherit; outline: none;
     }
     textarea:focus, input:focus { border-color: #7d9bff; box-shadow: 0 0 0 3px #617dff22; }
-    textarea { resize: vertical; min-height: 100px; }
-
+    textarea { resize: vertical; min-height: 104px; }
     button {
-      cursor: pointer; border: 1px solid transparent; border-radius: 10px; padding: 11px 15px;
-      color: white; font: inherit; font-weight: 750; text-decoration: none; width: 100%; margin-top: 15px;
-      background: linear-gradient(135deg, #657cff, #9869ff); transition: opacity 0.2s, transform 0.1s;
+      cursor: pointer; border: 1px solid transparent; border-radius: 10px; padding: 10px 14px;
+      color: white; font: inherit; font-weight: 750; width: 100%; margin-top: 12px;
+      background: linear-gradient(135deg, #657cff, #9869ff); transition: opacity .2s, transform .1s;
     }
-    button:hover { opacity: 0.9; transform: translateY(-1px); }
-    button:disabled { cursor: wait; opacity: .55; }
-
-    .status { white-space: pre-wrap; overflow-wrap: anywhere; background: #080d1b; border: 1px solid #263452; border-radius: 11px; padding: 10px; color: #d8e5ff; margin: 0 0 10px; font-size: 0.82rem; }
+    button:hover { opacity: .9; transform: translateY(-1px); }
+    button:disabled { cursor: wait; opacity: .55; transform: none; }
+    .secondary { background: #111b32; border-color: #354666; }
+    .button-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .small-note { color: #94a3b8; font-size: .78rem; margin: 7px 0 0; }
+    .model-panel { border: 1px solid #293757; border-radius: 12px; margin-top: 12px; overflow: hidden; background: #080d1b; }
+    .model-panel-head { padding: 10px; border-bottom: 1px solid #293757; }
+    .model-summary { color: #b9c9e7; font-size: .8rem; margin: 0 0 8px; }
+    #model-filter { padding: 8px 10px; font-size: .84rem; }
+    .model-list { max-height: 330px; overflow: auto; }
+    .model-item { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 9px; padding: 10px; border-bottom: 1px solid #1b2742; }
+    .model-item:last-child { border-bottom: 0; }
+    .rank-number { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; background: #1b2b4b; color: #b7c8ff; font-weight: 800; font-size: .8rem; }
+    .model-name { font-weight: 750; font-size: .82rem; overflow-wrap: anywhere; color: #eef4ff; }
+    .model-id { color: #8ca1c4; font-size: .72rem; overflow-wrap: anywhere; }
+    .model-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin-top: 5px; }
+    .tag { display: inline-block; border: 1px solid #344667; background: #111a2f; color: #bcd0f2; border-radius: 999px; padding: 2px 7px; font-size: .67rem; }
+    .tag.ok { border-color: #286849; color: #bbf7d0; }
+    .tag.warn { border-color: #805d2b; color: #fde68a; }
+    .tag.bad { border-color: #7f303c; color: #fecaca; }
+    .status { white-space: pre-wrap; overflow-wrap: anywhere; background: #080d1b; border: 1px solid #263452; border-radius: 11px; padding: 10px; color: #d8e5ff; margin: 0 0 10px; font-size: .82rem; }
     .status[data-kind="error"] { color: #fecaca; border-color: #7f303c; }
     .status[data-kind="success"] { color: #bbf7d0; border-color: #286849; }
-    
     .progress-track { height: 6px; overflow: hidden; border-radius: 20px; background: #222e4c; margin: 8px 0 14px; }
     .progress-bar { height: 100%; width: 0%; background: linear-gradient(90deg, #6f8cff, #c084fc); transition: width .25s ease; }
-    
     .viewports-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
-    .viewport-container { min-height: 220px; border: 1px dashed #344363; border-radius: 12px; overflow: hidden; background: #070c19; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
-    .viewport-container img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    #webgl-viewport { width: 100%; height: 220px; }
-    .viewport-label { position: absolute; top: 8px; left: 8px; background: rgba(3, 7, 18, 0.75); padding: 3px 8px; font-size: 0.7rem; border-radius: 6px; color: #38bdf8; z-index: 5; }
-
-    .ai-log { background: #090f20; border: 1px solid #354666; border-radius: 10px; padding: 10px; font-size: 0.8rem; color: #9ca3af; max-height: 130px; overflow-y: auto; white-space: pre-wrap; margin-top: 10px; }
-    @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } .viewports-grid { grid-template-columns: 1fr; } }
+    .viewport-container { min-height: 240px; border: 1px dashed #344363; border-radius: 12px; overflow: hidden; background: #070c19; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; min-width: 0; }
+    .viewport-container img { width: 100%; height: 100%; min-height: 240px; object-fit: cover; display: block; }
+    #webgl-viewport { width: 100%; height: 240px; min-height: 240px; }
+    #webgl-viewport canvas { display: block; width: 100%; height: 100%; }
+    .viewport-label { position: absolute; top: 8px; left: 8px; background: rgba(3, 7, 18, .82); padding: 3px 8px; font-size: .7rem; border-radius: 6px; color: #38bdf8; z-index: 5; }
+    .placeholder { padding: 26px 18px; text-align: center; color: #8191b2; font-size: .8rem; }
+    .ai-log { background: #090f20; border: 1px solid #354666; border-radius: 10px; padding: 10px; font-size: .8rem; color: #b8c6df; max-height: 180px; overflow-y: auto; white-space: pre-wrap; overflow-wrap: anywhere; margin-top: 10px; }
+    @media (max-width: 940px) { .layout { grid-template-columns: 1fr; } }
+    @media (max-width: 580px) { .shell { width: min(100% - 20px, 1360px); padding-top: 15px; } .card { padding: 14px; } .viewports-grid { grid-template-columns: 1fr; } .button-row { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
   <main class="shell">
     <header>
-      <div class="eyebrow">Gemini Model Waterfall + AI Horde Pipeline</div>
+      <div class="eyebrow">Account Model Discovery · Ranked Waterfall · AI Horde</div>
       <h1>🪐 Autonomous 3D Space & AI Texture Generator</h1>
-      <p class="sub">Enter a natural language prompt. Gemini extracts and translates it into structured objects, AI Horde generates the procedural texture, and Three.js renders the live 3D world.</p>
+      <p class="sub">Discover Gemini models visible to your API key, rank text-generation candidates from stronger general-purpose models to fallback models, then generate a scene description and an AI texture for the 3D preview. Ranking is a practical naming/version heuristic, not an official benchmark.</p>
     </header>
 
     <div class="layout">
       <section class="card">
-        <h2>Generation Controls</h2>
-        <form id="generator-form" onsubmit="event.preventDefault(); runPipeline();">
-          <label for="apiKey">Gemini API Key</label>
-          <input id="apiKey" type="password" placeholder="AIzaSy..." />
+        <h2>1. Account & Generation Controls</h2>
+        <label for="apiKey">Gemini API key</label>
+        <input id="apiKey" type="password" autocomplete="off" placeholder="Paste your Gemini API key" />
+        <div class="button-row">
+          <button type="button" id="discover-btn">Search account models</button>
+          <button type="button" id="clear-key-btn" class="secondary">Clear key</button>
+        </div>
+        <p class="small-note">The key is saved only in this browser tab's session storage. A browser-only HTML file cannot keep an API key truly secret; use a restricted key and don't publish this file with a key inside it.</p>
 
-          <label for="prompt">Natural Language Prompt</label>
+        <div class="model-panel" aria-label="Discovered Gemini models">
+          <div class="model-panel-head">
+            <p class="model-summary" id="model-summary" aria-live="polite">No account model search has run yet.</p>
+            <input id="model-filter" type="search" placeholder="Filter models by name…" aria-label="Filter discovered models" />
+          </div>
+          <div id="model-list" class="model-list"><div class="placeholder">Enter your Gemini API key and choose “Search account models”.</div></div>
+        </div>
+        <p class="small-note">Only models listed for this API key and advertising <code>generateContent</code> are included. A successful list response doesn't guarantee quota or permissions for every model; the waterfall handles runtime failures.</p>
+
+        <form id="generator-form">
+          <label for="prompt">Natural-language space prompt</label>
           <textarea id="prompt" required>A fiery volcanic planet with glowing lava cracks and dark basalt mountains orbiting a red giant star.</textarea>
-          
           <button type="submit" id="generate-btn">Translate & Generate 3D World</button>
         </form>
-
-        <label style="margin-top: 20px;">Agent Reasoning Log</label>
-        <div id="agentLog" class="ai-log">Waiting for execution...</div>
+        <label for="agentLog">Agent & waterfall log</label>
+        <div id="agentLog" class="ai-log" role="log" aria-live="polite">Ready. Search your account models, or start generation to discover them automatically.</div>
       </section>
 
       <section class="card">
-        <h2>Pipeline Stages & Result Output</h2>
-        <div class="status" id="status" role="status" aria-live="polite">Ready. Enter a prompt and select Generate.</div>
+        <h2>2. Pipeline Stages & Result</h2>
+        <div class="status" id="status" role="status" aria-live="polite">Ready. Discover your models or enter a prompt and generate.</div>
         <div class="progress-track"><div class="progress-bar" id="progress"></div></div>
-
         <div class="viewports-grid">
           <div class="viewport-container" id="texture-box">
             <div class="viewport-label">Stage 1: AI Horde Texture</div>
-            <div id="texture-placeholder" style="padding: 20px; text-align: center; color: #8191b2; font-size: 0.8rem;">
-              Generated texture map will appear here.
-            </div>
+            <div id="texture-placeholder" class="placeholder">Generated texture map will appear here.</div>
           </div>
-
           <div class="viewport-container">
             <div class="viewport-label">Stage 2: Three.js 3D Viewport</div>
             <div id="webgl-viewport"></div>
@@ -105,226 +126,591 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script>
-    const API_BASE = "https://aihorde.net/api/v2";
+    'use strict';
 
-    function setStatus(message, kind = "info") {
-      const statusEl = document.getElementById("status");
-      statusEl.textContent = message;
-      statusEl.dataset.kind = kind;
+    const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta';
+    const HORDE_API_BASE = 'https://aihorde.net/api/v2';
+    const KEY_SESSION_NAME = 'spaceGenerator.geminiApiKey';
+    const REQUEST_TIMEOUT_MS = 14000;
+
+    const el = {
+      apiKey: document.getElementById('apiKey'),
+      prompt: document.getElementById('prompt'),
+      form: document.getElementById('generator-form'),
+      discoverBtn: document.getElementById('discover-btn'),
+      clearKeyBtn: document.getElementById('clear-key-btn'),
+      generateBtn: document.getElementById('generate-btn'),
+      modelSummary: document.getElementById('model-summary'),
+      modelFilter: document.getElementById('model-filter'),
+      modelList: document.getElementById('model-list'),
+      status: document.getElementById('status'),
+      progress: document.getElementById('progress'),
+      agentLog: document.getElementById('agentLog'),
+      textureBox: document.getElementById('texture-box'),
+      viewport: document.getElementById('webgl-viewport')
+    };
+
+    let modelQueue = [];
+    let discoveredForKey = '';
+    let modelStatuses = new Map();
+    let isDiscovering = false;
+    let isGenerating = false;
+
+    function setStatus(message, kind = 'info') {
+      el.status.textContent = message;
+      el.status.dataset.kind = kind;
     }
 
     function setProgress(percent) {
-      document.getElementById("progress").style.width = `${Math.max(0, Math.min(100, percent))}%`;
+      el.progress.style.width = `${Math.max(0, Math.min(100, percent))}%`;
     }
 
-    // Three.js Setup
-    const viewportContainer = document.getElementById('webgl-viewport');
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(60, viewportContainer.clientWidth / viewportContainer.clientHeight, 0.1, 1000);
-    camera.position.set(0, 0, 5);
+    function log(message) {
+      const stamp = new Date().toLocaleTimeString();
+      el.agentLog.textContent += `\n[${stamp}] ${message}`;
+      // Keep the log bounded during long waterfalls.
+      const lines = el.agentLog.textContent.split('\n');
+      if (lines.length > 180) el.agentLog.textContent = lines.slice(-180).join('\n');
+      el.agentLog.scrollTop = el.agentLog.scrollHeight;
+    }
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(viewportContainer.clientWidth, viewportContainer.clientHeight);
-    renderer.setPixelRatio(window.devicePixelRatio);
-    viewportContainer.appendChild(renderer.domElement);
-
-    scene.add(new THREE.AmbientLight(0xffffff, 1.0));
-    const objectGroup = new THREE.Group();
-    scene.add(objectGroup);
-
-    // Dynamic Model Discovery & Waterfall Queue Extraction
-    let dynamicModelQueue = ['gemini-3.5-flash-lite','gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-pro'];
-
-    async function discoverGeminiModels(apiKey) {
-      if (!apiKey) return;
+    function rememberKey(key) {
       try {
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        if (data && data.models) {
-          const validModels = data.models
-            .filter(m => m.supportedGenerationMethods?.includes('generateContent') && !m.name.includes('tts') && !m.name.includes('embedding') && !m.name.includes('gemma'))
-            .map(m => m.name.replace('models/', ''));
-          
-          if (validModels.length > 0) {
-            validModels.sort((a, b) => (b.includes('flash') ? 1 : 0) - (a.includes('flash') ? 1 : 0));
-            dynamicModelQueue = validModels;
-          }
-        }
-      } catch (err) {
-        console.warn("Using default model fallback queue.");
+        if (key) sessionStorage.setItem(KEY_SESSION_NAME, key);
+        else sessionStorage.removeItem(KEY_SESSION_NAME);
+      } catch (error) {
+        console.warn('Session storage is unavailable in this browser context.', error);
       }
+    }
+
+    function restoreKey() {
+      try { el.apiKey.value = sessionStorage.getItem(KEY_SESSION_NAME) || ''; }
+      catch (error) { console.warn('Could not read session storage.', error); }
+    }
+
+    function getModelTier(modelId) {
+      const id = modelId.toLowerCase();
+      if (id.includes('argon')) return { name: 'Flagship / reasoning', weight: 190 };
+      if (id.includes('pro')) return { name: 'Pro / quality', weight: 160 };
+      if (id.includes('flash-lite')) return { name: 'Flash-Lite / efficiency', weight: 45 };
+      if (id.includes('flash')) return { name: 'Flash / balanced', weight: 100 };
+      if (id.includes('lite')) return { name: 'Lite / efficiency', weight: 50 };
+      return { name: 'General generation', weight: 70 };
+    }
+
+    function getModelRank(modelId) {
+      const id = modelId.toLowerCase();
+      const version = id.match(/gemini-(\d+)(?:\.(\d+))?/i);
+      const tier = getModelTier(id);
+      // Version generation is the main factor; Pro/flagship tiers are preferred
+      // within a generation. Preview/experimental endpoints sit behind stable names.
+      let score = version
+        ? Number(version[1]) * 1000 + tier.weight + Number(version[2] || 0) * 2
+        : (id.includes('latest') ? 2800 + tier.weight : 1000 + tier.weight);
+      if (/experimental|\bexp\b/.test(id)) score -= 35;
+      else if (id.includes('preview')) score -= 12;
+      if (/-\d{3,}$/.test(id)) score += 1; // Small tie-break preference for pinned versions.
+      return { score, tier: tier.name };
+    }
+
+    function isRelevantTextModel(model) {
+      const id = String(model.name || '').replace(/^models\//, '').toLowerCase();
+      if (!id.startsWith('gemini-')) return false;
+      const unsupportedTaskTerms = [
+        'embedding', 'tts', 'transcribe', 'live', 'image', 'nano-banana',
+        'veo', 'robotics', 'deep-research', 'computer-use', 'audio', 'video'
+      ];
+      if (unsupportedTaskTerms.some(term => id.includes(term))) return false;
+      return Array.isArray(model.supportedGenerationMethods) &&
+        model.supportedGenerationMethods.includes('generateContent');
+    }
+
+    async function fetchWithTimeout(url, options = {}, timeoutMs = REQUEST_TIMEOUT_MS) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        return await fetch(url, { ...options, signal: controller.signal });
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    }
+
+    async function readApiError(response) {
+      let detail = '';
+      try {
+        const body = await response.json();
+        detail = body?.error?.message || body?.message || '';
+      } catch (_) {
+        try { detail = (await response.text()).slice(0, 300); } catch (_) { /* no response body */ }
+      }
+      return detail ? `HTTP ${response.status}: ${detail}` : `HTTP ${response.status}`;
+    }
+
+    function renderModelQueue() {
+      const searchText = el.modelFilter.value.trim().toLowerCase();
+      const filtered = modelQueue.filter(model => {
+        return !searchText || model.id.toLowerCase().includes(searchText) ||
+          String(model.displayName || '').toLowerCase().includes(searchText);
+      });
+      el.modelList.replaceChildren();
+
+      if (!modelQueue.length) {
+        const empty = document.createElement('div');
+        empty.className = 'placeholder';
+        empty.textContent = 'No models to display yet.';
+        el.modelList.appendChild(empty);
+        return;
+      }
+      if (!filtered.length) {
+        const empty = document.createElement('div');
+        empty.className = 'placeholder';
+        empty.textContent = 'No models match this filter.';
+        el.modelList.appendChild(empty);
+        return;
+      }
+
+      filtered.forEach(model => {
+        const row = document.createElement('div');
+        row.className = 'model-item';
+        const rank = document.createElement('div');
+        rank.className = 'rank-number';
+        rank.textContent = `#${model.rank}`;
+        const info = document.createElement('div');
+        const name = document.createElement('div');
+        name.className = 'model-name';
+        name.textContent = model.displayName || model.id;
+        const id = document.createElement('div');
+        id.className = 'model-id';
+        id.textContent = model.id;
+        const meta = document.createElement('div');
+        meta.className = 'model-meta';
+        const tierTag = document.createElement('span');
+        tierTag.className = 'tag';
+        tierTag.textContent = model.tier;
+        const stateTag = document.createElement('span');
+        const state = modelStatuses.get(model.id) || 'Listed for key';
+        stateTag.className = `tag ${state.startsWith('Success') ? 'ok' : state.startsWith('Skipped') ? 'warn' : state.startsWith('Trying') ? 'warn' : state.startsWith('Error') ? 'bad' : ''}`;
+        stateTag.textContent = state;
+        meta.append(tierTag, stateTag);
+        info.append(name, id, meta);
+        row.append(rank, info);
+        el.modelList.appendChild(row);
+      });
+    }
+
+    function setModelStatus(modelId, status) {
+      modelStatuses.set(modelId, status);
+      renderModelQueue();
+    }
+
+    async function discoverGeminiModels(apiKey, force = false) {
+      if (!apiKey) throw new Error('Enter your Gemini API key before searching for account models.');
+      if (isDiscovering) return modelQueue;
+      if (!force && discoveredForKey === apiKey && modelQueue.length) return modelQueue;
+
+      isDiscovering = true;
+      el.discoverBtn.disabled = true;
+      el.generateBtn.disabled = true;
+      el.clearKeyBtn.disabled = true;
+      el.apiKey.disabled = true;
+      el.modelSummary.textContent = 'Contacting Gemini API and checking models available to this key…';
+      el.modelList.replaceChildren();
+      const loading = document.createElement('div');
+      loading.className = 'placeholder';
+      loading.textContent = 'Searching account model list…';
+      el.modelList.appendChild(loading);
+      log('Requesting the model list for this Gemini API key. The key is sent in an HTTP header, not in the URL.');
+
+      try {
+        const allModels = [];
+        let pageToken = '';
+        let pages = 0;
+        do {
+          const params = new URLSearchParams({ pageSize: '100' });
+          if (pageToken) params.set('pageToken', pageToken);
+          const response = await fetchWithTimeout(`${GEMINI_API_BASE}/models?${params.toString()}`, {
+            method: 'GET',
+            headers: { 'x-goog-api-key': apiKey }
+          }, 20000);
+          if (!response.ok) throw new Error(await readApiError(response));
+          const data = await response.json();
+          if (Array.isArray(data.models)) allModels.push(...data.models);
+          pageToken = data.nextPageToken || '';
+          pages += 1;
+        } while (pageToken && pages < 10);
+
+        const unique = new Map();
+        for (const model of allModels) {
+          if (!isRelevantTextModel(model)) continue;
+          const id = String(model.name).replace(/^models\//, '');
+          if (!unique.has(id)) unique.set(id, { id, displayName: model.displayName || id });
+        }
+
+        modelQueue = Array.from(unique.values()).map(model => {
+          const rankInfo = getModelRank(model.id);
+          return { ...model, ...rankInfo, supported: true };
+        }).sort((a, b) => b.score - a.score || a.id.localeCompare(b.id))
+          .map((model, index) => ({ ...model, rank: index + 1 }));
+
+        discoveredForKey = apiKey;
+        modelStatuses = new Map();
+        renderModelQueue();
+        if (!modelQueue.length) {
+          el.modelSummary.textContent = `The API returned ${allModels.length} model(s), but none matched the Gemini text-generation filter.`;
+          log('No suitable Gemini generateContent models were found. Check key access or inspect the API model list in Google AI Studio.');
+        } else {
+          el.modelSummary.textContent = `Found ${modelQueue.length} Gemini text model(s). Waterfall order is best-fit heuristic → fallback.`;
+          log(`Found ${modelQueue.length} candidate(s). First waterfall model: ${modelQueue[0].id}.`);
+          log('Ranking favors newer model generations and stronger named tiers (for example Pro/flagship before Flash within the same generation); it is not an official benchmark score.');
+        }
+        return modelQueue;
+      } catch (error) {
+        el.modelSummary.textContent = `Model search failed: ${error.message}`;
+        el.modelList.replaceChildren();
+        const failure = document.createElement('div');
+        failure.className = 'placeholder';
+        failure.textContent = 'Could not load account models. Check the API key, API access, network, and key restrictions.';
+        el.modelList.appendChild(failure);
+        throw error;
+      } finally {
+        isDiscovering = false;
+        el.discoverBtn.disabled = isGenerating;
+        el.generateBtn.disabled = isGenerating;
+        el.clearKeyBtn.disabled = isGenerating;
+        el.apiKey.disabled = isGenerating;
+      }
+    }
+
+    function extractCandidateText(data) {
+      const parts = data?.candidates?.[0]?.content?.parts;
+      if (!Array.isArray(parts)) return '';
+      return parts.map(part => typeof part.text === 'string' ? part.text : '').filter(Boolean).join('\n').trim();
     }
 
     async function callGeminiWithWaterfall(promptText, apiKey, expectJson = false) {
-      if (apiKey) {
-        await discoverGeminiModels(apiKey);
+      if (discoveredForKey !== apiKey || !modelQueue.length) {
+        await discoverGeminiModels(apiKey, true);
       }
+      if (!modelQueue.length) throw new Error('No compatible Gemini text-generation models were found for this key.');
 
-      let lastError = null;
-      for (const model of dynamicModelQueue) {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 12000);
+      const failures = [];
+      for (let index = 0; index < modelQueue.length; index += 1) {
+        const model = modelQueue[index];
+        log(`[Waterfall ${index + 1}/${modelQueue.length}] Trying ${model.id}…`);
+        setModelStatus(model.id, 'Trying…');
+        setStatus(`🤖 Trying model ${index + 1}/${modelQueue.length}: ${model.id}`);
+
+        const payload = { contents: [{ role: 'user', parts: [{ text: promptText }] }] };
+        if (expectJson) payload.generationConfig = { responseMimeType: 'application/json' };
+
         try {
-          const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-          const bodyPayload = { contents: [{ parts: [{ text: promptText }] }] };
-          
-          // Safe configuration format to avoid 400 rejection codes
-          if (expectJson) {
-            bodyPayload.generationConfig = { responseMimeType: "application/json" };
+          const response = await fetchWithTimeout(
+            `${GEMINI_API_BASE}/models/${encodeURIComponent(model.id)}:generateContent`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+              body: JSON.stringify(payload)
+            },
+            REQUEST_TIMEOUT_MS
+          );
+
+          if (!response.ok) {
+            const detail = await readApiError(response);
+            failures.push(`${model.id}: ${detail}`);
+            setModelStatus(model.id, `Skipped · ${response.status}`);
+            log(`${model.id} returned ${detail}; trying the next model.`);
+            if (response.status === 401) {
+              throw new Error(`Gemini rejected the API key (401). Verify the key and try again. ${detail}`);
+            }
+            continue;
           }
 
-          const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(bodyPayload),
-            signal: controller.signal
-          });
-          clearTimeout(timeoutId);
-
-          if (response.status === 429 || response.status === 503 || response.status === 403 || response.status === 400) {
-            console.warn(`Model ${model} returned status ${response.status}. Falling back...`);
-            continue; // Proceed to next model in queue
-          }
-          if (!response.ok) throw new Error(`Model ${model} status ${response.status}`);
-          
           const data = await response.json();
-          const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (!text) throw new Error(`Model ${model} empty response`);
-          return text;
-        } catch (err) {
-          clearTimeout(timeoutId);
-          lastError = err;
+          const text = extractCandidateText(data);
+          if (!text) {
+            const reason = data?.promptFeedback?.blockReason || data?.candidates?.[0]?.finishReason || 'empty response';
+            failures.push(`${model.id}: ${reason}`);
+            setModelStatus(model.id, 'Skipped · no text');
+            log(`${model.id} returned no text (${reason}); trying the next model.`);
+            continue;
+          }
+          setModelStatus(model.id, 'Success · selected');
+          log(`SUCCESS: ${model.id} generated the scene instructions.`);
+          return { text, model: model.id };
+        } catch (error) {
+          if (error.name === 'AbortError') {
+            failures.push(`${model.id}: request timed out after ${REQUEST_TIMEOUT_MS / 1000}s`);
+            setModelStatus(model.id, 'Skipped · timeout');
+            log(`${model.id} timed out; trying the next model.`);
+            continue;
+          }
+          if (error.message.startsWith('Gemini rejected the API key')) throw error;
+          if (error instanceof TypeError) {
+            throw new Error(`Network/CORS error contacting Gemini. Try running this HTML from a local web server and check your API key's website restrictions. Details: ${error.message}`);
+          }
+          failures.push(`${model.id}: ${error.message}`);
+          setModelStatus(model.id, 'Error · retrying next');
+          log(`${model.id} failed: ${error.message}. Trying the next model.`);
         }
       }
-      throw new Error(`All waterfall models failed: ${lastError?.message}`);
+      const sample = failures.slice(-4).join(' | ');
+      throw new Error(`Every one of the ${modelQueue.length} waterfall model(s) failed. Last failures: ${sample || 'No detailed error returned.'}`);
     }
 
     async function generateTextureViaAIHorde(texturePrompt) {
       const payload = {
-        prompt: texturePrompt + " ### blurry, low quality",
+        prompt: `${texturePrompt} ### blurry, low quality, text, watermark`,
         params: { width: 512, height: 512, steps: 20, cfg_scale: 7, n: 1 },
-        nsfw: false, censor_nsfw: true, r2: true
+        nsfw: false,
+        censor_nsfw: true,
+        r2: true
       };
 
-      const submitted = await fetch(`${API_BASE}/generate/async`, {
-        method: "POST",
-        headers: { "apikey": "0000000000", "Client-Agent": "SpaceExplorer:1.0", "Content-Type": "application/json" },
+      const submitResponse = await fetchWithTimeout(`${HORDE_API_BASE}/generate/async`, {
+        method: 'POST',
+        headers: {
+          'apikey': '0000000000',
+          'Client-Agent': 'SpaceExplorer:1.1:anonymous',
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify(payload)
-      }).then(r => r.json());
+      }, 25000);
+      if (!submitResponse.ok) throw new Error(`AI Horde submit failed: ${await readApiError(submitResponse)}`);
+      const submitted = await submitResponse.json();
+      if (!submitted.id) throw new Error(`AI Horde did not return a job ID: ${JSON.stringify(submitted).slice(0, 240)}`);
 
-      if (!submitted.id) throw new Error("AI Horde request rejected.");
-      
-      for (let i = 0; i < 45; i++) {
-        await new Promise(r => setTimeout(r, 4000));
-        const check = await fetch(`${API_BASE}/generate/check/${submitted.id}`).then(r => r.json());
-        if (check.done) {
-          const status = await fetch(`${API_BASE}/generate/status/${submitted.id}`).then(r => r.json());
-          if (status.generations?.[0]?.img) {
-            return status.generations[0].img;
-          }
-        }
+      for (let attempt = 0; attempt < 45; attempt += 1) {
+        await new Promise(resolve => setTimeout(resolve, 4000));
+        setStatus(`🎨 AI Horde is generating the texture… check ${attempt + 1}/45`);
+        const checkResponse = await fetchWithTimeout(`${HORDE_API_BASE}/generate/check/${encodeURIComponent(submitted.id)}`, {}, 15000);
+        if (!checkResponse.ok) throw new Error(`AI Horde status check failed: ${await readApiError(checkResponse)}`);
+        const check = await checkResponse.json();
+        if (check.faulted) throw new Error('AI Horde reported that the texture job failed.');
+        if (!check.done) continue;
+
+        const resultResponse = await fetchWithTimeout(`${HORDE_API_BASE}/generate/status/${encodeURIComponent(submitted.id)}`, {}, 15000);
+        if (!resultResponse.ok) throw new Error(`AI Horde result request failed: ${await readApiError(resultResponse)}`);
+        const result = await resultResponse.json();
+        const imageUrl = result.generations?.[0]?.img;
+        if (imageUrl) return imageUrl;
+        throw new Error('AI Horde completed the job but did not return an image.');
       }
-      throw new Error("AI Horde generation timed out.");
+      throw new Error('AI Horde texture generation timed out. Try again; anonymous requests may wait longer.');
+    }
+
+    function setTexturePreview(imageUrl) {
+      el.textureBox.replaceChildren();
+      const label = document.createElement('div');
+      label.className = 'viewport-label';
+      label.textContent = 'Stage 1: AI Horde Texture';
+      const img = document.createElement('img');
+      img.alt = 'AI-generated celestial texture';
+      img.src = imageUrl;
+      img.referrerPolicy = 'no-referrer';
+      el.textureBox.append(label, img);
+    }
+
+    function disposeObjectGroup() {
+      while (objectGroup.children.length) {
+        const child = objectGroup.children[0];
+        objectGroup.remove(child);
+        child.traverse?.(node => {
+          if (node.geometry) node.geometry.dispose();
+          if (node.material) {
+            const materials = Array.isArray(node.material) ? node.material : [node.material];
+            materials.forEach(material => {
+              if (material.map) material.map.dispose();
+              material.dispose();
+            });
+          }
+        });
+      }
+    }
+
+    function parseSceneConfig(rawText) {
+      const cleaned = rawText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+      let config;
+      try { config = JSON.parse(cleaned); }
+      catch (_) {
+        const match = cleaned.match(/\{[\s\S]*\}/);
+        if (!match) throw new Error('The selected model did not return valid JSON scene instructions.');
+        config = JSON.parse(match[0]);
+      }
+      if (!config || !Array.isArray(config.objects) || config.objects.length === 0) {
+        throw new Error('The model response is missing the required objects array.');
+      }
+      return config;
     }
 
     async function runPipeline() {
-      const apiKey = document.getElementById('apiKey').value.trim();
-      const userPrompt = document.getElementById('prompt').value.trim();
-      const agentLog = document.getElementById('agentLog');
-      const generateBtn = document.getElementById('generate-btn');
-
+      if (isGenerating) return;
+      const apiKey = el.apiKey.value.trim();
+      const userPrompt = el.prompt.value.trim();
       if (!apiKey) {
-        alert('Please provide your Gemini API key.');
+        setStatus('Enter your Gemini API key first.', 'error');
+        el.apiKey.focus();
+        return;
+      }
+      if (!userPrompt) {
+        setStatus('Enter a space prompt first.', 'error');
+        el.prompt.focus();
         return;
       }
 
-      generateBtn.disabled = true;
-      setProgress(10);
-      setStatus("🤖 Gemini extracting instructions from prompt...");
-      agentLog.textContent = "Querying Gemini model waterfall...";
+      rememberKey(apiKey);
+      isGenerating = true;
+      el.generateBtn.disabled = true;
+      el.discoverBtn.disabled = true;
+      el.clearKeyBtn.disabled = true;
+      el.apiKey.disabled = true;
+      el.prompt.disabled = true;
+      setProgress(5);
+      setStatus('🔎 Checking account model list…');
+      el.agentLog.textContent = 'Starting account model discovery and model waterfall…';
 
       try {
-        const instructionPrompt = `You are an advanced astrophysical scene composer. Translate this user prompt into 3D scene objects and specific AI image generation prompts for textures.
-        User Prompt: "${userPrompt}"
-        
-        Return ONLY valid JSON with this exact structure:
-        {
-          "sectorTitle": "string",
-          "lore": "string",
-          "objects": [
-            {
-              "name": "string",
-              "geometryType": "sphere",
-              "color": "#38bdf8",
-              "roughness": 0.5,
-              "metalness": 0.1,
-              "texturePrompt": "Detailed prompt for generating surface texture map"
-            }
-          ]
-        }`;
+        if (discoveredForKey !== apiKey || modelQueue.length === 0) {
+          await discoverGeminiModels(apiKey, true);
+        }
+        if (!modelQueue.length) throw new Error('No supported Gemini text models found for this API key.');
+        setProgress(12);
 
-        const rawText = await callGeminiWithWaterfall(instructionPrompt, apiKey, true);
-        const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) throw new Error("Invalid JSON returned from Gemini.");
-        
-        const sceneConfig = JSON.parse(jsonMatch[0]);
-        agentLog.textContent = `[Sector]: ${sceneConfig.sectorTitle}\n[Lore]: ${sceneConfig.lore}\n\nSubmitting texture request to AI Horde...`;
-        setProgress(35);
-        setStatus("🎨 Requesting procedural texture from AI Horde network...");
+        const instructionPrompt = `You are an expert astrophysical scene composer for a Three.js educational space visualization. Translate the user's description into one clear, visually distinctive celestial object and an image-generation prompt for its surface texture. Avoid claiming that fictional details are established science.\n\nUSER PROMPT:\n${userPrompt}\n\nReturn ONLY valid JSON, with no markdown fences, using exactly this structure:\n{\n  "sectorTitle": "short string",\n  "lore": "one or two sentence description",\n  "objects": [\n    {\n      "name": "string",\n      "geometryType": "sphere",\n      "color": "#38bdf8",\n      "roughness": 0.5,\n      "metalness": 0.1,\n      "texturePrompt": "Detailed seamless-looking 1:1 texture image prompt; describe material, lighting, colors, and surface details; do not include text or a watermark"\n    }\n  ]\n}\nUse a valid CSS hex color. roughness and metalness must be numbers between 0 and 1. Keep the first object's texturePrompt tailored to the requested object.`;
 
+        setStatus('🤖 Asking the highest-ranked available model to describe the scene…');
+        const generated = await callGeminiWithWaterfall(instructionPrompt, apiKey, true);
+        const sceneConfig = parseSceneConfig(generated.text);
         const objDef = sceneConfig.objects[0];
-        const imgUrl = await generateTextureViaAIHorde(objDef.texturePrompt);
-        
-        setProgress(75);
-        setStatus("🪐 Loading texture map and constructing 3D celestial object...");
+        if (!objDef.texturePrompt || typeof objDef.texturePrompt !== 'string') {
+          throw new Error(`Model ${generated.model} returned an object without a usable texturePrompt.`);
+        }
+        log(`Scene title: ${sceneConfig.sectorTitle || 'Untitled sector'}`);
+        log(`Lore: ${sceneConfig.lore || 'No lore supplied.'}`);
+        log(`Selected object: ${objDef.name || 'Celestial object'}`);
+        setProgress(35);
 
-        const textureBox = document.getElementById('texture-box');
-        textureBox.innerHTML = `<div class="viewport-label">Stage 1: AI Horde Texture</div><img src="${imgUrl}" alt="Generated Texture" />`;
+        setStatus('🎨 Submitting the texture prompt to AI Horde…');
+        const imageUrl = await generateTextureViaAIHorde(objDef.texturePrompt);
+        setTexturePreview(imageUrl);
+        setProgress(72);
 
+        setStatus('🪐 Loading the texture and building the 3D object…');
         const textureLoader = new THREE.TextureLoader();
         textureLoader.setCrossOrigin('anonymous');
-        const texture = await textureLoader.loadAsync(imgUrl);
+        const texture = await textureLoader.loadAsync(imageUrl);
+        texture.colorSpace = THREE.SRGBColorSpace || texture.colorSpace;
 
-        while(objectGroup.children.length > 0) { objectGroup.remove(objectGroup.children[0]); }
-
+        disposeObjectGroup();
         const geometry = new THREE.SphereGeometry(1.8, 64, 64);
         const material = new THREE.MeshStandardMaterial({
           color: 0xffffff,
-          roughness: objDef.roughness || 0.5,
-          metalness: objDef.metalness || 0.1,
+          roughness: Number.isFinite(Number(objDef.roughness)) ? Math.min(1, Math.max(0, Number(objDef.roughness))) : 0.5,
+          metalness: Number.isFinite(Number(objDef.metalness)) ? Math.min(1, Math.max(0, Number(objDef.metalness))) : 0.1,
           map: texture
         });
-
         const mesh = new THREE.Mesh(geometry, material);
+        mesh.name = objDef.name || 'Generated celestial object';
         objectGroup.add(mesh);
 
         setProgress(100);
-        setStatus("✨ Generation complete! Texture and 3D world rendered successfully.", "success");
-        agentLog.textContent += `\n\nSuccessfully rendered object: ${objDef.name}`;
-
+        setStatus(`✨ Generation complete. Scene instructions came from ${generated.model}; texture and 3D preview are ready.`, 'success');
+        log(`Rendered object: ${mesh.name}.`);
       } catch (error) {
         setProgress(0);
-        setStatus(`Generation failed: ${error.message}`, "error");
-        agentLog.textContent += `\nError: ${error.message}`;
+        setStatus(`Generation failed: ${error.message}`, 'error');
+        log(`ERROR: ${error.message}`);
         console.error(error);
       } finally {
-        generateBtn.disabled = false;
+        isGenerating = false;
+        el.generateBtn.disabled = false;
+        el.discoverBtn.disabled = false;
+        el.clearKeyBtn.disabled = false;
+        el.apiKey.disabled = false;
+        el.prompt.disabled = false;
       }
     }
+
+    // Three.js setup.
+    const scene = new THREE.Scene();
+    const width = Math.max(1, el.viewport.clientWidth);
+    const height = Math.max(1, el.viewport.clientHeight);
+    const camera = new THREE.PerspectiveCamera(55, width / height, 0.1, 1000);
+    camera.position.set(0, 0, 5.4);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setSize(width, height);
+    el.viewport.appendChild(renderer.domElement);
+    scene.add(new THREE.AmbientLight(0xffffff, 1.15));
+    const keyLight = new THREE.DirectionalLight(0xffffff, 2.0);
+    keyLight.position.set(4, 3, 5);
+    scene.add(keyLight);
+    const rimLight = new THREE.PointLight(0x678cff, 1.1);
+    rimLight.position.set(-4, -1, -3);
+    scene.add(rimLight);
+    const objectGroup = new THREE.Group();
+    scene.add(objectGroup);
 
     function animate() {
       requestAnimationFrame(animate);
       objectGroup.rotation.y += 0.003;
+      objectGroup.rotation.x = Math.sin(Date.now() * 0.00025) * 0.035;
       renderer.render(scene, camera);
     }
-    animate();
+
+    el.discoverBtn.addEventListener('click', async () => {
+      const apiKey = el.apiKey.value.trim();
+      if (!apiKey) {
+        setStatus('Enter your Gemini API key before searching for account models.', 'error');
+        el.apiKey.focus();
+        return;
+      }
+      rememberKey(apiKey);
+      try {
+        await discoverGeminiModels(apiKey, true);
+        setStatus(modelQueue.length ? `Model search complete: ${modelQueue.length} compatible model(s) ranked.` : 'No compatible text-generation models were found.', modelQueue.length ? 'success' : 'error');
+      } catch (error) {
+        setStatus(`Model search failed: ${error.message}`, 'error');
+        log(`MODEL SEARCH ERROR: ${error.message}`);
+      }
+    });
+
+    el.clearKeyBtn.addEventListener('click', () => {
+      el.apiKey.value = '';
+      rememberKey('');
+      modelQueue = [];
+      discoveredForKey = '';
+      modelStatuses.clear();
+      renderModelQueue();
+      el.modelSummary.textContent = 'API key cleared. Search again to discover models.';
+      setStatus('The key was removed from this tab session.', 'success');
+    });
+
+    el.modelFilter.addEventListener('input', renderModelQueue);
+    el.apiKey.addEventListener('change', () => {
+      if (el.apiKey.value.trim() !== discoveredForKey) {
+        modelQueue = [];
+        discoveredForKey = '';
+        modelStatuses.clear();
+        renderModelQueue();
+        el.modelSummary.textContent = 'Key changed. Search again to load models available to this key.';
+      }
+    });
+    el.form.addEventListener('submit', event => {
+      event.preventDefault();
+      runPipeline();
+    });
 
     window.addEventListener('resize', () => {
-      camera.aspect = viewportContainer.clientWidth / viewportContainer.clientHeight;
+      const newWidth = Math.max(1, el.viewport.clientWidth);
+      const newHeight = Math.max(1, el.viewport.clientHeight);
+      camera.aspect = newWidth / newHeight;
       camera.updateProjectionMatrix();
-      renderer.setSize(viewportContainer.clientWidth, viewportContainer.clientHeight);
+      renderer.setSize(newWidth, newHeight);
     });
+
+    restoreKey();
+    renderModelQueue();
+    animate();
   </script>
 </body>
 </html>
