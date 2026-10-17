@@ -603,10 +603,10 @@ function buildPromptText(commandText) {
 You are the Onboard Astrometric Navigation and Ephemeris Computer of an advanced deep-space exploration vessel operating under Astrometric Protocol v2.0.
 User Navigation Command: "${commandText}"
 
-NAVIGATIONAL & EPHEMERIS COMPUTATION RULES:
-1. GALAXY & SYSTEM RECOGNITION: If a galaxy like the Milky Way, Andromeda, or a spiral galaxy is requested, set the primary object's geometryType to "spiral_galaxy" so it renders as a massive swirling star system with arms.
-2. CALCULATE REAL COORDINATES: Compute relative orbital distances, sizes, and Keplerian velocities for planets and objects.
-3. ORBITAL MECHANICS & PROPORTIONALITY: Every orbiting body must include a precise "distance" from center origin (0 for central star/core), an astrophysically scaled "orbitalSpeed" following Keplerian ratios ($v \propto 1/\\sqrt{r}$), and coordinates.
+AUTONOMOUS ASTROMETRIC COMPUTATION & DATABASE RULES:
+1. DEEP ASTRONOMICAL KNOWLEDGE: Autonomously identify the requested system, planet, star, or galaxy. You MUST automatically include all defining physical characteristics from your astronomical database (e.g., if Saturn is requested, you MUST automatically generate its ring system using geometryType "ring" or "planetary_ring", along with major moons like Titan and Enceladus).
+2. MULTI-PART STRUCTURES: Planets with known ring systems must include a separate ring object positioned at the planet's coordinates. Galaxies must use geometryType "spiral_galaxy". Stars must be marked as emissive.
+3. ORBITAL MECHANICS & PROPORTIONALITY: Every orbiting body must include a precise "distance" from center origin (0 for central star/core), an astrophysically scaled "orbitalSpeed" following Keplerian ratios ($v \propto 1/\\sqrt{r}$), and relative coordinates.
 4. PRECISE TEXTURE PROMPTS: Provide ultra-detailed surface feature descriptions for high-resolution albedo mapping.
 
 Return ONLY valid raw JSON matching this structure:
@@ -810,11 +810,11 @@ async function applyWorldConfig(config, hudStatusEl) {
       mesh.position.set(...objConfig.position);
     }
 
-    // Correct ring rotation and orientation (give rings a natural planetary tilt like Saturn's ~26.7°)
+    // Natural planetary ring tilt orientation (Saturnian angle)
     if (objConfig.rotation && Array.isArray(objConfig.rotation)) {
       mesh.rotation.set(...objConfig.rotation);
     } else if (isFlatRing) {
-      mesh.rotation.set(Math.PI / 2.8, 0.2, 0.1); // Natural tilted ring look, prevents rolling coin spin
+      mesh.rotation.set(Math.PI / 2.8, 0.2, 0.1); 
     }
 
     systemGroup.add(mesh);
@@ -823,7 +823,7 @@ async function applyWorldConfig(config, hudStatusEl) {
       mesh.material = finalMaterial;
     }
 
-    // Keplerian Physics & Spin Calculations (Rings have zero axial spin so they don't roll like wheels)
+    // Keplerian Physics & Spin Calculations (Rings have zero local wheel spin)
     let derivedOrbitalSpeed = objConfig.orbitalSpeed || objConfig.animationSpeed || 0.05;
     let derivedSpinSpeed = isFlatRing ? 0 : (objConfig.animationSpeed || 0.05);
 
@@ -970,7 +970,7 @@ function setupControls() {
 // --- ANIMATION HANDLERS ---
 const animationHandlers = {
   spin(anim, dt) {
-    if (anim.isRing) return; // Prevent rings from spinning like a wheel on their local axis
+    if (anim.isRing) return; 
     anim.mesh.rotation.y += anim.speed * (dt * 60);
   },
   tumble(anim, dt) {
