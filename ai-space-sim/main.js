@@ -612,7 +612,7 @@ async function loadTextureWithRetry(url, maxRetries = 3, initialDelay = 5000) {
   }
 }
 
-// --- ASYNC PARALLEL MATERIALIZATION PIPELINE WITH LIVE HUD STATUS UPDATES ---
+// --- ASYNC PARALLEL MATERIALIZATION PIPELINE WITH LIVE STAGED HUD & SPEECH UPDATES ---
 async function applyWorldConfig(config, hudStatusEl) {
   // Clear existing scene objects
   while (systemGroup.children.length > 0) {
@@ -654,13 +654,13 @@ async function applyWorldConfig(config, hudStatusEl) {
   const spaceObjects = config.objects || [config];
   console.log(`[ASTROMETRIC NAVIGATION] 🌌 Initializing Sector: "${config.sectorTitle || 'Unknown Sector'}". Target Object Count: ${spaceObjects.length}`);
 
-  // True parallel async loading pool with live HUD updates per asset
+  // True parallel async loading pool with live HUD and Speech updates per asset
   const assetPromises = spaceObjects.map(async (objConfig, index) => {
     const nameLower = (objConfig.name || '').toLowerCase();
     const promptLower = (objConfig.prompt || '').toLowerCase();
     const geomLower = (objConfig.geometryType || '').toLowerCase();
 
-    // Expanded Gaseous & Energy Phenomenon Detection (catches jets, accretion disks, beams, nebulae, etc.)
+    // Expanded Gaseous & Energy Phenomenon Detection
     const isGaseousPhenomenon = 
       ['jet', 'cone', 'accretion_disk', 'shell', 'supernova_shell'].includes(geomLower) ||
       nameLower.includes('nebula') || nameLower.includes('gas') || nameLower.includes('filament') || 
@@ -670,9 +670,12 @@ async function applyWorldConfig(config, hudStatusEl) {
       promptLower.includes('plasma') || promptLower.includes('ionized') || promptLower.includes('radiation') ||
       promptLower.includes('jet') || promptLower.includes('beam') || promptLower.includes('accretion');
 
+    // LIVE HUD & SPEECH TELEMETRY FOR EACH OBJECT
+    const stageText = `MAPPING: ${objConfig.name.toUpperCase()}`;
     if (hudStatusEl) {
-      hudStatusEl.innerText = `MAPPING: ${objConfig.name.toUpperCase()}`;
+      hudStatusEl.innerText = stageText;
     }
+    speakText(`Materializing celestial component: ${objConfig.name}.`);
 
     console.log(`%c[ASTROMETRIC LIFECYCLE] 🎨 MATERIALIZING OBJECT [${objConfig.name}] (Gaseous: ${isGaseousPhenomenon})`, `color: #fbbf24; font-weight: bold;`);
 
@@ -711,7 +714,6 @@ async function applyWorldConfig(config, hudStatusEl) {
     let finalMaterial;
 
     if (isGaseousPhenomenon) {
-      // Route straight to procedural plasma turbulence shader — zero network calls, zero rate-limit errors!
       finalMaterial = createPlasmaShaderMaterial(objConfig.color || '#38bdf8');
       console.log(`[ASTROMETRIC LIFECYCLE] 🌀 Procedural Plasma Shader Assigned to [${objConfig.name}]`);
     } else {
@@ -753,7 +755,7 @@ async function applyWorldConfig(config, hudStatusEl) {
     mesh.material.dispose();
     mesh.material = finalMaterial;
 
-    // Physics calculations
+    // Keplerian Physics & Spin Calculations with Debug Log verification
     let derivedOrbitalSpeed = objConfig.orbitalSpeed || objConfig.animationSpeed || 0.05;
     let derivedSpinSpeed = objConfig.animationSpeed || 0.05;
 
@@ -761,6 +763,8 @@ async function applyWorldConfig(config, hudStatusEl) {
       derivedOrbitalSpeed = 0.15 / Math.sqrt(objConfig.distance);
       derivedSpinSpeed = derivedOrbitalSpeed * 2.5; 
     }
+
+    console.log(`🔬 [PHYSICS DEBUG] Object: "${objConfig.name}" | Distance: ${objConfig.distance || 0} | Derived Orbital Speed: ${derivedOrbitalSpeed.toFixed(4)} | Derived Spin Speed: ${derivedSpinSpeed.toFixed(4)}`);
 
     return {
       mesh: mesh,
@@ -777,7 +781,7 @@ async function applyWorldConfig(config, hudStatusEl) {
 
   console.log(`[ASTROMETRIC NAVIGATION] 🚀 Sector Materialization Complete. Total Objects Established: ${spaceObjects.length}`);
 
-  // STAGE 4: TARGET SECURED
+  // STAGE 4: TARGET SECURED (Live HUD & Speech Update)
   if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: SECURED_TARGET';
   speakText("Sector materialization complete. All astrometric systems nominal.");
 }
