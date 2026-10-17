@@ -24,7 +24,7 @@
     h2 { margin: 0 0 14px; font-size: 1.12rem; color: #38bdf8; }
     
     label { display: block; font-size: .9rem; font-weight: 650; color: #d9e3f8; margin: 12px 0 6px; }
-    textarea, input, select {
+    textarea, input {
       display: block; width: 100%; border: 1px solid #354666; border-radius: 10px;
       background: #090f20; color: #eff6ff; padding: 10px 12px; font: inherit; outline: none;
     }
@@ -59,13 +59,12 @@
 <body>
   <main class="shell">
     <header>
-      <div class="eyebrow">Gemini 3 + AI Horde Pipeline</div>
+      <div class="eyebrow">Gemini Model Waterfall + AI Horde Pipeline</div>
       <h1>🪐 Autonomous 3D Space & AI Texture Generator</h1>
-      <p class="sub">Enter a natural language prompt. Gemini translates it into object instructions and texture prompts, AI Horde generates the procedural texture, and Three.js renders the live 3D celestial body.</p>
+      <p class="sub">Enter a natural language prompt. Gemini extracts and translates it into structured objects, AI Horde generates the procedural texture, and Three.js renders the live 3D world.</p>
     </header>
 
     <div class="layout">
-      <!-- Left Column: Settings & Prompts -->
       <section class="card">
         <h2>Generation Controls</h2>
         <form id="generator-form" onsubmit="event.preventDefault(); runPipeline();">
@@ -82,14 +81,12 @@
         <div id="agentLog" class="ai-log">Waiting for execution...</div>
       </section>
 
-      <!-- Right Column: Status & Side-by-Side Visual Stage Outputs -->
       <section class="card">
         <h2>Pipeline Stages & Result Output</h2>
         <div class="status" id="status" role="status" aria-live="polite">Ready. Enter a prompt and select Generate.</div>
         <div class="progress-track"><div class="progress-bar" id="progress"></div></div>
 
         <div class="viewports-grid">
-          <!-- Stage 1: AI Horde Generated Texture Preview -->
           <div class="viewport-container" id="texture-box">
             <div class="viewport-label">Stage 1: AI Horde Texture</div>
             <div id="texture-placeholder" style="padding: 20px; text-align: center; color: #8191b2; font-size: 0.8rem;">
@@ -97,7 +94,6 @@
             </div>
           </div>
 
-          <!-- Stage 2: Three.js Live 3D Viewport -->
           <div class="viewport-container">
             <div class="viewport-label">Stage 2: Three.js 3D Viewport</div>
             <div id="webgl-viewport"></div>
@@ -107,7 +103,6 @@
     </div>
   </main>
 
-  <!-- Three.js Library -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script>
     const API_BASE = "https://aihorde.net/api/v2";
@@ -122,7 +117,7 @@
       document.getElementById("progress").style.width = `${Math.max(0, Math.min(100, percent))}%`;
     }
 
-    // Three.js Scene Setup inside the right column viewport container
+    // Three.js Setup
     const viewportContainer = document.getElementById('webgl-viewport');
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(60, viewportContainer.clientWidth / viewportContainer.clientHeight, 0.1, 1000);
@@ -137,8 +132,8 @@
     const objectGroup = new THREE.Group();
     scene.add(objectGroup);
 
-    // Dynamic Gemini Waterfall Queue
-    let dynamicModelQueue = ['gemini-2.5-flash', 'gemini-1.5-flash'];
+    // Dynamic Model Discovery & Waterfall Queue Extraction
+    let dynamicModelQueue = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-pro'];
 
     async function discoverGeminiModels(apiKey) {
       if (!apiKey) return;
@@ -150,6 +145,7 @@
           const validModels = data.models
             .filter(m => m.supportedGenerationMethods?.includes('generateContent') && !m.name.includes('tts') && !m.name.includes('embedding') && !m.name.includes('gemma'))
             .map(m => m.name.replace('models/', ''));
+          
           if (validModels.length > 0) {
             validModels.sort((a, b) => (b.includes('flash') ? 1 : 0) - (a.includes('flash') ? 1 : 0));
             dynamicModelQueue = validModels;
@@ -161,9 +157,10 @@
     }
 
     async function callGeminiWithWaterfall(promptText, apiKey, expectJson = false) {
-      if (apiKey && dynamicModelQueue.length <= 2) {
+      if (apiKey) {
         await discoverGeminiModels(apiKey);
       }
+
       let lastError = null;
       for (const model of dynamicModelQueue) {
         const controller = new AbortController();
@@ -171,7 +168,11 @@
         try {
           const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
           const bodyPayload = { contents: [{ parts: [{ text: promptText }] }] };
-          if (expectJson) bodyPayload.generationConfig = { responseMimeType: "application/json" };
+          
+          // Safe configuration format to avoid 400 rejection codes
+          if (expectJson) {
+            bodyPayload.generationConfig = { responseMimeType: "application/json" };
+          }
 
           const response = await fetch(url, {
             method: 'POST',
@@ -180,8 +181,13 @@
             signal: controller.signal
           });
           clearTimeout(timeoutId);
-          if (response.status === 429 || response.status === 503 || response.status === 403) continue;
+
+          if (response.status === 429 || response.status === 503 || response.status === 403 || response.status === 400) {
+            console.warn(`Model ${model} returned status ${response.status}. Falling back...`);
+            continue; // Proceed to next model in queue
+          }
           if (!response.ok) throw new Error(`Model ${model} status ${response.status}`);
+          
           const data = await response.json();
           const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
           if (!text) throw new Error(`Model ${model} empty response`);
@@ -235,8 +241,8 @@
 
       generateBtn.disabled = true;
       setProgress(10);
-      setStatus("🤖 Gemini translating prompt into 3D scene instructions...");
-      agentLog.textContent = "Analyzing prompt & structuring celestial configuration...";
+      setStatus("🤖 Gemini extracting instructions from prompt...");
+      agentLog.textContent = "Querying Gemini model waterfall...";
 
       try {
         const instructionPrompt = `You are an advanced astrophysical scene composer. Translate this user prompt into 3D scene objects and specific AI image generation prompts for textures.
@@ -273,7 +279,6 @@
         setProgress(75);
         setStatus("🪐 Loading texture map and constructing 3D celestial object...");
 
-        // Display the texture in the side preview box
         const textureBox = document.getElementById('texture-box');
         textureBox.innerHTML = `<div class="viewport-label">Stage 1: AI Horde Texture</div><img src="${imgUrl}" alt="Generated Texture" />`;
 
