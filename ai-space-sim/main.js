@@ -304,8 +304,6 @@ function createSpiralGalaxyPoints(baseColorHex) {
 
   const baseColor = new THREE.Color(baseColorHex || 0x38bdf8);
   const coreColor = new THREE.Color(0xffffff);
-  const armColors = [new THREE.Color(0x38bdf8), new THREE.Color(0xa855f7), new THREE.Color(0xf43f5e)];
-
   const arms = 2;
   const radius = 12.0;
 
@@ -319,13 +317,12 @@ function createSpiralGalaxyPoints(baseColorHex) {
 
     const x = Math.cos(theta) * r;
     const z = Math.sin(theta) * r;
-    const y = (Math.random() - 0.5) * 0.8 * (radius - r) * 0.2; // flattening towards edges
+    const y = (Math.random() - 0.5) * 0.8 * (radius - r) * 0.2;
 
     positions[i * 3] = x;
     positions[i * 3 + 1] = y;
     positions[i * 3 + 2] = z;
 
-    // Color gradient from bright white/gold core to arm colors
     const mixedColor = coreColor.clone().lerp(baseColor, r / radius);
     colors[i * 3] = mixedColor.r;
     colors[i * 3 + 1] = mixedColor.g;
@@ -490,6 +487,7 @@ async function processCommand(commandText) {
   const hudStatusEl = document.getElementById('hud-nav-status');
   const titleEl = document.getElementById('sector-title');
   const loreEl = document.getElementById('sector-lore');
+  const liveCodeEl = document.getElementById('live-code') || document.querySelector('.sidebar pre') || document.querySelector('#sidebar pre');
 
   if (transcriptEl) transcriptEl.innerText = `"${commandText}"`;
 
@@ -586,6 +584,11 @@ async function processCommand(commandText) {
   if (titleEl && worldConfig.sectorTitle) titleEl.innerText = worldConfig.sectorTitle;
   if (loreEl && worldConfig.lore) loreEl.innerText = worldConfig.lore;
   if (worldConfig.audioParams) updateAudioSynth(worldConfig.audioParams);
+
+  // Update the bottom-left live code compilation container
+  if (liveCodeEl) {
+    liveCodeEl.innerText = JSON.stringify(worldConfig, null, 2);
+  }
 
   // STAGE 3: MAPPING SECTOR ASSETS
   if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: MAPPING SECTOR';
@@ -717,15 +720,13 @@ async function applyWorldConfig(config, hudStatusEl) {
     // Is it a spiral galaxy?
     const isSpiralGalaxy = geomLower === 'spiral_galaxy' || nameLower.includes('milky way') || nameLower.includes('galaxy') || nameLower.includes('andromeda');
 
-    // Expanded Gaseous & Energy Phenomenon Detection
+    // Strict Gaseous & Energy Phenomenon Detection (Excludes normal gas giant planets from plasma warping)
     const isGaseousPhenomenon = isSpiralGalaxy ||
       ['jet', 'cone', 'accretion_disk', 'shell', 'supernova_shell'].includes(geomLower) ||
-      nameLower.includes('nebula') || nameLower.includes('gas') || nameLower.includes('filament') || 
-      nameLower.includes('cloud') || nameLower.includes('plasma') || nameLower.includes('synchrotron') ||
-      nameLower.includes('jet') || nameLower.includes('beam') || nameLower.includes('disk') ||
-      promptLower.includes('nebula') || promptLower.includes('gas') || promptLower.includes('filament') || 
-      promptLower.includes('plasma') || promptLower.includes('ionized') || promptLower.includes('radiation') ||
-      promptLower.includes('jet') || promptLower.includes('beam') || promptLower.includes('accretion');
+      nameLower.includes('nebula') || nameLower.includes('filament') || 
+      nameLower.includes('plasma cloud') || nameLower.includes('synchrotron') ||
+      promptLower.includes('nebula') || promptLower.includes('ionized gas cloud') || 
+      promptLower.includes('synchrotron radiation') || promptLower.includes('stellar remnant');
 
     // LIVE HUD & SPEECH TELEMETRY FOR EACH OBJECT
     const stageText = `MAPPING: ${objConfig.name.toUpperCase()}`;
