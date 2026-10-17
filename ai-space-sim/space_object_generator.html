@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Autonomous 3D Space & AI Texture Generator — Debugged</title>
+  <title>Autonomous 3D Space & AI Texture Generator — Dynamic Texture Review</title>
   <style>
     :root { color-scheme: dark; }
     * { box-sizing: border-box; }
@@ -65,6 +65,24 @@
     .viewport-label { position: absolute; top: 8px; left: 8px; background: rgba(3, 7, 18, .82); padding: 3px 8px; font-size: .7rem; border-radius: 6px; color: #38bdf8; z-index: 5; }
     .placeholder { padding: 26px 18px; text-align: center; color: #8191b2; font-size: .8rem; }
     .ai-log { background: #090f20; border: 1px solid #354666; border-radius: 10px; padding: 10px; font-size: .8rem; color: #b8c6df; max-height: 180px; overflow-y: auto; white-space: pre-wrap; overflow-wrap: anywhere; margin-top: 10px; }
+
+    /* Multi-object texture gallery and scene status */
+    #texture-box { justify-content: flex-start; align-items: stretch; overflow: auto; max-height: 540px; }
+    .texture-gallery { width: 100%; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 40px 9px 9px; align-content: start; }
+    .texture-card { min-width: 0; overflow: hidden; border: 1px solid #293757; border-radius: 9px; background: #090f20; }
+    .texture-card-title { padding: 6px 7px 3px; color: #e3ecff; font-size: .72rem; font-weight: 750; overflow-wrap: anywhere; }
+    .texture-card-status { min-height: 27px; padding: 0 7px 5px; color: #9aaccb; font-size: .66rem; overflow-wrap: anywhere; }
+    .texture-card-status[data-state="success"],
+    .texture-card-status[data-state="ready"],
+    .texture-card-status[data-state="applied"] { color: #86efac; }
+    .texture-card-status[data-state="error"] { color: #fca5a5; }
+    .texture-choice { display: flex; align-items: center; gap: 6px; padding: 6px 7px 8px; color: #cbd5e1; font-size: .68rem; cursor: pointer; }
+    .texture-choice input { width: auto; margin: 0; accent-color: #8b9dff; }
+    #apply-textures-btn[hidden] { display: none; }
+    .texture-card img.texture-thumb { display: block; width: 100%; height: 105px; min-height: 0; object-fit: cover; background: #050811; }
+    .texture-thumb-placeholder { height: 76px; display: grid; place-items: center; color: #7182a5; font-size: .72rem; padding: 8px; text-align: center; }
+    @media (min-width: 580px) { .texture-gallery { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
     @media (max-width: 940px) { .layout { grid-template-columns: 1fr; } }
     @media (max-width: 580px) { .shell { width: min(100% - 20px, 1360px); padding-top: 15px; } .card { padding: 14px; } .viewports-grid { grid-template-columns: 1fr; } .button-row { grid-template-columns: 1fr; } }
   </style>
@@ -74,7 +92,7 @@
     <header>
       <div class="eyebrow">Account Model Discovery · Ranked Waterfall · AI Horde</div>
       <h1>🪐 Autonomous 3D Space & AI Texture Generator</h1>
-      <p class="sub">Discover Gemini models visible to your API key, rank text-generation candidates from stronger general-purpose models to fallback models, then generate a scene description and an AI texture for the 3D preview. Ranking is a practical naming/version heuristic, not an official benchmark.</p>
+      <p class="sub">Discover Gemini models visible to your API key, rank text-generation candidates, and let Gemini determine how many objects the prompt needs. The app generates one independent texture per returned object, shows the complete texture gallery for review, and only applies selected textures to the 3D meshes after you approve them. Up to four texture jobs run concurrently. Model ranking is a practical naming/version heuristic, not an official benchmark.</p>
     </header>
 
     <div class="layout">
@@ -112,14 +130,16 @@
         <div class="progress-track"><div class="progress-bar" id="progress"></div></div>
         <div class="viewports-grid">
           <div class="viewport-container" id="texture-box">
-            <div class="viewport-label">Stage 1: AI Horde Texture</div>
-            <div id="texture-placeholder" class="placeholder">Generated texture map will appear here.</div>
+            <div class="viewport-label">Stage 1: Texture Gallery — Review First</div>
+            <div id="texture-placeholder" class="placeholder">Gemini will decide how many objects are needed. Generated textures will appear here before they are applied to any mesh.</div>
           </div>
           <div class="viewport-container">
-            <div class="viewport-label">Stage 2: Three.js 3D Viewport</div>
+            <div class="viewport-label">Stage 2: Three.js Preview — Textures Awaiting Approval</div>
             <div id="webgl-viewport"></div>
           </div>
         </div>
+        <button type="button" id="apply-textures-btn" class="secondary" hidden disabled>Apply selected textures to 3D objects</button>
+        <p class="small-note">Textures are generated and shown in the gallery first. Select the textures to use, then press Apply; no texture is attached to a mesh before that action.</p>
       </section>
     </div>
   </main>
@@ -147,7 +167,8 @@
       progress: document.getElementById('progress'),
       agentLog: document.getElementById('agentLog'),
       textureBox: document.getElementById('texture-box'),
-      viewport: document.getElementById('webgl-viewport')
+      viewport: document.getElementById('webgl-viewport'),
+      applyTexturesBtn: document.getElementById('apply-textures-btn')
     };
 
     let modelQueue = [];
@@ -155,6 +176,8 @@
     let modelStatuses = new Map();
     let isDiscovering = false;
     let isGenerating = false;
+    let activeMeshRecords = [];
+    let textureJobsCompleted = false;
 
     function setStatus(message, kind = 'info') {
       el.status.textContent = message;
@@ -525,7 +548,8 @@
       throw new Error('AI Horde returned an unrecognized image format. Expected a WebP Base64 payload or an image URL.');
     }
 
-    async function generateTextureViaAIHorde(texturePrompt) {
+    async function generateTextureViaAIHorde(texturePrompt, objectName = 'object') {
+      const taskLabel = `[${objectName}] `;
       const payload = {
         prompt: `${texturePrompt} ### blurry, low quality, text, watermark`,
         params: { width: 512, height: 512, steps: 20, cfg_scale: 7, n: 1 },
@@ -535,8 +559,8 @@
         r2: false
       };
 
-      log('AI Horde: submitting the texture request (anonymous priority).');
-      setStatus('🎨 Sending texture request to AI Horde…');
+      log(`${taskLabel}AI Horde: submitting the texture request (anonymous priority).`);
+      setStatus(`🎨 Sending texture request for ${objectName} to AI Horde…`);
       const submitResponse = await fetchWithTimeout(`${HORDE_API_BASE}/generate/async`, {
         method: 'POST',
         headers: {
@@ -549,11 +573,11 @@
       if (!submitResponse.ok) throw new Error(`AI Horde submit failed: ${await readApiError(submitResponse)}`);
       const submitted = await submitResponse.json();
       if (!submitted.id) throw new Error(`AI Horde accepted no job ID. Response: ${JSON.stringify(submitted).slice(0, 400)}`);
-      log(`AI Horde accepted job ${submitted.id}. Waiting for an image result…`);
+      log(`${taskLabel}AI Horde accepted job ${submitted.id}. Waiting for an image result…`);
 
       for (let attempt = 0; attempt < 45; attempt += 1) {
         await new Promise(resolve => setTimeout(resolve, 4000));
-        setStatus(`🎨 AI Horde is generating the texture… check ${attempt + 1}/45`);
+        setStatus(`🎨 Texture for ${objectName}: AI Horde processing… check ${attempt + 1}/45`);
         const checkResponse = await fetchWithTimeout(`${HORDE_API_BASE}/generate/check/${encodeURIComponent(submitted.id)}`, {}, 15000);
         if (!checkResponse.ok) throw new Error(`AI Horde status check failed: ${await readApiError(checkResponse)}`);
         const check = await checkResponse.json();
@@ -561,14 +585,14 @@
         if (attempt === 0 || (attempt + 1) % 4 === 0) {
           const queue = Number.isFinite(check.queue_position) ? `; queue position ${check.queue_position}` : '';
           const waiting = Number.isFinite(check.waiting) ? `; waiting ${check.waiting}` : '';
-          log(`AI Horde status ${attempt + 1}/45: ${check.done ? 'complete' : check.faulted ? 'faulted' : 'processing'}${queue}${waiting}.`);
+          log(`${taskLabel}AI Horde status ${attempt + 1}/45: ${check.done ? 'complete' : check.faulted ? 'faulted' : 'processing'}${queue}${waiting}.`);
         }
         if (check.faulted) {
           throw new Error(`AI Horde marked job ${submitted.id} as faulted. ${check.message || check.fault || 'The worker did not provide a reason.'}`);
         }
         if (!check.done) continue;
 
-        log('AI Horde reports the job is complete; retrieving the full result…');
+        log(`${taskLabel}AI Horde reports the job is complete; retrieving the full result…`);
         const resultResponse = await fetchWithTimeout(`${HORDE_API_BASE}/generate/status/${encodeURIComponent(submitted.id)}`, {}, 20000);
         if (!resultResponse.ok) throw new Error(`AI Horde result request failed: ${await readApiError(resultResponse)}`);
         const result = await resultResponse.json();
@@ -577,30 +601,147 @@
         if (!imageData) {
           throw new Error(`AI Horde completed job ${submitted.id} but returned no image. Result summary: ${JSON.stringify({ done: result.done, faulted: result.faulted, message: result.message, generationsCount: result.generations?.length || 0 }).slice(0, 400)}`);
         }
-        if (generation.censored) log('Warning: AI Horde marked the returned generation as censored.');
+        if (generation.censored) log(`${taskLabel}Warning: AI Horde marked the returned generation as censored.`);
         const normalized = normalizeHordeImage(imageData);
-        log(`AI Horde returned an image (${normalized.startsWith('data:') ? 'Base64 data URI' : 'image URL'}); validating browser image decoding…`);
+        log(`${taskLabel}AI Horde returned an image (${normalized.startsWith('data:') ? 'Base64 data URI' : 'image URL'}); validating browser image decoding…`);
         return normalized;
       }
       throw new Error(`AI Horde texture generation timed out after about 3 minutes. Job ID: ${submitted.id}. Anonymous requests can wait longer; try again later or use a registered AI Horde key.`);
     }
 
-    function setTexturePreview(imageUrl) {
+    function buildTextureGallery(objects) {
       el.textureBox.replaceChildren();
       const label = document.createElement('div');
       label.className = 'viewport-label';
-      label.textContent = 'Stage 1: AI Horde Texture';
-      const img = document.createElement('img');
-      img.alt = 'AI-generated celestial texture';
-      img.src = imageUrl;
-      img.referrerPolicy = 'no-referrer';
-      img.addEventListener('error', event => {
-        log(`Texture preview failed to display: ${describeError(event, 'image error event without a message')}`);
-      }, { once: true });
-      el.textureBox.append(label, img);
+      label.id = 'texture-stage-label';
+      label.textContent = `Stage 1: Generated Texture Gallery (0/${objects.length} ready)`;
+      const gallery = document.createElement('div');
+      gallery.className = 'texture-gallery';
+      gallery.id = 'texture-gallery';
+      objects.forEach((object, index) => {
+        const card = document.createElement('div');
+        card.className = 'texture-card';
+        card.dataset.index = String(index);
+        const title = document.createElement('div');
+        title.className = 'texture-card-title';
+        title.textContent = `${String(index + 1).padStart(2, '0')} · ${object.name || `Object ${index + 1}`}`;
+        const status = document.createElement('div');
+        status.className = 'texture-card-status';
+        status.dataset.state = 'waiting';
+        status.textContent = 'Waiting for texture…';
+        const placeholder = document.createElement('div');
+        placeholder.className = 'texture-thumb-placeholder';
+        placeholder.textContent = 'Texture pending';
+        const choiceLabel = document.createElement('label');
+        choiceLabel.className = 'texture-choice';
+        const choice = document.createElement('input');
+        choice.type = 'checkbox';
+        choice.className = 'texture-select';
+        choice.checked = true;
+        choice.disabled = true;
+        choice.setAttribute('aria-label', `Apply texture to ${object.name || `object ${index + 1}`}`);
+        const choiceText = document.createElement('span');
+        choiceText.textContent = 'Select to apply';
+        choiceLabel.append(choice, choiceText);
+        card.append(title, status, placeholder, choiceLabel);
+        gallery.appendChild(card);
+      });
+      el.textureBox.append(label, gallery);
+      return gallery;
+    }
+
+    function updateApplyButtonState() {
+      const readyRecords = activeMeshRecords.filter(record => record.pendingTexture && !record.applied);
+      let selectedCount = 0;
+      for (const record of readyRecords) {
+        const checkbox = el.textureBox.querySelector(`.texture-card[data-index="${record.index}"] .texture-select`);
+        if (checkbox?.checked) selectedCount += 1;
+      }
+      el.applyTexturesBtn.hidden = !textureJobsCompleted || readyRecords.length === 0;
+      el.applyTexturesBtn.disabled = !textureJobsCompleted || selectedCount === 0;
+      el.applyTexturesBtn.textContent = selectedCount
+        ? `Apply ${selectedCount} selected texture${selectedCount === 1 ? '' : 's'} to 3D object${selectedCount === 1 ? '' : 's'}`
+        : 'Select at least one ready texture to apply';
+    }
+
+    function setTextureCardState(index, state, message, imageUrl = '') {
+      const card = el.textureBox.querySelector(`.texture-card[data-index="${index}"]`);
+      if (!card) return;
+      const status = card.querySelector('.texture-card-status');
+      const checkbox = card.querySelector('.texture-select');
+      status.dataset.state = state;
+      status.textContent = message;
+      if (checkbox) {
+        checkbox.disabled = !['ready', 'success'].includes(state);
+        if (state === 'error') checkbox.checked = false;
+        if (state === 'applied') checkbox.disabled = true;
+      }
+      if (imageUrl) {
+        const placeholder = card.querySelector('.texture-thumb-placeholder');
+        const img = document.createElement('img');
+        img.className = 'texture-thumb';
+        img.alt = `AI-generated texture for ${card.querySelector('.texture-card-title')?.textContent || `object ${index + 1}`}`;
+        img.src = imageUrl;
+        img.referrerPolicy = 'no-referrer';
+        img.addEventListener('error', () => {
+          log(`Texture gallery thumbnail ${index + 1} did not display; the decoded texture is still retained separately when available.`);
+        }, { once: true });
+        if (placeholder) placeholder.replaceWith(img);
+        else if (!card.querySelector('img.texture-thumb')) card.appendChild(img);
+      }
+      const total = el.textureBox.querySelectorAll('.texture-card').length;
+      const ready = el.textureBox.querySelectorAll('.texture-card-status[data-state="ready"], .texture-card-status[data-state="success"], .texture-card-status[data-state="applied"]').length;
+      const label = document.getElementById('texture-stage-label');
+      if (label) label.textContent = `Stage 1: Generated Texture Gallery (${ready}/${total} ready)`;
+      updateApplyButtonState();
+    }
+
+    function createObjectGeometry(object, radius) {
+      const type = String(object.geometryType || 'sphere').toLowerCase();
+      if (type.includes('torus') || type.includes('ring')) return new THREE.TorusGeometry(radius, radius * 0.28, 18, 48);
+      if (type.includes('box') || type.includes('cube')) return new THREE.BoxGeometry(radius * 1.65, radius * 1.65, radius * 1.65, 4, 4, 4);
+      if (type.includes('cone')) return new THREE.ConeGeometry(radius, radius * 1.9, 32, 2);
+      if (type.includes('icosa') || type.includes('asteroid')) return new THREE.IcosahedronGeometry(radius, 2);
+      if (type.includes('cylinder')) return new THREE.CylinderGeometry(radius * 0.78, radius, radius * 1.7, 32, 2);
+      return new THREE.SphereGeometry(radius, 48, 48);
+    }
+
+    function makeTexturePrompt(object, sceneTitle, lore) {
+      const name = String(object.name || 'unnamed celestial object');
+      const material = String(object.material || object.surfaceType || 'celestial surface');
+      if (typeof object.texturePrompt === 'string' && object.texturePrompt.trim()) return object.texturePrompt.trim();
+      return `Create a detailed square 1:1 seamless-looking PBR-style surface texture for ${name}, part of the space scene ${sceneTitle || 'Unknown Sector'}. Object type: ${object.geometryType || 'sphere'}. Surface/material: ${material}. Scene context: ${lore || 'deep space'}. Dominant color: ${object.color || 'deep blue and violet'}. Show rich, close-up surface details, clear contrast, realistic mineral or atmospheric patterns, even diffuse lighting, no object silhouette, no stars or space background, no text, no labels, no watermark.`;
+    }
+
+    function prepareSceneObjects(objects) {
+      // Preserve Gemini's actual dynamic object count. Never pad or truncate to a fixed number.
+      const result = objects.filter(item => item && typeof item === 'object');
+      if (!result.length) throw new Error('Gemini returned no usable object definitions.');
+      result.forEach((object, index) => {
+        if (typeof object.name !== 'string' || !object.name.trim()) object.name = `Celestial object ${index + 1}`;
+      });
+      return result;
+    }
+
+    async function runWithConcurrency(items, limit, worker) {
+      let nextIndex = 0;
+      const workerCount = Math.min(Math.max(1, limit), items.length);
+      const workers = Array.from({ length: workerCount }, async () => {
+        while (true) {
+          const index = nextIndex++;
+          if (index >= items.length) return;
+          await worker(items[index], index);
+        }
+      });
+      await Promise.all(workers);
     }
 
     function disposeObjectGroup() {
+      // Dispose textures held for review but not attached to a mesh, so repeated runs don't leak GPU resources.
+      activeMeshRecords.forEach(record => {
+        if (record.pendingTexture && !record.applied) record.pendingTexture.dispose();
+      });
+      activeMeshRecords = [];
       while (objectGroup.children.length) {
         const child = objectGroup.children[0];
         objectGroup.remove(child);
@@ -654,81 +795,165 @@
       el.clearKeyBtn.disabled = true;
       el.apiKey.disabled = true;
       el.prompt.disabled = true;
-      setProgress(5);
+      setProgress(3);
+      textureJobsCompleted = false;
+      el.applyTexturesBtn.hidden = true;
+      el.applyTexturesBtn.disabled = true;
       setStatus('🔎 Checking account model list…');
-      el.agentLog.textContent = 'Starting account model discovery and model waterfall…';
+      el.agentLog.textContent = 'Starting account model discovery and dynamic scene/texture pipeline…';
 
       try {
         if (discoveredForKey !== apiKey || modelQueue.length === 0) {
           await discoverGeminiModels(apiKey, true);
         }
         if (!modelQueue.length) throw new Error('No supported Gemini text models found for this API key.');
-        setProgress(12);
+        setProgress(10);
 
-        const instructionPrompt = `You are an expert astrophysical scene composer for a Three.js educational space visualization. Translate the user's description into one clear, visually distinctive celestial object and an image-generation prompt for its surface texture. Avoid claiming that fictional details are established science.\n\nUSER PROMPT:\n${userPrompt}\n\nReturn ONLY valid JSON, with no markdown fences, using exactly this structure:\n{\n  "sectorTitle": "short string",\n  "lore": "one or two sentence description",\n  "objects": [\n    {\n      "name": "string",\n      "geometryType": "sphere",\n      "color": "#38bdf8",\n      "roughness": 0.5,\n      "metalness": 0.1,\n      "texturePrompt": "Detailed seamless-looking 1:1 texture image prompt; describe material, lighting, colors, and surface details; do not include text or a watermark"\n    }\n  ]\n}\nUse a valid CSS hex color. roughness and metalness must be numbers between 0 and 1. Keep the first object's texturePrompt tailored to the requested object.`;
+        const instructionPrompt = `You are an expert astrophysical scene composer for a Three.js educational space visualization. Design a coherent scene inspired by the user's request. YOU choose the number of objects dynamically based on what the prompt actually requires: it may be one object or several. Do not force a fixed count, do not pad the scene with filler, and do not create duplicates merely to increase the count. Include the main requested subject and add only relevant supporting celestial bodies when they improve the scene. Every returned object will receive its own independent AI-generated surface texture, which will be shown in a review gallery before the user chooses whether to apply it to the matching 3D mesh.
 
-        setStatus('🤖 Asking the highest-ranked available model to describe the scene…');
+USER PROMPT:
+${userPrompt}
+
+Return ONLY valid JSON, with no markdown fences, using exactly this structure:
+{
+  "sectorTitle": "short string",
+  "lore": "one or two sentence description",
+  "objects": [
+    {
+      "name": "unique object name",
+      "geometryType": "sphere",
+      "color": "#38bdf8",
+      "roughness": 0.5,
+      "metalness": 0.1,
+      "texturePrompt": "An object-specific square 1:1 surface texture prompt, full-frame material only, no space background, no object silhouette, no text or watermark"
+    }
+  ]
+}
+Include as many objects as are reasonably needed for the scene, without a fixed target count. Every object must have a distinct name and a unique texturePrompt tailored to its surface/material. Geometry should usually be sphere; use torus/ring, box, cone, cylinder or icosahedron only when visually appropriate. Use valid CSS hex colors, and roughness/metalness numbers between 0 and 1. Do not put several objects in a single texture prompt.`;
+
+        setStatus('🤖 Asking the highest-ranked available model to determine the scene objects dynamically…');
         const generated = await callGeminiWithWaterfall(instructionPrompt, apiKey, true);
         const sceneConfig = parseSceneConfig(generated.text);
-        const objDef = sceneConfig.objects[0];
-        if (!objDef.texturePrompt || typeof objDef.texturePrompt !== 'string') {
-          throw new Error(`Model ${generated.model} returned an object without a usable texturePrompt.`);
-        }
+        const sceneObjects = prepareSceneObjects(sceneConfig.objects);
         log(`Scene title: ${sceneConfig.sectorTitle || 'Untitled sector'}`);
         log(`Lore: ${sceneConfig.lore || 'No lore supplied.'}`);
-        log(`Selected object: ${objDef.name || 'Celestial object'}`);
-        setProgress(35);
-
-        setStatus('🎨 Submitting the texture prompt to AI Horde…');
-        const imageUrl = await generateTextureViaAIHorde(objDef.texturePrompt);
-        setTexturePreview(imageUrl);
-        setProgress(72);
-
-        setStatus('🪐 Publishing the 3D object, then validating and applying its texture…');
-        // Publish the mesh to the scene before decoding the texture. If image
-        // decoding fails, the user still sees the object instead of a blank viewport.
-        disposeObjectGroup();
-        const geometry = new THREE.SphereGeometry(1.8, 64, 64);
-        const validColor = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(String(objDef.color || ''))
-          ? objDef.color : '#8ea6ff';
-        const material = new THREE.MeshStandardMaterial({
-          color: validColor,
-          roughness: Number.isFinite(Number(objDef.roughness)) ? Math.min(1, Math.max(0, Number(objDef.roughness))) : 0.5,
-          metalness: Number.isFinite(Number(objDef.metalness)) ? Math.min(1, Math.max(0, Number(objDef.metalness))) : 0.1
+        log(`Model ${generated.model} returned ${sceneConfig.objects.length} object definition(s); using ${sceneObjects.length} valid object(s). The object count is dynamic, not fixed.`);
+        sceneObjects.forEach((obj, index) => {
+          if (!obj.texturePrompt || typeof obj.texturePrompt !== 'string') {
+            obj.texturePrompt = makeTexturePrompt(obj, sceneConfig.sectorTitle, sceneConfig.lore);
+            log(`No texturePrompt for ${obj.name || `Object ${index + 1}`}; built a safe per-object fallback prompt.`);
+          }
         });
-        const mesh = new THREE.Mesh(geometry, material);
-        mesh.name = objDef.name || 'Generated celestial object';
-        objectGroup.add(mesh);
-        log(`3D object created: ${mesh.name}. Applying texture image…`);
 
-        try {
-          // Publish the mesh first so it remains visible even if image decoding fails.
-          const decodedImage = await loadImageForTexture(imageUrl);
-          log(`Image decoded successfully (${decodedImage.naturalWidth}×${decodedImage.naturalHeight}).`);
-          // Reuse the image already decoded by the browser, avoiding an opaque
-          // TextureLoader event rejection when the image can't be fetched/decoded.
-          const texture = new THREE.Texture(decodedImage);
-          texture.needsUpdate = true;
-          // This page uses Three.js r128, which uses texture.encoding rather than colorSpace.
-          if (THREE.sRGBEncoding !== undefined) texture.encoding = THREE.sRGBEncoding;
-          else if (THREE.SRGBColorSpace && 'colorSpace' in texture) texture.colorSpace = THREE.SRGBColorSpace;
-          material.map = texture;
-          material.color.set(0xffffff); // Let the generated texture's colors show accurately.
-          material.needsUpdate = true;
-          log('Texture successfully decoded and attached to the 3D object.');
-        } catch (textureError) {
-          const message = describeError(textureError, 'Texture assignment failed without a browser error message.');
-          setProgress(100);
-          setStatus(`Object rendered, but the texture could not be applied: ${message}`, 'error');
-          log(`TEXTURE ERROR: ${message}`);
-          log('The sphere remains visible with its fallback material. Check the browser Console for further details.');
-          console.error('Three.js texture loading failed:', textureError);
-          return;
+        // Prepare a scene with untextured meshes, then generate and show every texture for review before applying any of them.
+        disposeObjectGroup();
+        textureJobsCompleted = false;
+        activeMeshRecords = [];
+        el.applyTexturesBtn.hidden = true;
+        el.applyTexturesBtn.disabled = true;
+        buildTextureGallery(sceneObjects);
+        const meshRecords = [];
+        const count = sceneObjects.length;
+        const columns = Math.min(5, count);
+        const rows = Math.ceil(count / columns);
+        const spacing = count === 1 ? 0 : 1.5;
+        const radius = count === 1 ? 1.8 : 0.62;
+
+        sceneObjects.forEach((obj, index) => {
+          const validColor = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(String(obj.color || '')) ? obj.color : '#8ea6ff';
+          const roughnessValue = Number(obj.roughness);
+          const metalnessValue = Number(obj.metalness);
+          const material = new THREE.MeshStandardMaterial({
+            color: validColor,
+            roughness: Number.isFinite(roughnessValue) ? Math.min(1, Math.max(0, roughnessValue)) : 0.5,
+            metalness: Number.isFinite(metalnessValue) ? Math.min(1, Math.max(0, metalnessValue)) : 0.1
+          });
+          const mesh = new THREE.Mesh(createObjectGeometry(obj, radius), material);
+          mesh.name = String(obj.name || `Celestial object ${index + 1}`);
+          const column = index % columns;
+          const row = Math.floor(index / columns);
+          mesh.position.set(
+            (column - (Math.min(columns, count) - 1) / 2) * spacing,
+            ((rows - 1) / 2 - row) * spacing,
+            0
+          );
+          mesh.userData.textureIndex = index;
+          objectGroup.add(mesh);
+          meshRecords.push({ object: obj, mesh, material, index, pendingTexture: null, imageUrl: '', applied: false });
+          setTextureCardState(index, 'waiting', 'Queued for texture…');
+        });
+
+        activeMeshRecords = meshRecords;
+
+        // Fit the dynamic row/rows into both wide and narrow viewport sizes.
+        const viewportAspect = Math.max(0.7, el.viewport.clientWidth / Math.max(1, el.viewport.clientHeight));
+        if (count === 1) {
+          camera.position.set(0, 0, 5.4);
+        } else {
+          const verticalHalfFov = THREE.MathUtils.degToRad(camera.fov / 2);
+          const gridWidth = Math.max(1, (columns - 1) * spacing + radius * 2.5);
+          const gridHeight = Math.max(1, (rows - 1) * spacing + radius * 2.5);
+          const fitWidth = gridWidth / (2 * Math.tan(verticalHalfFov) * viewportAspect);
+          const fitHeight = gridHeight / (2 * Math.tan(verticalHalfFov));
+          camera.position.set(0, 0, Math.max(5.5, fitWidth * 1.18, fitHeight * 1.18));
         }
+        camera.lookAt(0, 0, 0);
+        log(`Prepared ${meshRecords.length} scene mesh(es). No textures are attached yet; the gallery will be ready for review first.`);
+        setProgress(30);
+        setStatus(`🪐 Prepared ${sceneObjects.length} dynamic scene object(s). Generating ${sceneObjects.length} independent textures for the review gallery (up to 4 jobs at once)…`);
 
+        let completed = 0;
+        let successfulTextures = 0;
+        const failures = [];
+        await runWithConcurrency(meshRecords, 4, async record => {
+          const { object, mesh, material, index } = record;
+          const objectName = mesh.name;
+          setTextureCardState(index, 'waiting', 'Submitting texture job…');
+          log(`[Texture ${index + 1}/${sceneObjects.length}] Starting independent texture for ${objectName}.`);
+          try {
+            const texturePrompt = makeTexturePrompt(object, sceneConfig.sectorTitle, sceneConfig.lore);
+            const imageUrl = await generateTextureViaAIHorde(texturePrompt, `${index + 1}/${sceneObjects.length} ${objectName}`);
+            setTextureCardState(index, 'waiting', 'Image received; decoding…', imageUrl);
+            const decodedImage = await loadImageForTexture(imageUrl);
+            const texture = new THREE.Texture(decodedImage);
+            texture.needsUpdate = true;
+            if (THREE.sRGBEncoding !== undefined) texture.encoding = THREE.sRGBEncoding;
+            else if (THREE.SRGBColorSpace && 'colorSpace' in texture) texture.colorSpace = THREE.SRGBColorSpace;
+            // Keep the decoded texture pending. It is NOT assigned to the mesh until the user reviews the gallery and clicks Apply.
+            record.pendingTexture = texture;
+            record.imageUrl = imageUrl;
+            successfulTextures += 1;
+            setTextureCardState(index, 'ready', `Ready to review · ${decodedImage.naturalWidth}×${decodedImage.naturalHeight}`, imageUrl);
+            log(`[Texture ${index + 1}/${sceneObjects.length}] READY: generated and decoded for ${objectName}; waiting for user approval before applying.`);
+          } catch (textureError) {
+            const message = describeError(textureError, 'Texture generation failed without a browser error message.');
+            failures.push(`${objectName}: ${message}`);
+            setTextureCardState(index, 'error', `Failed: ${message}`);
+            log(`[Texture ${index + 1}/${sceneObjects.length}] ERROR for ${objectName}: ${message}`);
+            console.error(`Texture pipeline failed for ${objectName}:`, textureError);
+          } finally {
+            completed += 1;
+            setProgress(30 + (completed / sceneObjects.length) * 70);
+            const ready = successfulTextures;
+            setStatus(`🎨 Texture progress: ${completed}/${sceneObjects.length} jobs finished; ${ready}/${sceneObjects.length} textures ready for review.`);
+          }
+        });
+
+        // Stop at the review stage: show every generated image before applying any texture to a mesh.
+        objectGroup.rotation.y = 0;
+        textureJobsCompleted = true;
+        updateApplyButtonState();
         setProgress(100);
-        setStatus(`✨ Generation complete. Scene instructions came from ${generated.model}; the textured 3D object is ready.`, 'success');
-        log(`Rendered textured object: ${mesh.name}.`);
+        if (successfulTextures === sceneObjects.length) {
+          setStatus(`✨ Texture gallery ready: ${successfulTextures}/${sceneObjects.length} textures generated for ${sceneObjects.length} dynamically selected object(s). Review the gallery, choose textures, then click Apply.`, 'success');
+          log(`GALLERY READY: ${successfulTextures}/${sceneObjects.length} individual textures decoded and displayed. None have been applied to the meshes yet.`);
+        } else if (successfulTextures > 0) {
+          setStatus(`Texture gallery partially ready: ${successfulTextures}/${sceneObjects.length} textures succeeded. Review the available images and apply the ones you want; failed jobs are marked in the gallery.`, 'error');
+          log(`PARTIAL GALLERY: ${successfulTextures}/${sceneObjects.length} textures are ready; ${failures.length} texture job(s) failed. No texture has been applied yet.`);
+        } else {
+          setStatus(`No textures were generated successfully for the ${sceneObjects.length} object(s). The untextured meshes remain visible; review per-object errors in the log.`, 'error');
+          log(`FAILED TEXTURES: ${failures.slice(0, 5).join(' | ') || 'No detailed failure messages.'}`);
+        }
       } catch (error) {
         const message = describeError(error, 'The pipeline failed, but the browser supplied no error message. Check F12 → Console and Network.');
         setProgress(0);
@@ -771,6 +996,41 @@
       objectGroup.rotation.x = Math.sin(Date.now() * 0.00025) * 0.035;
       renderer.render(scene, camera);
     }
+
+    el.textureBox.addEventListener('change', event => {
+      if (event.target && event.target.matches('.texture-select')) updateApplyButtonState();
+    });
+
+    el.applyTexturesBtn.addEventListener('click', () => {
+      const selected = activeMeshRecords.filter(record => {
+        if (!record.pendingTexture || record.applied) return false;
+        const checkbox = el.textureBox.querySelector(`.texture-card[data-index="${record.index}"] .texture-select`);
+        return Boolean(checkbox && checkbox.checked);
+      });
+      if (!selected.length) {
+        setStatus('Select at least one successfully generated texture in the gallery first.', 'error');
+        return;
+      }
+
+      let appliedCount = 0;
+      selected.forEach(record => {
+        record.material.map = record.pendingTexture;
+        record.material.color.set(0xffffff);
+        record.material.needsUpdate = true;
+        record.applied = true;
+        const width = record.pendingTexture.image?.naturalWidth || record.pendingTexture.image?.width || 0;
+        const height = record.pendingTexture.image?.naturalHeight || record.pendingTexture.image?.height || 0;
+        setTextureCardState(record.index, 'applied', `Applied to ${record.mesh.name}${width && height ? ` · ${width}×${height}` : ''}`);
+        log(`[Apply] Applied reviewed texture to ${record.mesh.name}.`);
+        appliedCount += 1;
+      });
+
+      const appliedTotal = activeMeshRecords.filter(record => record.applied).length;
+      const readyTotal = activeMeshRecords.filter(record => record.pendingTexture).length;
+      setStatus(`✅ Applied ${appliedCount} selected texture(s). ${appliedTotal}/${activeMeshRecords.length} object(s) are now textured; ${readyTotal - appliedTotal} generated texture(s) remain unapplied.`, 'success');
+      log(`USER REVIEW COMPLETE: applied ${appliedCount} selected texture(s); generated count is based on Gemini's ${activeMeshRecords.length} object(s).`);
+      updateApplyButtonState();
+    });
 
     el.discoverBtn.addEventListener('click', async () => {
       const apiKey = el.apiKey.value.trim();
