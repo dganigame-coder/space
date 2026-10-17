@@ -295,6 +295,60 @@ function addAtmosphereShell(parent, radius, color, opacity = 0.5) {
   return shell;
 }
 
+// --- PROCEDURAL SPIRAL GALAXY PARTICLE GENERATOR ---
+function createSpiralGalaxyPoints(baseColorHex) {
+  const particleCount = 12000;
+  const geometry = new THREE.BufferGeometry();
+  const positions = new Float32Array(particleCount * 3);
+  const colors = new Float32Array(particleCount * 3);
+
+  const baseColor = new THREE.Color(baseColorHex || 0x38bdf8);
+  const coreColor = new THREE.Color(0xffffff);
+  const armColors = [new THREE.Color(0x38bdf8), new THREE.Color(0xa855f7), new THREE.Color(0xf43f5e)];
+
+  const arms = 2;
+  const radius = 12.0;
+
+  for (let i = 0; i < particleCount; i++) {
+    const r = Math.pow(Math.random(), 1.5) * radius;
+    const armAngle = ((i % arms) / arms) * Math.PI * 2;
+    const spiralAngle = r * 0.75;
+    const scatter = (Math.random() - 0.5) * 1.2 * (r / radius + 0.2);
+
+    const theta = armAngle + spiralAngle + scatter;
+
+    const x = Math.cos(theta) * r;
+    const z = Math.sin(theta) * r;
+    const y = (Math.random() - 0.5) * 0.8 * (radius - r) * 0.2; // flattening towards edges
+
+    positions[i * 3] = x;
+    positions[i * 3 + 1] = y;
+    positions[i * 3 + 2] = z;
+
+    // Color gradient from bright white/gold core to arm colors
+    const mixedColor = coreColor.clone().lerp(baseColor, r / radius);
+    colors[i * 3] = mixedColor.r;
+    colors[i * 3 + 1] = mixedColor.g;
+    colors[i * 3 + 2] = mixedColor.b;
+  }
+
+  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+  const material = new THREE.PointsMaterial({
+    size: 0.12,
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.85,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false
+  });
+
+  const galaxyPoints = new THREE.Points(geometry, material);
+  galaxyPoints.frustumCulled = false;
+  return galaxyPoints;
+}
+
 // --- MCGS v1.0 GEOMETRY FACTORY ---
 function createDynamicGeometry(type, args) {
   const p = args || [];
@@ -547,9 +601,9 @@ You are the Onboard Astrometric Navigation and Ephemeris Computer of an advanced
 User Navigation Command: "${commandText}"
 
 NAVIGATIONAL & EPHEMERIS COMPUTATION RULES:
-1. CALCULATE REAL COORDINATES: If a known system is requested (e.g., Sol System / Solar System), compute exact relative orbital distances, sizes, and Keplerian velocities for all planets. For custom sectors, calculate a scientifically plausible spatial layout.
-2. ORBITAL MECHANICS & PROPORTIONALITY: Every orbiting body must include a precise "distance" from center origin (0 for central star), an astrophysically scaled "orbitalSpeed" following Keplerian ratios ($v \propto 1/\\sqrt{r}$), and coordinates.
-3. COMPONENT HIERARCHY: Multi-part structures (like black holes with accretion disks, or planets with rings) must share precise relative coordinates.
+1. GALAXY & SYSTEM RECOGNITION: If a galaxy like the Milky Way, Andromeda, or a spiral galaxy is requested, set the primary object's geometryType to "spiral_galaxy" so it renders as a massive swirling star system with arms.
+2. CALCULATE REAL COORDINATES: Compute relative orbital distances, sizes, and Keplerian velocities for planets and objects.
+3. ORBITAL MECHANICS & PROPORTIONALITY: Every orbiting body must include a precise "distance" from center origin (0 for central star/core), an astrophysically scaled "orbitalSpeed" following Keplerian ratios ($v \propto 1/\\sqrt{r}$), and coordinates.
 4. PRECISE TEXTURE PROMPTS: Provide ultra-detailed surface feature descriptions for high-resolution albedo mapping.
 
 Return ONLY valid raw JSON matching this structure:
@@ -584,8 +638,8 @@ Return ONLY valid raw JSON matching this structure:
 `;
 }
 
-// STABILIZED: Robust texture retry with intelligent rate-limit (402/429) backoff handling
-async function loadTextureWithRetry(url, maxRetries = 3, initialDelay = 5000) {
+// STABILIZED: Robust texture retry with intelligent rate-limit (402/429) backoff handling & staggered padding
+async function loadTextureWithThrottle(url, maxRetries = 3, initialDelay = 5000) {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     let blobUrl = null;
     try {
@@ -604,7 +658,7 @@ async function loadTextureWithRetry(url, maxRetries = 3, initialDelay = 5000) {
       if (blobUrl) URL.revokeObjectURL(blobUrl);
       if (attempt === maxRetries) throw err;
 
-      const multiplier = err.message.includes('RATE_LIMIT') ? 2.5 : (attempt + 1);
+      const multiplier = err.message.includes('RATE_LIMIT') ? 3.0 : (attempt + 1);
       const waitTime = initialDelay * multiplier;
       console.warn(`[TEXTURE ENGINE] Attempt ${attempt + 1} failed (${err.message}). Retrying in ${waitTime / 1000}s...`);
       await new Promise(resolve => setTimeout(resolve, waitTime));
@@ -612,7 +666,7 @@ async function loadTextureWithRetry(url, maxRetries = 3, initialDelay = 5000) {
   }
 }
 
-// --- ASYNC PARALLEL MATERIALIZATION PIPELINE WITH LIVE STAGED HUD & SPEECH UPDATES ---
+// --- ASYNC PARALLEL MATERIALIZATION PIPELINE WITH LIVE STAGED HUD & THROTTLED TEXTURE FETCHING ---
 async function applyWorldConfig(config, hudStatusEl) {
   // Clear existing scene objects
   while (systemGroup.children.length > 0) {
@@ -654,14 +708,17 @@ async function applyWorldConfig(config, hudStatusEl) {
   const spaceObjects = config.objects || [config];
   console.log(`[ASTROMETRIC NAVIGATION] 🌌 Initializing Sector: "${config.sectorTitle || 'Unknown Sector'}". Target Object Count: ${spaceObjects.length}`);
 
-  // True parallel async loading pool with live HUD and Speech updates per asset
+  // Staggered parallel pool with explicit throttling to prevent server congestion and 402/429 rejections
   const assetPromises = spaceObjects.map(async (objConfig, index) => {
     const nameLower = (objConfig.name || '').toLowerCase();
     const promptLower = (objConfig.prompt || '').toLowerCase();
     const geomLower = (objConfig.geometryType || '').toLowerCase();
 
+    // Is it a spiral galaxy?
+    const isSpiralGalaxy = geomLower === 'spiral_galaxy' || nameLower.includes('milky way') || nameLower.includes('galaxy') || nameLower.includes('andromeda');
+
     // Expanded Gaseous & Energy Phenomenon Detection
-    const isGaseousPhenomenon = 
+    const isGaseousPhenomenon = isSpiralGalaxy ||
       ['jet', 'cone', 'accretion_disk', 'shell', 'supernova_shell'].includes(geomLower) ||
       nameLower.includes('nebula') || nameLower.includes('gas') || nameLower.includes('filament') || 
       nameLower.includes('cloud') || nameLower.includes('plasma') || nameLower.includes('synchrotron') ||
@@ -677,22 +734,75 @@ async function applyWorldConfig(config, hudStatusEl) {
     }
     speakText(`Materializing celestial component: ${objConfig.name}.`);
 
-    console.log(`%c[ASTROMETRIC LIFECYCLE] 🎨 MATERIALIZING OBJECT [${objConfig.name}] (Gaseous: ${isGaseousPhenomenon})`, `color: #fbbf24; font-weight: bold;`);
+    console.log(`%c[ASTROMETRIC LIFECYCLE] 🎨 MATERIALIZING OBJECT [${objConfig.name}] (Galaxy: ${isSpiralGalaxy}, Gaseous: ${isGaseousPhenomenon})`, `color: #fbbf24; font-weight: bold;`);
 
-    const geom = createDynamicGeometry(objConfig.geometryType, objConfig.geometryArgs);
+    let mesh;
+    let finalMaterial;
     const isFlatRing = geomLower === 'ring' || geomLower === 'disk' || geomLower === 'accretion_disk';
 
-    const ghostMat = new THREE.MeshBasicMaterial({
-      color: 0x38bdf8,
-      wireframe: true,
-      transparent: true,
-      opacity: 0.35
-    });
-
-    const mesh = new THREE.Mesh(geom, ghostMat);
-    
-    if (isFlatRing || isGaseousPhenomenon) {
+    if (isSpiralGalaxy) {
+      // Create glorious procedural spiral galaxy particle system
+      mesh = createSpiralGalaxyPoints(objConfig.color || '#38bdf8');
       mesh.frustumCulled = false;
+      finalMaterial = mesh.material;
+    } else {
+      const geom = createDynamicGeometry(objConfig.geometryType, objConfig.geometryArgs);
+      const ghostMat = new THREE.MeshBasicMaterial({
+        color: 0x38bdf8,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.35
+      });
+
+      mesh = new THREE.Mesh(geom, ghostMat);
+      
+      if (isFlatRing || isGaseousPhenomenon) {
+        mesh.frustumCulled = false;
+      }
+
+      if (isGaseousPhenomenon) {
+        finalMaterial = createPlasmaShaderMaterial(objConfig.color || '#38bdf8');
+        console.log(`[ASTROMETRIC LIFECYCLE] 🌀 Procedural Plasma Shader Assigned to [${objConfig.name}]`);
+      } else {
+        let loadedTexture = null;
+        if (objConfig.prompt) {
+          const specificPrompt = encodeURIComponent(
+            `${objConfig.prompt}, flat equirectangular seamless texture map, pure planetary surface topography only, micro-surface relief, high-frequency textural detail, crisp albedo, zero background stars, zero lighting effects, zero framing, 4k resolution game asset`
+          );
+          const texUrl = `https://image.pollinations.ai/prompt/${specificPrompt}?width=2048&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 99999)}`;
+          
+          try {
+            textureLoader.setCrossOrigin('anonymous');
+            // Staggered delay per index: ensures each texture request is spaced out by 800ms to guarantee high success rate
+            const requestDelay = 600 + (index * 800);
+            await new Promise(resolve => setTimeout(resolve, requestDelay));
+
+            loadedTexture = await loadTextureWithThrottle(texUrl, 3, 6000);
+            if (loadedTexture) {
+              loadedTexture.colorSpace = THREE.SRGBColorSpace;
+              loadedTexture.needsUpdate = true;
+              console.log(`[ASTROMETRIC LIFECYCLE] ✔ Texture SUCCESS for [${objConfig.name}]`);
+            }
+          } catch (err) {
+            console.warn(`[ASTROMETRIC LIFECYCLE] ✖ Texture FAILED for [${objConfig.name}]. Falling back to PBR material.`, err);
+          }
+        }
+
+        finalMaterial = new THREE.MeshStandardMaterial({
+          color: loadedTexture ? 0xffffff : new THREE.Color(objConfig.color || 0x38bdf8),
+          roughness: objConfig.roughness || 0.4,
+          metalness: objConfig.metalness || 0.1,
+          emissive: objConfig.emissive ? new THREE.Color(objConfig.emissiveColor || 0xffaa00) : 0x000000,
+          emissiveIntensity: objConfig.emissive ? (objConfig.emissiveIntensity || 0.9) : 0,
+          map: loadedTexture || null,
+          side: isFlatRing ? THREE.DoubleSide : THREE.FrontSide,
+          transparent: isFlatRing
+        });
+      }
+
+      if (geomLower === 'sphere' && !objConfig.emissive && !isGaseousPhenomenon) {
+        addAtmosphereShell(mesh, (objConfig.geometryArgs?.[0] || 2.0) * 1.035, new THREE.Color(0x38bdf8), 0.25);
+      }
     }
 
     if (objConfig.position && Array.isArray(objConfig.position)) {
@@ -705,55 +815,11 @@ async function applyWorldConfig(config, hudStatusEl) {
       mesh.rotation.x = Math.PI / 2;
     }
 
-    if (geomLower === 'sphere' && !objConfig.emissive && !isGaseousPhenomenon) {
-      addAtmosphereShell(mesh, (objConfig.geometryArgs?.[0] || 2.0) * 1.035, new THREE.Color(0x38bdf8), 0.25);
-    }
-
     systemGroup.add(mesh);
-
-    let finalMaterial;
-
-    if (isGaseousPhenomenon) {
-      finalMaterial = createPlasmaShaderMaterial(objConfig.color || '#38bdf8');
-      console.log(`[ASTROMETRIC LIFECYCLE] 🌀 Procedural Plasma Shader Assigned to [${objConfig.name}]`);
-    } else {
-      let loadedTexture = null;
-      if (objConfig.prompt) {
-        const specificPrompt = encodeURIComponent(
-          `${objConfig.prompt}, flat equirectangular seamless texture map, pure planetary surface topography only, micro-surface relief, high-frequency textural detail, crisp albedo, zero background stars, zero lighting effects, zero framing, 4k resolution game asset`
-        );
-        const texUrl = `https://image.pollinations.ai/prompt/${specificPrompt}?width=2048&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 99999)}`;
-        
-        try {
-          textureLoader.setCrossOrigin('anonymous');
-          if (index > 0) {
-            await new Promise(resolve => setTimeout(resolve, index * 350));
-          }
-          loadedTexture = await loadTextureWithRetry(texUrl, 2, 4000);
-          if (loadedTexture) {
-            loadedTexture.colorSpace = THREE.SRGBColorSpace;
-            loadedTexture.needsUpdate = true;
-            console.log(`[ASTROMETRIC LIFECYCLE] ✔ Texture SUCCESS for [${objConfig.name}]`);
-          }
-        } catch (err) {
-          console.warn(`[ASTROMETRIC LIFECYCLE] ✖ Texture FAILED for [${objConfig.name}]. Falling back to PBR material.`, err);
-        }
-      }
-
-      finalMaterial = new THREE.MeshStandardMaterial({
-        color: loadedTexture ? 0xffffff : new THREE.Color(objConfig.color || 0x38bdf8),
-        roughness: objConfig.roughness || 0.4,
-        metalness: objConfig.metalness || 0.1,
-        emissive: objConfig.emissive ? new THREE.Color(objConfig.emissiveColor || 0xffaa00) : 0x000000,
-        emissiveIntensity: objConfig.emissive ? (objConfig.emissiveIntensity || 0.9) : 0,
-        map: loadedTexture || null,
-        side: isFlatRing ? THREE.DoubleSide : THREE.FrontSide,
-        transparent: isFlatRing
-      });
+    if (!isSpiralGalaxy && mesh.material) {
+      mesh.material.dispose();
+      mesh.material = finalMaterial;
     }
-
-    mesh.material.dispose();
-    mesh.material = finalMaterial;
 
     // Keplerian Physics & Spin Calculations with Debug Log verification
     let derivedOrbitalSpeed = objConfig.orbitalSpeed || objConfig.animationSpeed || 0.05;
@@ -788,6 +854,8 @@ async function applyWorldConfig(config, hudStatusEl) {
 
 function generateFallbackWorld(input) {
   const shortTitle = input.length > 25 ? input.substring(0, 25) + "..." : input;
+  const isGalaxyQuery = input.toLowerCase().includes('galaxy') || input.toLowerCase().includes('milky way') || input.toLowerCase().includes('andromeda');
+
   return {
     sectorTitle: `Sector: ${shortTitle.toUpperCase()}`,
     lore: `Ship navigation sensors locked onto target coordinates for: "${input}".`,
@@ -796,7 +864,7 @@ function generateFallbackWorld(input) {
     cameraTarget: [0, 0, 0],
     objects: [{
       name: shortTitle,
-      geometryType: 'sphere',
+      geometryType: isGalaxyQuery ? 'spiral_galaxy' : 'sphere',
       geometryArgs: [2.0, 64, 48],
       position: [0, 0, 0],
       distance: 0,
