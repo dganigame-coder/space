@@ -425,7 +425,7 @@ function speakText(text, force = false) {
   window.speechSynthesis.speak(utterance);
 }
 
-// --- PROCESS COMMAND WITH LIFECYCLE TELEMETRY LOGS ---
+// --- PROCESS COMMAND WITH REAL-TIME STAGED HUD & SPEECH TELEMETRY ---
 async function processCommand(commandText) {
   const requestId = ++commandSequence;
   if (currentCommandAbort) currentCommandAbort.abort();
@@ -438,16 +438,20 @@ async function processCommand(commandText) {
   const loreEl = document.getElementById('sector-lore');
 
   if (transcriptEl) transcriptEl.innerText = `"${commandText}"`;
-  if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: ASTROMETRIC_SCAN';
 
+  // STAGE 1: SCANNING INPUT
+  if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: ASTROMETRIC_SCAN';
   speakText(`Engaging navigational sensors for vector: ${commandText}.`);
 
   console.log(`%c[ASTROMETRIC LIFECYCLE] 🚀 STAGE 1: INPUT TO AI NAVIGATION COMPUTER`, `color: #38bdf8; font-weight: bold;`);
   console.log(`👉 User Nav Command: "${commandText}"`);
   const aiPromptPayload = buildPromptText(commandText);
-  console.log(`📝 Full Prompt Payload Sent to AI:\n`, aiPromptPayload);
 
   let worldConfig = null;
+
+  // STAGE 2: EPHEMERIS CALCULATION & MODEL QUERYING
+  if (hudStatusEl) hudStatusEl.innerText = 'EPHEMERIS: CALCULATING...';
+  speakText("Calculating subspace ephemeris and sector coordinates.");
 
   if (geminiKey && dynamicModelQueue.length > 0) {
     for (let i = 0; i < dynamicModelQueue.length; i++) {
@@ -456,8 +460,6 @@ async function processCommand(commandText) {
       const timeoutId = setTimeout(() => timeoutController.abort(), 12000);
 
       try {
-        if (hudStatusEl) hudStatusEl.innerText = `EPHEMERIS: CALCULATING...`;
-        
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${dynamicModelQueue[i]}:generateContent?key=${geminiKey}`;
         const res = await fetch(url, {
           method: 'POST',
@@ -527,12 +529,15 @@ async function processCommand(commandText) {
   console.log(`%c[ASTROMETRIC LIFECYCLE] 🤖 STAGE 2: OUTPUT FROM AI NAVIGATION COMPUTER`, `color: #4ade80; font-weight: bold;`);
   console.log(`📦 Parsed Sector Ephemeris Object (JSON Output):`, worldConfig);
 
-  if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: SECURED_TARGET';
   if (titleEl && worldConfig.sectorTitle) titleEl.innerText = worldConfig.sectorTitle;
   if (loreEl && worldConfig.lore) loreEl.innerText = worldConfig.lore;
   if (worldConfig.audioParams) updateAudioSynth(worldConfig.audioParams);
 
-  await applyWorldConfig(worldConfig);
+  // STAGE 3: MAPPING SECTOR ASSETS
+  if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: MAPPING SECTOR';
+  speakText(worldConfig.speechResponse || "Sector coordinates acquired. Materializing structural objects.");
+
+  await applyWorldConfig(worldConfig, hudStatusEl);
 }
 
 // --- ONBOARD ASTROMETRIC NAVIGATION & EPHEMERAL COMPUTER PROMPT ---
@@ -607,10 +612,8 @@ async function loadTextureWithRetry(url, maxRetries = 3, initialDelay = 5000) {
   }
 }
 
-// --- ASYNC PARALLEL MATERIALIZATION PIPELINE WITH RATE-LIMIT & SHADER SHIELDING ---
-async function applyWorldConfig(config) {
-  const hudStatusEl = document.getElementById('hud-nav-status');
-
+// --- ASYNC PARALLEL MATERIALIZATION PIPELINE WITH LIVE HUD STATUS UPDATES ---
+async function applyWorldConfig(config, hudStatusEl) {
   // Clear existing scene objects
   while (systemGroup.children.length > 0) {
     const obj = systemGroup.children[0];
@@ -650,21 +653,26 @@ async function applyWorldConfig(config) {
 
   const spaceObjects = config.objects || [config];
   console.log(`[ASTROMETRIC NAVIGATION] 🌌 Initializing Sector: "${config.sectorTitle || 'Unknown Sector'}". Target Object Count: ${spaceObjects.length}`);
-  if (hudStatusEl) hudStatusEl.innerText = `PROTOCOL: MAPPING SECTOR`;
 
-  // True parallel async loading pool with index-based rate-limit staggering
+  // True parallel async loading pool with live HUD updates per asset
   const assetPromises = spaceObjects.map(async (objConfig, index) => {
     const nameLower = (objConfig.name || '').toLowerCase();
     const promptLower = (objConfig.prompt || '').toLowerCase();
     const geomLower = (objConfig.geometryType || '').toLowerCase();
 
-    // Intelligent gaseous/plasma phenomenon detection (prevents sphere-based nebulae from triggering network texture fetches)
+    // Expanded Gaseous & Energy Phenomenon Detection (catches jets, accretion disks, beams, nebulae, etc.)
     const isGaseousPhenomenon = 
       ['jet', 'cone', 'accretion_disk', 'shell', 'supernova_shell'].includes(geomLower) ||
       nameLower.includes('nebula') || nameLower.includes('gas') || nameLower.includes('filament') || 
       nameLower.includes('cloud') || nameLower.includes('plasma') || nameLower.includes('synchrotron') ||
+      nameLower.includes('jet') || nameLower.includes('beam') || nameLower.includes('disk') ||
       promptLower.includes('nebula') || promptLower.includes('gas') || promptLower.includes('filament') || 
-      promptLower.includes('plasma') || promptLower.includes('ionized');
+      promptLower.includes('plasma') || promptLower.includes('ionized') || promptLower.includes('radiation') ||
+      promptLower.includes('jet') || promptLower.includes('beam') || promptLower.includes('accretion');
+
+    if (hudStatusEl) {
+      hudStatusEl.innerText = `MAPPING: ${objConfig.name.toUpperCase()}`;
+    }
 
     console.log(`%c[ASTROMETRIC LIFECYCLE] 🎨 MATERIALIZING OBJECT [${objConfig.name}] (Gaseous: ${isGaseousPhenomenon})`, `color: #fbbf24; font-weight: bold;`);
 
@@ -703,7 +711,7 @@ async function applyWorldConfig(config) {
     let finalMaterial;
 
     if (isGaseousPhenomenon) {
-      // Route straight to next-gen procedural plasma turbulence shader — zero network calls, zero rate-limit errors!
+      // Route straight to procedural plasma turbulence shader — zero network calls, zero rate-limit errors!
       finalMaterial = createPlasmaShaderMaterial(objConfig.color || '#38bdf8');
       console.log(`[ASTROMETRIC LIFECYCLE] 🌀 Procedural Plasma Shader Assigned to [${objConfig.name}]`);
     } else {
@@ -716,7 +724,6 @@ async function applyWorldConfig(config) {
         
         try {
           textureLoader.setCrossOrigin('anonymous');
-          // Intelligent request staggering: index-based delay prevents hammering the external image server simultaneously
           if (index > 0) {
             await new Promise(resolve => setTimeout(resolve, index * 350));
           }
@@ -770,8 +777,9 @@ async function applyWorldConfig(config) {
 
   console.log(`[ASTROMETRIC NAVIGATION] 🚀 Sector Materialization Complete. Total Objects Established: ${spaceObjects.length}`);
 
+  // STAGE 4: TARGET SECURED
   if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: SECURED_TARGET';
-  if (config.speechResponse) speakText(config.speechResponse);
+  speakText("Sector materialization complete. All astrometric systems nominal.");
 }
 
 function generateFallbackWorld(input) {
