@@ -22,9 +22,13 @@ let audioCtx, osc1, osc2, filterNode, lfoNode, lfoGain;
 let audioInitialized = false;
 let isListening = false;
 
+// Multi-Language State Globals
+let currentLang = 'en-US';
+
 // --- INITIALIZATION ---
 async function init() {
   setupSecurity();
+  setupLanguageListener();
   initThreeJS();
   setupControls();
   animate(0);
@@ -38,6 +42,22 @@ async function init() {
     bootOverlay.style.transition = 'opacity 500ms ease';
     bootOverlay.style.opacity = '0';
     setTimeout(() => bootOverlay.remove(), 500);
+  }
+}
+
+// --- LANGUAGE LISTENER SETUP ---
+function setupLanguageListener() {
+  const langSelect = document.getElementById('lang-select');
+  if (langSelect) {
+    langSelect.addEventListener('change', (e) => {
+      currentLang = e.target.value;
+      
+      // Automatic RTL layout switching for Hebrew, Arabic, Persian, Urdu, etc.
+      const isRTL = ['he-IL', 'ar-SA', 'fa-IR', 'ur-PK', 'ps-AF', 'sd-PK'].includes(currentLang);
+      document.body.dir = isRTL ? 'rtl' : 'ltr';
+      
+      console.log(`[LANGUAGE SYSTEM] Active Locale switched to: ${currentLang} (RTL: ${isRTL})`);
+    });
   }
 }
 
@@ -471,6 +491,7 @@ function speakText(text, force = false) {
   
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = currentLang; // Sets the speech accent and voice based on active selection
   utterance.pitch = 0.85; 
   utterance.rate = 1.0;
   window.speechSynthesis.speak(utterance);
@@ -487,7 +508,7 @@ async function processCommand(commandText) {
   const hudStatusEl = document.getElementById('hud-nav-status');
   const titleEl = document.getElementById('sector-title');
   const loreEl = document.getElementById('sector-lore');
-  const liveCodeEl = document.getElementById('live-code') || document.querySelector('.sidebar pre') || document.querySelector('#sidebar pre');
+  const liveCodeEl = document.getElementById('live-code') || document.querySelector('.sidebar pre') || document.querySelector('#sidebar pre') || document.getElementById('code-preview');
 
   if (transcriptEl) transcriptEl.innerText = `"${commandText}"`;
 
@@ -585,7 +606,6 @@ async function processCommand(commandText) {
   if (loreEl && worldConfig.lore) loreEl.innerText = worldConfig.lore;
   if (worldConfig.audioParams) updateAudioSynth(worldConfig.audioParams);
 
-  // Update the bottom-left live code compilation container
   if (liveCodeEl) {
     liveCodeEl.innerText = JSON.stringify(worldConfig, null, 2);
   }
@@ -602,18 +622,20 @@ function buildPromptText(commandText) {
   return `
 You are the Onboard Astrometric Navigation and Ephemeris Computer of an advanced deep-space exploration vessel operating under Astrometric Protocol v2.0.
 User Navigation Command: "${commandText}"
+Target Language Locale Code: "${currentLang}"
 
-AUTONOMOUS ASTROMETRIC COMPUTATION & DATABASE RULES:
-1. DEEP ASTRONOMICAL KNOWLEDGE: Autonomously identify the requested system, planet, star, or galaxy. You MUST automatically include all defining physical characteristics from your astronomical database (e.g., if Saturn is requested, you MUST automatically generate its ring system using geometryType "ring" or "planetary_ring", along with major moons like Titan and Enceladus).
-2. MULTI-PART STRUCTURES: Planets with known ring systems must include a separate ring object positioned at the planet's coordinates. Galaxies must use geometryType "spiral_galaxy". Stars must be marked as emissive.
-3. ORBITAL MECHANICS & PROPORTIONALITY: Every orbiting body must include a precise "distance" from center origin (0 for central star/core), an astrophysically scaled "orbitalSpeed" following Keplerian ratios ($v \propto 1/\\sqrt{r}$), and relative coordinates.
-4. PRECISE TEXTURE PROMPTS: Provide ultra-detailed surface feature descriptions for high-resolution albedo mapping.
+AUTONOMOUS ASTROMETRIC COMPUTATION & MULTILINGUAL RULES:
+1. MULTILINGUAL UI OUTPUT: Respond with all text telemetry fields ("sectorTitle", "lore", and "speechResponse") written natively in the language/script specified by locale code "${currentLang}" (e.g., if locale is "he-IL", output in Hebrew; if "es-ES", output in Spanish).
+2. DEEP ASTRONOMICAL KNOWLEDGE: Autonomously identify the requested system, planet, star, or galaxy. You MUST automatically include all defining physical characteristics from your astronomical database (e.g., if Saturn is requested, you MUST automatically generate its ring system using geometryType "ring" or "planetary_ring", along with major moons like Titan and Enceladus).
+3. MULTI-PART STRUCTURES: Planets with known ring systems must include a separate ring object positioned at the planet's coordinates. Galaxies must use geometryType "spiral_galaxy". Stars must be marked as emissive.
+4. ORBITAL MECHANICS & PROPORTIONALITY: Every orbiting body must include a precise "distance" from center origin (0 for central star/core), an astrophysically scaled "orbitalSpeed" following Keplerian ratios ($v \propto 1/\sqrt{r}$), and relative coordinates.
+5. PRECISE TEXTURE PROMPTS: Keep the internal "prompt" field for visual albedo mapping detailed and written in English for the image generation engine.
 
 Return ONLY valid raw JSON matching this structure:
 {
-  "sectorTitle": "Sector Name & Navigation Class",
-  "lore": "Ship computer astrometric log and telemetry description.",
-  "speechResponse": "Concise voice announcement for the ship's audio system upon warp arrival.",
+  "sectorTitle": "Sector Name & Navigation Class (In target language)",
+  "lore": "Ship computer astrometric log description (In target language)",
+  "speechResponse": "Concise voice announcement for warp arrival (In target language)",
   "cameraPosition": [0, 25, 50],
   "cameraTarget": [0, 0, 0],
   "objects": [
@@ -631,7 +653,7 @@ Return ONLY valid raw JSON matching this structure:
       "emissiveIntensity": 0,
       "roughness": 0.45,
       "metalness": 0.08,
-      "prompt": "Detailed specific surface feature description",
+      "prompt": "Detailed surface topography prompt in English for texture synthesis",
       "animationType": "orbit",
       "animationSpeed": 0.02
     }
@@ -641,7 +663,7 @@ Return ONLY valid raw JSON matching this structure:
 `;
 }
 
-// STABILIZED: Robust texture retry with intelligent rate-limit (402/429) backoff handling & staggered padding
+// STABILIZED: Robust texture retry with intelligent rate-limit backoff handling & staggered padding
 async function loadTextureWithThrottle(url, maxRetries = 3, initialDelay = 5000) {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     let blobUrl = null;
@@ -669,9 +691,8 @@ async function loadTextureWithThrottle(url, maxRetries = 3, initialDelay = 5000)
   }
 }
 
-// --- ASYNC PARALLEL MATERIALIZATION PIPELINE WITH LIVE STAGED HUD & THROTTLED TEXTURE FETCHING ---
+// --- ASYNC PARALLEL MATERIALIZATION PIPELINE ---
 async function applyWorldConfig(config, hudStatusEl) {
-  // Clear existing scene objects
   while (systemGroup.children.length > 0) {
     const obj = systemGroup.children[0];
     obj.traverse(child => {
@@ -711,19 +732,13 @@ async function applyWorldConfig(config, hudStatusEl) {
   const spaceObjects = config.objects || [config];
   console.log(`[ASTROMETRIC NAVIGATION] 🌌 Initializing Sector: "${config.sectorTitle || 'Unknown Sector'}". Target Object Count: ${spaceObjects.length}`);
 
-  // Staggered parallel pool with explicit throttling to prevent server congestion and 402/429 rejections
   const assetPromises = spaceObjects.map(async (objConfig, index) => {
     const nameLower = (objConfig.name || '').toLowerCase();
     const promptLower = (objConfig.prompt || '').toLowerCase();
     const geomLower = (objConfig.geometryType || '').toLowerCase();
 
-    // Is it a spiral galaxy?
     const isSpiralGalaxy = geomLower === 'spiral_galaxy' || nameLower.includes('milky way') || nameLower.includes('galaxy') || nameLower.includes('andromeda');
-
-    // Is it a planetary ring or flat disc?
     const isFlatRing = geomLower === 'ring' || geomLower === 'disk' || geomLower === 'planetary_ring' || geomLower === 'accretion_disk';
-
-    // Strict Gaseous & Energy Phenomenon Detection (Excludes normal gas giant planets from plasma warping)
     const isGaseousPhenomenon = isSpiralGalaxy ||
       ['jet', 'cone', 'shell', 'supernova_shell'].includes(geomLower) ||
       nameLower.includes('nebula') || nameLower.includes('filament') || 
@@ -731,14 +746,11 @@ async function applyWorldConfig(config, hudStatusEl) {
       promptLower.includes('nebula') || promptLower.includes('ionized gas cloud') || 
       promptLower.includes('synchrotron radiation') || promptLower.includes('stellar remnant');
 
-    // LIVE HUD & SPEECH TELEMETRY FOR EACH OBJECT
     const stageText = `MAPPING: ${objConfig.name.toUpperCase()}`;
     if (hudStatusEl) {
       hudStatusEl.innerText = stageText;
     }
     speakText(`Materializing celestial component: ${objConfig.name}.`);
-
-    console.log(`%c[ASTROMETRIC LIFECYCLE] 🎨 MATERIALIZING OBJECT [${objConfig.name}] (Galaxy: ${isSpiralGalaxy}, Ring: ${isFlatRing})`, `color: #fbbf24; font-weight: bold;`);
 
     let mesh;
     let finalMaterial;
@@ -764,7 +776,6 @@ async function applyWorldConfig(config, hudStatusEl) {
 
       if (isGaseousPhenomenon) {
         finalMaterial = createPlasmaShaderMaterial(objConfig.color || '#38bdf8');
-        console.log(`[ASTROMETRIC LIFECYCLE] 🌀 Procedural Plasma Shader Assigned to [${objConfig.name}]`);
       } else {
         let loadedTexture = null;
         if (objConfig.prompt) {
@@ -782,7 +793,6 @@ async function applyWorldConfig(config, hudStatusEl) {
             if (loadedTexture) {
               loadedTexture.colorSpace = THREE.SRGBColorSpace;
               loadedTexture.needsUpdate = true;
-              console.log(`[ASTROMETRIC LIFECYCLE] ✔ Texture SUCCESS for [${objConfig.name}]`);
             }
           } catch (err) {
             console.warn(`[ASTROMETRIC LIFECYCLE] ✖ Texture FAILED for [${objConfig.name}]. Falling back to PBR material.`, err);
@@ -810,7 +820,6 @@ async function applyWorldConfig(config, hudStatusEl) {
       mesh.position.set(...objConfig.position);
     }
 
-    // Natural planetary ring tilt orientation (Saturnian angle)
     if (objConfig.rotation && Array.isArray(objConfig.rotation)) {
       mesh.rotation.set(...objConfig.rotation);
     } else if (isFlatRing) {
@@ -823,7 +832,6 @@ async function applyWorldConfig(config, hudStatusEl) {
       mesh.material = finalMaterial;
     }
 
-    // Keplerian Physics & Spin Calculations (Rings have zero local wheel spin)
     let derivedOrbitalSpeed = objConfig.orbitalSpeed || objConfig.animationSpeed || 0.05;
     let derivedSpinSpeed = isFlatRing ? 0 : (objConfig.animationSpeed || 0.05);
 
@@ -831,8 +839,6 @@ async function applyWorldConfig(config, hudStatusEl) {
       derivedOrbitalSpeed = 0.15 / Math.sqrt(objConfig.distance);
       if (!isFlatRing) derivedSpinSpeed = derivedOrbitalSpeed * 2.5; 
     }
-
-    console.log(`🔬 [PHYSICS DEBUG] Object: "${objConfig.name}" | Ring: ${isFlatRing} | Distance: ${objConfig.distance || 0} | Derived Spin Speed: ${derivedSpinSpeed.toFixed(4)}`);
 
     return {
       mesh: mesh,
@@ -848,9 +854,6 @@ async function applyWorldConfig(config, hudStatusEl) {
   const resolvedAnims = await Promise.all(assetPromises);
   activeAnimatedMeshes.push(...resolvedAnims);
 
-  console.log(`[ASTROMETRIC NAVIGATION] 🚀 Sector Materialization Complete. Total Objects Established: ${spaceObjects.length}`);
-
-  // STAGE 4: TARGET SECURED (Live HUD & Speech Update)
   if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: SECURED_TARGET';
   speakText("Sector materialization complete. All astrometric systems nominal.");
 }
@@ -926,12 +929,12 @@ function setupControls() {
 
   if (SpeechRecognition && micBtn) {
     const recognition = new SpeechRecognition();
-    recognition.lang = 'en-US';
 
     micBtn.addEventListener('click', () => {
       initWebAudio();
       if (isListening) { recognition.stop(); return; }
       try {
+        recognition.lang = currentLang; // Dynamically sets speech recognition language
         recognition.start();
         isListening = true;
         micBtn.classList.add('listening');
@@ -1012,7 +1015,6 @@ function animate(time) {
     starField.rotation.y = t * 0.001;
   }
 
-  // Update procedural plasma shaders live per frame for organic turbulence
   activeAnimatedMeshes.forEach((anim) => {
     if (anim.mesh && anim.mesh.parent) {
       if (anim.mesh.material && anim.mesh.material.uniforms && anim.mesh.material.uniforms.uTime) {
