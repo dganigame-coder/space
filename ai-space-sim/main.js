@@ -491,10 +491,31 @@ function speakText(text, force = false) {
   
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = currentLang; // Sets the speech accent and voice based on active selection
+  utterance.lang = currentLang;
+
+  // Retrieve all installed TTS voices on the device
+  const voices = window.speechSynthesis.getVoices();
+  
+  // Find a voice matching the active language (e.g. 'he-IL' or 'he')
+  const matchedVoice = voices.find(v => 
+    v.lang === currentLang || 
+    v.lang.startsWith(currentLang.split('-')[0])
+  );
+
+  if (matchedVoice) {
+    utterance.voice = matchedVoice; // Force browser to use actual native voice
+  }
+
   utterance.pitch = 0.85; 
   utterance.rate = 1.0;
   window.speechSynthesis.speak(utterance);
+}
+
+// Pre-load voices (Chrome populates getVoices asynchronously)
+if ('speechSynthesis' in window) {
+  window.speechSynthesis.onvoiceschanged = () => {
+    window.speechSynthesis.getVoices();
+  };
 }
 
 // --- PROCESS COMMAND WITH REAL-TIME STAGED HUD & SPEECH TELEMETRY ---
