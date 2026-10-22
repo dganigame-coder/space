@@ -493,17 +493,15 @@ function speakText(text, force = false) {
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = currentLang;
 
-  // Retrieve all installed TTS voices on the device
+  // Retrieve all installed TTS voices on the device and match native voice
   const voices = window.speechSynthesis.getVoices();
-  
-  // Find a voice matching the active language (e.g. 'he-IL' or 'he')
   const matchedVoice = voices.find(v => 
     v.lang === currentLang || 
     v.lang.startsWith(currentLang.split('-')[0])
   );
 
   if (matchedVoice) {
-    utterance.voice = matchedVoice; // Force browser to use actual native voice
+    utterance.voice = matchedVoice;
   }
 
   utterance.pitch = 0.85; 
@@ -649,7 +647,7 @@ AUTONOMOUS ASTROMETRIC COMPUTATION & MULTILINGUAL RULES:
 1. MULTILINGUAL UI OUTPUT: Respond with all text telemetry fields ("sectorTitle", "lore", and "speechResponse") written natively in the language/script specified by locale code "${currentLang}" (e.g., if locale is "he-IL", output in Hebrew; if "es-ES", output in Spanish).
 2. DEEP ASTRONOMICAL KNOWLEDGE: Autonomously identify the requested system, planet, star, or galaxy. You MUST automatically include all defining physical characteristics from your astronomical database (e.g., if Saturn is requested, you MUST automatically generate its ring system using geometryType "ring" or "planetary_ring", along with major moons like Titan and Enceladus).
 3. MULTI-PART STRUCTURES: Planets with known ring systems must include a separate ring object positioned at the planet's coordinates. Galaxies must use geometryType "spiral_galaxy". Stars must be marked as emissive.
-4. ORBITAL MECHANICS & PROPORTIONALITY: Every orbiting body must include a precise "distance" from center origin (0 for central star/core), an astrophysically scaled "orbitalSpeed" following Keplerian ratios ($v \propto 1/\sqrt{r}$), and relative coordinates.
+4. ORBITAL MECHANICS & PROPORTIONALITY: Every orbiting body must include a precise "distance" from center origin (0 for central star/core), an astrophysically scaled "orbitalSpeed" following Keplerian ratios, and relative coordinates.
 5. PRECISE TEXTURE PROMPTS: Keep the internal "prompt" field for visual albedo mapping detailed and written in English for the image generation engine.
 
 Return ONLY valid raw JSON matching this structure:
@@ -765,7 +763,8 @@ async function applyWorldConfig(config, hudStatusEl) {
       nameLower.includes('nebula') || nameLower.includes('filament') || 
       nameLower.includes('plasma cloud') || nameLower.includes('synchrotron') ||
       promptLower.includes('nebula') || promptLower.includes('ionized gas cloud') || 
-      promptLower.includes('synchrotron radiation') || promptLower.includes('stellar remnant');
+      promptLower.includes('synchrotron radiation') || promptLower.includes('stellar remnant') ||
+      promptLower.includes('pillar') || promptLower.includes('cliff');
 
     const stageText = `MAPPING: ${objConfig.name.toUpperCase()}`;
     if (hudStatusEl) {
@@ -800,9 +799,18 @@ async function applyWorldConfig(config, hudStatusEl) {
       } else {
         let loadedTexture = null;
         if (objConfig.prompt) {
-          const specificPrompt = encodeURIComponent(
-            `${objConfig.prompt}, flat equirectangular seamless texture map, pure planetary surface topography only, micro-surface relief, high-frequency textural detail, crisp albedo, zero background stars, zero lighting effects, zero framing, 4k resolution game asset`
-          );
+          // ADAPTIVE HYPERREALISTIC TEXTURE PROMPT: Switch modifier based on whether it's a nebula/cosmic phenomenon or a planet
+          let specificPrompt = '';
+          if (isGaseousPhenomenon || isSpiralGalaxy) {
+            specificPrompt = encodeURIComponent(
+              `${objConfig.prompt}, James Webb Space Telescope infrared photography style, hyperrealistic vibrant multi-chromatic iridescent gas plumes, glowing golden-brown dust ridges, intricate radiant stellar nurseries, brilliant diffraction spike stars, deep space backdrop, masterpiece, 8k resolution`
+            );
+          } else {
+            specificPrompt = encodeURIComponent(
+              `${objConfig.prompt}, flat equirectangular seamless texture map, pure planetary surface topography only, micro-surface relief, high-frequency textural detail, crisp albedo, zero background stars, zero lighting effects, zero framing, 4k resolution game asset`
+            );
+          }
+
           const texUrl = `https://image.pollinations.ai/prompt/${specificPrompt}?width=2048&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 99999)}`;
           
           try {
