@@ -708,7 +708,7 @@ Return ONLY valid raw JSON matching this structure:
 }
 `;
 }
-//**//
+
 // --- CUSTOM AWS API GATEWAY TEXTURE LOADER (Direct Base64 Data URI) ---
 async function loadCustomAITextureWithThrottle(promptText, maxRetries = 3, initialDelay = 3000) {
   const API_URL = "https://sf86b9i3yf.execute-api.us-west-1.amazonaws.com/default/inkarnate";
@@ -724,6 +724,7 @@ async function loadCustomAITextureWithThrottle(promptText, maxRetries = 3, initi
         },
         body: JSON.stringify({
           prompt: promptText,
+          negative_prompt: "3d sphere, globe, outer space, stars, realistic planet render, directional lighting, heavy shadows, vignette, 3d rendering, perspective",
           width: 1024,
           height: 512
         })
@@ -766,7 +767,7 @@ async function loadCustomAITextureWithThrottle(promptText, maxRetries = 3, initi
     }
   }
 }
-//**//
+
 // --- PURE ALGORITHMIC PROCEDURAL FALLBACK (NO MOCKUPS) ---
 function generateFallbackWorld(input) {
   const sanitized = input.trim() || "Unknown Sector";
@@ -898,9 +899,12 @@ async function applyWorldConfig(config, hudStatusEl) {
         if (objConfig.prompt) {
           let specificPrompt = '';
           if (isGaseousPhenomenon || isSpiralGalaxy) {
-            specificPrompt = `${objConfig.prompt}, James Webb Space Telescope infrared photography style, hyperrealistic vibrant multi-chromatic iridescent gas plumes, glowing golden-brown dust ridges, intricate radiant stellar nurseries, brilliant diffraction spike stars, deep space backdrop, masterpiece, 8k resolution`;
+            specificPrompt = `${objConfig.prompt}, James Webb Space Telescope infrared photography style, hyperrealistic vibrant multi-chromatic iridescent gas plumes, deep space backdrop, 8k resolution`;
+          } else if (isFlatRing) {
+            specificPrompt = `Top-down circular planetary ring texture map, concentric icy rings of ${objConfig.name}, transparent gaps, seamless ring texture, flat texture asset, top-down view, zero background stars, zero perspective angle`;
           } else {
-            specificPrompt = `${objConfig.prompt}, flat equirectangular seamless texture map, pure planetary surface topography only, micro-surface relief, high-frequency textural detail, crisp albedo, zero background stars, zero lighting effects, zero framing, 4k resolution game asset`;
+            // Upgraded Texture Map Prompt Template
+            specificPrompt = `An equirectangular 2:1 cylindrical surface texture map sheet of ${objConfig.name} (${objConfig.prompt}). A seamless flat 2D map canvas filled edge-to-edge, zero borders, flat orthographic nadir satellite perspective. Detailed surface topography, fine-grain surface grit, geological cracks, and micro-detailed terrain patterns spanning the entire frame. Completely flat diffuse albedo map, uniform lighting, zero baked shadows, zero 3D sphere curvature, zero space background.`;
           }
 
           try {
