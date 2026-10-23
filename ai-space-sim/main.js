@@ -709,19 +709,49 @@ Return ONLY valid raw JSON matching this structure:
 `;
 }
 
-// STABILIZED: Robust texture retry with intelligent rate-limit backoff handling & staggered padding
-async function loadTextureWithThrottle(url, maxRetries = 3, initialDelay = 5000) {
+// --- CUSTOM AWS API GATEWAY TEXTURE LOADER WITH THROTTLE & RETRIES ---
+async function loadCustomAITextureWithThrottle(promptText, maxRetries = 3, initialDelay = 5000) {
+  const API_URL = "https://sf86b9i3yf.execute-api.us-west-1.amazonaws.com/default/inkarnate";
+
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     let blobUrl = null;
     try {
-      const response = await fetch(url);
+      const response = await fetch(API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          prompt: promptText,
+          width: 1024,
+          height: 512
+        })
+      });
+
       if (response.status === 402 || response.status === 429) {
         throw new Error(`RATE_LIMIT_${response.status}`);
       }
       if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
-      
-      const blob = await response.blob();
+
+      const result = await response.json();
+      if (!result.success || !result.image) {
+        throw new Error("API returned unsuccessful generation result");
+      }
+
+      const mimeType = result.image.startsWith("/9j/")
+        ? "image/jpeg"
+        : (result.mimeType || "image/png");
+
+      // Convert base64 response to a Blob URL for Three.js texture loading
+      const byteCharacters = atob(result.image);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: mimeType });
       blobUrl = URL.createObjectURL(blob);
+
       const texture = await textureLoader.loadAsync(blobUrl);
       URL.revokeObjectURL(blobUrl);
       return texture;
@@ -731,7 +761,7 @@ async function loadTextureWithThrottle(url, maxRetries = 3, initialDelay = 5000)
 
       const multiplier = err.message.includes('RATE_LIMIT') ? 3.0 : (attempt + 1);
       const waitTime = initialDelay * multiplier;
-      console.warn(`[TEXTURE ENGINE] Attempt ${attempt + 1} failed (${err.message}). Retrying in ${waitTime / 1000}s...`);
+      console.warn(`[AWS TEXTURE ENGINE] Attempt ${attempt + 1} failed (${err.message}). Retrying in ${waitTime / 1000}s...`);
       await new Promise(resolve => setTimeout(resolve, waitTime));
     }
   }
@@ -868,23 +898,16 @@ async function applyWorldConfig(config, hudStatusEl) {
         if (objConfig.prompt) {
           let specificPrompt = '';
           if (isGaseousPhenomenon || isSpiralGalaxy) {
-            specificPrompt = encodeURIComponent(
-              `${objConfig.prompt}, James Webb Space Telescope infrared photography style, hyperrealistic vibrant multi-chromatic iridescent gas plumes, glowing golden-brown dust ridges, intricate radiant stellar nurseries, brilliant diffraction spike stars, deep space backdrop, masterpiece, 8k resolution`
-            );
+            specificPrompt = `${objConfig.prompt}, James Webb Space Telescope infrared photography style, hyperrealistic vibrant multi-chromatic iridescent gas plumes, glowing golden-brown dust ridges, intricate radiant stellar nurseries, brilliant diffraction spike stars, deep space backdrop, masterpiece, 8k resolution`;
           } else {
-            specificPrompt = encodeURIComponent(
-              `${objConfig.prompt}, flat equirectangular seamless texture map, pure planetary surface topography only, micro-surface relief, high-frequency textural detail, crisp albedo, zero background stars, zero lighting effects, zero framing, 4k resolution game asset`
-            );
+            specificPrompt = `${objConfig.prompt}, flat equirectangular seamless texture map, pure planetary surface topography only, micro-surface relief, high-frequency textural detail, crisp albedo, zero background stars, zero lighting effects, zero framing, 4k resolution game asset`;
           }
 
-          const texUrl = `https://image.pollinations.ai/prompt/${specificPrompt}?width=2048&height=1024&nologo=true&model=flux&seed=${Math.floor(Math.random() * 99999)}`;
-          
           try {
-            textureLoader.setCrossOrigin('anonymous');
             const requestDelay = 600 + (index * 800);
             await new Promise(resolve => setTimeout(resolve, requestDelay));
 
-            loadedTexture = await loadTextureWithThrottle(texUrl, 3, 6000);
+            loadedTexture = await loadCustomAITextureWithThrottle(specificPrompt, 3, 6000);
             if (loadedTexture) {
               loadedTexture.colorSpace = THREE.SRGBColorSpace;
               loadedTexture.needsUpdate = true;
