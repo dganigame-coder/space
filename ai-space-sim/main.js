@@ -708,14 +708,15 @@ Return ONLY valid raw JSON matching this structure:
 }
 `;
 }
-
-// --- CUSTOM AWS API GATEWAY TEXTURE LOADER WITH THROTTLE & RETRIES ---
-async function loadCustomAITextureWithThrottle(promptText, maxRetries = 3, initialDelay = 5000) {
+//**//
+// --- CUSTOM AWS API GATEWAY TEXTURE LOADER (Direct Base64 Data URI) ---
+async function loadCustomAITextureWithThrottle(promptText, maxRetries = 3, initialDelay = 3000) {
   const API_URL = "https://sf86b9i3yf.execute-api.us-west-1.amazonaws.com/default/inkarnate";
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    let blobUrl = null;
     try {
+      console.log(`[AWS TEXTURE ENGINE] Requesting texture for prompt: "${promptText}" (Attempt ${attempt + 1})`);
+      
       const response = await fetch(API_URL, {
         method: "POST",
         headers: {
@@ -742,22 +743,21 @@ async function loadCustomAITextureWithThrottle(promptText, maxRetries = 3, initi
         ? "image/jpeg"
         : (result.mimeType || "image/png");
 
-      // Convert base64 response to a Blob URL for Three.js texture loading
-      const byteCharacters = atob(result.image);
-      const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-      }
-      const byteArray = new Uint8Array(byteNumbers);
-      const blob = new Blob([byteArray], { type: mimeType });
-      blobUrl = URL.createObjectURL(blob);
-
-      const texture = await textureLoader.loadAsync(blobUrl);
-      URL.revokeObjectURL(blobUrl);
+      // Pass the Base64 Data URI directly into Three.js texture loader
+      const dataUri = `data:${mimeType};base64,${result.image}`;
+      
+      const texture = await textureLoader.loadAsync(dataUri);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.needsUpdate = true;
+      
+      console.log(`[AWS TEXTURE ENGINE] ✔ Texture successfully applied for: "${promptText}"`);
       return texture;
+
     } catch (err) {
-      if (blobUrl) URL.revokeObjectURL(blobUrl);
-      if (attempt === maxRetries) throw err;
+      if (attempt === maxRetries) {
+        console.error(`[AWS TEXTURE ENGINE] ✖ All retries failed for prompt: "${promptText}". Reason:`, err.message);
+        throw err;
+      }
 
       const multiplier = err.message.includes('RATE_LIMIT') ? 3.0 : (attempt + 1);
       const waitTime = initialDelay * multiplier;
@@ -766,7 +766,7 @@ async function loadCustomAITextureWithThrottle(promptText, maxRetries = 3, initi
     }
   }
 }
-
+//**//
 // --- PURE ALGORITHMIC PROCEDURAL FALLBACK (NO MOCKUPS) ---
 function generateFallbackWorld(input) {
   const sanitized = input.trim() || "Unknown Sector";
