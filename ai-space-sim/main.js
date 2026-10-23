@@ -639,27 +639,28 @@ async function processCommand(commandText) {
 // --- ONBOARD ASTROMETRIC NAVIGATION & EPHEMERAL COMPUTER PROMPT ---
 function buildPromptText(commandText) {
   return `
-You are the Onboard Astrometric Navigation and Ephemeris Computer of an advanced deep-space exploration vessel operating under Astrometric Protocol v2.0.
+You are a precise, scientifically accurate astronomical ephemeris generator.
 User Navigation Command: "${commandText}"
 Target Language Locale Code: "${currentLang}"
 
-AUTONOMOUS ASTROMETRIC COMPUTATION & MULTILINGUAL RULES:
-1. MULTILINGUAL UI OUTPUT: Respond with all text telemetry fields ("sectorTitle", "lore", and "speechResponse") written natively in the language/script specified by locale code "${currentLang}" (e.g., if locale is "he-IL", output in Hebrew; if "es-ES", output in Spanish).
-2. DEEP ASTRONOMICAL KNOWLEDGE: Autonomously identify the requested system, planet, star, or galaxy. You MUST automatically include all defining physical characteristics from your astronomical database (e.g., if Saturn is requested, you MUST automatically generate its ring system using geometryType "ring" or "planetary_ring", along with major moons like Titan and Enceladus).
-3. MULTI-PART STRUCTURES: Planets with known ring systems must include a separate ring object positioned at the planet's coordinates. Galaxies must use geometryType "spiral_galaxy". Stars must be marked as emissive.
-4. ORBITAL MECHANICS & PROPORTIONALITY: Every orbiting body must include a precise "distance" from center origin (0 for central star/core), an astrophysically scaled "orbitalSpeed" following Keplerian ratios, and relative coordinates.
-5. PRECISE TEXTURE PROMPTS: Keep the internal "prompt" field for visual albedo mapping detailed and written in English for the image generation engine.
+STRICT SCIENTIFIC FACTUALITY & REALISM RULES:
+1. STRICT ASTRONOMICAL ACCURACY: Rely strictly on real-world astronomical facts (NASA/IAU databases). NEVER invent fake catalog numbers (e.g., do NOT use invented IDs like "PL-9820"), fictional sci-fi protocols, or non-existent exoplanet designations for real solar system objects.
+2. REAL-WORLD CLASSIFICATION: Correctly classify target bodies. Pluto is a "Dwarf Planet in the Kuiper Belt", NOT an exoplanet.
+3. FACTUAL GEOMETRY ONLY: Only generate ring systems ("ring" or "planetary_ring") for celestial bodies that scientifically possess verified rings (e.g., Saturn, Uranus, Neptune, Jupiter, Chariklo). Do NOT add fictional rings to Pluto, Earth, Mars, or non-ringed bodies.
+4. ACCURATE LORE & TELEMETRY: In "sectorTitle" and "lore", provide strictly factual scientific details regarding atmosphere, composition, distance, and known moons.
+5. MULTILINGUAL OUTPUT: Respond with all text telemetry fields ("sectorTitle", "lore", and "speechResponse") written natively in the language specified by locale code "${currentLang}".
+6. ENGLISH TEXTURE PROMPTS: Keep the internal "prompt" field detailed and written in English for texture synthesis.
 
 Return ONLY valid raw JSON matching this structure:
 {
-  "sectorTitle": "Sector Name & Navigation Class (In target language)",
-  "lore": "Ship computer astrometric log description (In target language)",
-  "speechResponse": "Concise voice announcement for warp arrival (In target language)",
+  "sectorTitle": "Factual Celestial Name & Classification (In target language)",
+  "lore": "Scientifically accurate astronomical description (In target language)",
+  "speechResponse": "Concise factual arrival telemetry statement (In target language)",
   "cameraPosition": [0, 25, 50],
   "cameraTarget": [0, 0, 0],
   "objects": [
     {
-      "name": "Object Name",
+      "name": "Factual Object Name",
       "geometryType": "sphere",
       "geometryArgs": [2.0, 64, 48],
       "position": [0, 0, 0],
@@ -799,7 +800,6 @@ async function applyWorldConfig(config, hudStatusEl) {
       } else {
         let loadedTexture = null;
         if (objConfig.prompt) {
-          // ADAPTIVE HYPERREALISTIC TEXTURE PROMPT: Switch modifier based on whether it's a nebula/cosmic phenomenon or a planet
           let specificPrompt = '';
           if (isGaseousPhenomenon || isSpiralGalaxy) {
             specificPrompt = encodeURIComponent(
@@ -963,7 +963,7 @@ function setupControls() {
       initWebAudio();
       if (isListening) { recognition.stop(); return; }
       try {
-        recognition.lang = currentLang; // Dynamically sets speech recognition language
+        recognition.lang = currentLang;
         recognition.start();
         isListening = true;
         micBtn.classList.add('listening');
