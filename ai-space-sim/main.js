@@ -493,7 +493,6 @@ function speakText(text, force = false) {
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = currentLang;
 
-  // Retrieve all installed TTS voices on the device and match native voice
   const voices = window.speechSynthesis.getVoices();
   const matchedVoice = voices.find(v => 
     v.lang === currentLang || 
@@ -509,7 +508,6 @@ function speakText(text, force = false) {
   window.speechSynthesis.speak(utterance);
 }
 
-// Pre-load voices (Chrome populates getVoices asynchronously)
 if ('speechSynthesis' in window) {
   window.speechSynthesis.onvoiceschanged = () => {
     window.speechSynthesis.getVoices();
@@ -531,7 +529,6 @@ async function processCommand(commandText) {
 
   if (transcriptEl) transcriptEl.innerText = `"${commandText}"`;
 
-  // STAGE 1: SCANNING INPUT
   if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: ASTROMETRIC_SCAN';
   speakText(`Engaging navigational sensors for vector: ${commandText}.`);
 
@@ -541,7 +538,6 @@ async function processCommand(commandText) {
 
   let worldConfig = null;
 
-  // STAGE 2: EPHEMERIS CALCULATION & MODEL QUERYING
   if (hudStatusEl) hudStatusEl.innerText = 'EPHEMERIS: CALCULATING...';
   speakText("Calculating subspace ephemeris and sector coordinates.");
 
@@ -612,7 +608,7 @@ async function processCommand(commandText) {
   }
 
   if (!worldConfig && requestId === commandSequence) {
-    console.warn(`[ASTROMETRIC LIFECYCLE] ⚠ AI generation failed or timed out. Falling back to local procedural world generator.`);
+    console.warn(`[ASTROMETRIC LIFECYCLE] ⚠ AI generation failed or timed out. Falling back to pure procedural math generator.`);
     worldConfig = generateFallbackWorld(commandText);
   }
 
@@ -629,7 +625,6 @@ async function processCommand(commandText) {
     liveCodeEl.innerText = JSON.stringify(worldConfig, null, 2);
   }
 
-  // STAGE 3: MAPPING SECTOR ASSETS
   if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: MAPPING SECTOR';
   speakText(worldConfig.speechResponse || "Sector coordinates acquired. Materializing structural objects.");
 
@@ -644,7 +639,7 @@ User Navigation Command: "${commandText}"
 Target Language Locale Code: "${currentLang}"
 
 STRICT SCIENTIFIC FACTUALITY & REALISM RULES:
-1. STRICT ASTRONOMICAL ACCURACY: Rely strictly on real-world astronomical facts (NASA/IAU databases). NEVER invent fake catalog numbers (e.g., do NOT use invented IDs like "PL-9820"), fictional sci-fi protocols, or non-existent exoplanet designations for real solar system objects.
+1. STRICT ASTRONOMICAL ACCURACY: Rely strictly on real-world astronomical facts (NASA/IAU databases). NEVER invent fake catalog numbers, fictional sci-fi protocols, or non-existent exoplanet designations for real solar system objects.
 2. REAL-WORLD CLASSIFICATION: Correctly classify target bodies. Pluto is a "Dwarf Planet in the Kuiper Belt", NOT an exoplanet.
 3. FACTUAL GEOMETRY ONLY: Only generate ring systems ("ring" or "planetary_ring") for celestial bodies that scientifically possess verified rings (e.g., Saturn, Uranus, Neptune, Jupiter, Chariklo). Do NOT add fictional rings to Pluto, Earth, Mars, or non-ringed bodies.
 4. ACCURATE LORE & TELEMETRY: In "sectorTitle" and "lore", provide strictly factual scientific details regarding atmosphere, composition, distance, and known moons.
@@ -709,6 +704,46 @@ async function loadTextureWithThrottle(url, maxRetries = 3, initialDelay = 5000)
       await new Promise(resolve => setTimeout(resolve, waitTime));
     }
   }
+}
+
+// --- PURE ALGORITHMIC PROCEDURAL FALLBACK (NO MOCKUPS) ---
+function generateFallbackWorld(input) {
+  const sanitized = input.trim() || "Unknown Sector";
+  const shortTitle = sanitized.length > 25 ? sanitized.substring(0, 25) + "..." : sanitized;
+  const query = sanitized.toLowerCase();
+
+  // Procedural string hash to generate unique attributes dynamically
+  let hash = 0;
+  for (let i = 0; i < sanitized.length; i++) {
+    hash = sanitized.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const colorHex = (hash & 0x00FFFFFF).toString(16).toUpperCase();
+  const dynamicColor = "#" + "00000".substring(0, 6 - colorHex.length) + colorHex;
+
+  const isGalaxy = query.includes('galaxy') || query.includes('milky way') || query.includes('andromeda') || query.includes('nebula');
+
+  return {
+    sectorTitle: `Sector: ${shortTitle.toUpperCase()}`,
+    lore: `Astrometric sensors locked onto autonomous procedural coordinates for: "${sanitized}". Real-time environmental and topological parameters calculated via local algorithmic telemetry.`,
+    speechResponse: `Warp vector locked for ${shortTitle}. Procedural telemetry active.`,
+    cameraPosition: [14, 6, 22],
+    cameraTarget: [0, 0, 0],
+    objects: [{
+      name: shortTitle,
+      geometryType: isGalaxy ? 'spiral_galaxy' : 'sphere',
+      geometryArgs: [2.0, 64, 48],
+      position: [0, 0, 0],
+      distance: 0,
+      color: dynamicColor,
+      emissive: false,
+      roughness: 0.4,
+      metalness: 0.1,
+      prompt: `high-detail procedural surface texture map of ${sanitized}`,
+      animationType: 'spin',
+      animationSpeed: 0.05
+    }],
+    audioParams: { baseFreq: 50.0 + (Math.abs(hash) % 45), filterCutoff: 420.0, lfoRate: 1.2 }
+  };
 }
 
 // --- ASYNC PARALLEL MATERIALIZATION PIPELINE ---
@@ -885,34 +920,6 @@ async function applyWorldConfig(config, hudStatusEl) {
 
   if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: SECURED_TARGET';
   speakText("Sector materialization complete. All astrometric systems nominal.");
-}
-
-function generateFallbackWorld(input) {
-  const shortTitle = input.length > 25 ? input.substring(0, 25) + "..." : input;
-  const isGalaxyQuery = input.toLowerCase().includes('galaxy') || input.toLowerCase().includes('milky way') || input.toLowerCase().includes('andromeda');
-
-  return {
-    sectorTitle: `Sector: ${shortTitle.toUpperCase()}`,
-    lore: `Ship navigation sensors locked onto target coordinates for: "${input}".`,
-    speechResponse: `Warp vector locked. Approaching coordinate sector.`,
-    cameraPosition: [14, 6, 22],
-    cameraTarget: [0, 0, 0],
-    objects: [{
-      name: shortTitle,
-      geometryType: isGalaxyQuery ? 'spiral_galaxy' : 'sphere',
-      geometryArgs: [2.0, 64, 48],
-      position: [0, 0, 0],
-      distance: 0,
-      color: "#38bdf8",
-      emissive: false,
-      roughness: 0.4,
-      metalness: 0.1,
-      prompt: `photorealistic surface texture map of ${input}`,
-      animationType: 'spin',
-      animationSpeed: 0.05
-    }],
-    audioParams: { baseFreq: 60.0, filterCutoff: 450.0, lfoRate: 1.5 }
-  };
 }
 
 // --- SETUP CONTROLS ---
