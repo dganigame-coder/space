@@ -366,31 +366,62 @@ function createSpiralGalaxyPoints(baseColorHex) {
   return galaxyPoints;
 }
 
+// --- PROCEDURAL VERTEX DISPLACER (Organic Irregularity) ---
+function perturbGeometry(geometry, intensity = 0.12) {
+  const positionAttribute = geometry.attributes.position;
+  const vertex = new THREE.Vector3();
+  
+  for (let i = 0; i < positionAttribute.count; i++) {
+    vertex.fromBufferAttribute(positionAttribute, i);
+    const length = vertex.length();
+    
+    const noise = (
+      Math.sin(vertex.x * 2.5) * Math.cos(vertex.y * 2.5) * Math.sin(vertex.z * 2.5) +
+      0.5 * Math.sin(vertex.x * 6.0) * Math.cos(vertex.z * 6.0)
+    );
+    
+    vertex.normalize().multiplyScalar(length + noise * intensity);
+    positionAttribute.setXYZ(i, vertex.x, vertex.y, vertex.z);
+  }
+  
+  positionAttribute.needsUpdate = true;
+  geometry.computeVertexNormals();
+}
+
 // --- MCGS v1.0 GEOMETRY FACTORY ---
 function createDynamicGeometry(type, args) {
   const p = args || [];
-  switch (type ? type.toLowerCase() : 'sphere') {
+  const geomType = type ? type.toLowerCase() : 'sphere';
+
+  let geom;
+  switch (geomType) {
     case 'torus':
     case 'accretion_disk':
-      return new THREE.TorusGeometry(p[0] || 3.2, p[1] || 0.3, p[2] || 64, p[3] || 128);
+      geom = new THREE.TorusGeometry(p[0] || 3.2, p[1] || 0.3, p[2] || 64, p[3] || 128);
+      break;
     case 'disk':
     case 'ring':
     case 'planetary_ring':
-      return new THREE.RingGeometry(p[0] || 2.4, p[1] || 4.8, p[2] || 128);
+      geom = new THREE.RingGeometry(p[0] || 2.4, p[1] || 4.8, p[2] || 128);
+      break;
     case 'icosahedron':
     case 'asteroid':
     case 'comet':
-      return new THREE.IcosahedronGeometry(p[0] || 2.0, p[1] || 3);
-    case 'cone':
-    case 'jet':
-      return new THREE.ConeGeometry(p[0] || 0.3, p[1] || 16.0, p[2] || 64, p[3] || 64);
-    case 'shell':
-    case 'supernova_shell':
-      return new THREE.SphereGeometry(p[0] || 6.0, p[1] || 64, p[2] || 64);
+    case 'irregular_body':
+      geom = new THREE.IcosahedronGeometry(p[0] || 2.0, p[1] || 4);
+      perturbGeometry(geom, 0.15);
+      break;
+    case 'ellipsoid':
+    case 'stretched_planet':
+      geom = new THREE.SphereGeometry(p[0] || 2.0, 64, 48);
+      geom.scale(1.2, 0.85, 1.0);
+      break;
     case 'sphere':
     default:
-      return new THREE.SphereGeometry(p[0] || 2.0, p[1] || 64, p[2] || 64);
+      geom = new THREE.SphereGeometry(p[0] || 2.0, 64, 48);
+      break;
   }
+  return geom;
 }
 
 // --- NEXT-GEN PROCEDURAL PLASMA & FLUID TURBULENCE SHADER ---
@@ -638,10 +669,10 @@ You are a precise, scientifically accurate astronomical ephemeris generator.
 User Navigation Command: "${commandText}"
 Target Language Locale Code: "${currentLang}"
 
-STRICT SCIENTIFIC FACTUALITY & REALISM RULES:
+STRICT SCIENTIFIC FACTUALITY & GEOMETRIC VARIETY RULES:
 1. STRICT ASTRONOMICAL ACCURACY: Rely strictly on real-world astronomical facts (NASA/IAU databases). NEVER invent fake catalog numbers, fictional sci-fi protocols, or non-existent exoplanet designations for real solar system objects.
 2. REAL-WORLD CLASSIFICATION: Correctly classify target bodies. Pluto is a "Dwarf Planet in the Kuiper Belt", NOT an exoplanet.
-3. FACTUAL GEOMETRY ONLY: Only generate ring systems ("ring" or "planetary_ring") for celestial bodies that scientifically possess verified rings (e.g., Saturn, Uranus, Neptune, Jupiter, Chariklo). Do NOT add fictional rings to Pluto, Earth, Mars, or non-ringed bodies.
+3. MULTI-OBJECT BREAKDOWN & GEOMETRY: For star systems, planetary systems with moons, asteroid belts, or diffuse regions like the Oort Cloud, you MUST generate a comprehensive list of multiple objects in the "objects" array (e.g., scattering multiple individual bodies or fragments across different positions) rather than compressing the entire phenomenon into a single sphere. Choose appropriate geometryType values: "sphere" for large equilibrium bodies, "icosahedron" or "asteroid" for irregular rocky/icy bodies, "ellipsoid" for stretched objects, and "ring" strictly for scientifically verified ringed systems.
 4. ACCURATE LORE & TELEMETRY: In "sectorTitle" and "lore", provide strictly factual scientific details regarding atmosphere, composition, distance, and known moons.
 5. MULTILINGUAL OUTPUT: Respond with all text telemetry fields ("sectorTitle", "lore", and "speechResponse") written natively in the language specified by locale code "${currentLang}".
 6. ENGLISH TEXTURE PROMPTS: Keep the internal "prompt" field detailed and written in English for texture synthesis.
