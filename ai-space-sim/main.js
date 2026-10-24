@@ -825,7 +825,6 @@ function generateFallbackWorld(input) {
   const shortTitle = sanitized.length > 25 ? sanitized.substring(0, 25) + "..." : sanitized;
   const query = sanitized.toLowerCase();
 
-  // Procedural string hash to generate unique attributes dynamically
   let hash = 0;
   for (let i = 0; i < sanitized.length; i++) {
     hash = sanitized.charCodeAt(i) + ((hash << 5) - hash);
@@ -927,11 +926,9 @@ async function applyWorldConfig(config, hudStatusEl) {
     if (isSpiralGalaxy) {
       const galaxyGroup = new THREE.Group();
       
-      // 1. Particle star layer for sparkling 3D depth
       const pointsMesh = createSpiralGalaxyPoints(objConfig.color || '#38bdf8');
       galaxyGroup.add(pointsMesh);
 
-      // 2. Textured spiral plane layer using logarithmic texture shader masking
       let loadedTexture = null;
       if (objConfig.prompt) {
         const galaxyPrompt = `${objConfig.prompt}, James Webb Space Telescope infrared photography style, hyperrealistic vibrant multi-chromatic iridescent gas plumes and dust lanes, deep space backdrop, 8k resolution`;
@@ -945,6 +942,11 @@ async function applyWorldConfig(config, hudStatusEl) {
       }
 
       if (loadedTexture) {
+        loadedTexture.colorSpace = THREE.SRGBColorSpace;
+        loadedTexture.wrapS = THREE.RepeatWrapping;
+        loadedTexture.wrapT = THREE.RepeatWrapping;
+        loadedTexture.needsUpdate = true;
+
         const planeGeo = new THREE.PlaneGeometry(24, 24, 64, 64);
         const spiralMat = createTexturedSpiralShader(loadedTexture, objConfig.color || '#38bdf8');
         const planeMesh = new THREE.Mesh(planeGeo, spiralMat);
@@ -982,7 +984,6 @@ async function applyWorldConfig(config, hudStatusEl) {
           } else if (isFlatRing) {
             specificPrompt = `Top-down circular planetary ring texture map, concentric icy rings of ${objConfig.name}, transparent gaps, seamless ring texture, flat texture asset, top-down view, zero background stars, zero perspective angle`;
           } else {
-            // Strict zero-focal-point repeating tile prompt
             specificPrompt = `Seamless infinite repeating 2D material tile, abstract geological rock and mineral grain texture of ${objConfig.name}, flat orthographic top-down surface pattern, edge-to-edge uniform distribution, absolutely zero centered objects, zero holes, zero focal points, zero black borders, zero space background`;
           }
 
@@ -993,6 +994,16 @@ async function applyWorldConfig(config, hudStatusEl) {
             loadedTexture = await loadCustomAITextureWithThrottle(specificPrompt, 3, 6000);
             if (loadedTexture) {
               loadedTexture.colorSpace = THREE.SRGBColorSpace;
+              
+              // --- FIXED TEXTURE MAPPING & WRAPPING ---
+              loadedTexture.wrapS = THREE.RepeatWrapping;
+              loadedTexture.wrapT = isFlatRing ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
+              
+              if (isFlatRing) {
+                // Repeat texture cleanly around the circular circumference of the ring to eliminate stretching
+                loadedTexture.repeat.set(4, 1);
+              }
+              
               loadedTexture.needsUpdate = true;
             }
           } catch (err) {
@@ -1193,7 +1204,6 @@ function animate(time) {
       if (anim.mesh.material && anim.mesh.material.uniforms && anim.mesh.material.uniforms.uTime) {
         anim.mesh.material.uniforms.uTime.value = t;
       }
-      // Propagate time uniforms to any grouped child shaders (e.g. textured spiral planes)
       anim.mesh.traverse(child => {
         if (child.material && child.material.uniforms && child.material.uniforms.uTime) {
           child.material.uniforms.uTime.value = t;
