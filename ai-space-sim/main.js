@@ -769,8 +769,8 @@ async function loadCustomAITextureWithThrottle(promptText, maxRetries = 3, initi
         body: JSON.stringify({
           prompt: promptText,
           negative_prompt: "3d sphere, globe, framed picture, black borders, white borders, centered planet, outer space, stars, directional studio lighting, heavy shadows, vignette, 3d rendering, perspective",
-          width: 1408,
-          height: 704
+          width: 1024,
+          height: 512
         })
       });
 
@@ -984,7 +984,7 @@ async function applyWorldConfig(config, hudStatusEl) {
           } else if (isFlatRing) {
             specificPrompt = `Top-down circular planetary ring texture map, concentric icy rings of ${objConfig.name}, perfectly seamless left-to-right wrapping edges, transparent gaps, flat texture asset, top-down view, zero background stars, zero perspective angle`;
           } else {
-            specificPrompt = `4k hyperrealistic equirectangular surface texture map of ${objConfig.name}, seamless 2D geological terrain pattern, orthographic top-down macro photography, extreme surface detail, uniform edge-to-edge distribution, zero centered objects, zero black borders, zero space background`;
+            specificPrompt = `equirectangular surface texture map of ${objConfig.name}, seamless 2D geological terrain pattern, orthographic top-down macro photography, extreme surface detail, uniform edge-to-edge distribution, zero centered objects, zero black borders, zero space background`;
           }
 
           try {
@@ -995,7 +995,7 @@ async function applyWorldConfig(config, hudStatusEl) {
             if (loadedTexture) {
               loadedTexture.colorSpace = THREE.SRGBColorSpace;
               
-              // Enable maximum GPU anisotropy for 4K surface clarity
+              // Enable maximum GPU anisotropy for surface clarity
               const maxAnisotropy = renderer.capabilities.getMaxAnisotropy();
               loadedTexture.anisotropy = maxAnisotropy;
 
