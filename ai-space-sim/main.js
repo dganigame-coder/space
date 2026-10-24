@@ -982,7 +982,7 @@ async function applyWorldConfig(config, hudStatusEl) {
           if (isGaseousPhenomenon) {
             specificPrompt = `${objConfig.prompt}, James Webb Space Telescope infrared photography style, hyperrealistic vibrant multi-chromatic iridescent gas plumes, deep space backdrop, 8k resolution`;
           } else if (isFlatRing) {
-            specificPrompt = `Top-down circular planetary ring texture map, concentric icy rings of ${objConfig.name}, transparent gaps, seamless ring texture, flat texture asset, top-down view, zero background stars, zero perspective angle`;
+            specificPrompt = `Top-down circular planetary ring texture map, concentric icy rings of ${objConfig.name}, perfectly seamless left-to-right wrapping edges, transparent gaps, flat texture asset, top-down view, zero background stars, zero perspective angle`;
           } else {
             specificPrompt = `Seamless infinite repeating 2D material tile, abstract geological rock and mineral grain texture of ${objConfig.name}, flat orthographic top-down surface pattern, edge-to-edge uniform distribution, absolutely zero centered objects, zero holes, zero focal points, zero black borders, zero space background`;
           }
@@ -1000,8 +1000,8 @@ async function applyWorldConfig(config, hudStatusEl) {
               loadedTexture.wrapT = isFlatRing ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
               
               if (isFlatRing) {
-                // Repeat texture cleanly around the circular circumference of the ring to eliminate stretching
-                loadedTexture.repeat.set(4, 1);
+                // Wrap texture exactly once around the ring circumference to eliminate repeating artifacts
+                loadedTexture.repeat.set(1, 1);
               }
               
               loadedTexture.needsUpdate = true;
