@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CONFIG } from './config.js';
+
 // --- GLOBALS ---
 let scene, camera, renderer, starField, starMaterial;
 let geminiKey = localStorage.getItem('gemini_api_key') || '';
@@ -908,8 +909,8 @@ async function applyWorldConfig(config, hudStatusEl) {
           } else if (isFlatRing) {
             specificPrompt = `Top-down circular planetary ring texture map, concentric icy rings of ${objConfig.name}, transparent gaps, seamless ring texture, flat texture asset, top-down view, zero background stars, zero perspective angle`;
           } else {
-            // Upgraded Texture Map Prompt Template
-            specificPrompt = `An equirectangular 2:1 cylindrical surface texture map sheet of ${objConfig.name} (${objConfig.prompt}). A seamless flat 2D map canvas filled edge-to-edge, zero borders, flat orthographic nadir satellite perspective. Detailed surface topography, fine-grain surface grit, geological cracks, and micro-detailed terrain patterns spanning the entire frame. Completely flat diffuse albedo map, uniform lighting, zero baked shadows, zero 3D sphere curvature, zero space background.`;
+            // Strict tileable 2D surface material texture prompt to bypass AI planet bias (prevents oval/black void bug)
+            specificPrompt = `Seamless tileable 2D surface material texture, abstract geological terrain of ${objConfig.name} (${objConfig.prompt}), filled edge-to-edge across the entire frame, orthographic top-down flat perspective, micro-surface rock details, uniform flat lighting, zero black borders, zero space background, zero rounded globe shapes`;
           }
 
           try {
