@@ -367,6 +367,51 @@ function createSpiralGalaxyPoints(baseColorHex) {
   return galaxyPoints;
 }
 
+// --- LOGARITHMIC SPIRAL TEXTURE MASKING SHADER ---
+function createTexturedSpiralShader(texture, baseColorHex) {
+  return new THREE.ShaderMaterial({
+    uniforms: {
+      uTexture: { value: texture },
+      uTime: { value: 0 },
+      uBaseColor: { value: new THREE.Color(baseColorHex || 0x38bdf8) }
+    },
+    vertexShader: `
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform sampler2D uTexture;
+      uniform float uTime;
+      uniform vec3 uBaseColor;
+      varying vec2 vUv;
+
+      void main() {
+        vec2 centeredUv = vUv * 2.0 - 1.0;
+        float r = length(centeredUv);
+        float theta = atan(centeredUv.y, centeredUv.x);
+        
+        float spiralArms = 2.0;
+        float tightness = 1.5;
+        float spiralUV_X = r * 0.5 + 0.5;
+        float spiralUV_Y = mod(theta * (spiralArms / 6.28318) - (r * tightness) + (uTime * 0.05), 1.0);
+        
+        vec4 texColor = texture2D(uTexture, vec2(spiralUV_X, spiralUV_Y));
+        float alphaMask = smoothstep(1.0, 0.2, r);
+        
+        vec3 finalColor = mix(uBaseColor, texColor.rgb * 1.5, 0.7);
+        gl_FragColor = vec4(finalColor, texColor.a * alphaMask * 0.9);
+      }
+    `,
+    transparent: true,
+    side: THREE.DoubleSide,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false
+  });
+}
+
 // --- PROCEDURAL VERTEX DISPLACER (Organic Irregularity) ---
 function perturbGeometry(geometry, intensity = 0.12) {
   const positionAttribute = geometry.attributes.position;
@@ -880,9 +925,37 @@ async function applyWorldConfig(config, hudStatusEl) {
     let finalMaterial;
 
     if (isSpiralGalaxy) {
-      mesh = createSpiralGalaxyPoints(objConfig.color || '#38bdf8');
+      const galaxyGroup = new THREE.Group();
+      
+      // 1. Particle star layer for sparkling 3D depth
+      const pointsMesh = createSpiralGalaxyPoints(objConfig.color || '#38bdf8');
+      galaxyGroup.add(pointsMesh);
+
+      // 2. Textured spiral plane layer using logarithmic texture shader masking
+      let loadedTexture = null;
+      if (objConfig.prompt) {
+        const galaxyPrompt = `${objConfig.prompt}, James Webb Space Telescope infrared photography style, hyperrealistic vibrant multi-chromatic iridescent gas plumes and dust lanes, deep space backdrop, 8k resolution`;
+        try {
+          const requestDelay = 600 + (index * 800);
+          await new Promise(resolve => setTimeout(resolve, requestDelay));
+          loadedTexture = await loadCustomAITextureWithThrottle(galaxyPrompt, 3, 6000);
+        } catch (err) {
+          console.warn(`[ASTROMETRIC LIFECYCLE] ✖ Galaxy texture FAILED. Using pure particle fallback.`, err);
+        }
+      }
+
+      if (loadedTexture) {
+        const planeGeo = new THREE.PlaneGeometry(24, 24, 64, 64);
+        const spiralMat = createTexturedSpiralShader(loadedTexture, objConfig.color || '#38bdf8');
+        const planeMesh = new THREE.Mesh(planeGeo, spiralMat);
+        planeMesh.rotation.x = -Math.PI / 2;
+        planeMesh.frustumCulled = false;
+        galaxyGroup.add(planeMesh);
+      }
+
+      mesh = galaxyGroup;
       mesh.frustumCulled = false;
-      finalMaterial = mesh.material;
+      finalMaterial = null;
     } else {
       const geom = createDynamicGeometry(objConfig.geometryType, objConfig.geometryArgs);
       const ghostMat = new THREE.MeshBasicMaterial({
@@ -903,15 +976,15 @@ async function applyWorldConfig(config, hudStatusEl) {
       } else {
         let loadedTexture = null;
         if (objConfig.prompt) {
-            let specificPrompt = '';
-                    if (isGaseousPhenomenon || isSpiralGalaxy) {
-                      specificPrompt = `${objConfig.prompt}, James Webb Space Telescope infrared photography style, hyperrealistic vibrant multi-chromatic iridescent gas plumes, deep space backdrop, 8k resolution`;
-                    } else if (isFlatRing) {
-                      specificPrompt = `Top-down circular planetary ring texture map, concentric icy rings of ${objConfig.name}, transparent gaps, seamless ring texture, flat texture asset, top-down view, zero background stars, zero perspective angle`;
-                    } else {
-                      // Replaced with the strict zero-focal-point repeating tile prompt
-                      specificPrompt = `Seamless infinite repeating 2D material tile, abstract geological rock and mineral grain texture of ${objConfig.name}, flat orthographic top-down surface pattern, edge-to-edge uniform distribution, absolutely zero centered objects, zero holes, zero focal points, zero black borders, zero space background`;
-                    }
+          let specificPrompt = '';
+          if (isGaseousPhenomenon) {
+            specificPrompt = `${objConfig.prompt}, James Webb Space Telescope infrared photography style, hyperrealistic vibrant multi-chromatic iridescent gas plumes, deep space backdrop, 8k resolution`;
+          } else if (isFlatRing) {
+            specificPrompt = `Top-down circular planetary ring texture map, concentric icy rings of ${objConfig.name}, transparent gaps, seamless ring texture, flat texture asset, top-down view, zero background stars, zero perspective angle`;
+          } else {
+            // Strict zero-focal-point repeating tile prompt
+            specificPrompt = `Seamless infinite repeating 2D material tile, abstract geological rock and mineral grain texture of ${objConfig.name}, flat orthographic top-down surface pattern, edge-to-edge uniform distribution, absolutely zero centered objects, zero holes, zero focal points, zero black borders, zero space background`;
+          }
 
           try {
             const requestDelay = 600 + (index * 800);
@@ -1120,6 +1193,12 @@ function animate(time) {
       if (anim.mesh.material && anim.mesh.material.uniforms && anim.mesh.material.uniforms.uTime) {
         anim.mesh.material.uniforms.uTime.value = t;
       }
+      // Propagate time uniforms to any grouped child shaders (e.g. textured spiral planes)
+      anim.mesh.traverse(child => {
+        if (child.material && child.material.uniforms && child.material.uniforms.uTime) {
+          child.material.uniforms.uTime.value = t;
+        }
+      });
       const handler = animationHandlers[anim.type] || animationHandlers.spin;
       handler(anim, t, dt || t);
     }
