@@ -711,14 +711,13 @@ Return ONLY valid raw JSON matching this structure:
 
 // --- BULLETPROOF AWS TEXTURE LOADER ---
 async function loadCustomAITextureWithThrottle(promptText, maxRetries = 3, initialDelay = 3000) {
-  //const API_URL = "https://sf86b9i3yf.execute-api.us-west-1.amazonaws.com/default/inkarnate";
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     let blobUrl = null;
     try {
       console.log(`[AWS TEXTURE ENGINE] Requesting texture for prompt: "${promptText}" (Attempt ${attempt + 1})`);
       
-      const response = await fetch(CONFIG.API_URL, {
+      const response = await fetch(CONFIG.AWS_IMAGE_URL_API, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
