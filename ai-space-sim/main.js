@@ -709,19 +709,18 @@ Return ONLY valid raw JSON matching this structure:
 `;
 }
 
-// --- CUSTOM AWS API GATEWAY TEXTURE LOADER (Direct Base64 Data URI) ---
+// --- BULLETPROOF AWS TEXTURE LOADER ---
 async function loadCustomAITextureWithThrottle(promptText, maxRetries = 3, initialDelay = 3000) {
   const API_URL = "https://sf86b9i3yf.execute-api.us-west-1.amazonaws.com/default/inkarnate";
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    let blobUrl = null;
     try {
       console.log(`[AWS TEXTURE ENGINE] Requesting texture for prompt: "${promptText}" (Attempt ${attempt + 1})`);
       
       const response = await fetch(API_URL, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           prompt: promptText,
           negative_prompt: "3d sphere, globe, outer space, stars, realistic planet render, directional lighting, heavy shadows, vignette, 3d rendering, perspective",
@@ -740,21 +739,28 @@ async function loadCustomAITextureWithThrottle(promptText, maxRetries = 3, initi
         throw new Error("API returned unsuccessful generation result");
       }
 
-      const mimeType = result.image.startsWith("/9j/")
-        ? "image/jpeg"
-        : (result.mimeType || "image/png");
+      // Convert raw base64 safely into a Blob URL (Fixes all MIME-type decoding bugs)
+      const rawBase64 = result.image.includes('base64,') ? result.image.split('base64,')[1] : result.image;
+      const byteCharacters = atob(rawBase64);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'image/jpeg' });
+      blobUrl = URL.createObjectURL(blob);
 
-      // Pass the Base64 Data URI directly into Three.js texture loader
-      const dataUri = `data:${mimeType};base64,${result.image}`;
+      const texture = await textureLoader.loadAsync(blobUrl);
+      URL.revokeObjectURL(blobUrl);
       
-      const texture = await textureLoader.loadAsync(dataUri);
       texture.colorSpace = THREE.SRGBColorSpace;
       texture.needsUpdate = true;
       
-      console.log(`[AWS TEXTURE ENGINE] ✔ Texture successfully applied for: "${promptText}"`);
+      console.log(`[AWS TEXTURE ENGINE] ✔ Texture successfully loaded and applied for: "${promptText}"`);
       return texture;
 
     } catch (err) {
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
       if (attempt === maxRetries) {
         console.error(`[AWS TEXTURE ENGINE] ✖ All retries failed for prompt: "${promptText}". Reason:`, err.message);
         throw err;
