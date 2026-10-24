@@ -755,7 +755,7 @@ Return ONLY valid raw JSON matching this structure:
 `;
 }
 
-// --- BULLETPROOF AWS TEXTURE LOADER ---
+// --- BULLETPROOF AWS TEXTURE LOADER WITH UPSTREAM ERROR CATCHING ---
 async function loadCustomAITextureWithThrottle(promptText, maxRetries = 3, initialDelay = 3000) {
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -768,23 +768,28 @@ async function loadCustomAITextureWithThrottle(promptText, maxRetries = 3, initi
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           prompt: promptText,
-          negative_prompt: "3d sphere, globe, framed picture, black borders, white borders, centered planet, outer space, stars, directional studio lighting, heavy shadows, vignette, 3d rendering, perspective",
+          // Highly aggressive negative prompt to block 3D object rendering & framing
+          negative_prompt: "3d sphere, globe, framed picture, black borders, white borders, centered planet, outer space, stars, studio lighting, heavy shadows, vignette, 3d rendering, perspective, egg shape",
           width: 1024,
           height: 512
         })
       });
 
-      if (response.status === 402 || response.status === 429) {
-        throw new Error(`RATE_LIMIT_${response.status}`);
+      if (!response.ok) {
+        const errorBody = await response.text();
+        console.error(`[AWS TEXTURE ENGINE] Upstream provider error (${response.status}):`, errorBody);
+        if (response.status === 402 || response.status === 429 || response.status === 502) {
+          throw new Error(`PROVIDER_BUDGET_OR_RATE_LIMIT_${response.status}: ${errorBody}`);
+        }
+        throw new Error(`HTTP Error ${response.status}`);
       }
-      if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
 
       const result = await response.json();
       if (!result.success || !result.image) {
         throw new Error("API returned unsuccessful generation result");
       }
 
-      // Convert raw base64 safely into a Blob URL (Fixes all MIME-type decoding bugs)
+      // Convert raw base64 safely into a Blob URL
       const rawBase64 = result.image.includes('base64,') ? result.image.split('base64,')[1] : result.image;
       const byteCharacters = atob(rawBase64);
       const byteNumbers = new Array(byteCharacters.length);
@@ -806,6 +811,13 @@ async function loadCustomAITextureWithThrottle(promptText, maxRetries = 3, initi
 
     } catch (err) {
       if (blobUrl) URL.revokeObjectURL(blobUrl);
+      
+      // If it's an upstream budget or billing error, abort retrying immediately to avoid hammering the dead API
+      if (err.message.includes('PROVIDER_BUDGET_OR_RATE_LIMIT')) {
+        console.error(`[AWS TEXTURE ENGINE] ✖ Aborting retries: Upstream account budget or quota limit reached.`);
+        throw err;
+      }
+
       if (attempt === maxRetries) {
         console.error(`[AWS TEXTURE ENGINE] ✖ All retries failed for prompt: "${promptText}". Reason:`, err.message);
         throw err;
@@ -984,7 +996,8 @@ async function applyWorldConfig(config, hudStatusEl) {
           } else if (isFlatRing) {
             specificPrompt = `Top-down circular planetary ring texture map, concentric icy rings of ${objConfig.name}, perfectly seamless left-to-right wrapping edges, transparent gaps, flat texture asset, top-down view, zero background stars, zero perspective angle`;
           } else {
-            specificPrompt = `equirectangular surface texture map of ${objConfig.name}, seamless 2D geological terrain pattern, orthographic top-down macro photography, extreme surface detail, uniform edge-to-edge distribution, zero centered objects, zero black borders, zero space background`;
+            // --- STRICT ABSTRACT TOPOGRAPHIC PROMPT TO PREVENT 3D SPHERE GENERATION ---
+            specificPrompt = `seamless equirectangular 2:1 flat map texture of ${objConfig.name} terrain, continuous abstract geological surface pattern, edge-to-edge uniform macro photography, orthographic projection, absolutely zero centered objects, zero black borders, zero space background`;
           }
 
           try {
@@ -995,16 +1008,13 @@ async function applyWorldConfig(config, hudStatusEl) {
             if (loadedTexture) {
               loadedTexture.colorSpace = THREE.SRGBColorSpace;
               
-              // Enable maximum GPU anisotropy for surface clarity
               const maxAnisotropy = renderer.capabilities.getMaxAnisotropy();
               loadedTexture.anisotropy = maxAnisotropy;
 
-              // --- FIXED TEXTURE MAPPING & WRAPPING ---
               loadedTexture.wrapS = THREE.RepeatWrapping;
               loadedTexture.wrapT = isFlatRing ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
               
               if (isFlatRing) {
-                // Wrap texture exactly once around the ring circumference to eliminate repeating artifacts
                 loadedTexture.repeat.set(1, 1);
               }
               
