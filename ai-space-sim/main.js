@@ -903,15 +903,15 @@ async function applyWorldConfig(config, hudStatusEl) {
       } else {
         let loadedTexture = null;
         if (objConfig.prompt) {
-          let specificPrompt = '';
-          if (isGaseousPhenomenon || isSpiralGalaxy) {
-            specificPrompt = `${objConfig.prompt}, James Webb Space Telescope infrared photography style, hyperrealistic vibrant multi-chromatic iridescent gas plumes, deep space backdrop, 8k resolution`;
-          } else if (isFlatRing) {
-            specificPrompt = `Top-down circular planetary ring texture map, concentric icy rings of ${objConfig.name}, transparent gaps, seamless ring texture, flat texture asset, top-down view, zero background stars, zero perspective angle`;
-          } else {
-            // Strict tileable 2D surface material texture prompt to bypass AI planet bias (prevents oval/black void bug)
-            specificPrompt = `Seamless tileable 2D surface material texture, abstract geological terrain of ${objConfig.name} (${objConfig.prompt}), filled edge-to-edge across the entire frame, orthographic top-down flat perspective, micro-surface rock details, uniform flat lighting, zero black borders, zero space background, zero rounded globe shapes`;
-          }
+            let specificPrompt = '';
+                    if (isGaseousPhenomenon || isSpiralGalaxy) {
+                      specificPrompt = `${objConfig.prompt}, James Webb Space Telescope infrared photography style, hyperrealistic vibrant multi-chromatic iridescent gas plumes, deep space backdrop, 8k resolution`;
+                    } else if (isFlatRing) {
+                      specificPrompt = `Top-down circular planetary ring texture map, concentric icy rings of ${objConfig.name}, transparent gaps, seamless ring texture, flat texture asset, top-down view, zero background stars, zero perspective angle`;
+                    } else {
+                      // Replaced with the strict zero-focal-point repeating tile prompt
+                      specificPrompt = `Seamless infinite repeating 2D material tile, abstract geological rock and mineral grain texture of ${objConfig.name}, flat orthographic top-down surface pattern, edge-to-edge uniform distribution, absolutely zero centered objects, zero holes, zero focal points, zero black borders, zero space background`;
+                    }
 
           try {
             const requestDelay = 600 + (index * 800);
