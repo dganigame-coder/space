@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CONFIG } from './config.js';
-
 // --- GLOBALS ---
 let scene, camera, renderer, starField, starMaterial;
 let geminiKey = localStorage.getItem('gemini_api_key') || '';
@@ -994,10 +993,10 @@ async function applyWorldConfig(config, hudStatusEl) {
             if (isGaseousPhenomenon) {
               specificPrompt = `James Webb Space Telescope infrared photography style, hyperrealistic vibrant multi-chromatic iridescent gas plumes and dust lanes, deep space backdrop, 8k resolution`;
             } else if (isFlatRing) {
-              specificPrompt = `Top-down circular planetary ring texture map, concentric icy rings, perfectly seamless left-to-right wrapping edges, transparent gaps, flat texture asset, top-down view, zero background stars, zero perspective angle`;
+              specificPrompt = `Top-down circular planetary ring texture asset, concentric icy rings, perfectly seamless left-to-right wrapping edges, transparent gaps, flat 2D graphic, top-down view, zero background stars, zero perspective angle`;
             } else {
-              // --- NAME REMOVED: Uses pure abstract topological descriptors and color instead ---
-              specificPrompt = `seamless equirectangular 2:1 flat map texture of continuous abstract geological terrain and atmospheric fluid bands, color theme ${objConfig.color || 'earthy brown and cream'}, orthographic top-down macro pattern, edge-to-edge uniform distribution, absolutely zero centered objects, zero 3d spheres, zero globes, zero black borders, zero space background`;
+              // --- TREATED AS A FLAT 2D MATERIAL TILE INSTEAD OF A MAP ---
+              specificPrompt = `seamless tileable 2D surface texture pattern, continuous abstract geological strata and fluid atmospheric bands, flat 2D graphic design, edge-to-edge uniform distribution, orthographic flat view, absolutely zero curved horizons, zero oval shapes, zero centered objects, zero black space borders`;
             }
 
           try {
