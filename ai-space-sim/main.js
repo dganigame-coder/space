@@ -769,7 +769,7 @@ async function loadCustomAITextureWithThrottle(promptText, maxRetries = 3, initi
         body: JSON.stringify({
           prompt: promptText,
           // Highly aggressive negative prompt to block 3D object rendering & framing
-          negative_prompt: "3d sphere, globe, framed picture, black borders, white borders, centered planet, outer space, stars, studio lighting, heavy shadows, vignette, 3d rendering, perspective, egg shape",
+          negative_prompt: "3d sphere, globe, framed picture, black borders, white borders, centered planet, planet in space, outer space, stars, studio lighting, heavy shadows, vignette, 3d rendering, perspective, egg shape, circular object on black background"
           width: 1024,
           height: 512
         })
@@ -990,15 +990,15 @@ async function applyWorldConfig(config, hudStatusEl) {
       } else {
         let loadedTexture = null;
         if (objConfig.prompt) {
-          let specificPrompt = '';
-          if (isGaseousPhenomenon) {
-            specificPrompt = `${objConfig.prompt}, James Webb Space Telescope infrared photography style, hyperrealistic vibrant multi-chromatic iridescent gas plumes, deep space backdrop, 8k resolution`;
-          } else if (isFlatRing) {
-            specificPrompt = `Top-down circular planetary ring texture map, concentric icy rings of ${objConfig.name}, perfectly seamless left-to-right wrapping edges, transparent gaps, flat texture asset, top-down view, zero background stars, zero perspective angle`;
-          } else {
-            // --- STRICT ABSTRACT TOPOGRAPHIC PROMPT TO PREVENT 3D SPHERE GENERATION ---
-            specificPrompt = `seamless equirectangular 2:1 flat map texture of ${objConfig.name} terrain, continuous abstract geological surface pattern, edge-to-edge uniform macro photography, orthographic projection, absolutely zero centered objects, zero black borders, zero space background`;
-          }
+            let specificPrompt = '';
+            if (isGaseousPhenomenon) {
+              specificPrompt = `James Webb Space Telescope infrared photography style, hyperrealistic vibrant multi-chromatic iridescent gas plumes and dust lanes, deep space backdrop, 8k resolution`;
+            } else if (isFlatRing) {
+              specificPrompt = `Top-down circular planetary ring texture map, concentric icy rings, perfectly seamless left-to-right wrapping edges, transparent gaps, flat texture asset, top-down view, zero background stars, zero perspective angle`;
+            } else {
+              // --- NAME REMOVED: Uses pure abstract topological descriptors and color instead ---
+              specificPrompt = `seamless equirectangular 2:1 flat map texture of continuous abstract geological terrain and atmospheric fluid bands, color theme ${objConfig.color || 'earthy brown and cream'}, orthographic top-down macro pattern, edge-to-edge uniform distribution, absolutely zero centered objects, zero 3d spheres, zero globes, zero black borders, zero space background`;
+            }
 
           try {
             const requestDelay = 600 + (index * 800);
