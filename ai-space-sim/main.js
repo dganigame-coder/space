@@ -995,8 +995,8 @@ async function applyWorldConfig(config, hudStatusEl) {
             } else if (isFlatRing) {
               specificPrompt = `Top-down circular planetary ring texture asset, concentric icy rings, perfectly seamless left-to-right wrapping edges, transparent gaps, flat 2D graphic, top-down view, zero background stars, zero perspective angle`;
             } else {
-              // --- TREATED AS A FLAT 2D MATERIAL TILE INSTEAD OF A MAP ---
-              specificPrompt = `seamless tileable 2D surface texture pattern, continuous abstract geological strata and fluid atmospheric bands, flat 2D graphic design, edge-to-edge uniform distribution, orthographic flat view, absolutely zero curved horizons, zero oval shapes, zero centered objects, zero black space borders`;
+              // --- EXTREME ABSTRACT PATTERN: Removes all planetary/map terminology entirely ---
+              specificPrompt = `macro close-up abstract procedural noise texture pattern, fine-grain mineral rock and fluid chemical swirls, uniform flat 2D repeating surface material tile, completely flat orthographic view, edge-to-edge pattern distribution, absolutely zero curved horizons, zero oval shapes, zero globes, zero black borders, zero space background`;
             }
 
           try {
