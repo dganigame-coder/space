@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CONFIG } from './config.js';
+
 // --- GLOBALS ---
 let scene, camera, renderer, starField, starMaterial;
 let geminiKey = localStorage.getItem('gemini_api_key') || '';
@@ -767,8 +768,7 @@ async function loadCustomAITextureWithThrottle(promptText, maxRetries = 3, initi
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           prompt: promptText,
-          // Highly aggressive negative prompt to block 3D object rendering & framing
-          negative_prompt: "3d sphere, globe, framed picture, black borders, white borders, centered planet, planet in space, outer space, stars, studio lighting, heavy shadows, vignette, 3d rendering, perspective, egg shape, circular object on black background",
+          negative_prompt: "3d sphere, globe, framed picture, black borders, white borders, centered planet, outer space, stars, studio lighting, heavy shadows, vignette, 3d rendering, perspective, egg shape",
           width: 1024,
           height: 512
         })
@@ -811,7 +811,6 @@ async function loadCustomAITextureWithThrottle(promptText, maxRetries = 3, initi
     } catch (err) {
       if (blobUrl) URL.revokeObjectURL(blobUrl);
       
-      // If it's an upstream budget or billing error, abort retrying immediately to avoid hammering the dead API
       if (err.message.includes('PROVIDER_BUDGET_OR_RATE_LIMIT')) {
         console.error(`[AWS TEXTURE ENGINE] ✖ Aborting retries: Upstream account budget or quota limit reached.`);
         throw err;
@@ -869,7 +868,7 @@ function generateFallbackWorld(input) {
   };
 }
 
-// --- ASYNC PARALLEL MATERIALIZATION PIPELINE ---
+// --- ASYNC SEQUENTIAL MATERIALIZATION PIPELINE (PREVENTS 504 TIMEOUTS & KEEPS COLOR THEME) ---
 async function applyWorldConfig(config, hudStatusEl) {
   while (systemGroup.children.length > 0) {
     const obj = systemGroup.children[0];
@@ -910,7 +909,10 @@ async function applyWorldConfig(config, hudStatusEl) {
   const spaceObjects = config.objects || [config];
   console.log(`[ASTROMETRIC NAVIGATION] 🌌 Initializing Sector: "${config.sectorTitle || 'Unknown Sector'}". Target Object Count: ${spaceObjects.length}`);
 
-  const assetPromises = spaceObjects.map(async (objConfig, index) => {
+  const resolvedAnims = [];
+
+  for (let index = 0; index < spaceObjects.length; index++) {
+    const objConfig = spaceObjects[index];
     const nameLower = (objConfig.name || '').toLowerCase();
     const promptLower = (objConfig.prompt || '').toLowerCase();
     const geomLower = (objConfig.geometryType || '').toLowerCase();
@@ -936,7 +938,6 @@ async function applyWorldConfig(config, hudStatusEl) {
 
     if (isSpiralGalaxy) {
       const galaxyGroup = new THREE.Group();
-      
       const pointsMesh = createSpiralGalaxyPoints(objConfig.color || '#38bdf8');
       galaxyGroup.add(pointsMesh);
 
@@ -944,8 +945,7 @@ async function applyWorldConfig(config, hudStatusEl) {
       if (objConfig.prompt) {
         const galaxyPrompt = `${objConfig.prompt}, James Webb Space Telescope infrared photography style, hyperrealistic vibrant multi-chromatic iridescent gas plumes and dust lanes, deep space backdrop, 8k resolution`;
         try {
-          const requestDelay = 600 + (index * 800);
-          await new Promise(resolve => setTimeout(resolve, requestDelay));
+          await new Promise(resolve => setTimeout(resolve, 1000));
           loadedTexture = await loadCustomAITextureWithThrottle(galaxyPrompt, 3, 6000);
         } catch (err) {
           console.warn(`[ASTROMETRIC LIFECYCLE] ✖ Galaxy texture FAILED. Using pure particle fallback.`, err);
@@ -989,20 +989,18 @@ async function applyWorldConfig(config, hudStatusEl) {
       } else {
         let loadedTexture = null;
         if (objConfig.prompt) {
-            let specificPrompt = '';
-            if (isGaseousPhenomenon) {
-              specificPrompt = `James Webb Space Telescope infrared photography style, hyperrealistic vibrant multi-chromatic iridescent gas plumes and dust lanes, deep space backdrop, 8k resolution`;
-            } else if (isFlatRing) {
-              specificPrompt = `Top-down circular planetary ring texture asset, concentric icy rings, perfectly seamless left-to-right wrapping edges, transparent gaps, flat 2D graphic, top-down view, zero background stars, zero perspective angle`;
-            } else {
-              // --- EXTREME ABSTRACT PATTERN: Removes all planetary/map terminology entirely ---
-              specificPrompt = `macro close-up abstract procedural noise texture pattern, fine-grain mineral rock and fluid chemical swirls, uniform flat 2D repeating surface material tile, completely flat orthographic view, edge-to-edge pattern distribution, absolutely zero curved horizons, zero oval shapes, zero globes, zero black borders, zero space background`;
-            }
+          let specificPrompt = '';
+          if (isGaseousPhenomenon) {
+            specificPrompt = `${objConfig.prompt}, James Webb Space Telescope infrared photography style, hyperrealistic vibrant multi-chromatic iridescent gas plumes, deep space backdrop, 8k resolution`;
+          } else if (isFlatRing) {
+            specificPrompt = `Top-down circular planetary ring texture asset, concentric icy rings, perfectly seamless left-to-right wrapping edges, transparent gaps, flat 2D graphic, top-down view, zero background stars, zero perspective angle`;
+          } else {
+            // --- COLOR-AWARE ABSTRACT FLAT TILE PROMPT ---
+            specificPrompt = `macro close-up abstract procedural noise texture pattern in shades of ${objConfig.color || 'vibrant blue and white'}, fine-grain mineral rock and fluid chemical swirls, uniform flat 2D repeating surface material tile, completely flat orthographic view, edge-to-edge pattern distribution, absolutely zero curved horizons, zero oval shapes, zero globes, zero black borders, zero space background`;
+          }
 
           try {
-            const requestDelay = 600 + (index * 800);
-            await new Promise(resolve => setTimeout(resolve, requestDelay));
-
+            await new Promise(resolve => setTimeout(resolve, 1200)); // Stagger delay prevents 504 gateway timeouts
             loadedTexture = await loadCustomAITextureWithThrottle(specificPrompt, 3, 6000);
             if (loadedTexture) {
               loadedTexture.colorSpace = THREE.SRGBColorSpace;
@@ -1065,7 +1063,7 @@ async function applyWorldConfig(config, hudStatusEl) {
       if (!isFlatRing) derivedSpinSpeed = derivedOrbitalSpeed * 2.5; 
     }
 
-    return {
+    resolvedAnims.push({
       mesh: mesh,
       type: isFlatRing ? 'orbit' : (objConfig.animationType || 'spin'),
       speed: derivedSpinSpeed,
@@ -1073,10 +1071,9 @@ async function applyWorldConfig(config, hudStatusEl) {
       distance: objConfig.distance || 0,
       phaseOffset: Math.random() * Math.PI * 2,
       isRing: isFlatRing
-    };
-  });
+    });
+  }
 
-  const resolvedAnims = await Promise.all(assetPromises);
   activeAnimatedMeshes.push(...resolvedAnims);
 
   if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: SECURED_TARGET';
