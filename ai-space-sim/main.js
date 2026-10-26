@@ -769,7 +769,7 @@ async function loadCustomAITextureWithThrottle(promptText, maxRetries = 3, initi
         body: JSON.stringify({
           prompt: promptText,
           // Highly aggressive negative prompt to block 3D object rendering & framing
-          negative_prompt: "3d sphere, globe, framed picture, black borders, white borders, centered planet, planet in space, outer space, stars, studio lighting, heavy shadows, vignette, 3d rendering, perspective, egg shape, circular object on black background"
+          negative_prompt: "3d sphere, globe, framed picture, black borders, white borders, centered planet, planet in space, outer space, stars, studio lighting, heavy shadows, vignette, 3d rendering, perspective, egg shape, circular object on black background",
           width: 1024,
           height: 512
         })
