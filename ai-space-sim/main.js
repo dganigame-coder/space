@@ -182,11 +182,11 @@ function initThreeJS() {
   systemGroup = new THREE.Group();
   scene.add(systemGroup);
 
-  const dirLight = new THREE.DirectionalLight(0xffffff, 3.0);
+  const dirLight = new THREE.DirectionalLight(0xffffff, 3.2);
   dirLight.position.set(25, 18, 22);
   scene.add(dirLight);
 
-  const ambientLight = new THREE.AmbientLight(0x283550, 0.8);
+  const ambientLight = new THREE.AmbientLight(0x384868, 0.9);
   scene.add(ambientLight);
 
   createEnhancedStarfield();
@@ -202,10 +202,8 @@ function initThreeJS() {
 function createInitialPlanet() {
   const geo = new THREE.SphereGeometry(2.0, 64, 48);
   const planetMaterial = new THREE.MeshStandardMaterial({ 
-    color: 0xffffff,
-    emissive: new THREE.Color(0x197da8),
-    emissiveIntensity: 0.35,
-    roughness: 0.55, 
+    color: 0x197da8, 
+    roughness: 0.45, 
     metalness: 0.05
   });
   const planet = new THREE.Mesh(geo, planetMaterial);
@@ -873,7 +871,7 @@ function generateFallbackWorld(input) {
   };
 }
 
-// --- ASYNC SEQUENTIAL MATERIALIZATION PIPELINE (EMISSIVE GLOW & PURE WHITE MAP BASE) ---
+// --- ASYNC SEQUENTIAL MATERIALIZATION PIPELINE (HIGH-FIDELITY PBR TEXTURE MAPPING) ---
 async function applyWorldConfig(config, hudStatusEl) {
   while (systemGroup.children.length > 0) {
     const obj = systemGroup.children[0];
@@ -1028,16 +1026,14 @@ async function applyWorldConfig(config, hudStatusEl) {
           }
         }
 
-        // --- USES PURE WHITE BASE FOR TEXTURE WITH GEMINI'S COLOR AS A SUBTLE EMISSIVE GLOW ---
+        // --- ROBUST PBR MATERIAL: USES TEXTURE MAP DIRECTLY WITH SCIENTIFIC FALLBACK COLOR ---
         finalMaterial = new THREE.MeshStandardMaterial({
-          color: 0xffffff,
-          emissive: new THREE.Color(objConfig.color || 0x38bdf8),
-          emissiveIntensity: 0.35,
-          roughness: objConfig.roughness || 0.4,
-          metalness: objConfig.metalness || 0.1,
+          color: loadedTexture ? 0xffffff : new THREE.Color(objConfig.color || 0x38bdf8),
+          roughness: objConfig.roughness || 0.45,
+          metalness: objConfig.metalness || 0.08,
           map: loadedTexture || null,
           side: THREE.DoubleSide,
-          transparent: isFlatRing || (!loadedTexture ? true : false)
+          transparent: isFlatRing || (!loadedTexture && isFlatRing)
         });
       }
 
