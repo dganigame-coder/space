@@ -182,11 +182,11 @@ function initThreeJS() {
   systemGroup = new THREE.Group();
   scene.add(systemGroup);
 
-  const dirLight = new THREE.DirectionalLight(0xffffff, 2.8);
+  const dirLight = new THREE.DirectionalLight(0xffffff, 3.0);
   dirLight.position.set(25, 18, 22);
   scene.add(dirLight);
 
-  const ambientLight = new THREE.AmbientLight(0x182035, 0.6);
+  const ambientLight = new THREE.AmbientLight(0x283550, 0.8);
   scene.add(ambientLight);
 
   createEnhancedStarfield();
@@ -202,7 +202,9 @@ function initThreeJS() {
 function createInitialPlanet() {
   const geo = new THREE.SphereGeometry(2.0, 64, 48);
   const planetMaterial = new THREE.MeshStandardMaterial({ 
-    color: 0x197da8, 
+    color: 0xffffff,
+    emissive: new THREE.Color(0x197da8),
+    emissiveIntensity: 0.35,
     roughness: 0.55, 
     metalness: 0.05
   });
@@ -740,7 +742,7 @@ Return ONLY valid raw JSON matching this structure:
       "rotation": [0, 0, 0],
       "distance": 12.0,
       "orbitalSpeed": 0.02,
-      "color": "#c1440e",
+      "color": "#197da8",
       "colorDescription": "vibrant natural language color palette description in English",
       "emissive": false,
       "emissiveColor": "#ffaa00",
@@ -871,7 +873,7 @@ function generateFallbackWorld(input) {
   };
 }
 
-// --- ASYNC SEQUENTIAL MATERIALIZATION PIPELINE (DYNAMIC COLOR MULTIPLIER & SATURATED TILE PROMPTS) ---
+// --- ASYNC SEQUENTIAL MATERIALIZATION PIPELINE (EMISSIVE GLOW & PURE WHITE MAP BASE) ---
 async function applyWorldConfig(config, hudStatusEl) {
   while (systemGroup.children.length > 0) {
     const obj = systemGroup.children[0];
@@ -1026,13 +1028,13 @@ async function applyWorldConfig(config, hudStatusEl) {
           }
         }
 
-        // --- USES GEMINI'S SCIENTIFIC HEX COLOR AS A TINT MULTIPLIER ON TOP OF THE TEXTURE ---
+        // --- USES PURE WHITE BASE FOR TEXTURE WITH GEMINI'S COLOR AS A SUBTLE EMISSIVE GLOW ---
         finalMaterial = new THREE.MeshStandardMaterial({
-          color: new THREE.Color(objConfig.color || 0x38bdf8),
+          color: 0xffffff,
+          emissive: new THREE.Color(objConfig.color || 0x38bdf8),
+          emissiveIntensity: 0.35,
           roughness: objConfig.roughness || 0.4,
           metalness: objConfig.metalness || 0.1,
-          emissive: objConfig.emissive ? new THREE.Color(objConfig.emissiveColor || 0xffaa00) : 0x000000,
-          emissiveIntensity: objConfig.emissive ? (objConfig.emissiveIntensity || 0.9) : 0,
           map: loadedTexture || null,
           side: THREE.DoubleSide,
           transparent: isFlatRing || (!loadedTexture ? true : false)
