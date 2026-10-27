@@ -719,7 +719,7 @@ STRICT SCIENTIFIC FACTUALITY & GEOMETRIC VARIETY RULES:
 1. STRICT ASTRONOMICAL ACCURACY: Rely strictly on real-world astronomical facts (NASA/IAU databases). NEVER invent fake catalog numbers, fictional sci-fi protocols, or non-existent exoplanet designations for real solar system objects.
 2. REAL-WORLD CLASSIFICATION: Correctly classify target bodies. Pluto is a "Dwarf Planet in the Kuiper Belt", NOT an exoplanet.
 3. MULTI-OBJECT BREAKDOWN & GEOMETRY: For star systems, planetary systems with moons, asteroid belts, or diffuse regions like the Oort Cloud, you MUST generate a comprehensive list of multiple objects in the "objects" array (e.g., scattering multiple individual bodies or fragments across different positions) rather than compressing the entire phenomenon into a single sphere. Choose appropriate geometryType values: "sphere" for large equilibrium bodies, "icosahedron" or "asteroid" for irregular rocky/icy bodies, "ellipsoid" for stretched objects, and "ring" strictly for scientifically verified ringed systems.
-4. NATURAL LANGUAGE COLOR DESCRIPTIONS: You MUST supply both "color" (valid Hex code for WebGL materials) AND "colorDescription" (natural language color palette phrase for texture synthesis, e.g. "deep sapphire blue oceans, turquoise shallow seas, and swirling white cloud bands" for Earth, or "rusty red-orange iron oxide dust and dark basaltic rock" for Mars).
+4. NATURAL LANGUAGE COLOR DESCRIPTIONS: You MUST supply both "color" (valid Hex code for WebGL materials) AND "colorDescription" (natural language color palette phrase for texture synthesis, e.g. "deep sapphire blue oceans, turquoise shallow seas, and swirling white cloud bands" for Earth, or "rich saturated rusty red-orange iron oxide dust and dark basaltic rock" for Mars).
 5. ACCURATE LORE & TELEMETRY: In "sectorTitle" and "lore", provide strictly factual scientific details regarding atmosphere, composition, distance, and known moons.
 6. MULTILINGUAL OUTPUT: Respond with all text telemetry fields ("sectorTitle", "lore", and "speechResponse") written natively in the language specified by locale code "${currentLang}".
 7. ENGLISH TEXTURE PROMPTS: Keep the internal "prompt" and "colorDescription" fields detailed and written in English for texture synthesis.
@@ -740,7 +740,7 @@ Return ONLY valid raw JSON matching this structure:
       "rotation": [0, 0, 0],
       "distance": 12.0,
       "orbitalSpeed": 0.02,
-      "color": "#197da8",
+      "color": "#c1440e",
       "colorDescription": "vibrant natural language color palette description in English",
       "emissive": false,
       "emissiveColor": "#ffaa00",
@@ -770,7 +770,7 @@ async function loadCustomAITextureWithThrottle(promptText, maxRetries = 3, initi
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           prompt: promptText,
-          negative_prompt: "3d sphere, globe, framed picture, black borders, white borders, centered planet, outer space, stars, studio lighting, heavy shadows, vignette, 3d rendering, perspective, egg shape, white background, gray background, glowing border",
+          negative_prompt: "3d sphere, globe, framed picture, black borders, white borders, centered planet, outer space, stars, studio lighting, heavy shadows, vignette, 3d rendering, perspective, egg shape, white background, gray background, glowing border, desaturated, monochrome, grayscale",
           width: 1024,
           height: 512
         })
@@ -871,7 +871,7 @@ function generateFallbackWorld(input) {
   };
 }
 
-// --- ASYNC SEQUENTIAL MATERIALIZATION PIPELINE (DYNAMIC AI COLOR & PITCH-BLACK TILE BACKGROUND) ---
+// --- ASYNC SEQUENTIAL MATERIALIZATION PIPELINE (DYNAMIC COLOR MULTIPLIER & SATURATED TILE PROMPTS) ---
 async function applyWorldConfig(config, hudStatusEl) {
   while (systemGroup.children.length > 0) {
     const obj = systemGroup.children[0];
@@ -998,9 +998,9 @@ async function applyWorldConfig(config, hudStatusEl) {
           } else if (isFlatRing) {
             specificPrompt = `Top-down circular planetary ring texture asset, concentric icy rings, perfectly seamless left-to-right wrapping edges, transparent gaps, flat 2D graphic, top-down view, zero background stars, zero perspective angle`;
           } else {
-            // --- AI-DRIVEN COLOR DESCRIPTION & PITCH-BLACK TILE BACKGROUND ---
+            // --- HIGHLY SATURATED AI-DRIVEN COLOR DESCRIPTION & PITCH-BLACK TILE BACKGROUND ---
             const colorPalette = objConfig.colorDescription || 'vibrant abstract surface mineral bands and fluid chemical tones';
-            specificPrompt = `seamless repeating 2D surface texture tile in shades of ${colorPalette}, fine-grain mineral rock and fluid chemical swirls on a pitch-black background, completely flat orthographic view, edge-to-edge uniform tile pattern distribution, absolutely zero white borders, zero vignettes, zero glowing frames, zero curved horizons, zero globes`;
+            specificPrompt = `seamless repeating 2D surface texture tile heavily saturated in rich bold shades of ${colorPalette}, fine-grain mineral rock and fluid chemical swirls on a pitch-black background, completely flat orthographic view, edge-to-edge uniform tile pattern distribution, absolutely zero white borders, zero vignettes, zero glowing frames, zero curved horizons, zero globes`;
           }
 
           try {
@@ -1026,15 +1026,16 @@ async function applyWorldConfig(config, hudStatusEl) {
           }
         }
 
+        // --- USES GEMINI'S SCIENTIFIC HEX COLOR AS A TINT MULTIPLIER ON TOP OF THE TEXTURE ---
         finalMaterial = new THREE.MeshStandardMaterial({
-          color: loadedTexture ? 0xffffff : new THREE.Color(objConfig.color || 0x38bdf8),
+          color: new THREE.Color(objConfig.color || 0x38bdf8),
           roughness: objConfig.roughness || 0.4,
           metalness: objConfig.metalness || 0.1,
           emissive: objConfig.emissive ? new THREE.Color(objConfig.emissiveColor || 0xffaa00) : 0x000000,
           emissiveIntensity: objConfig.emissive ? (objConfig.emissiveIntensity || 0.9) : 0,
           map: loadedTexture || null,
           side: THREE.DoubleSide,
-          transparent: isFlatRing || (loadedTexture ? false : true)
+          transparent: isFlatRing || (!loadedTexture ? true : false)
         });
       }
 
