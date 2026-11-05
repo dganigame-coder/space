@@ -1171,7 +1171,8 @@ function setupControls() {
 const animationHandlers = {
   spin(anim, dt) {
     if (anim.isRing) return; 
-    anim.mesh.rotation.y += anim.speed * (dt * 60);
+    // Use rotateY() instead of direct rotation.y += to prevent drill/screwdriver wobble on tilted axes
+    anim.mesh.rotateY(anim.speed * (dt * 60));
   },
   tumble(anim, dt) {
     if (anim.isRing) return;
@@ -1192,11 +1193,10 @@ const animationHandlers = {
       anim.mesh.position.z = Math.sin(angle) * anim.distance;
     }
     if (!anim.isRing) {
-      anim.mesh.rotation.y += anim.speed * (dt * 60);
+      anim.mesh.rotateY(anim.speed * (dt * 60));
     }
   }
 };
-
 // --- ANIMATION LOOP ---
 function animate(time) {
   requestAnimationFrame(animate);
