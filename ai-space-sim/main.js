@@ -10,8 +10,6 @@ let dynamicModelQueue = ['gemini-2.5-flash']; // Safe default fallback until dis
 let systemGroup;
 let controls;
 let activeAnimatedMeshes = [];
-let elapsedSeconds = 0;
-let lastFrameTime = 0;
 let textureLoader = new THREE.TextureLoader();
 
 // Control & Request Globals
@@ -32,7 +30,7 @@ async function init() {
   setupLanguageListener();
   initThreeJS();
   setupControls();
-  animate(0);
+  animate();
 
   if (geminiKey) {
     await discoverGeminiModels();
@@ -215,7 +213,7 @@ function createInitialPlanet() {
   activeAnimatedMeshes.push({
     mesh: planet,
     type: 'spin',
-    speed: 0.05,
+    speed: 0.15,
     distance: 0
   });
 }
@@ -865,7 +863,7 @@ function generateFallbackWorld(input) {
       metalness: 0.1,
       prompt: `flat equirectangular surface texture map of ${sanitized}, continuous uninterrupted panoramic landscape, wide-angle surface view, seamless horizontal wrapping edges, edge-to-edge organic distribution, absolute zero grid lines, zero square panels, zero tile dividers, zero borders, zero vignettes, zero globes`,
       animationType: 'spin',
-      animationSpeed: 0.05
+      animationSpeed: 0.15
     }],
     audioParams: { baseFreq: 50.0 + (Math.abs(hash) % 45), filterCutoff: 420.0, lfoRate: 1.2 }
   };
@@ -1058,8 +1056,8 @@ async function applyWorldConfig(config, hudStatusEl) {
       mesh.material = finalMaterial;
     }
 
-    let derivedOrbitalSpeed = objConfig.orbitalSpeed || objConfig.animationSpeed || 0.05;
-    let derivedSpinSpeed = isFlatRing ? 0 : (objConfig.animationSpeed || 0.05);
+    let derivedOrbitalSpeed = objConfig.orbitalSpeed || objConfig.animationSpeed || 0.15;
+    let derivedSpinSpeed = isFlatRing ? 0 : (objConfig.animationSpeed || 0.15);
 
     if (objConfig.distance && objConfig.distance > 0) {
       derivedOrbitalSpeed = 0.15 / Math.sqrt(objConfig.distance);
@@ -1167,22 +1165,23 @@ function setupControls() {
   }
 }
 
-// --- ANIMATION HANDLERS ---
+// --- ANIMATION HANDLERS (Fixed with safe clamped dt and rotateY) ---
 const animationHandlers = {
   spin(anim, dt) {
     if (anim.isRing) return; 
-    // Use rotateY() instead of direct rotation.y += to prevent drill/screwdriver wobble on tilted axes
-    anim.mesh.rotateY(anim.speed * (dt * 60));
+    const safeDt = Math.min(dt, 0.033);
+    anim.mesh.rotateY(anim.speed * safeDt);
   },
   tumble(anim, dt) {
     if (anim.isRing) return;
-    anim.mesh.rotation.x += anim.speed * 0.7 * (dt * 60);
-    anim.mesh.rotation.y += anim.speed * (dt * 60);
-    anim.mesh.rotation.z += anim.speed * 0.4 * (dt * 60);
+    const safeDt = Math.min(dt, 0.033);
+    anim.mesh.rotateX(anim.speed * 0.4 * safeDt);
+    anim.mesh.rotateY(anim.speed * safeDt);
+    anim.mesh.rotateZ(anim.speed * 0.2 * safeDt);
   },
   pulse(anim, time) {
     if (anim.isRing) return;
-    const scale = 1.0 + Math.sin(time * 3.0 * anim.speed) * 0.04;
+    const scale = 1.0 + Math.sin(time * 2.0 * anim.speed) * 0.03;
     anim.mesh.scale.set(scale, scale, scale);
   },
   orbit(anim, time, dt) {
@@ -1193,28 +1192,32 @@ const animationHandlers = {
       anim.mesh.position.z = Math.sin(angle) * anim.distance;
     }
     if (!anim.isRing) {
-      anim.mesh.rotateY(anim.speed * (dt * 60));
+      const safeDt = Math.min(dt, 0.033);
+      anim.mesh.rotateY(anim.speed * safeDt);
     }
   }
 };
-// --- ANIMATION LOOP ---
-function animate(time) {
+
+// --- STABILIZED ANIMATION LOOP USING THREE.CLOCK ---
+const clock = new THREE.Clock();
+
+function animate() {
   requestAnimationFrame(animate);
-  const t = time * 0.001;
-  const dt = lastFrameTime ? Math.min(Math.max((t - lastFrameTime), 0), 0.05) : 0;
-  lastFrameTime = t;
+  
+  const dt = clock.getDelta();
+  const t = clock.getElapsedTime();
 
   if (starMaterial?.uniforms?.uTime) {
     starMaterial.uniforms.uTime.value = t;
   }
   if (starField && camera) {
     starField.position.copy(camera.position);
-    starField.rotation.y = t * 0.001;
+    starField.rotation.y = t * 0.0005;
   }
 
   activeAnimatedMeshes.forEach((anim) => {
     if (anim.mesh && anim.mesh.parent) {
-      if (anim.mesh.material && anim.mesh.material.uniforms && anim.mesh.material.uniforms.uTime) {
+      if (anim.mesh.material?.uniforms?.uTime) {
         anim.mesh.material.uniforms.uTime.value = t;
       }
       anim.mesh.traverse(child => {
@@ -1223,7 +1226,7 @@ function animate(time) {
         }
       });
       const handler = animationHandlers[anim.type] || animationHandlers.spin;
-      handler(anim, t, dt || t);
+      handler(anim, t, dt);
     }
   });
 
