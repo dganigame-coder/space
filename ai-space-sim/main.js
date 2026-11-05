@@ -863,7 +863,7 @@ function generateFallbackWorld(input) {
       emissive: false,
       roughness: 0.4,
       metalness: 0.1,
-      prompt: `high-detail procedural surface texture map of ${sanitized}`,
+      prompt: `flat equirectangular surface texture map of ${sanitized}, continuous uninterrupted panoramic landscape, wide-angle surface view, seamless horizontal wrapping edges, edge-to-edge organic distribution, absolute zero grid lines, zero square panels, zero tile dividers, zero borders, zero vignettes, zero globes`,
       animationType: 'spin',
       animationSpeed: 0.05
     }],
@@ -998,9 +998,9 @@ async function applyWorldConfig(config, hudStatusEl) {
           } else if (isFlatRing) {
             specificPrompt = `Top-down circular planetary ring texture asset, concentric icy rings, perfectly seamless left-to-right wrapping edges, transparent gaps, flat 2D graphic, top-down view, zero background stars, zero perspective angle`;
           } else {
-            // --- HIGHLY SATURATED AI-DRIVEN COLOR DESCRIPTION & PITCH-BLACK TILE BACKGROUND ---
-            const colorPalette = objConfig.colorDescription || 'vibrant abstract surface mineral bands and fluid chemical tones';
-            specificPrompt = `seamless repeating 2D surface texture tile heavily saturated in rich bold shades of ${colorPalette}, fine-grain mineral rock and fluid chemical swirls on a pitch-black background, completely flat orthographic view, edge-to-edge uniform tile pattern distribution, absolutely zero white borders, zero vignettes, zero glowing frames, zero curved horizons, zero globes`;
+            // --- GRID-FREE UNIFIED EQUIRECTANGULAR SURFACE MAP ---
+            const colorPalette = objConfig.colorDescription || objConfig.prompt || 'vibrant abstract surface mineral bands and fluid chemical tones';
+            specificPrompt = `flat equirectangular surface texture map of ${colorPalette}, continuous uninterrupted panoramic landscape, wide-angle surface view, seamless horizontal wrapping edges, edge-to-edge organic distribution, absolute zero grid lines, zero square panels, zero tile dividers, zero borders, zero vignettes, zero globes`;
           }
 
           try {
