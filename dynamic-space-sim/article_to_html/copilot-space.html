@@ -1,86 +1,283 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your Website Title</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nāpōwawāʻenakaulua Quasar Pair</title>
 
-    <!-- Basic styling (optional) -->
-    <style>
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            background: #f5f5f5;
-            color: #333;
-        }
-        header {
-            background: #2c3e50;
-            color: white;
-            padding: 1rem;
-        }
-        nav a {
-            color: white;
-            margin-right: 1rem;
-            text-decoration: none;
-        }
-        main {
-            padding: 2rem;
-        }
-        footer {
-            background: #2c3e50;
-            color: white;
-            text-align: center;
-            padding: 1rem;
-            margin-top: 2rem;
-        }
-    </style>
+<style>
+    body {
+        margin: 0;
+        overflow: hidden;
+        background: #000;
+    }
+
+    #info {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        color: white;
+        font-family: Arial, sans-serif;
+        background: rgba(0,0,0,0.6);
+        padding: 10px;
+        border-radius: 8px;
+        z-index: 10;
+    }
+</style>
 </head>
-
 <body>
 
-    <!-- Header -->
-    <header>
-        <h1>Welcome to My Website</h1>
-        <nav>
-            <a href="#home">Home</a>
-            <a href="#about">About</a>
-            <a href="#contact">Contact</a>
-        </nav>
-    </header>
+<div id="info">
+    <h3>Nāpōwawāʻenakaulua</h3>
+    <p>Oldest compact quasar pair</p>
+    <p>900 million years after Big Bang</p>
+</div>
 
-    <!-- Main Content -->
-    <main>
-        <section id="home">
-            <h2>Home</h2>
-            <p>This is the home section of your website. Replace this text with your own content.</p>
-        </section>
+<script type="module">
 
-        <section id="about">
-            <h2>About</h2>
-            <p>Write something about yourself or your project here.</p>
-        </section>
+import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
 
-        <section id="contact">
-            <h2>Contact</h2>
-            <form>
-                <label for="name">Name:</label><br>
-                <input type="text" id="name" name="name"><br><br>
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x000010);
 
-                <label for="email">Email:</label><br>
-                <input type="email" id="email" name="email"><br><br>
+const camera = new THREE.PerspectiveCamera(
+    60,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    2000
+);
 
-                <label for="message">Message:</label><br>
-                <textarea id="message" name="message" rows="5"></textarea><br><br>
+camera.position.set(0, 15, 45);
 
-                <button type="submit">Send</button>
-            </form>
-        </section>
-    </main>
+const renderer = new THREE.WebGLRenderer({
+    antialias: true
+});
 
-    <!-- Footer -->
-    <footer>
-        <p>&copy; 2026 Your Name. All rights reserved.</p>
-    </footer>
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+//
+// LIGHTING
+//
+
+const ambient = new THREE.AmbientLight(0xffffff, 0.2);
+scene.add(ambient);
+
+//
+// STARS
+//
+
+const starGeometry = new THREE.BufferGeometry();
+const starCount = 5000;
+
+const starVertices = [];
+
+for(let i=0;i<starCount;i++){
+    starVertices.push(
+        (Math.random()-0.5)*1000,
+        (Math.random()-0.5)*1000,
+        (Math.random()-0.5)*1000
+    );
+}
+
+starGeometry.setAttribute(
+    'position',
+    new THREE.Float32BufferAttribute(starVertices,3)
+);
+
+const starMaterial = new THREE.PointsMaterial({
+    color: 0xffffff,
+    size: 1
+});
+
+const stars = new THREE.Points(
+    starGeometry,
+    starMaterial
+);
+
+scene.add(stars);
+
+//
+// QUASAR FACTORY
+//
+
+function createQuasar(config){
+
+    const group = new THREE.Group();
+
+    // Black Hole
+
+    const hole = new THREE.Mesh(
+        new THREE.SphereGeometry(config.holeRadius,64,64),
+        new THREE.MeshStandardMaterial({
+            color: 0x000000
+        })
+    );
+
+    group.add(hole);
+
+    // Accretion Disk
+
+    const disk = new THREE.Mesh(
+        new THREE.TorusGeometry(
+            config.diskRadius,
+            config.diskTube,
+            32,
+            128
+        ),
+        new THREE.MeshStandardMaterial({
+            color: config.diskColor,
+            emissive: config.diskColor,
+            emissiveIntensity: 2
+        })
+    );
+
+    disk.rotation.x = Math.PI * 0.6;
+    group.add(disk);
+
+    // Halo
+
+    const halo = new THREE.Mesh(
+        new THREE.SphereGeometry(
+            config.haloRadius,
+            64,
+            64
+        ),
+        new THREE.MeshBasicMaterial({
+            color: config.diskColor,
+            transparent: true,
+            opacity: 0.08
+        })
+    );
+
+    group.add(halo);
+
+    // Glow Light
+
+    const light = new THREE.PointLight(
+        config.diskColor,
+        config.lightIntensity,
+        100
+    );
+
+    group.add(light);
+
+    group.position.set(
+        config.x,
+        config.y,
+        config.z
+    );
+
+    scene.add(group);
+
+    return { group, disk };
+}
+
+//
+// QUASAR A
+//
+
+const quasarA = createQuasar({
+    x: -12,
+    y: 0,
+    z: 0,
+    holeRadius: 0.8,
+    diskRadius: 2.5,
+    diskTube: 0.35,
+    haloRadius: 6,
+    diskColor: 0xffbb55,
+    lightIntensity: 20
+});
+
+//
+// QUASAR B
+//
+
+const quasarB = createQuasar({
+    x: 12,
+    y: 0,
+    z: 0,
+    holeRadius: 0.6,
+    diskRadius: 1.8,
+    diskTube: 0.28,
+    haloRadius: 4.5,
+    diskColor: 0x66aaff,
+    lightIntensity: 12
+});
+
+//
+// INTERACTION STREAM
+//
+
+const path = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(-12,0,0),
+    new THREE.Vector3(-5,3,0),
+    new THREE.Vector3(0,0,0),
+    new THREE.Vector3(5,-3,0),
+    new THREE.Vector3(12,0,0)
+]);
+
+const tube = new THREE.Mesh(
+    new THREE.TubeGeometry(path,100,0.1,8,false),
+    new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        transparent:true,
+        opacity:0.4
+    })
+);
+
+scene.add(tube);
+
+//
+// ORBIT ANIMATION
+//
+
+let t = 0;
+
+function animate(){
+
+    requestAnimationFrame(animate);
+
+    t += 0.005;
+
+    quasarA.disk.rotation.z += 0.01;
+    quasarB.disk.rotation.z -= 0.02;
+
+    quasarA.group.position.z =
+        Math.sin(t) * 1.5;
+
+    quasarB.group.position.z =
+        -Math.sin(t) * 1.5;
+
+    stars.rotation.y += 0.0002;
+
+    renderer.render(
+        scene,
+        camera
+    );
+}
+
+animate();
+
+//
+// RESIZE
+//
+
+window.addEventListener('resize',()=>{
+
+    camera.aspect =
+        window.innerWidth /
+        window.innerHeight;
+
+    camera.updateProjectionMatrix();
+
+    renderer.setSize(
+        window.innerWidth,
+        window.innerHeight
+    );
+});
+
+</script>
 
 </body>
 </html>
