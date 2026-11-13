@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>High-Energy Astrophysics Observatory — X-Ray &amp; Gamma-Ray Bursts</title>
+    <title>High-Energy Astrophysics Observatory — Hypernova GRB &amp; X-Ray Bursts</title>
     <!-- Tailwind CSS for responsive sci-fi HUD -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts: Space Grotesk & JetBrains Mono -->
@@ -16,7 +16,7 @@
         body {
             margin: 0;
             overflow: hidden;
-            background-color: #02040a;
+            background-color: #03050a;
             font-family: 'Space Grotesk', sans-serif;
             color: #e2e8f0;
             user-select: none;
@@ -33,78 +33,84 @@
             inset: 0;
             pointer-events: none;
             z-index: 5;
-            background: radial-gradient(circle at center, rgba(186, 230, 253, 0.35) 0%, rgba(56, 189, 248, 0.08) 55%, rgba(2, 4, 10, 0) 100%);
+            background: radial-gradient(circle at center, rgba(255, 255, 255, 0.55) 0%, rgba(232, 121, 249, 0.25) 42%, rgba(3, 5, 10, 0) 100%);
             opacity: 0;
-            transition: opacity 0.08s ease-out;
+            transition: opacity 0.06s ease-out;
         }
         .font-mono-tech {
             font-family: 'JetBrains Mono', monospace;
         }
         .glass-panel {
-            background: rgba(6, 11, 25, 0.78);
+            background: rgba(6, 10, 22, 0.78);
             backdrop-filter: blur(14px);
             -webkit-backdrop-filter: blur(14px);
-            border: 1px solid rgba(56, 189, 248, 0.25);
-            box-shadow: 0 10px 35px rgba(0, 0, 0, 0.78), inset 0 0 18px rgba(56, 189, 248, 0.06);
+            border: 1px solid rgba(148, 163, 184, 0.22);
+            box-shadow: 0 10px 35px rgba(0, 0, 0, 0.8), inset 0 0 20px rgba(56, 189, 248, 0.05);
         }
         .mode-tab {
             transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
             border: 1px solid transparent;
         }
         .mode-tab:hover {
-            background: rgba(56, 189, 248, 0.14);
+            background: rgba(255, 255, 255, 0.08);
         }
         .mode-tab.active-xrb {
-            background: linear-gradient(135deg, rgba(14, 165, 233, 0.35), rgba(37, 99, 235, 0.35));
+            background: linear-gradient(135deg, rgba(14, 165, 233, 0.38), rgba(37, 99, 235, 0.38));
             border-color: #38bdf8;
             color: #ffffff;
-            box-shadow: 0 0 18px rgba(56, 189, 248, 0.35);
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.4);
         }
         .mode-tab.active-grb {
-            background: linear-gradient(135deg, rgba(168, 85, 247, 0.38), rgba(236, 72, 153, 0.35));
-            border-color: #c084fc;
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.42), rgba(244, 63, 94, 0.38));
+            border-color: #e879f9;
             color: #ffffff;
-            box-shadow: 0 0 18px rgba(192, 132, 252, 0.4);
+            box-shadow: 0 0 22px rgba(232, 121, 249, 0.45);
         }
         .btn-ui {
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            border: 1px solid rgba(56, 189, 248, 0.3);
+            border: 1px solid rgba(148, 163, 184, 0.28);
         }
         .btn-ui:hover {
-            background: rgba(56, 189, 248, 0.2);
-            border-color: rgba(56, 189, 248, 0.85);
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.6);
             transform: translateY(-1px);
         }
-        .btn-ui.active {
+        .btn-ui.active-cam-xrb {
             background: linear-gradient(135deg, rgba(14, 165, 233, 0.45), rgba(99, 102, 241, 0.45));
             border-color: #38bdf8;
             color: #ffffff;
             box-shadow: 0 0 16px rgba(56, 189, 248, 0.4);
         }
+        .btn-ui.active-cam-grb {
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.48), rgba(236, 72, 153, 0.42));
+            border-color: #e879f9;
+            color: #ffffff;
+            box-shadow: 0 0 16px rgba(232, 121, 249, 0.45);
+        }
         .btn-burst-xrb {
             background: linear-gradient(135deg, #0284c7, #2563eb);
             border: 1px solid #7dd3fc;
-            box-shadow: 0 0 20px rgba(14, 165, 233, 0.45);
+            box-shadow: 0 0 22px rgba(14, 165, 233, 0.5);
             transition: all 0.18s ease;
         }
         .btn-burst-xrb:hover {
             background: linear-gradient(135deg, #0ea5e9, #3b82f6);
-            box-shadow: 0 0 28px rgba(56, 189, 248, 0.75);
+            box-shadow: 0 0 30px rgba(56, 189, 248, 0.8);
             transform: translateY(-1px) scale(1.01);
         }
         .btn-burst-grb {
-            background: linear-gradient(135deg, #9333ea, #db2777);
-            border: 1px solid #f0abfc;
-            box-shadow: 0 0 22px rgba(192, 132, 252, 0.5);
+            background: linear-gradient(135deg, #9333ea, #e11d48);
+            border: 1px solid #f5d0fe;
+            box-shadow: 0 0 24px rgba(217, 70, 239, 0.55);
             transition: all 0.18s ease;
         }
         .btn-burst-grb:hover {
-            background: linear-gradient(135deg, #a855f7, #ec4899);
-            box-shadow: 0 0 30px rgba(232, 121, 249, 0.8);
+            background: linear-gradient(135deg, #a855f7, #f43f5e);
+            box-shadow: 0 0 34px rgba(244, 63, 94, 0.85);
             transform: translateY(-1px) scale(1.01);
         }
         .btn-burst-xrb:active, .btn-burst-grb:active {
-            transform: scale(0.98);
+            transform: scale(0.97);
         }
     </style>
 </head>
@@ -115,66 +121,99 @@
     <!-- High-Energy Radiation Flash Screen Bloom Overlay -->
     <div id="flash-overlay"></div>
 
-    <!-- Top Header, Mode Switcher & Live Light Curve -->
-    <header class="fixed top-0 left-0 right-0 z-10 p-3 sm:p-4 pointer-events-none flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3">
-        <!-- Title & Mode Switcher -->
-        <div class="glass-panel rounded-2xl p-3 pointer-events-auto max-w-xl w-full lg:w-auto">
-            <!-- Phenomenon Mode Switcher -->
-            <div class="grid grid-cols-2 gap-1.5 bg-slate-950/80 p-1 rounded-xl border border-slate-800 mb-2.5">
-                <button id="tab-xrb" class="mode-tab active-xrb rounded-lg py-1.5 px-3 text-xs font-bold tracking-wide flex items-center justify-center gap-1.5 cursor-pointer">
-                    <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
-                    Type I X-Ray Burst
-                </button>
-                <button id="tab-grb" class="mode-tab rounded-lg py-1.5 px-3 text-xs font-bold tracking-wide text-slate-300 flex items-center justify-center gap-1.5 cursor-pointer">
-                    <span class="w-2 h-2 rounded-full bg-fuchsia-400"></span>
-                    Gamma-Ray Burst (GRB)
-                </button>
-            </div>
+    <!-- Top Center Navigation & Mode Switcher -->
+    <nav class="fixed top-3 left-1/2 -translate-x-1/2 z-20 pointer-events-auto w-[calc(100vw-1.5rem)] max-w-xl">
+        <div class="glass-panel rounded-2xl p-1.5 grid grid-cols-2 gap-1.5">
+            <button id="tab-xrb" class="mode-tab rounded-xl py-2 px-3 text-xs sm:text-sm font-bold tracking-wide text-slate-300 flex items-center justify-center gap-2 cursor-pointer">
+                <span class="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
+                <span>Type I X-Ray Burst (LMXB)</span>
+            </button>
+            <button id="tab-grb" class="mode-tab active-grb rounded-xl py-2 px-3 text-xs sm:text-sm font-bold tracking-wide flex items-center justify-center gap-2 cursor-pointer">
+                <span class="w-2.5 h-2.5 rounded-full bg-fuchsia-400 animate-pulse"></span>
+                <span>Gamma-Ray Burst (Hypernova + Jet)</span>
+            </button>
+        </div>
+    </nav>
 
-            <div class="flex items-center gap-2 mb-0.5">
-                <span id="phase-dot" class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
-                <span id="phase-label" class="font-mono-tech text-[11px] uppercase tracking-widest text-amber-300">Phase: Fuel Accumulation</span>
+    <!-- Top Left Live Telemetry & Status Header -->
+    <header class="fixed top-20 sm:top-20 left-3 sm:left-4 z-10 pointer-events-none max-w-md w-[calc(100vw-1.5rem)]">
+        <div class="glass-panel rounded-2xl p-3.5 pointer-events-auto">
+            <div class="flex items-center gap-2 mb-1">
+                <span id="phase-dot" class="w-2.5 h-2.5 rounded-full bg-fuchsia-400 animate-ping"></span>
+                <span id="phase-label" class="font-mono-tech text-[11px] uppercase tracking-widest text-fuchsia-300 font-semibold">Phase: Hypernova &amp; Jet Breakout</span>
             </div>
             <h1 id="header-title" class="text-base sm:text-lg font-bold tracking-tight text-white">
-                Type I X-Ray Burst <span class="text-cyan-400 font-normal text-xs sm:text-sm">/ Low-Mass X-Ray Binary</span>
+                Hypernova Collapsar &amp; Relativistic GRB
             </h1>
-            <p id="header-desc" class="text-xs text-slate-300 mt-0.5">
-                Thermonuclear runaway ignition of accreted H/He fuel on a 1.4 M☉ neutron star.
+            <p id="header-desc" class="text-xs text-slate-300 mt-0.5 leading-relaxed">
+                Massive Wolf-Rayet core collapse launching twisted Poynting-flux magnetic flares, relativistic bipolar jets, and a Ni-56 hypernova blast.
             </p>
-        </div>
 
-        <!-- Real-Time High-Energy Light Curve HUD -->
-        <div class="glass-panel rounded-2xl p-3 pointer-events-auto w-full sm:w-96">
-            <div class="flex justify-between items-center mb-1.5">
-                <span id="lc-band-label" class="font-mono-tech text-[10px] uppercase tracking-wider text-cyan-300">X-Ray Light Curve (2–20 keV)</span>
-                <span id="flux-readout" class="font-mono-tech text-xs font-bold text-white">1.2 × 10³⁶ erg/s</span>
-            </div>
-            <canvas id="lightcurve-canvas" class="w-full h-20 rounded-lg bg-slate-950/90 border border-slate-800 block"></canvas>
-            <div class="flex justify-between items-center mt-1.5 text-[10px] font-mono-tech text-slate-400">
-                <span id="lc-profile-label">Profile: Fast-Rise Exponential-Decay</span>
-                <span id="metric-readout" class="text-amber-300">kT ≈ 1.10 keV</span>
+            <!-- Live Multi-Metric Telemetry Grid -->
+            <div class="grid grid-cols-3 gap-2 mt-3 pt-2.5 border-t border-slate-800/90 text-[11px] font-mono-tech">
+                <div>
+                    <div class="text-slate-400 text-[9px] uppercase">L_iso Luminosity</div>
+                    <div id="flux-readout" class="text-white font-bold mt-0.5">4.8 × 10⁵² erg/s</div>
+                </div>
+                <div>
+                    <div id="metric2-label" class="text-slate-400 text-[9px] uppercase">Peak Energy E_pk</div>
+                    <div id="metric2-val" class="text-amber-300 font-bold mt-0.5">640 keV</div>
+                </div>
+                <div>
+                    <div id="metric3-label" class="text-slate-400 text-[9px] uppercase">B-Field / Lorentz</div>
+                    <div id="metric3-val" class="text-fuchsia-300 font-bold mt-0.5">10¹⁵ G • Γ=350</div>
+                </div>
             </div>
         </div>
     </header>
 
-    <!-- Bottom Left Control Deck (Adapts dynamically between XRB and GRB modes) -->
+    <!-- Bottom Left Control Deck (Adapts dynamically between GRB and XRB modes) -->
     <aside class="fixed bottom-16 sm:bottom-20 left-3 sm:left-4 z-10 w-[calc(100vw-1.5rem)] sm:w-80 glass-panel rounded-2xl p-3.5 pointer-events-auto space-y-3">
         <!-- Manual Trigger Button -->
-        <button id="trigger-burst-btn" class="btn-burst-xrb w-full py-2.5 px-4 rounded-xl font-bold text-xs sm:text-sm text-white tracking-wide flex items-center justify-center gap-2 cursor-pointer">
+        <button id="trigger-burst-btn" class="btn-burst-grb w-full py-2.5 px-4 rounded-xl font-bold text-xs sm:text-sm text-white tracking-wide flex items-center justify-center gap-2 cursor-pointer">
             <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
             </svg>
-            <span id="trigger-btn-text">TRIGGER X-RAY BURST</span>
+            <span id="trigger-btn-text">TRIGGER GRB &amp; HYPERNOVA</span>
         </button>
 
+        <!-- GRB-Specific Controls -->
+        <div id="grb-controls" class="space-y-2.5">
+            <div>
+                <div class="flex justify-between text-[11px] font-mono-tech mb-1">
+                    <span class="text-slate-400">MAGNETIC TENSION &amp; CORE COLLAPSE</span>
+                    <span id="grb-charge-percent" class="text-fuchsia-300 font-semibold">100%</span>
+                </div>
+                <div class="w-full h-2 bg-slate-900 rounded-full overflow-hidden border border-slate-700/80">
+                    <div id="grb-charge-bar" class="h-full bg-gradient-to-r from-purple-600 via-fuchsia-500 to-rose-400 transition-all duration-75" style="width: 100%;"></div>
+                </div>
+            </div>
+
+            <div class="pt-1 border-t border-slate-800">
+                <div class="flex justify-between items-center text-[11px] font-mono-tech mb-1">
+                    <label for="lorentz-slider" class="text-slate-400">LORENTZ FACTOR (Γ)</label>
+                    <span id="lorentz-val" class="text-fuchsia-300 font-semibold">Γ = 350</span>
+                </div>
+                <input id="lorentz-slider" type="range" min="50" max="800" step="10" value="350" class="w-full accent-fuchsia-400 cursor-pointer">
+            </div>
+
+            <div class="pt-1 border-t border-slate-800">
+                <div class="flex justify-between items-center text-[11px] font-mono-tech mb-1">
+                    <label for="angle-slider" class="text-slate-400">VIEWING ANGLE (θ_obs)</label>
+                    <span id="angle-val" class="text-rose-300 font-semibold">8° (Near-Axis)</span>
+                </div>
+                <input id="angle-slider" type="range" min="0" max="45" step="1" value="8" class="w-full accent-rose-400 cursor-pointer">
+            </div>
+        </div>
+
         <!-- XRB-Specific Controls -->
-        <div id="xrb-controls" class="space-y-3">
+        <div id="xrb-controls" class="space-y-2.5 hidden">
             <div>
                 <div class="flex justify-between text-[11px] font-mono-tech mb-1">
                     <span class="text-slate-400">H/He FUEL LAYER DEPTH</span>
                     <span id="fuel-percent" class="text-amber-300 font-semibold">25%</span>
                 </div>
-                <div class="w-full h-2.5 bg-slate-900 rounded-full overflow-hidden border border-slate-700/80">
+                <div class="w-full h-2 bg-slate-900 rounded-full overflow-hidden border border-slate-700/80">
                     <div id="fuel-bar" class="h-full bg-gradient-to-r from-amber-500 via-orange-400 to-cyan-300 transition-all duration-75" style="width: 25%;"></div>
                 </div>
             </div>
@@ -188,55 +227,41 @@
             </div>
         </div>
 
-        <!-- GRB-Specific Controls -->
-        <div id="grb-controls" class="space-y-3 hidden">
-            <div>
-                <div class="flex justify-between text-[11px] font-mono-tech mb-1">
-                    <span class="text-slate-400">CORE COLLAPSE / JET POWER</span>
-                    <span id="grb-charge-percent" class="text-fuchsia-300 font-semibold">40%</span>
-                </div>
-                <div class="w-full h-2.5 bg-slate-900 rounded-full overflow-hidden border border-slate-700/80">
-                    <div id="grb-charge-bar" class="h-full bg-gradient-to-r from-purple-600 via-fuchsia-500 to-pink-300 transition-all duration-75" style="width: 40%;"></div>
-                </div>
-            </div>
-
-            <div class="pt-1 border-t border-slate-800">
-                <div class="flex justify-between items-center text-[11px] font-mono-tech mb-1">
-                    <label for="lorentz-slider" class="text-slate-400">LORENTZ FACTOR (Γ)</label>
-                    <span id="lorentz-val" class="text-fuchsia-300 font-semibold">Γ = 250</span>
-                </div>
-                <input id="lorentz-slider" type="range" min="50" max="500" step="10" value="250" class="w-full accent-fuchsia-400 cursor-pointer">
-            </div>
-
-            <div class="pt-1 border-t border-slate-800">
-                <div class="flex justify-between items-center text-[11px] font-mono-tech mb-1">
-                    <label for="angle-slider" class="text-slate-400">VIEWING ANGLE (θ_obs)</label>
-                    <span id="angle-val" class="text-pink-300 font-semibold">15° (Off-Axis)</span>
-                </div>
-                <input id="angle-slider" type="range" min="0" max="60" step="1" value="15" class="w-full accent-pink-400 cursor-pointer">
-            </div>
-        </div>
-
         <!-- Auto-Burst Cycle Toggle -->
         <div class="flex items-center justify-between pt-1.5 border-t border-slate-800">
-            <span class="text-xs text-slate-300 font-medium">Auto-Burst Cycle</span>
-            <button id="auto-toggle-btn" class="px-3 py-1 rounded-lg font-mono-tech text-xs font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-400/50 cursor-pointer">
+            <span class="text-xs text-slate-300 font-medium">Auto-Detonation Cycle</span>
+            <button id="auto-toggle-btn" class="px-3 py-1 rounded-lg font-mono-tech text-xs font-semibold bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-400/50 cursor-pointer">
                 ENABLED
             </button>
         </div>
     </aside>
 
-    <!-- Bottom Camera Presets Bar -->
+    <!-- Bottom Right Real-Time High-Energy Light Curve Panel -->
+    <section class="fixed bottom-16 sm:bottom-20 right-3 sm:right-4 z-10 pointer-events-auto w-[calc(100vw-1.5rem)] sm:w-80 md:w-96 hidden sm:block">
+        <div class="glass-panel rounded-2xl p-3">
+            <div class="flex justify-between items-center mb-1.5">
+                <span id="lc-band-label" class="font-mono-tech text-[10px] uppercase tracking-wider text-fuchsia-300">Gamma-Ray + Hypernova (10 keV–10 MeV)</span>
+                <span id="lc-doppler-badge" class="font-mono-tech text-[10px] font-bold text-rose-300">δ = 0.89</span>
+            </div>
+            <canvas id="lightcurve-canvas" class="w-full h-24 rounded-lg bg-slate-950/90 border border-slate-800 block"></canvas>
+            <div class="flex justify-between items-center mt-1.5 text-[10px] font-mono-tech text-slate-400">
+                <span id="lc-profile-label">Prompt T90 Spikes + Ni-56 Hypernova Hump</span>
+                <span class="text-slate-300">DRAG / SCROLL 3D</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Bottom Center Camera Presets Bar -->
     <footer class="fixed bottom-3 sm:bottom-4 left-3 right-3 z-10 pointer-events-none flex justify-center">
         <div class="glass-panel rounded-2xl p-1.5 pointer-events-auto flex flex-wrap justify-center items-center gap-1.5">
-            <button data-cam="overview" id="cam-btn-overview" class="btn-ui active rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-200 cursor-pointer">
-                System Overview
+            <button data-cam="overview" id="cam-btn-overview" class="btn-ui active-cam-grb rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-200 cursor-pointer">
+                Full Hypernova + Jet
             </button>
             <button data-cam="closeup" id="cam-btn-closeup" class="btn-ui rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-200 cursor-pointer">
-                Neutron Star Close-Up
+                Jet Breakout Core
             </button>
             <button data-cam="polar" id="cam-btn-polar" class="btn-ui rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-200 cursor-pointer">
-                Polar Disk View
+                On-Axis Down the Barrel
             </button>
         </div>
     </footer>
@@ -244,30 +269,40 @@
     <script>
         /**
          * High-Energy Astrophysics Observatory — Unified 3D WebGL Simulator
-         * Combines:
-         *   1. Type I X-Ray Burst (Low-Mass X-Ray Binary: Accreting Neutron Star + Roche-Lobe Donor)
-         *   2. Gamma-Ray Burst (Collapsar Hyper-Accreting Black Hole + Relativistic Bipolar Jets,
-         *      Internal Shock Shells, Stellar Cocoon Breakout, & External Forward Shock Afterglow)
-         * Built with Three.js (r128) — Single-file self-contained implementation.
+         *
+         * Upgraded GRB + Hypernova + Magnetic Reconnection Architecture:
+         * - Central Engine: Hyper-accreting Kerr black hole / millisecond magnetar core,
+         *   gravitational lensing photon ring, ultra-bright turbulent torus, and violent core flash.
+         * - Hypernova Stellar Explosion: Multi-layered asymmetric Wolf-Rayet progenitor blast,
+         *   expanding Ni-56 radioactive shock shells, glowing plasma filaments, fiery debris chunks
+         *   hurled outward in 3D, and a blinding equatorial core shockwave ring.
+         * - Twisted Helical Poynting-Flux Magnetic Field Coils & Reconnection Flares:
+         *   High-tension magnetic flux ropes wrapping around the jet base that wind up, snap,
+         *   and discharge electric-violet/cyan magnetic reconnection arcs & plasma bursts.
+         * - Relativistic Bipolar Jets & Jet Breakout: Ultra-bright collimated beams piercing the
+         *   exploding hypernova shell, triggering a blinding "Jet Breakout" cocoon flash, colliding
+         *   internal shock knots, and external forward bow shocks.
+         * - Dynamic Camera Micro-Shake & Screen Bloom synced to core collapse & jet breakout.
          */
 
         let scene, camera, renderer, controls;
         let clock = new THREE.Clock();
 
-        // Active Phenomenon Mode: 'XRB' | 'GRB'
-        let activeMode = 'XRB';
+        // Active Phenomenon Mode: Default to upgraded 'GRB' so user immediately sees the intense explosion
+        let activeMode = 'GRB';
         let autoBurstEnabled = true;
 
-        // Shared Starfield & Camera Interpolation
+        // Shared Starfield & Camera Interpolation + Micro-Shake
         let starfield;
         let currentCamPreset = 'overview';
         let isCameraLerping = false;
-        let targetCamPos = new THREE.Vector3(-4, 13, 36);
-        let targetLookAt = new THREE.Vector3(-2, 0, 0);
+        let targetCamPos = new THREE.Vector3(0, 14, 48);
+        let targetLookAt = new THREE.Vector3(0, 0, 0);
+        let cameraShakeIntensity = 0.0;
 
         // Live Scrolling Light Curve Buffer
-        const LIGHTCURVE_SAMPLES = 180;
-        let lightCurveData = new Array(LIGHTCURVE_SAMPLES).fill(0.08);
+        const LIGHTCURVE_SAMPLES = 200;
+        let lightCurveData = new Array(LIGHTCURVE_SAMPLES).fill(0.05);
         let lcCanvas, lcCtx;
 
         // =========================================================================
@@ -284,7 +319,7 @@
 
         let xrbFuelLevel = 0.25;
         let xrbAccretionRate = 1.0;
-        let xrbState = 'ACCUMULATION'; // 'ACCUMULATION' | 'IGNITION' | 'COOLING'
+        let xrbState = 'ACCUMULATION';
         let xrbTimer = 0;
         let xrbIntensity = 0.06;
 
@@ -292,26 +327,41 @@
         const DONOR_STAR_POS = new THREE.Vector3(14.5, 0, 0);
 
         // =========================================================================
-        // MODE 2: GAMMA-RAY BURST (GRB COLLAPSAR / RELATIVISTIC JET) VARIABLES
+        // MODE 2: ULTRA-INTENSE GAMMA-RAY BURST (HYPERNOVA + JET + MAGNETIC FLARES)
         // =========================================================================
         let grbSystemGroup;
         let grbEngineGroup, grbEventHorizon, grbPhotonRing, grbTorusMesh, grbTorusParticles, grbTorusMeta = [];
-        let grbProgenitorEnvelope, grbCocoonGroup, grbCocoonParticles, grbCocoonMeta = [];
+
+        // Twisted Helical Poynting-Flux Magnetic Field Coils & Reconnection Flares
+        let grbMagneticGroup;
+        let grbHelixCoils = [];
+        let grbReconnectionArcs = [];
+        let grbMagneticSparks = [];
+
+        // Hypernova Stellar Explosion & Ejecta Debris
+        let grbProgenitorCoreShell, grbHypernovaOuterShell, grbEquatorialShockRing;
+        let grbHypernovaDebrisPoints, grbHypernovaDebrisMeta = [];
+        let grbHypernovaFilaments = [];
+
+        // Relativistic Bipolar Jets, Breakout Cocoon & Shocks
         let grbJetGroup, grbNorthCoreJet, grbNorthSheathJet, grbSouthCoreJet, grbSouthSheathJet;
+        let grbNorthBreakoutFlash, grbSouthBreakoutFlash;
         let grbInternalShocks = [];
         let grbExternalShocks = [];
         let grbPointLight, grbCoreSprite;
 
-        let grbChargeLevel = 0.40;
-        let grbLorentzFactor = 250; // Gamma (50 - 500)
-        let grbViewingAngleDeg = 15; // Observer angle off jet axis (0 - 60 deg)
-        let grbState = 'COLLAPSE';   // 'COLLAPSE' | 'PROMPT_GRB' | 'AFTERGLOW'
+        // GRB Physics Parameters
+        let grbChargeLevel = 0.85;
+        let grbLorentzFactor = 350;  // Γ (50 - 800)
+        let grbViewingAngleDeg = 8;  // θ_obs (0° - 45°)
+        let grbState = 'IMPLOSION';  // 'IMPLOSION' | 'DETONATION_PROMPT' | 'HYPERNOVA_AFTERGLOW'
         let grbTimer = 0;
-        let grbPromptFlux = 0.04;
-        let grbAfterglowFlux = 0.0;
+        let grbPromptFlux = 0.05;
+        let grbHypernovaFlux = 0.0;
+        let hasTriggeredInitialGRB = false;
 
         /**
-         * Procedural radial glow texture generator (zero external asset URLs)
+         * Procedural radial glow texture generator (zero external URLs)
          */
         function createGlowTexture(innerRGBA, midRGBA, outerRGBA) {
             const canvas = document.createElement('canvas');
@@ -320,8 +370,8 @@
             const ctx = canvas.getContext('2d');
             const grad = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
             grad.addColorStop(0.0, innerRGBA);
-            grad.addColorStop(0.35, midRGBA);
-            grad.addColorStop(0.75, outerRGBA);
+            grad.addColorStop(0.32, midRGBA);
+            grad.addColorStop(0.72, outerRGBA);
             grad.addColorStop(1.0, 'rgba(0,0,0,0)');
             ctx.fillStyle = grad;
             ctx.fillRect(0, 0, 256, 256);
@@ -329,7 +379,7 @@
         }
 
         /**
-         * Procedural spiral accretion disk / relativistic torus texture
+         * Procedural spiral accretion disk / turbulent plasma torus texture
          */
         function createAccretionDiskTexture(c1, c2, c3, c4) {
             const canvas = document.createElement('canvas');
@@ -338,7 +388,7 @@
             const ctx = canvas.getContext('2d');
             const cx = 256, cy = 256;
 
-            const grad = ctx.createRadialGradient(cx, cy, 34, cx, cy, 250);
+            const grad = ctx.createRadialGradient(cx, cy, 32, cx, cy, 250);
             grad.addColorStop(0.0, 'rgba(0,0,0,0)');
             grad.addColorStop(0.07, c1);
             grad.addColorStop(0.24, c2);
@@ -350,19 +400,19 @@
             ctx.fillRect(0, 0, 512, 512);
 
             ctx.globalCompositeOperation = 'lighter';
-            for (let arm = 0; arm < 5; arm++) {
-                const baseAngle = (arm / 5) * Math.PI * 2;
+            for (let arm = 0; arm < 6; arm++) {
+                const baseAngle = (arm / 6) * Math.PI * 2;
                 ctx.beginPath();
-                for (let step = 0; step < 90; step++) {
-                    const r = 42 + step * 2.1;
-                    const theta = baseAngle + step * 0.068;
+                for (let step = 0; step < 92; step++) {
+                    const r = 40 + step * 2.1;
+                    const theta = baseAngle + step * 0.072;
                     const x = cx + Math.cos(theta) * r;
                     const y = cy + Math.sin(theta) * r;
                     if (step === 0) ctx.moveTo(x, y);
                     else ctx.lineTo(x, y);
                 }
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
-                ctx.lineWidth = 3;
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.18)';
+                ctx.lineWidth = 3.2;
                 ctx.stroke();
             }
 
@@ -373,7 +423,7 @@
          * Builds the deep space starfield shared by both modes
          */
         function buildStarfield() {
-            const starCount = 4000;
+            const starCount = 4200;
             const geo = new THREE.BufferGeometry();
             const pos = new Float32Array(starCount * 3);
             const col = new Float32Array(starCount * 3);
@@ -382,11 +432,11 @@
                 new THREE.Color(0xbae6fd),
                 new THREE.Color(0xfef08a),
                 new THREE.Color(0xe2e8f0),
-                new THREE.Color(0xf0abfc)
+                new THREE.Color(0xf5d0fe)
             ];
 
             for (let i = 0; i < starCount; i++) {
-                const r = 135 + Math.random() * 280;
+                const r = 140 + Math.random() * 290;
                 const theta = Math.random() * Math.PI * 2;
                 const phi = Math.acos(2 * Math.random() - 1);
 
@@ -402,51 +452,50 @@
             geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
             geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
 
-            const mat = new THREE.PointsMaterial({
+            starfield = new THREE.Points(geo, new THREE.PointsMaterial({
                 size: 0.9,
                 vertexColors: true,
                 transparent: true,
                 opacity: 0.85
-            });
-            starfield = new THREE.Points(geo, mat);
+            }));
             scene.add(starfield);
         }
 
         // =========================================================================
-        // BUILD MODE 1: TYPE I X-RAY BURST SYSTEM
+        // BUILD MODE 1: TYPE I X-RAY BURST SYSTEM (PRESERVED)
         // =========================================================================
         function buildXRBSystem() {
             xrbSystemGroup = new THREE.Group();
+            xrbSystemGroup.visible = false; // GRB is default active mode
             scene.add(xrbSystemGroup);
 
-            // 1. Neutron Star Assembly
             neutronStarGroup = new THREE.Group();
             neutronStarGroup.position.copy(NEUTRON_STAR_POS);
             xrbSystemGroup.add(neutronStarGroup);
 
-            const coreGeo = new THREE.SphereGeometry(1.15, 48, 48);
-            const coreMat = new THREE.MeshStandardMaterial({
-                color: 0x38bdf8,
-                emissive: 0x0284c7,
-                emissiveIntensity: 0.9,
-                roughness: 0.3,
-                metalness: 0.6
-            });
-            neutronCoreMesh = new THREE.Mesh(coreGeo, coreMat);
+            neutronCoreMesh = new THREE.Mesh(
+                new THREE.SphereGeometry(1.15, 48, 48),
+                new THREE.MeshStandardMaterial({
+                    color: 0x38bdf8,
+                    emissive: 0x0284c7,
+                    emissiveIntensity: 0.9,
+                    roughness: 0.3,
+                    metalness: 0.6
+                })
+            );
             neutronStarGroup.add(neutronCoreMesh);
 
-            // Accumulating H/He Surface Fuel Layer (expands during PRE)
-            const envGeo = new THREE.SphereGeometry(1.21, 48, 48);
-            const envMat = new THREE.MeshBasicMaterial({
-                color: 0xf59e0b,
-                transparent: true,
-                opacity: 0.25,
-                blending: THREE.AdditiveBlending
-            });
-            fuelEnvelopeMesh = new THREE.Mesh(envGeo, envMat);
+            fuelEnvelopeMesh = new THREE.Mesh(
+                new THREE.SphereGeometry(1.21, 48, 48),
+                new THREE.MeshBasicMaterial({
+                    color: 0xf59e0b,
+                    transparent: true,
+                    opacity: 0.25,
+                    blending: THREE.AdditiveBlending
+                })
+            );
             neutronStarGroup.add(fuelEnvelopeMesh);
 
-            // Tilted Dipolar Magnetic Field & Polar Hotspots
             magneticFieldGroup = new THREE.Group();
             magneticFieldGroup.rotation.z = 0.38;
             neutronStarGroup.add(magneticFieldGroup);
@@ -481,13 +530,8 @@
                 magneticFieldGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), fieldMat));
             }
 
-            const coronaTex = createGlowTexture(
-                'rgba(255, 255, 255, 1.0)',
-                'rgba(56, 189, 248, 0.7)',
-                'rgba(14, 165, 233, 0.0)'
-            );
             nsCoronaSprite = new THREE.Sprite(new THREE.SpriteMaterial({
-                map: coronaTex,
+                map: createGlowTexture('rgba(255,255,255,1.0)', 'rgba(56,189,248,0.7)', 'rgba(14,165,233,0.0)'),
                 transparent: true,
                 opacity: 0.75,
                 blending: THREE.AdditiveBlending,
@@ -516,7 +560,7 @@
             }
             neutronStarGroup.add(xrbFlareGroup);
 
-            // 2. Roche-Lobe Companion Donor Star
+            // Companion Donor Star
             companionGroup = new THREE.Group();
             companionGroup.position.copy(DONOR_STAR_POS);
             xrbSystemGroup.add(companionGroup);
@@ -544,13 +588,8 @@
             }));
             companionGroup.add(donorStarMesh);
 
-            const haloTex = createGlowTexture(
-                'rgba(253, 186, 116, 0.75)',
-                'rgba(234, 88, 12, 0.3)',
-                'rgba(0, 0, 0, 0)'
-            );
             const haloSprite = new THREE.Sprite(new THREE.SpriteMaterial({
-                map: haloTex,
+                map: createGlowTexture('rgba(253,186,116,0.75)', 'rgba(234,88,12,0.3)', 'rgba(0,0,0,0)'),
                 transparent: true,
                 blending: THREE.AdditiveBlending,
                 depthWrite: false
@@ -559,7 +598,7 @@
             haloSprite.position.set(-0.6, 0, 0);
             companionGroup.add(haloSprite);
 
-            // 3. Accretion Disk & L1 Overflow Stream
+            // Accretion Disk & Stream
             const diskTex = createAccretionDiskTexture(
                 'rgba(224, 242, 254, 0.95)',
                 'rgba(56, 189, 248, 0.78)',
@@ -635,50 +674,49 @@
         }
 
         // =========================================================================
-        // MODE 2: GAMMA-RAY BURST (GRB) COLLAPSAR / RELATIVISTIC JET ENGINE
+        // BUILD MODE 2: ULTRA-INTENSE GAMMA-RAY BURST + HYPERNOVA + MAGNETIC FLARES
         // =========================================================================
         function buildGRBSystem() {
             grbSystemGroup = new THREE.Group();
-            grbSystemGroup.visible = false; // Hidden initially until user selects GRB tab
+            grbSystemGroup.visible = true; // Default active mode
             scene.add(grbSystemGroup);
 
-            // 1. Central Hyper-Accreting Black Hole Engine
+            // 1. Central Hyper-Accreting Black Hole / Millisecond Magnetar Engine
             grbEngineGroup = new THREE.Group();
             grbSystemGroup.add(grbEngineGroup);
 
-            // Pitch-black Event Horizon
             grbEventHorizon = new THREE.Mesh(
-                new THREE.SphereGeometry(1.1, 48, 48),
+                new THREE.SphereGeometry(1.15, 48, 48),
                 new THREE.MeshBasicMaterial({ color: 0x000000 })
             );
             grbEngineGroup.add(grbEventHorizon);
 
-            // Relativistic Photon Ring (billboarded to camera)
+            // Relativistic Lensing Photon Ring
             grbPhotonRing = new THREE.Mesh(
-                new THREE.RingGeometry(1.12, 1.38, 64),
+                new THREE.RingGeometry(1.17, 1.48, 64),
                 new THREE.MeshBasicMaterial({
-                    color: 0xf0abfc,
+                    color: 0xffffff,
                     side: THREE.DoubleSide,
                     transparent: true,
-                    opacity: 0.92,
+                    opacity: 0.95,
                     blending: THREE.AdditiveBlending
                 })
             );
             grbEngineGroup.add(grbPhotonRing);
 
-            // Dense Hyper-Accreting Relativistic Torus / Disk
+            // Ultra-Bright Turbulent Hyper-Accretion Torus
             const grbDiskTex = createAccretionDiskTexture(
-                'rgba(255, 255, 255, 0.98)',
-                'rgba(232, 121, 249, 0.85)',
-                'rgba(147, 51, 234, 0.6)',
-                'rgba(59, 130, 246, 0.25)'
+                'rgba(255, 255, 255, 1.0)',
+                'rgba(244, 114, 182, 0.92)',
+                'rgba(168, 85, 247, 0.72)',
+                'rgba(249, 115, 22, 0.35)'
             );
             grbTorusMesh = new THREE.Mesh(
-                new THREE.PlaneGeometry(13.0, 13.0),
+                new THREE.PlaneGeometry(14.5, 14.5),
                 new THREE.MeshBasicMaterial({
                     map: grbDiskTex,
                     transparent: true,
-                    opacity: 0.92,
+                    opacity: 0.95,
                     side: THREE.DoubleSide,
                     blending: THREE.AdditiveBlending,
                     depthWrite: false
@@ -687,103 +725,227 @@
             grbTorusMesh.rotation.x = Math.PI / 2;
             grbEngineGroup.add(grbTorusMesh);
 
-            // Torus Plasma Particle Ring
-            const torusCount = 380;
+            // High-Velocity Torus Plasma Clumps
+            const torusCount = 460;
             const torusGeo = new THREE.BufferGeometry();
             const torusPos = new Float32Array(torusCount * 3);
             for (let i = 0; i < torusCount; i++) {
-                const r = 1.45 + Math.pow(Math.random(), 1.35) * 4.8;
+                const r = 1.45 + Math.pow(Math.random(), 1.3) * 5.4;
                 const angle = Math.random() * Math.PI * 2;
-                const y = (Math.random() - 0.5) * 0.45 * (r / 4.0);
+                const y = (Math.random() - 0.5) * 0.55 * (r / 4.0);
                 torusPos[i * 3] = Math.cos(angle) * r;
                 torusPos[i * 3 + 1] = y;
                 torusPos[i * 3 + 2] = Math.sin(angle) * r;
-                grbTorusMeta.push({ radius: r, angle, speed: 5.2 / Math.pow(r, 1.15), y });
+                grbTorusMeta.push({ radius: r, angle, speed: 6.2 / Math.pow(r, 1.15), y });
             }
             torusGeo.setAttribute('position', new THREE.BufferAttribute(torusPos, 3));
             grbTorusParticles = new THREE.Points(torusGeo, new THREE.PointsMaterial({
-                color: 0xf5d0fe,
-                size: 0.15,
+                color: 0xfde047,
+                size: 0.16,
                 transparent: true,
-                opacity: 0.88,
+                opacity: 0.9,
                 blending: THREE.AdditiveBlending,
                 depthWrite: false
             }));
             grbEngineGroup.add(grbTorusParticles);
 
-            // 2. Collapsing Wolf-Rayet Progenitor Stellar Envelope & Hot Cocoon
-            grbProgenitorEnvelope = new THREE.Mesh(
-                new THREE.SphereGeometry(5.6, 36, 36),
+            // 2. Twisted Helical Poynting-Flux Magnetic Field Coils & Reconnection Flares
+            grbMagneticGroup = new THREE.Group();
+            grbSystemGroup.add(grbMagneticGroup);
+
+            // 8 Twisted Helical Magnetic Flux Ropes wrapping both North (+Y) and South (-Y) jet bases
+            const numHelices = 8;
+            for (let h = 0; h < numHelices; h++) {
+                const basePhi = (h / numHelices) * Math.PI * 2;
+                const isNorth = h % 2 === 0;
+                const dirSign = isNorth ? 1 : -1;
+                const pts = [];
+                const segments = 64;
+
+                for (let s = 0; s <= segments; s++) {
+                    const t = s / segments; // 0 at engine, 1 up the jet column
+                    const y = dirSign * (1.1 + t * 14.5);
+                    // Tightly wound helix near core that flares out slightly with altitude
+                    const r = 1.35 + Math.pow(t, 0.85) * 2.1;
+                    const twistAngle = basePhi + t * Math.PI * 4.5;
+                    pts.push(new THREE.Vector3(
+                        Math.cos(twistAngle) * r,
+                        y,
+                        Math.sin(twistAngle) * r
+                    ));
+                }
+
+                const curve = new THREE.CatmullRomCurve3(pts);
+                const tubeGeo = new THREE.TubeGeometry(curve, 56, 0.055, 8, false);
+                const tubeMat = new THREE.MeshBasicMaterial({
+                    color: h % 3 === 0 ? 0x38bdf8 : 0xe879f9,
+                    transparent: true,
+                    opacity: 0.55,
+                    blending: THREE.AdditiveBlending,
+                    depthWrite: false
+                });
+                const coilMesh = new THREE.Mesh(tubeGeo, tubeMat);
+                grbMagneticGroup.add(coilMesh);
+                grbHelixCoils.push({ mesh: coilMesh, basePhase: basePhi });
+            }
+
+            // Jagged Electric-Violet & Cyan Magnetic Reconnection Flare Arcs around the Torus & Jet Base
+            for (let a = 0; a < 14; a++) {
+                const arcPts = [];
+                const startAngle = (a / 14) * Math.PI * 2;
+                const spanAngle = 0.65 + Math.random() * 0.6;
+                const arcRadius = 2.0 + Math.random() * 3.4;
+                const arcHeight = (Math.random() > 0.5 ? 1 : -1) * (1.2 + Math.random() * 2.8);
+
+                for (let k = 0; k <= 12; k++) {
+                    const frac = k / 12;
+                    const ang = startAngle + frac * spanAngle;
+                    const arch = Math.sin(frac * Math.PI) * arcHeight;
+                    const jitterR = arcRadius + (Math.random() - 0.5) * 0.45;
+                    arcPts.push(new THREE.Vector3(
+                        Math.cos(ang) * jitterR,
+                        arch,
+                        Math.sin(ang) * jitterR
+                    ));
+                }
+
+                const arcGeo = new THREE.BufferGeometry().setFromPoints(arcPts);
+                const arcMat = new THREE.LineBasicMaterial({
+                    color: a % 2 === 0 ? 0x38bdf8 : 0xf0abfc,
+                    transparent: true,
+                    opacity: 0.0,
+                    blending: THREE.AdditiveBlending
+                });
+                const arcLine = new THREE.Line(arcGeo, arcMat);
+                grbMagneticGroup.add(arcLine);
+                grbReconnectionArcs.push({
+                    line: arcLine,
+                    phase: Math.random() * Math.PI * 2,
+                    speed: 6 + Math.random() * 8
+                });
+            }
+
+            // 3. Asymmetric Hypernova Stellar Explosion (Progenitor Envelope + Ni-56 Blast + Debris)
+            // Inner Ni-56 radioactive shock shell
+            grbProgenitorCoreShell = new THREE.Mesh(
+                new THREE.IcosahedronGeometry(4.2, 3),
                 new THREE.MeshBasicMaterial({
                     color: 0xf97316,
                     wireframe: true,
                     transparent: true,
-                    opacity: 0.16,
+                    opacity: 0.35,
                     blending: THREE.AdditiveBlending,
                     depthWrite: false
                 })
             );
-            grbSystemGroup.add(grbProgenitorEnvelope);
+            grbSystemGroup.add(grbProgenitorCoreShell);
 
-            // Hot Ejecta Cocoon Particles (pierced by the bipolar jets)
-            grbCocoonGroup = new THREE.Group();
-            grbSystemGroup.add(grbCocoonGroup);
+            // Outer turbulent hypernova ejecta shell
+            grbHypernovaOuterShell = new THREE.Mesh(
+                new THREE.SphereGeometry(5.5, 36, 36),
+                new THREE.MeshBasicMaterial({
+                    color: 0xf43f5e,
+                    transparent: true,
+                    opacity: 0.14,
+                    side: THREE.DoubleSide,
+                    blending: THREE.AdditiveBlending,
+                    depthWrite: false
+                })
+            );
+            grbSystemGroup.add(grbHypernovaOuterShell);
 
-            const cocoonCount = 340;
-            const cocoonGeo = new THREE.BufferGeometry();
-            const cocoonPos = new Float32Array(cocoonCount * 3);
-            for (let i = 0; i < cocoonCount; i++) {
+            // Blinding Equatorial Hypernova Shockwave Ring
+            grbEquatorialShockRing = new THREE.Mesh(
+                new THREE.RingGeometry(1.6, 2.8, 64),
+                new THREE.MeshBasicMaterial({
+                    color: 0xfef08a,
+                    side: THREE.DoubleSide,
+                    transparent: true,
+                    opacity: 0.0,
+                    blending: THREE.AdditiveBlending,
+                    depthWrite: false
+                })
+            );
+            grbEquatorialShockRing.rotation.x = Math.PI / 2;
+            grbSystemGroup.add(grbEquatorialShockRing);
+
+            // 750 Fiery 3D Hypernova Debris Chunks & Ni-56 Plasma Filaments
+            const debrisCount = 750;
+            const debrisGeo = new THREE.BufferGeometry();
+            const debrisPos = new Float32Array(debrisCount * 3);
+            const debrisColors = new Float32Array(debrisCount * 3);
+
+            const ejectaPalette = [
+                new THREE.Color(0xfef08a), // White-yellow core ejecta
+                new THREE.Color(0xf97316), // Fiery orange Ni-56
+                new THREE.Color(0xf43f5e), // Crimson-rose shock gas
+                new THREE.Color(0xe879f9)  // Ionized magenta cocoon
+            ];
+
+            for (let i = 0; i < debrisCount; i++) {
                 const theta = Math.random() * Math.PI * 2;
-                // Concentrate cocoon near polar breakout regions & equatorial shell
                 const phi = Math.acos(2 * Math.random() - 1);
-                const baseR = 4.2 + Math.random() * 2.4;
-                cocoonPos[i * 3] = baseR * Math.sin(phi) * Math.cos(theta);
-                cocoonPos[i * 3 + 1] = baseR * Math.cos(phi);
-                cocoonPos[i * 3 + 2] = baseR * Math.sin(phi) * Math.sin(theta);
+                const dir = new THREE.Vector3(
+                    Math.sin(phi) * Math.cos(theta),
+                    Math.cos(phi),
+                    Math.sin(phi) * Math.sin(theta)
+                );
 
-                grbCocoonMeta.push({
-                    dir: new THREE.Vector3(
-                        Math.sin(phi) * Math.cos(theta),
-                        Math.cos(phi),
-                        Math.sin(phi) * Math.sin(theta)
-                    ),
+                // Asymmetric bipolar-enhanced hypernova velocity distribution
+                const polarEnhancement = 1.0 + Math.pow(Math.abs(dir.y), 1.6) * 0.9;
+                const clumpSpeed = (8.0 + Math.random() * 18.0) * polarEnhancement;
+                const baseR = 3.2 + Math.random() * 2.4;
+
+                debrisPos[i * 3] = dir.x * baseR;
+                debrisPos[i * 3 + 1] = dir.y * baseR;
+                debrisPos[i * 3 + 2] = dir.z * baseR;
+
+                const col = ejectaPalette[Math.floor(Math.random() * ejectaPalette.length)];
+                debrisColors[i * 3] = col.r;
+                debrisColors[i * 3 + 1] = col.g;
+                debrisColors[i * 3 + 2] = col.b;
+
+                grbHypernovaDebrisMeta.push({
+                    dir,
                     baseR,
-                    expansion: 0
+                    speed: clumpSpeed,
+                    dist: 0
                 });
             }
-            cocoonGeo.setAttribute('position', new THREE.BufferAttribute(cocoonPos, 3));
-            grbCocoonParticles = new THREE.Points(cocoonGeo, new THREE.PointsMaterial({
-                color: 0xfb923c,
-                size: 0.24,
+
+            debrisGeo.setAttribute('position', new THREE.BufferAttribute(debrisPos, 3));
+            debrisGeo.setAttribute('color', new THREE.BufferAttribute(debrisColors, 3));
+
+            grbHypernovaDebrisPoints = new THREE.Points(debrisGeo, new THREE.PointsMaterial({
+                size: 0.34,
+                vertexColors: true,
                 transparent: true,
-                opacity: 0.65,
+                opacity: 0.85,
                 blending: THREE.AdditiveBlending,
                 depthWrite: false
             }));
-            grbCocoonGroup.add(grbCocoonParticles);
+            grbSystemGroup.add(grbHypernovaDebrisPoints);
 
-            // 3. Ultra-Relativistic Bipolar Gamma-Ray Jets (+Y and -Y)
+            // 4. Ultra-Relativistic Bipolar Gamma-Ray Jets & Jet Breakout Cocoon Flashes
             grbJetGroup = new THREE.Group();
             grbSystemGroup.add(grbJetGroup);
 
-            const jetLength = 42;
-            // Tightly collimated ultra-relativistic core beam
-            const coreJetGeo = new THREE.CylinderGeometry(0.18, 1.35, jetLength, 32, 1, true);
+            const jetLength = 46;
+            const coreJetGeo = new THREE.CylinderGeometry(0.22, 1.45, jetLength, 32, 1, true);
             const coreJetMat = new THREE.MeshBasicMaterial({
                 color: 0xffffff,
                 transparent: true,
-                opacity: 0.12,
+                opacity: 0.15,
                 side: THREE.DoubleSide,
                 blending: THREE.AdditiveBlending,
                 depthWrite: false
             });
 
-            // Outer synchrotron / cocoon-sheath beam
-            const sheathJetGeo = new THREE.CylinderGeometry(0.45, 3.2, jetLength * 1.08, 32, 1, true);
+            const sheathJetGeo = new THREE.CylinderGeometry(0.55, 3.6, jetLength * 1.08, 32, 1, true);
             const sheathJetMat = new THREE.MeshBasicMaterial({
-                color: 0xd946ef,
+                color: 0xe879f9,
                 transparent: true,
-                opacity: 0.08,
+                opacity: 0.1,
                 side: THREE.DoubleSide,
                 blending: THREE.AdditiveBlending,
                 depthWrite: false
@@ -803,23 +965,46 @@
 
             grbJetGroup.add(grbNorthCoreJet, grbNorthSheathJet, grbSouthCoreJet, grbSouthSheathJet);
 
-            // Central Engine Corona Glow & Light
-            const grbGlowTex = createGlowTexture(
+            // Blinding "Jet Breakout" Cocoon Flare Sprites at North & South Stellar Surface Poles
+            const breakoutTex = createGlowTexture(
                 'rgba(255, 255, 255, 1.0)',
-                'rgba(217, 70, 239, 0.75)',
-                'rgba(126, 34, 206, 0.0)'
+                'rgba(240, 171, 252, 0.85)',
+                'rgba(56, 189, 248, 0.0)'
             );
-            grbCoreSprite = new THREE.Sprite(new THREE.SpriteMaterial({
-                map: grbGlowTex,
+            grbNorthBreakoutFlash = new THREE.Sprite(new THREE.SpriteMaterial({
+                map: breakoutTex,
                 transparent: true,
-                opacity: 0.85,
+                opacity: 0.0,
                 blending: THREE.AdditiveBlending,
                 depthWrite: false
             }));
-            grbCoreSprite.scale.set(7.5, 7.5, 1);
+            grbNorthBreakoutFlash.position.set(0, 5.8, 0);
+            grbNorthBreakoutFlash.scale.set(12, 12, 1);
+
+            grbSouthBreakoutFlash = new THREE.Sprite(new THREE.SpriteMaterial({
+                map: breakoutTex,
+                transparent: true,
+                opacity: 0.0,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            }));
+            grbSouthBreakoutFlash.position.set(0, -5.8, 0);
+            grbSouthBreakoutFlash.scale.set(12, 12, 1);
+
+            grbJetGroup.add(grbNorthBreakoutFlash, grbSouthBreakoutFlash);
+
+            // Central Engine Corona Glow & Point Light
+            grbCoreSprite = new THREE.Sprite(new THREE.SpriteMaterial({
+                map: createGlowTexture('rgba(255,255,255,1.0)', 'rgba(232,121,249,0.85)', 'rgba(126,34,206,0.0)'),
+                transparent: true,
+                opacity: 0.9,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            }));
+            grbCoreSprite.scale.set(8.5, 8.5, 1);
             grbEngineGroup.add(grbCoreSprite);
 
-            grbPointLight = new THREE.PointLight(0xe879f9, 2.5, 80);
+            grbPointLight = new THREE.PointLight(0xf0abfc, 3.0, 95);
             grbEngineGroup.add(grbPointLight);
         }
 
@@ -846,28 +1031,25 @@
             xrbState = 'IGNITION';
             xrbTimer = 0;
             xrbFuelLevel = 0.0;
+            cameraShakeIntensity = 0.22;
 
             spawnXRBShockwave(0xffffff, 18.0, 26.0);
             setTimeout(() => spawnXRBShockwave(0x38bdf8, 13.5, 22.0), 140);
 
-            triggerScreenBloom('rgba(186, 230, 253, 0.38)', 'rgba(56, 189, 248, 0.1)');
+            triggerScreenBloom('rgba(186, 230, 253, 0.42)', 'rgba(56, 189, 248, 0.12)');
         }
 
-        /**
-         * Spawns colliding internal relativistic shock shells along the +Y and -Y GRB jet axes
-         */
         function spawnGRBInternalShock(isFastShell) {
-            const radius = isFastShell ? 0.55 : 0.75;
-            const geo = new THREE.TorusGeometry(radius, 0.12, 16, 48);
+            const radius = isFastShell ? 0.62 : 0.85;
+            const geo = new THREE.TorusGeometry(radius, 0.14, 16, 48);
             const mat = new THREE.MeshBasicMaterial({
                 color: isFastShell ? 0xffffff : 0xf0abfc,
                 transparent: true,
-                opacity: 0.95,
+                opacity: 0.98,
                 blending: THREE.AdditiveBlending,
                 depthWrite: false
             });
 
-            // North (+Y) and South (-Y) internal shock knots
             const northKnot = new THREE.Mesh(geo, mat);
             northKnot.rotation.x = Math.PI / 2;
             northKnot.position.y = 1.4;
@@ -878,88 +1060,93 @@
 
             grbJetGroup.add(northKnot, southKnot);
 
-            const baseSpeed = (isFastShell ? 28.0 : 17.5) * (0.7 + grbLorentzFactor / 400);
+            const baseSpeed = (isFastShell ? 32.0 : 20.0) * (0.7 + grbLorentzFactor / 450);
             grbInternalShocks.push({
                 northKnot,
                 southKnot,
                 dist: 1.4,
                 speed: baseSpeed,
-                maxDist: 42.0
+                maxDist: 45.0
             });
         }
 
-        /**
-         * Spawns twin forward external bow-shock arcs plowing into the circumburst medium (Afterglow)
-         */
         function spawnGRBExternalShock() {
-            const bowGeo = new THREE.SphereGeometry(2.2, 32, 24, 0, Math.PI * 2, 0, Math.PI * 0.42);
+            const bowGeo = new THREE.SphereGeometry(2.5, 32, 24, 0, Math.PI * 2, 0, Math.PI * 0.45);
             const northBow = new THREE.Mesh(bowGeo, new THREE.MeshBasicMaterial({
                 color: 0x38bdf8,
                 transparent: true,
-                opacity: 0.75,
+                opacity: 0.82,
                 side: THREE.DoubleSide,
                 blending: THREE.AdditiveBlending,
                 depthWrite: false
             }));
-            northBow.position.y = 5.5;
+            northBow.position.y = 5.8;
 
             const southBow = new THREE.Mesh(bowGeo, new THREE.MeshBasicMaterial({
                 color: 0x38bdf8,
                 transparent: true,
-                opacity: 0.75,
+                opacity: 0.82,
                 side: THREE.DoubleSide,
                 blending: THREE.AdditiveBlending,
                 depthWrite: false
             }));
             southBow.rotation.x = Math.PI;
-            southBow.position.y = -5.5;
+            southBow.position.y = -5.8;
 
             grbSystemGroup.add(northBow, southBow);
             grbExternalShocks.push({
                 northBow,
                 southBow,
-                dist: 5.5,
+                dist: 5.8,
                 scale: 1.0,
-                speed: 14.0,
-                maxDist: 46.0
+                speed: 16.0,
+                maxDist: 48.0
             });
         }
 
+        /**
+         * Launches the full Hypernova + Magnetic Reconnection + Relativistic GRB Jet Breakout
+         */
         function triggerGammaRayBurst() {
-            if (grbState === 'PROMPT_GRB') return;
-            grbState = 'PROMPT_GRB';
+            if (grbState === 'DETONATION_PROMPT') return;
+            grbState = 'DETONATION_PROMPT';
             grbTimer = 0;
             grbChargeLevel = 0.0;
 
-            // Reset cocoon expansion
-            grbCocoonMeta.forEach(c => { c.expansion = 0; });
+            // Strong visceral camera micro-shake for hypernova core detonation
+            cameraShakeIntensity = 0.65;
 
-            // Launch sequence of colliding internal shock shells (generating erratic prompt gamma-ray spikes!)
+            // Reset hypernova blast shells & debris distances
+            grbProgenitorCoreShell.scale.setScalar(0.65);
+            grbHypernovaOuterShell.scale.setScalar(0.8);
+            grbEquatorialShockRing.scale.setScalar(1.0);
+            grbEquatorialShockRing.material.opacity = 0.95;
+
+            grbHypernovaDebrisMeta.forEach(d => { d.dist = 0; });
+
+            // Launch rapid volley of colliding relativistic internal shock shells
             spawnGRBInternalShock(false);
-            setTimeout(() => spawnGRBInternalShock(true), 180);
-            setTimeout(() => spawnGRBInternalShock(false), 380);
-            setTimeout(() => spawnGRBInternalShock(true), 560);
-            setTimeout(() => spawnGRBInternalShock(true), 780);
+            setTimeout(() => spawnGRBInternalShock(true), 140);
+            setTimeout(() => spawnGRBInternalShock(false), 300);
+            setTimeout(() => spawnGRBInternalShock(true), 460);
+            setTimeout(() => spawnGRBInternalShock(true), 640);
+            setTimeout(() => spawnGRBInternalShock(false), 820);
 
-            // Launch external forward shockwave into circumburst medium
-            setTimeout(() => spawnGRBExternalShock(), 420);
+            // Launch forward external bow shocks into circumburst medium
+            setTimeout(() => spawnGRBExternalShock(), 360);
 
-            triggerScreenBloom('rgba(245, 208, 254, 0.42)', 'rgba(192, 132, 252, 0.14)');
+            triggerScreenBloom('rgba(255, 255, 255, 0.58)', 'rgba(232, 121, 249, 0.28)');
         }
 
         function triggerScreenBloom(innerCol, midCol) {
             const flashOverlay = document.getElementById('flash-overlay');
-            flashOverlay.style.background = `radial-gradient(circle at center, ${innerCol} 0%, ${midCol} 55%, rgba(2, 4, 10, 0) 100%)`;
+            flashOverlay.style.background = `radial-gradient(circle at center, ${innerCol} 0%, ${midCol} 52%, rgba(3, 5, 10, 0) 100%)`;
             flashOverlay.style.opacity = '1';
-            setTimeout(() => { flashOverlay.style.opacity = '0'; }, 200);
+            setTimeout(() => { flashOverlay.style.opacity = '0'; }, 220);
         }
 
-        // =========================================================================
-        // RELATIVISTIC DOPPLER BEAMING FACTOR FOR GRB
-        // =========================================================================
         /**
-         * Computes normalized relativistic beaming factor δ = 1 / [Γ (1 - β cos θ)]
-         * normalized against on-axis viewing (θ = 0) so users can observe dramatic off-axis dimming.
+         * Computes normalized relativistic Doppler beaming factor δ = 1 / [Γ (1 - β cos θ)]
          */
         function getGRBBeamingFactor() {
             const gamma = grbLorentzFactor;
@@ -969,9 +1156,8 @@
             const dopplerOnAxis = 1 / (gamma * (1 - beta));
             const dopplerObs = 1 / (gamma * (1 - beta * Math.cos(thetaRad)));
 
-            // Apply softened perceptual exponent so off-axis view remains visible while clearly showing relativistic beaming
             const ratio = dopplerObs / dopplerOnAxis;
-            return Math.max(0.08, Math.pow(ratio, 0.55));
+            return Math.max(0.10, Math.pow(ratio, 0.52));
         }
 
         // =========================================================================
@@ -984,8 +1170,8 @@
             lcCtx.clearRect(0, 0, w, h);
 
             const isGRB = activeMode === 'GRB';
-            const gridCol = isGRB ? 'rgba(192, 132, 252, 0.14)' : 'rgba(56, 189, 248, 0.12)';
-            const strokeCol = isGRB ? '#e879f9' : '#38bdf8';
+            const gridCol = isGRB ? 'rgba(232, 121, 249, 0.14)' : 'rgba(56, 189, 248, 0.12)';
+            const strokeCol = isGRB ? '#f472b6' : '#38bdf8';
 
             lcCtx.strokeStyle = gridCol;
             lcCtx.lineWidth = 1;
@@ -995,7 +1181,7 @@
                 lcCtx.lineTo(gx, h);
                 lcCtx.stroke();
             }
-            for (let gy = 16; gy < h; gy += 22) {
+            for (let gy = 18; gy < h; gy += 24) {
                 lcCtx.beginPath();
                 lcCtx.moveTo(0, gy);
                 lcCtx.lineTo(w, gy);
@@ -1004,7 +1190,8 @@
 
             const grad = lcCtx.createLinearGradient(0, 0, 0, h);
             if (isGRB) {
-                grad.addColorStop(0, 'rgba(232, 121, 249, 0.55)');
+                grad.addColorStop(0, 'rgba(244, 114, 182, 0.58)');
+                grad.addColorStop(0.6, 'rgba(168, 85, 247, 0.22)');
                 grad.addColorStop(1, 'rgba(147, 51, 234, 0.02)');
             } else {
                 grad.addColorStop(0, 'rgba(125, 211, 252, 0.55)');
@@ -1033,7 +1220,7 @@
             const latestVal = lightCurveData[lightCurveData.length - 1];
             const dotY = h - 6 - Math.min(1.0, latestVal) * (h - 14);
             lcCtx.beginPath();
-            lcCtx.arc(w - 3, dotY, 3.5, 0, Math.PI * 2);
+            lcCtx.arc(w - 3, dotY, 3.6, 0, Math.PI * 2);
             lcCtx.fillStyle = '#ffffff';
             lcCtx.fill();
         }
@@ -1049,49 +1236,57 @@
             xrbSystemGroup.visible = !isGRB;
             grbSystemGroup.visible = isGRB;
 
-            // Reset light curve buffer cleanly for the newly chosen detector band
-            lightCurveData = new Array(LIGHTCURVE_SAMPLES).fill(isGRB ? 0.04 : 0.08);
+            lightCurveData = new Array(LIGHTCURVE_SAMPLES).fill(isGRB ? 0.05 : 0.08);
 
-            // Update Mode Tabs
             const tabXRB = document.getElementById('tab-xrb');
             const tabGRB = document.getElementById('tab-grb');
-            if (isGRB) {
-                tabXRB.className = 'mode-tab rounded-lg py-1.5 px-3 text-xs font-bold tracking-wide text-slate-300 flex items-center justify-center gap-1.5 cursor-pointer';
-                tabGRB.className = 'mode-tab active-grb rounded-lg py-1.5 px-3 text-xs font-bold tracking-wide flex items-center justify-center gap-1.5 cursor-pointer';
-            } else {
-                tabXRB.className = 'mode-tab active-xrb rounded-lg py-1.5 px-3 text-xs font-bold tracking-wide flex items-center justify-center gap-1.5 cursor-pointer';
-                tabGRB.className = 'mode-tab rounded-lg py-1.5 px-3 text-xs font-bold tracking-wide text-slate-300 flex items-center justify-center gap-1.5 cursor-pointer';
-            }
+            const autoBtn = document.getElementById('auto-toggle-btn');
 
-            // Update Header & Light Curve Metadata
             if (isGRB) {
-                document.getElementById('header-title').innerHTML =
-                    'Gamma-Ray Burst (GRB) <span class="text-fuchsia-400 font-normal text-xs sm:text-sm">/ Collapsar Relativistic Jet</span>';
+                tabXRB.className = 'mode-tab rounded-xl py-2 px-3 text-xs sm:text-sm font-bold tracking-wide text-slate-300 flex items-center justify-center gap-2 cursor-pointer';
+                tabGRB.className = 'mode-tab active-grb rounded-xl py-2 px-3 text-xs sm:text-sm font-bold tracking-wide flex items-center justify-center gap-2 cursor-pointer';
+
+                document.getElementById('header-title').textContent = 'Hypernova Collapsar & Relativistic GRB';
                 document.getElementById('header-desc').textContent =
-                    'Hyper-accreting black hole launching ultra-relativistic bipolar jets (Γ > 100) through a collapsing stellar envelope.';
-                document.getElementById('lc-band-label').textContent = 'Gamma-Ray Prompt + Afterglow (10 keV–10 MeV)';
-                document.getElementById('lc-band-label').className = 'font-mono-tech text-[10px] uppercase tracking-wider text-fuchsia-300';
-                document.getElementById('lc-profile-label').textContent = 'Profile: Multi-Peak T90 + Power-Law Decay';
+                    'Massive Wolf-Rayet core collapse launching twisted Poynting-flux magnetic flares, relativistic bipolar jets, and a Ni-56 hypernova blast.';
 
-                // Update Trigger Button & Control Panels
+                document.getElementById('metric2-label').textContent = 'Peak Energy E_pk';
+                document.getElementById('metric3-label').textContent = 'B-Field / Lorentz';
+
+                document.getElementById('lc-band-label').textContent = 'Gamma-Ray + Hypernova (10 keV–10 MeV)';
+                document.getElementById('lc-band-label').className = 'font-mono-tech text-[10px] uppercase tracking-wider text-fuchsia-300';
+                document.getElementById('lc-profile-label').textContent = 'Prompt T90 Spikes + Ni-56 Hypernova Hump';
+                document.getElementById('lc-doppler-badge').classList.remove('hidden');
+
                 const trigBtn = document.getElementById('trigger-burst-btn');
                 trigBtn.className = 'btn-burst-grb w-full py-2.5 px-4 rounded-xl font-bold text-xs sm:text-sm text-white tracking-wide flex items-center justify-center gap-2 cursor-pointer';
-                document.getElementById('trigger-btn-text').textContent = 'LAUNCH GAMMA-RAY BURST';
+                document.getElementById('trigger-btn-text').textContent = 'TRIGGER GRB & HYPERNOVA';
 
                 document.getElementById('xrb-controls').classList.add('hidden');
                 document.getElementById('grb-controls').classList.remove('hidden');
 
-                // Update Camera Preset Button Labels
-                document.getElementById('cam-btn-closeup').textContent = 'Central Engine Close-Up';
-                document.getElementById('cam-btn-polar').textContent = 'On-Axis Jet View';
+                document.getElementById('cam-btn-overview').textContent = 'Full Hypernova + Jet';
+                document.getElementById('cam-btn-closeup').textContent = 'Jet Breakout Core';
+                document.getElementById('cam-btn-polar').textContent = 'On-Axis Down the Barrel';
+
+                if (autoBurstEnabled) {
+                    autoBtn.className = 'px-3 py-1 rounded-lg font-mono-tech text-xs font-semibold bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-400/50 cursor-pointer';
+                }
             } else {
-                document.getElementById('header-title').innerHTML =
-                    'Type I X-Ray Burst <span class="text-cyan-400 font-normal text-xs sm:text-sm">/ Low-Mass X-Ray Binary</span>';
+                tabXRB.className = 'mode-tab active-xrb rounded-xl py-2 px-3 text-xs sm:text-sm font-bold tracking-wide flex items-center justify-center gap-2 cursor-pointer';
+                tabGRB.className = 'mode-tab rounded-xl py-2 px-3 text-xs sm:text-sm font-bold tracking-wide text-slate-300 flex items-center justify-center gap-2 cursor-pointer';
+
+                document.getElementById('header-title').textContent = 'Type I X-Ray Burst (LMXB)';
                 document.getElementById('header-desc').textContent =
-                    'Thermonuclear runaway ignition of accreted H/He fuel on a 1.4 M☉ neutron star.';
+                    'Thermonuclear runaway ignition of accreted H/He fuel on a 1.4 M☉ neutron star with Photospheric Radius Expansion.';
+
+                document.getElementById('metric2-label').textContent = 'Blackbody Temp';
+                document.getElementById('metric3-label').textContent = 'Profile / Fuel';
+
                 document.getElementById('lc-band-label').textContent = 'X-Ray Light Curve (2–20 keV)';
                 document.getElementById('lc-band-label').className = 'font-mono-tech text-[10px] uppercase tracking-wider text-cyan-300';
                 document.getElementById('lc-profile-label').textContent = 'Profile: Fast-Rise Exponential-Decay';
+                document.getElementById('lc-doppler-badge').classList.add('hidden');
 
                 const trigBtn = document.getElementById('trigger-burst-btn');
                 trigBtn.className = 'btn-burst-xrb w-full py-2.5 px-4 rounded-xl font-bold text-xs sm:text-sm text-white tracking-wide flex items-center justify-center gap-2 cursor-pointer';
@@ -1100,14 +1295,27 @@
                 document.getElementById('grb-controls').classList.add('hidden');
                 document.getElementById('xrb-controls').classList.remove('hidden');
 
+                document.getElementById('cam-btn-overview').textContent = 'System Overview';
                 document.getElementById('cam-btn-closeup').textContent = 'Neutron Star Close-Up';
                 document.getElementById('cam-btn-polar').textContent = 'Polar Disk View';
+
+                if (autoBurstEnabled) {
+                    autoBtn.className = 'px-3 py-1 rounded-lg font-mono-tech text-xs font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-400/50 cursor-pointer';
+                }
             }
 
-            // Reset to System Overview camera preset for the newly selected mode
-            document.querySelectorAll('[data-cam]').forEach(b => b.classList.remove('active'));
-            document.getElementById('cam-btn-overview').classList.add('active');
+            updateCameraButtonHighlights('overview');
             setCameraPreset('overview');
+        }
+
+        function updateCameraButtonHighlights(activePreset) {
+            const activeClass = activeMode === 'GRB' ? 'active-cam-grb' : 'active-cam-xrb';
+            document.querySelectorAll('[data-cam]').forEach(btn => {
+                btn.classList.remove('active-cam-grb', 'active-cam-xrb');
+                if (btn.getAttribute('data-cam') === activePreset) {
+                    btn.classList.add(activeClass);
+                }
+            });
         }
 
         function setCameraPreset(preset) {
@@ -1126,23 +1334,22 @@
                     targetLookAt.set(-2.5, 0, 0);
                 }
             } else {
-                // GRB Mode Camera Coordinates
                 if (preset === 'overview') {
-                    targetCamPos.set(0, 12, 46);
+                    targetCamPos.set(0, 14, 48);
                     targetLookAt.set(0, 0, 0);
                 } else if (preset === 'closeup') {
-                    targetCamPos.set(2.5, 4.2, 11.5);
-                    targetLookAt.set(0, 0, 0);
+                    targetCamPos.set(3.2, 5.2, 13.5);
+                    targetLookAt.set(0, 1.2, 0);
                 } else if (preset === 'polar') {
-                    // Looking nearly down the relativistic North Jet (+Y axis)
-                    targetCamPos.set(0, 44, 5.5);
+                    // On-Axis Down the Barrel of the relativistic North Jet (+Y)
+                    targetCamPos.set(0, 46, 3.8);
                     targetLookAt.set(0, 0, 0);
                 }
             }
         }
 
         // =========================================================================
-        // SIMULATION UPDATE LOOPS (XRB & GRB)
+        // SIMULATION UPDATE LOOPS (XRB & ULTRA-INTENSE GRB)
         // =========================================================================
         function updateXRBSimulation(delta) {
             neutronStarGroup.rotation.y += delta * 14.0;
@@ -1186,7 +1393,6 @@
                 if (xrbIntensity <= 0.09) xrbState = 'ACCUMULATION';
             }
 
-            // Photospheric Radius Expansion (PRE) & Envelope Thermal Color
             const envScale = 1.0 + xrbFuelLevel * 0.04 + xrbIntensity * 0.38;
             fuelEnvelopeMesh.scale.setScalar(envScale);
 
@@ -1215,7 +1421,6 @@
                 ray.scale.set(1, s, 1);
             });
 
-            // Expanding X-Ray Shockwaves
             for (let i = xrbShockwaves.length - 1; i >= 0; i--) {
                 const sw = xrbShockwaves[i];
                 sw.scale += delta * sw.speed;
@@ -1229,7 +1434,6 @@
                 }
             }
 
-            // Accretion Disk & L1 Stream
             accretionDiskMesh.rotation.z -= delta * (0.9 + xrbAccretionRate * 0.35);
             const dPos = diskParticles.geometry.attributes.position.array;
             for (let i = 0; i < diskParticleMeta.length; i++) {
@@ -1253,7 +1457,6 @@
             }
             streamParticles.geometry.attributes.position.needsUpdate = true;
 
-            // Light Curve & HUD Telemetry
             const noise = (Math.random() - 0.5) * 0.018;
             lightCurveData.push(Math.max(0.04, xrbIntensity + noise));
             if (lightCurveData.length > LIGHTCURVE_SAMPLES) lightCurveData.shift();
@@ -1270,16 +1473,24 @@
             document.getElementById('flux-readout').textContent = `${scaledLum} × ${expStr} erg/s`;
 
             const kT = (1.05 + xrbIntensity * 1.85).toFixed(2);
-            document.getElementById('metric-readout').textContent = `kT ≈ ${kT} keV`;
-            document.getElementById('metric-readout').className = 'text-amber-300';
+            document.getElementById('metric2-val').textContent = `${kT} keV`;
+            document.getElementById('metric3-val').textContent = `FRED • ${pct}%`;
         }
 
         function updateGRBSimulation(delta, elapsed) {
-            // Keep photon ring facing camera
+            // Trigger an initial explosive burst right after startup so user immediately experiences the spectacle
+            if (!hasTriggeredInitialGRB && elapsed > 0.45) {
+                hasTriggeredInitialGRB = true;
+                triggerGammaRayBurst();
+            }
+
             grbPhotonRing.quaternion.copy(camera.quaternion);
 
-            // Spin relativistic accretion torus rapidly
-            grbTorusMesh.rotation.z -= delta * 2.4;
+            // Rapidly spin relativistic accretion torus & helical magnetic field coils
+            const spinRate = grbState === 'DETONATION_PROMPT' ? 4.8 : 2.5;
+            grbTorusMesh.rotation.z -= delta * spinRate;
+            grbMagneticGroup.rotation.y += delta * (spinRate * 1.35);
+
             const tPos = grbTorusParticles.geometry.attributes.position.array;
             for (let i = 0; i < grbTorusMeta.length; i++) {
                 const p = grbTorusMeta[i];
@@ -1289,115 +1500,164 @@
             }
             grbTorusParticles.geometry.attributes.position.needsUpdate = true;
 
-            // Jet collimation angle narrows as Lorentz factor Γ increases (θ_j ~ 1/Γ)
-            const collimationScale = Math.max(0.45, 1.45 - (grbLorentzFactor / 500) * 0.95);
+            const collimationScale = Math.max(0.42, 1.42 - (grbLorentzFactor / 800) * 0.95);
             const beaming = getGRBBeamingFactor();
 
             const phaseLabel = document.getElementById('phase-label');
             const phaseDot = document.getElementById('phase-dot');
 
-            if (grbState === 'COLLAPSE') {
-                grbChargeLevel += delta * 0.14;
-                grbPromptFlux = THREE.MathUtils.lerp(grbPromptFlux, 0.04 + grbChargeLevel * 0.05, delta * 5);
-                grbAfterglowFlux = THREE.MathUtils.lerp(grbAfterglowFlux, 0.0, delta * 3);
+            if (grbState === 'IMPLOSION') {
+                // Core implodes inward while magnetic tension winds up toward critical reconnection
+                grbChargeLevel += delta * 0.22;
+                grbPromptFlux = THREE.MathUtils.lerp(grbPromptFlux, 0.05 + grbChargeLevel * 0.06, delta * 5);
+                grbHypernovaFlux = THREE.MathUtils.lerp(grbHypernovaFlux, 0.0, delta * 3);
 
-                phaseLabel.textContent = 'Phase: Core Collapse & Torus Formation';
+                phaseLabel.textContent = 'Phase: Core Implosion & Magnetic Wind-Up';
                 phaseLabel.className = 'font-mono-tech text-[11px] uppercase tracking-widest text-amber-300';
                 phaseDot.className = 'w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse';
 
-                // Progenitor envelope pulses inward slightly before jet breakout
-                const envPulse = 1.0 - grbChargeLevel * 0.12 + Math.sin(elapsed * 8) * 0.015;
-                grbProgenitorEnvelope.scale.setScalar(envPulse);
-                grbProgenitorEnvelope.rotation.y += delta * 0.25;
+                const implosionScale = Math.max(0.55, 1.0 - grbChargeLevel * 0.35) + Math.sin(elapsed * 14) * 0.02;
+                grbProgenitorCoreShell.scale.setScalar(implosionScale);
+                grbProgenitorCoreShell.rotation.y += delta * 0.6;
+                grbHypernovaOuterShell.scale.setScalar(Math.max(0.75, 1.0 - grbChargeLevel * 0.22));
+                grbHypernovaOuterShell.material.opacity = 0.14 + grbChargeLevel * 0.12;
 
                 if (grbChargeLevel >= 1.0) {
                     if (autoBurstEnabled) triggerGammaRayBurst();
                     else grbChargeLevel = 1.0;
                 }
-            } else if (grbState === 'PROMPT_GRB') {
-                // Multi-peak erratic prompt gamma-ray emission (T90 phase ~ 1.6s)
+            } else if (grbState === 'DETONATION_PROMPT') {
+                // Violent Hypernova Detonation + Jet Breakout + Multi-Peak T90 Prompt Gamma-Ray Flash
                 grbTimer += delta;
+
                 const multiSpike =
-                    0.55 * Math.exp(-Math.pow((grbTimer - 0.25) / 0.14, 2)) +
-                    0.95 * Math.exp(-Math.pow((grbTimer - 0.62) / 0.16, 2)) +
-                    0.78 * Math.exp(-Math.pow((grbTimer - 1.05) / 0.18, 2)) +
-                    0.45 * Math.exp(-Math.pow((grbTimer - 1.38) / 0.15, 2));
+                    0.65 * Math.exp(-Math.pow((grbTimer - 0.20) / 0.12, 2)) +
+                    1.00 * Math.exp(-Math.pow((grbTimer - 0.52) / 0.15, 2)) +
+                    0.85 * Math.exp(-Math.pow((grbTimer - 0.92) / 0.17, 2)) +
+                    0.55 * Math.exp(-Math.pow((grbTimer - 1.32) / 0.16, 2));
 
-                grbPromptFlux = Math.min(1.0, (0.25 + multiSpike) * beaming);
-                grbAfterglowFlux = Math.min(0.45, grbTimer * 0.28 * beaming);
+                grbPromptFlux = Math.min(1.0, (0.28 + multiSpike) * beaming);
+                // Ni-56 radioactive hypernova luminosity rises rapidly behind the jet breakout
+                grbHypernovaFlux = Math.min(0.62, grbTimer * 0.36);
 
-                phaseLabel.textContent = 'Phase: Prompt Gamma-Ray Flash (T90)';
-                phaseLabel.className = 'font-mono-tech text-[11px] uppercase tracking-widest text-fuchsia-300 font-bold';
-                phaseDot.className = 'w-2.5 h-2.5 rounded-full bg-fuchsia-400 animate-ping';
+                phaseLabel.textContent = 'Phase: Hypernova Detonation & Jet Breakout!';
+                phaseLabel.className = 'font-mono-tech text-[11px] uppercase tracking-widest text-rose-300 font-bold';
+                phaseDot.className = 'w-2.5 h-2.5 rounded-full bg-rose-400 animate-ping';
 
-                // Cocoon expands violently as jets pierce the stellar envelope
-                grbProgenitorEnvelope.scale.setScalar(1.0 + grbTimer * 0.45);
-                grbCocoonMeta.forEach(c => { c.expansion += delta * 6.5; });
+                // Expand Hypernova Blast Shells & Equatorial Shockwave Ring violently
+                grbProgenitorCoreShell.scale.setScalar(0.65 + grbTimer * 3.4);
+                grbProgenitorCoreShell.rotation.y += delta * 1.4;
+                grbProgenitorCoreShell.material.opacity = Math.max(0.08, 0.55 - grbTimer * 0.22);
 
-                if (grbTimer >= 1.65) {
-                    grbState = 'AFTERGLOW';
+                grbHypernovaOuterShell.scale.setScalar(0.8 + grbTimer * 4.2);
+                grbHypernovaOuterShell.material.opacity = Math.max(0.04, 0.38 - grbTimer * 0.16);
+
+                grbEquatorialShockRing.scale.setScalar(1.0 + grbTimer * 16.0);
+                grbEquatorialShockRing.material.opacity = Math.max(0, 0.92 * (1 - grbTimer / 1.75));
+
+                // Propel 3D Hypernova Debris Chunks outward
+                grbHypernovaDebrisMeta.forEach(d => { d.dist += delta * d.speed; });
+
+                if (grbTimer >= 1.75) {
+                    grbState = 'HYPERNOVA_AFTERGLOW';
                     grbTimer = 0;
                 }
-            } else if (grbState === 'AFTERGLOW') {
-                // Power-law synchrotron afterglow decay (t^-alpha)
+            } else if (grbState === 'HYPERNOVA_AFTERGLOW') {
+                // Synchrotron Jet Afterglow + Broad Ni-56 Hypernova Supernova Light Curve Hump
                 grbTimer += delta;
-                grbPromptFlux = Math.max(0.03, 0.35 * Math.exp(-grbTimer * 2.2) * beaming);
-                grbAfterglowFlux = Math.max(0.03, 0.48 * Math.pow(1 + grbTimer * 1.1, -1.35) * beaming);
+                grbPromptFlux = Math.max(0.02, 0.32 * Math.exp(-grbTimer * 2.4) * beaming);
+                // Broad supernova dome peaking softly then decaying
+                grbHypernovaFlux = Math.max(0.03, 0.52 * Math.exp(-Math.pow((grbTimer - 0.6) / 1.85, 2)));
 
-                phaseLabel.textContent = 'Phase: Synchrotron Afterglow Decay';
+                phaseLabel.textContent = 'Phase: Synchrotron Afterglow & Ni-56 Hypernova';
                 phaseLabel.className = 'font-mono-tech text-[11px] uppercase tracking-widest text-sky-400';
                 phaseDot.className = 'w-2.5 h-2.5 rounded-full bg-sky-400';
 
-                grbChargeLevel += delta * 0.05;
-                grbCocoonMeta.forEach(c => { c.expansion += delta * 2.2; });
+                grbChargeLevel += delta * 0.08;
+                grbProgenitorCoreShell.scale.addScalar(delta * 1.8);
+                grbProgenitorCoreShell.material.opacity = Math.max(0.06, grbProgenitorCoreShell.material.opacity - delta * 0.08);
+                grbHypernovaOuterShell.scale.addScalar(delta * 2.2);
+                grbHypernovaOuterShell.material.opacity = Math.max(0.03, grbHypernovaOuterShell.material.opacity - delta * 0.06);
 
-                if (grbPromptFlux + grbAfterglowFlux <= 0.085 && grbTimer > 2.8) {
-                    grbState = 'COLLAPSE';
+                grbHypernovaDebrisMeta.forEach(d => { d.dist += delta * (d.speed * 0.45); });
+
+                if (grbPromptFlux + grbHypernovaFlux <= 0.10 && grbTimer > 3.2) {
+                    grbState = 'IMPLOSION';
                 }
             }
 
-            // Update Cocoon Particle Positions
-            const cPos = grbCocoonParticles.geometry.attributes.position.array;
-            for (let i = 0; i < grbCocoonMeta.length; i++) {
-                const c = grbCocoonMeta[i];
-                // Polar jet breakout pushes cocoon faster along Y
-                const polarBoost = 1.0 + Math.abs(c.dir.y) * 1.6;
-                const r = c.baseR + c.expansion * polarBoost;
-                cPos[i * 3] = c.dir.x * r;
-                cPos[i * 3 + 1] = c.dir.y * r;
-                cPos[i * 3 + 2] = c.dir.z * r;
+            // Update 3D Hypernova Debris Particle Positions
+            const debPos = grbHypernovaDebrisPoints.geometry.attributes.position.array;
+            for (let i = 0; i < grbHypernovaDebrisMeta.length; i++) {
+                const d = grbHypernovaDebrisMeta[i];
+                const r = d.baseR + d.dist;
+                debPos[i * 3] = d.dir.x * r;
+                debPos[i * 3 + 1] = d.dir.y * r;
+                debPos[i * 3 + 2] = d.dir.z * r;
             }
-            grbCocoonParticles.geometry.attributes.position.needsUpdate = true;
+            grbHypernovaDebrisPoints.geometry.attributes.position.needsUpdate = true;
+            grbHypernovaDebrisPoints.material.opacity = grbState === 'IMPLOSION'
+                ? 0.35 + grbChargeLevel * 0.35
+                : Math.max(0.2, 0.95 - grbTimer * 0.18);
 
-            // Update Bipolar Jet Visuals & Doppler-Boosted Luminosity
-            const totalObservableFlux = Math.min(1.0, grbPromptFlux + grbAfterglowFlux);
-            const jetCoreOpacity = 0.08 + totalObservableFlux * 0.85;
-            const jetSheathOpacity = 0.05 + totalObservableFlux * 0.45;
+            // Animate Twisted Magnetic Field Coils & Violent Reconnection Flare Arcs
+            const magActivity = grbState === 'DETONATION_PROMPT' ? 1.0 : (0.25 + grbChargeLevel * 0.65);
+            grbHelixCoils.forEach((coil, idx) => {
+                const pulse = 1.0 + Math.sin(elapsed * 12 + coil.basePhase) * 0.08 * magActivity;
+                coil.mesh.scale.set(pulse, 1, pulse);
+                coil.mesh.material.opacity = 0.25 + magActivity * 0.65;
+            });
+
+            grbReconnectionArcs.forEach(arc => {
+                // High-frequency stochastic electric magnetic snapping & reconnection flashes
+                const snapWave = Math.sin(elapsed * arc.speed + arc.phase) * Math.cos(elapsed * (arc.speed * 1.7));
+                if (snapWave > (grbState === 'DETONATION_PROMPT' ? 0.15 : 0.62)) {
+                    arc.line.material.opacity = Math.min(1.0, (0.55 + Math.random() * 0.45) * magActivity);
+                    arc.line.rotation.y += delta * 4.5;
+                } else {
+                    arc.line.material.opacity *= 0.82;
+                }
+            });
+
+            // Update Bipolar Relativistic Jets & Jet Breakout Cocoon Flashes
+            const totalObservableFlux = Math.min(1.0, grbPromptFlux + grbHypernovaFlux * 0.65);
+            const jetCoreOpacity = 0.12 + totalObservableFlux * 0.88;
+            const jetSheathOpacity = 0.06 + totalObservableFlux * 0.52;
 
             [grbNorthCoreJet, grbSouthCoreJet].forEach(jet => {
                 jet.scale.set(collimationScale, 1, collimationScale);
                 jet.material.opacity = jetCoreOpacity;
             });
             [grbNorthSheathJet, grbSouthSheathJet].forEach(jet => {
-                jet.scale.set(collimationScale * 1.15, 1, collimationScale * 1.15);
+                jet.scale.set(collimationScale * 1.18, 1, collimationScale * 1.18);
                 jet.material.opacity = jetSheathOpacity;
             });
 
-            grbCoreSprite.scale.set(6.5 + totalObservableFlux * 13.0, 6.5 + totalObservableFlux * 13.0, 1);
-            grbPointLight.intensity = 2.0 + totalObservableFlux * 12.0;
+            // Jet Breakout Cocoon Flashes at North & South Poles during detonation
+            const breakoutIntensity = grbState === 'DETONATION_PROMPT'
+                ? Math.max(0, Math.sin(Math.min(1, grbTimer / 1.2) * Math.PI))
+                : 0;
+            [grbNorthBreakoutFlash, grbSouthBreakoutFlash].forEach(flash => {
+                flash.material.opacity = breakoutIntensity * 0.95;
+                const s = 10 + breakoutIntensity * 16;
+                flash.scale.set(s, s, 1);
+            });
 
-            // Update Colliding Internal Shock Knots along Jet Axes
+            grbCoreSprite.scale.set(7.5 + totalObservableFlux * 16.0, 7.5 + totalObservableFlux * 16.0, 1);
+            grbPointLight.intensity = 2.5 + totalObservableFlux * 15.0;
+
+            // Update Colliding Internal Shock Knots
             for (let i = grbInternalShocks.length - 1; i >= 0; i--) {
                 const s = grbInternalShocks[i];
                 s.dist += delta * s.speed;
                 s.northKnot.position.y = s.dist;
                 s.southKnot.position.y = -s.dist;
 
-                const widen = collimationScale * (0.6 + (s.dist / s.maxDist) * 1.8);
+                const widen = collimationScale * (0.65 + (s.dist / s.maxDist) * 1.9);
                 s.northKnot.scale.set(widen, widen, 1);
                 s.southKnot.scale.set(widen, widen, 1);
 
-                const fade = Math.max(0, (1 - s.dist / s.maxDist) * (0.3 + beaming * 0.7));
+                const fade = Math.max(0, (1 - s.dist / s.maxDist) * (0.35 + beaming * 0.65));
                 s.northKnot.material.opacity = fade;
                 s.southKnot.material.opacity = fade;
 
@@ -1411,18 +1671,18 @@
                 }
             }
 
-            // Update Forward External Bow Shocks (Circumburst Afterglow)
+            // Update Forward External Bow Shocks
             for (let i = grbExternalShocks.length - 1; i >= 0; i--) {
                 const ext = grbExternalShocks[i];
                 ext.dist += delta * ext.speed;
-                ext.scale += delta * 3.8;
+                ext.scale += delta * 4.2;
 
                 ext.northBow.position.y = ext.dist;
                 ext.northBow.scale.setScalar(ext.scale);
                 ext.southBow.position.y = -ext.dist;
                 ext.southBow.scale.setScalar(ext.scale);
 
-                const fade = Math.max(0, 0.75 * (1 - ext.dist / ext.maxDist));
+                const fade = Math.max(0, 0.82 * (1 - ext.dist / ext.maxDist));
                 ext.northBow.material.opacity = fade;
                 ext.southBow.material.opacity = fade;
 
@@ -1436,9 +1696,11 @@
                 }
             }
 
-            // Push Sample to Gamma-Ray Light Curve
-            const jitter = grbState === 'PROMPT_GRB' ? (Math.random() - 0.5) * 0.08 * beaming : (Math.random() - 0.5) * 0.012;
-            lightCurveData.push(Math.max(0.03, totalObservableFlux + jitter));
+            // Push Sample to Gamma-Ray + Hypernova Light Curve
+            const jitter = grbState === 'DETONATION_PROMPT'
+                ? (Math.random() - 0.5) * 0.09 * beaming
+                : (Math.random() - 0.5) * 0.015;
+            lightCurveData.push(Math.max(0.04, totalObservableFlux + jitter));
             if (lightCurveData.length > LIGHTCURVE_SAMPLES) lightCurveData.shift();
             renderLightCurve();
 
@@ -1446,18 +1708,19 @@
             const pct = Math.min(100, Math.round(grbChargeLevel * 100));
             document.getElementById('grb-charge-percent').textContent = pct + '%';
             document.getElementById('grb-charge-bar').style.width = pct + '%';
+            document.getElementById('lc-doppler-badge').textContent = `δ = ${beaming.toFixed(2)}`;
 
-            // Isotropic equivalent luminosity L_iso ~ 10^51 - 10^53 erg/s during prompt GRB
-            if (totalObservableFlux > 0.16) {
-                const lIso = (totalObservableFlux * 4.8 * (grbLorentzFactor / 250)).toFixed(2);
+            if (totalObservableFlux > 0.18) {
+                const lIso = (totalObservableFlux * 6.4 * (grbLorentzFactor / 350)).toFixed(2);
                 document.getElementById('flux-readout').textContent = `${lIso} × 10⁵² erg/s`;
             } else {
-                const afterLum = (1.4 + totalObservableFlux * 22).toFixed(1);
-                document.getElementById('flux-readout').textContent = `${afterLum} × 10⁴⁸ erg/s`;
+                const snLum = (2.1 + totalObservableFlux * 35).toFixed(1);
+                document.getElementById('flux-readout').textContent = `${snLum} × 10⁴⁹ erg/s`;
             }
 
-            document.getElementById('metric-readout').textContent = `Γ = ${grbLorentzFactor} • δ = ${beaming.toFixed(2)}`;
-            document.getElementById('metric-readout').className = 'text-fuchsia-300';
+            const ePeak = Math.round(180 + totalObservableFlux * 780 * beaming);
+            document.getElementById('metric2-val').textContent = `${ePeak} keV`;
+            document.getElementById('metric3-val').textContent = `10¹⁵ G • Γ=${grbLorentzFactor}`;
         }
 
         // =========================================================================
@@ -1467,7 +1730,7 @@
             const container = document.getElementById('canvas-container');
 
             scene = new THREE.Scene();
-            scene.fog = new THREE.FogExp2(0x02040a, 0.0022);
+            scene.fog = new THREE.FogExp2(0x03050a, 0.002);
 
             camera = new THREE.PerspectiveCamera(48, window.innerWidth / window.innerHeight, 0.1, 1000);
             camera.position.copy(targetCamPos);
@@ -1482,7 +1745,7 @@
             controls.dampingFactor = 0.06;
             controls.target.copy(targetLookAt);
             controls.minDistance = 4;
-            controls.maxDistance = 120;
+            controls.maxDistance = 130;
 
             controls.addEventListener('start', () => {
                 isCameraLerping = false;
@@ -1496,7 +1759,7 @@
 
             lcCanvas = document.getElementById('lightcurve-canvas');
             lcCanvas.width = 360;
-            lcCanvas.height = 80;
+            lcCanvas.height = 96;
             lcCtx = lcCanvas.getContext('2d');
 
             setupUI();
@@ -1504,11 +1767,9 @@
         }
 
         function setupUI() {
-            // Mode Switcher Tabs
             document.getElementById('tab-xrb').addEventListener('click', () => switchPhenomenonMode('XRB'));
             document.getElementById('tab-grb').addEventListener('click', () => switchPhenomenonMode('GRB'));
 
-            // Unified Trigger Button
             document.getElementById('trigger-burst-btn').addEventListener('click', () => {
                 if (activeMode === 'XRB') triggerXRayBurst();
                 else triggerGammaRayBurst();
@@ -1529,27 +1790,32 @@
             // GRB Viewing Angle Slider
             document.getElementById('angle-slider').addEventListener('input', (e) => {
                 grbViewingAngleDeg = parseInt(e.target.value, 10);
-                const label = grbViewingAngleDeg <= 5 ? `${grbViewingAngleDeg}° (On-Axis)` : `${grbViewingAngleDeg}° (Off-Axis)`;
+                const label = grbViewingAngleDeg <= 5
+                    ? `${grbViewingAngleDeg}° (On-Axis)`
+                    : (grbViewingAngleDeg <= 15 ? `${grbViewingAngleDeg}° (Near-Axis)` : `${grbViewingAngleDeg}° (Off-Axis)`);
                 document.getElementById('angle-val').textContent = label;
             });
 
-            // Auto-Burst Cycle Toggle
+            // Auto-Detonation Cycle Toggle
             const autoBtn = document.getElementById('auto-toggle-btn');
             autoBtn.addEventListener('click', () => {
                 autoBurstEnabled = !autoBurstEnabled;
                 autoBtn.textContent = autoBurstEnabled ? 'ENABLED' : 'PAUSED';
-                autoBtn.className = autoBurstEnabled
-                    ? 'px-3 py-1 rounded-lg font-mono-tech text-xs font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-400/50 cursor-pointer'
-                    : 'px-3 py-1 rounded-lg font-mono-tech text-xs font-semibold bg-slate-800 text-slate-400 border border-slate-700 cursor-pointer';
+                if (autoBurstEnabled) {
+                    autoBtn.className = activeMode === 'GRB'
+                        ? 'px-3 py-1 rounded-lg font-mono-tech text-xs font-semibold bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-400/50 cursor-pointer'
+                        : 'px-3 py-1 rounded-lg font-mono-tech text-xs font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-400/50 cursor-pointer';
+                } else {
+                    autoBtn.className = 'px-3 py-1 rounded-lg font-mono-tech text-xs font-semibold bg-slate-800 text-slate-400 border border-slate-700 cursor-pointer';
+                }
             });
 
             // Camera Presets
-            const camButtons = document.querySelectorAll('[data-cam]');
-            camButtons.forEach(btn => {
+            document.querySelectorAll('[data-cam]').forEach(btn => {
                 btn.addEventListener('click', () => {
-                    camButtons.forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    setCameraPreset(btn.getAttribute('data-cam'));
+                    const preset = btn.getAttribute('data-cam');
+                    updateCameraButtonHighlights(preset);
+                    setCameraPreset(preset);
                 });
             });
         }
@@ -1582,6 +1848,14 @@
                 if (camera.position.distanceTo(targetCamPos) < 0.15) {
                     isCameraLerping = false;
                 }
+            }
+
+            // Apply visceral damped camera micro-shake during detonation / ignition
+            if (cameraShakeIntensity > 0.005) {
+                camera.position.x += (Math.random() - 0.5) * cameraShakeIntensity;
+                camera.position.y += (Math.random() - 0.5) * cameraShakeIntensity;
+                camera.position.z += (Math.random() - 0.5) * cameraShakeIntensity;
+                cameraShakeIntensity *= Math.pow(0.06, delta); // Fast exponential damping
             }
 
             controls.update();
