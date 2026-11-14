@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Solar System Gamma-Ray Burst Impact Simulator 4K</title>
+  <title>Solar System 4K Gamma-Ray Burst Impact Observatory</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <style>
@@ -16,11 +16,11 @@
     canvas { display: block; width: 100vw; height: 100vh; outline: none; }
     .font-mono-tech { font-family: 'JetBrains Mono', monospace; }
     .glass-panel {
-      background: rgba(8, 12, 22, 0.82);
+      background: rgba(8, 12, 22, 0.85);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(56, 189, 248, 0.2);
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.22);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.12);
     }
     input[type="range"] {
       -webkit-appearance: none; appearance: none; background: transparent; cursor: pointer;
@@ -35,9 +35,9 @@
     }
     input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.25); }
     .body-btn.active {
-      background: linear-gradient(135deg, rgba(56, 189, 248, 0.35), rgba(129, 140, 248, 0.35));
-      border-color: rgba(56, 189, 248, 0.9); color: #ffffff;
-      box-shadow: 0 0 20px rgba(56, 189, 248, 0.4);
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.38), rgba(129, 140, 248, 0.38));
+      border-color: rgba(56, 189, 248, 0.95); color: #ffffff;
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.45);
     }
     ::-webkit-scrollbar { width: 4px; height: 4px; }
     ::-webkit-scrollbar-track { background: rgba(10, 15, 30, 0.8); }
@@ -60,7 +60,7 @@
       <div class="absolute inset-0 border-4 border-sky-500/20 rounded-full animate-ping"></div>
       <div class="w-16 h-16 border-4 border-sky-500/40 border-t-sky-400 rounded-full animate-spin"></div>
     </div>
-    <p class="text-sm tracking-widest uppercase text-sky-300 font-mono-tech">Initializing 4K WebGL Shaders & Ephemeris...</p>
+    <p class="text-sm tracking-widest uppercase text-sky-300 font-mono-tech">Synthesizing 4K GLSL Shaders & Solar System Ephemeris...</p>
   </div>
 
   <!-- 3D WebGL Container -->
@@ -72,9 +72,9 @@
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2.5">
           <span id="status-dot" class="w-3 h-3 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_10px_#34d399]"></span>
-          <h1 class="text-sm sm:text-base font-bold tracking-wider text-white">SOLAR SYSTEM 4K GRB SIMULATOR</h1>
+          <h1 class="text-sm sm:text-base font-bold tracking-wider text-white">SOLAR SYSTEM 4K GRB OBSERVATORY</h1>
         </div>
-        <button id="btn-fire" class="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-rose-600 via-amber-600 to-rose-600 hover:from-rose-500 hover:to-amber-500 text-white shadow-lg shadow-rose-600/40 transition flex items-center gap-2">
+        <button id="btn-fire" class="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-rose-600 via-amber-600 to-rose-600 hover:from-rose-500 hover:to-amber-500 text-white shadow-lg shadow-rose-600/40 transition flex items-center gap-2 cursor-pointer">
           <svg class="w-4 h-4 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
           <span id="fire-label">FIRE RELATIVISTIC GRB</span>
         </button>
@@ -83,26 +83,26 @@
       <!-- Celestial Body Selector -->
       <div class="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 max-w-full">
         <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap mr-1">Source:</span>
-        <button data-body="Sun" class="body-btn active px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-900/80 text-slate-300 border border-slate-700 transition whitespace-nowrap">Sun</button>
-        <button data-body="Mercury" class="body-btn px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-900/80 text-slate-300 border border-slate-700 transition whitespace-nowrap">Mercury</button>
-        <button data-body="Venus" class="body-btn px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-900/80 text-slate-300 border border-slate-700 transition whitespace-nowrap">Venus</button>
-        <button data-body="Earth" class="body-btn px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-900/80 text-slate-300 border border-slate-700 transition whitespace-nowrap">Earth</button>
-        <button data-body="Mars" class="body-btn px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-900/80 text-slate-300 border border-slate-700 transition whitespace-nowrap">Mars</button>
-        <button data-body="Jupiter" class="body-btn px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-900/80 text-slate-300 border border-slate-700 transition whitespace-nowrap">Jupiter</button>
-        <button data-body="Saturn" class="body-btn px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-900/80 text-slate-300 border border-slate-700 transition whitespace-nowrap">Saturn</button>
-        <button data-body="Uranus" class="body-btn px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-900/80 text-slate-300 border border-slate-700 transition whitespace-nowrap">Uranus</button>
-        <button data-body="Neptune" class="body-btn px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-900/80 text-slate-300 border border-slate-700 transition whitespace-nowrap">Neptune</button>
-        <button data-body="Pluto" class="body-btn px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-900/80 text-slate-300 border border-slate-700 transition whitespace-nowrap">Pluto</button>
+        <button data-body="Sun" class="body-btn active px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-900/80 text-slate-300 border border-slate-700 transition whitespace-nowrap cursor-pointer">Sun</button>
+        <button data-body="Mercury" class="body-btn px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-900/80 text-slate-300 border border-slate-700 transition whitespace-nowrap cursor-pointer">Mercury</button>
+        <button data-body="Venus" class="body-btn px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-900/80 text-slate-300 border border-slate-700 transition whitespace-nowrap cursor-pointer">Venus</button>
+        <button data-body="Earth" class="body-btn px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-900/80 text-slate-300 border border-slate-700 transition whitespace-nowrap cursor-pointer">Earth</button>
+        <button data-body="Mars" class="body-btn px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-900/80 text-slate-300 border border-slate-700 transition whitespace-nowrap cursor-pointer">Mars</button>
+        <button data-body="Jupiter" class="body-btn px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-900/80 text-slate-300 border border-slate-700 transition whitespace-nowrap cursor-pointer">Jupiter</button>
+        <button data-body="Saturn" class="body-btn px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-900/80 text-slate-300 border border-slate-700 transition whitespace-nowrap cursor-pointer">Saturn</button>
+        <button data-body="Uranus" class="body-btn px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-900/80 text-slate-300 border border-slate-700 transition whitespace-nowrap cursor-pointer">Uranus</button>
+        <button data-body="Neptune" class="body-btn px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-900/80 text-slate-300 border border-slate-700 transition whitespace-nowrap cursor-pointer">Neptune</button>
+        <button data-body="Pluto" class="body-btn px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-900/80 text-slate-300 border border-slate-700 transition whitespace-nowrap cursor-pointer">Pluto</button>
       </div>
     </div>
 
     <!-- Camera Presets -->
     <div class="flex items-center gap-1.5 self-start pointer-events-auto">
       <div class="glass-panel rounded-xl p-1 flex items-center gap-1">
-        <button data-cam="overview" class="cam-btn px-3 py-1 rounded-lg text-xs font-medium bg-sky-500/25 text-sky-200 border border-sky-400/50 transition">Overview</button>
-        <button data-cam="source" class="cam-btn px-3 py-1 rounded-lg text-xs font-medium text-slate-300 hover:bg-slate-800 transition">Source Close-Up</button>
-        <button data-cam="earth" class="cam-btn px-3 py-1 rounded-lg text-xs font-medium text-slate-300 hover:bg-slate-800 transition">Earth Orbit</button>
-        <button data-cam="corridor" class="cam-btn px-3 py-1 rounded-lg text-xs font-medium text-slate-300 hover:bg-slate-800 transition">Beam Corridor</button>
+        <button data-cam="overview" class="cam-btn px-3 py-1 rounded-lg text-xs font-medium bg-sky-500/25 text-sky-200 border border-sky-400/50 transition cursor-pointer">Overview</button>
+        <button data-cam="source" class="cam-btn px-3 py-1 rounded-lg text-xs font-medium text-slate-300 hover:bg-slate-800 transition cursor-pointer">Source Close-Up</button>
+        <button data-cam="earth" class="cam-btn px-3 py-1 rounded-lg text-xs font-medium text-slate-300 hover:bg-slate-800 transition cursor-pointer">Earth Orbit</button>
+        <button data-cam="corridor" class="cam-btn px-3 py-1 rounded-lg text-xs font-medium text-slate-300 hover:bg-slate-800 transition cursor-pointer">Beam Corridor</button>
       </div>
     </div>
   </header>
@@ -120,7 +120,7 @@
         <span id="earth-impact-status" class="text-emerald-400">Earth: Safe</span>
       </div>
       <p id="narrative-desc" class="text-[11px] text-slate-300 leading-relaxed">
-        Select a celestial source and trigger a relativistic gamma-ray burst to analyze planetary atmospheric stripping and thermal shockwaves.
+        Select a celestial source and trigger a relativistic gamma-ray burst to analyze planetary atmospheric stripping, EMP blackouts, and thermal shockwaves via 4K GLSL shaders.
       </p>
     </div>
 
@@ -146,12 +146,12 @@
   <footer class="fixed bottom-3 left-3 right-3 z-20 flex flex-col items-center pointer-events-none">
     <div class="glass-panel rounded-2xl p-3.5 w-full max-w-3xl pointer-events-auto">
       <div class="flex items-center gap-3.5">
-        <button id="btn-play" class="w-10 h-10 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold flex items-center justify-center shrink-0 shadow-lg shadow-sky-500/30 transition" title="Play / Pause">
+        <button id="btn-play" class="w-10 h-10 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold flex items-center justify-center shrink-0 shadow-lg shadow-sky-500/30 transition cursor-pointer" title="Play / Pause">
           <svg id="icon-pause" class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
           <svg id="icon-play" class="w-4 h-4 hidden" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
         </button>
 
-        <button id="btn-reset" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center justify-center shrink-0 transition" title="Reset">
+        <button id="btn-reset" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center justify-center shrink-0 transition cursor-pointer" title="Reset">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
         </button>
 
@@ -264,6 +264,34 @@
       return tex;
     }
 
+    function createCityLightsTexture() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1024; canvas.height = 512;
+      const ctx = canvas.getContext('2d');
+      const img = ctx.createImageData(1024, 512);
+      for (let y = 0; y < 512; y++) {
+        const theta = (y / 512) * Math.PI;
+        for (let x = 0; x < 1024; x++) {
+          const phi = (x / 1024) * Math.PI * 2;
+          const sx = Math.sin(theta) * Math.cos(phi);
+          const sy = Math.cos(theta);
+          const sz = Math.sin(theta) * Math.sin(phi);
+          const idx = (y * 1024 + x) * 4;
+          const urban = fbm3D(sx * 14.0, sy * 14.0, sz * 14.0, 3);
+          let lr = 0, lg = 0, lb = 0;
+          if (urban > 0.65 && Math.abs(sy) < 0.75) {
+            const val = Math.min(1.0, (urban - 0.65) * 6.0);
+            lr = Math.floor(255 * val); lg = Math.floor(190 * val); lb = Math.floor(90 * val);
+          }
+          img.data[idx] = lr; img.data[idx + 1] = lg; img.data[idx + 2] = lb; img.data[idx + 3] = 255;
+        }
+      }
+      ctx.putImageData(img, 0, 0);
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      return tex;
+    }
+
     // =========================================================================
     // 2. SCENE, CAMERA, RENDERER & POST-PROCESSING
     // =========================================================================
@@ -286,7 +314,7 @@
     controls.dampingFactor = 0.04;
     controls.minDistance = 3.5;
     controls.maxDistance = 300;
-    controls.target.set(14, 0, 0);
+    controls.target.set(13.5, 0, 0);
 
     const renderScene = new RenderPass(scene, camera);
     const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.6, 0.4, 0.8);
@@ -318,11 +346,13 @@
 
     // Lighting
     scene.add(new THREE.AmbientLight(0x112233, 0.8));
+    const sunPos = new THREE.Vector3(0, 0, 0);
     const sunLight = new THREE.PointLight(0xfffaed, 4.5, 400, 0.4);
+    sunLight.position.copy(sunPos);
     scene.add(sunLight);
 
     // =========================================================================
-    // 3. SOLAR SYSTEM BODIES SETUP
+    // 3. SOLAR SYSTEM BODIES SETUP & ADVANCED EARTH SHADER
     // =========================================================================
     const PLANET_DATA = [
       { name: 'Sun', au: 0.0, x: 0.0, radius: 3.0, type: 'Sun' },
@@ -339,6 +369,7 @@
 
     const bodyMeshes = {};
     const bodyGroups = {};
+    let earthUniforms = null;
 
     PLANET_DATA.forEach(data => {
       const group = new THREE.Group();
@@ -346,17 +377,65 @@
       scene.add(group);
       bodyGroups[data.name] = group;
 
-      let mat;
-      if (data.name === 'Sun') {
-        mat = new THREE.MeshBasicMaterial({ map: createBodyTexture('Sun') });
+      let mesh;
+      if (data.name === 'Earth') {
+        earthUniforms = {
+          uHealthyMap: { value: createBodyTexture('Earth_Healthy') },
+          uScorchedMap: { value: createBodyTexture('Earth_Scorched') },
+          uLightsMap: { value: createCityLightsTexture() },
+          uSunDir: { value: new THREE.Vector3(1, 0, 1).normalize() },
+          uDamage: { value: 0.0 },
+          uGridAlive: { value: 1.0 },
+          uIonFlash: { value: 0.0 },
+          uTime: { value: 0.0 }
+        };
+
+        const earthMat = new THREE.ShaderMaterial({
+          uniforms: earthUniforms,
+          vertexShader: `
+            varying vec2 vUv; varying vec3 vNormalWorld;
+            void main() {
+              vUv = uv;
+              vNormalWorld = normalize(mat3(modelMatrix) * normal);
+              gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+          `,
+          fragmentShader: `
+            uniform sampler2D uHealthyMap; uniform sampler2D uScorchedMap; uniform sampler2D uLightsMap;
+            uniform vec3 uSunDir; uniform float uDamage; uniform float uGridAlive; uniform float uIonFlash; uniform float uTime;
+            varying vec2 vUv; varying vec3 vNormalWorld;
+            void main() {
+              vec3 N = normalize(vNormalWorld);
+              float ndotl = dot(N, normalize(uSunDir));
+              float dayFactor = smoothstep(-0.18, 0.25, ndotl);
+              float nightFactor = 1.0 - smoothstep(-0.22, 0.08, ndotl);
+
+              vec3 surfaceCol = mix(texture2D(uHealthyMap, vUv).rgb, texture2D(uScorchedMap, vUv).rgb, uDamage);
+              vec3 litSurface = surfaceCol * (0.08 + dayFactor * mix(1.2, 0.7, uDamage));
+
+              vec3 cityLights = texture2D(uLightsMap, vUv).rgb;
+              float flicker = (uGridAlive < 0.99 && uGridAlive > 0.01)
+                ? step(0.35, fract(sin(dot(vUv * 50.0, vec2(12.9898, 78.233)) + uTime * 30.0) * 43758.5453))
+                : 1.0;
+              vec3 nightEmission = cityLights * nightFactor * uGridAlive * flicker * 1.5;
+
+              float strikeRim = pow(clamp(N.x, 0.0, 1.0), 1.5);
+              vec3 gammaFlashCol = mix(vec3(0.35, 0.65, 1.0), vec3(0.95, 0.55, 1.0), 0.5) * strikeRim * uIonFlash * 4.0;
+              vec3 smogTint = vec3(0.4, 0.18, 0.06) * uDamage * dayFactor * 0.3;
+
+              gl_FragColor = vec4(litSurface + nightEmission + gammaFlashCol + smogTint, 1.0);
+            }
+          `
+        });
+        mesh = new THREE.Mesh(new THREE.SphereGeometry(data.radius, 64, 64), earthMat);
       } else {
-        mat = new THREE.MeshStandardMaterial({
+        const mat = new THREE.MeshStandardMaterial({
           map: createBodyTexture(data.type),
           roughness: data.name === 'Jupiter' || data.name === 'Saturn' ? 0.35 : 0.8
         });
+        mesh = new THREE.Mesh(new THREE.SphereGeometry(data.radius, 64, 64), mat);
       }
 
-      const mesh = new THREE.Mesh(new THREE.SphereGeometry(data.radius, 64, 64), mat);
       group.add(mesh);
       bodyMeshes[data.name] = mesh;
 
@@ -370,7 +449,6 @@
         group.add(ringMesh);
       }
 
-      // Earth atmospheric scattering shell & clouds
       if (data.name === 'Earth') {
         const cloudGeo = new THREE.SphereGeometry(data.radius * 1.02, 48, 48);
         const cloudMat = new THREE.MeshStandardMaterial({
@@ -396,7 +474,7 @@
     scene.add(orbitLine);
 
     // =========================================================================
-    // 4. RELATIVISTIC GRB JET & HIGH-ENERGY PARTICLES
+    // 4. RELATIVISTIC GRB JET & PARTICLES
     // =========================================================================
     let selectedSource = 'Sun';
     let isFiring = false;
@@ -419,7 +497,6 @@
     rightJet.rotation.z = Math.PI / 2;
     grbGroup.add(rightJet);
 
-    // Shockwave wavefront rings
     const waveMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide, transparent: true, opacity: 0.0, blending: THREE.AdditiveBlending });
     const waveLeft = new THREE.Mesh(new THREE.RingGeometry(0.5, 1.5, 64), waveMat);
     waveLeft.rotation.y = Math.PI / 2;
@@ -429,7 +506,6 @@
     waveRight.rotation.y = Math.PI / 2;
     grbGroup.add(waveRight);
 
-    // Photonic Particle Burst System
     const particleGeo = new THREE.BufferGeometry();
     const particleCount = 1500;
     const particlePos = new Float32Array(particleCount * 3);
@@ -449,7 +525,6 @@
     const bodyBtns = document.querySelectorAll('.body-btn');
     const camBtns = document.querySelectorAll('.cam-btn');
     const btnFire = document.getElementById('btn-fire');
-    const fireLabel = document.getElementById('fire-label');
     const btnPlay = document.getElementById('btn-play');
     const iconPlay = document.getElementById('icon-play');
     const iconPause = document.getElementById('icon-pause');
@@ -482,7 +557,7 @@
         isFiring = false;
         isPlaying = false;
         slider.value = 0;
-        updateSimulation(0);
+        updateSimulation(0, 0);
       });
     });
 
@@ -528,19 +603,19 @@
       isFiring = false;
       isPlaying = false;
       slider.value = 0;
-      updateSimulation(0);
+      updateSimulation(0, 0);
     });
 
     slider.addEventListener('input', (e) => {
       simProgress = parseFloat(e.target.value);
       isFiring = true;
-      updateSimulation(simProgress);
+      updateSimulation(simProgress, 0);
     });
 
     // =========================================================================
     // 6. SIMULATION & TELEMETRY LOGIC
     // =========================================================================
-    function updateSimulation(t) {
+    function updateSimulation(t, elapsed) {
       const srcObj = PLANET_DATA.find(p => p.name === selectedSource);
       grbGroup.position.x = srcObj.x;
 
@@ -568,7 +643,8 @@
 
       let matrixHTML = '';
       let earthStatus = 'Nominal (Safe)';
-      let earthScorched = false;
+      let earthHit = false;
+      let earthFlux = 0;
 
       PLANET_DATA.forEach(planet => {
         const distFromSource = Math.abs(planet.x - srcObj.x);
@@ -578,7 +654,8 @@
         const statusText = hit ? (flux > 10000 ? 'Sterilization / Ionized' : 'Ozone Depleted') : 'Nominal';
 
         if (planet.name === 'Earth' && hit) {
-          earthScorched = true;
+          earthHit = true;
+          earthFlux = flux;
           earthStatus = flux > 10000 ? 'Lethal Atmospheric Stripping' : 'Ozone Collapsed';
         }
 
@@ -598,24 +675,28 @@
 
       matrixList.innerHTML = matrixHTML;
       earthImpactDisp.textContent = `Earth: ${earthStatus}`;
-      earthImpactDisp.className = earthScorched ? 'text-rose-400 font-bold' : 'text-emerald-400 font-bold';
+      earthImpactDisp.className = earthHit ? 'text-rose-400 font-bold' : 'text-emerald-400 font-bold';
 
-      const earthMesh = bodyMeshes['Earth'];
-      if (earthScorched) {
-        earthMesh.material.map = createBodyTexture('Earth_Scorched');
-        earthMesh.material.needsUpdate = true;
-        earthTagStatus.textContent = '[OZONE COLLAPSED / IONIZED]';
+      if (earthUniforms) {
+        const damage = earthHit ? Math.min(1.0, earthFlux / 15000) : 0.0;
+        const ionFlash = earthHit && t < 0.6 ? 1.0 - Math.abs(t - 0.35) * 2.5 : 0.0;
+        earthUniforms.uDamage.value = damage;
+        earthUniforms.uGridAlive.value = earthHit ? 0.0 : 1.0;
+        earthUniforms.uIonFlash.value = Math.max(0, ionFlash);
+        earthUniforms.uTime.value = elapsed;
+      }
+
+      if (earthHit) {
+        earthTagStatus.textContent = earthFlux > 10000 ? '[LETHAL IONIZATION]' : '[OZONE COLLAPSED]';
         earthTagStatus.className = 'text-rose-400';
       } else {
-        earthMesh.material.map = createBodyTexture('Earth_Healthy');
-        earthMesh.material.needsUpdate = true;
         earthTagStatus.textContent = '[NOMINAL]';
         earthTagStatus.className = 'text-emerald-400';
       }
 
       simTimeDisp.textContent = `T + ${(t * 14.0).toFixed(2)}h`;
       narrativeDesc.textContent = isFiring 
-        ? `Gamma-ray burst beam active from ${selectedSource}. Synchrotron radiation wavefront sweeping planetary orbits at light speed.`
+        ? `Gamma-ray burst beam active from ${selectedSource}. Relativistic particle wavefront sweeping planetary orbits at light speed.`
         : `Ready. Source locked to ${selectedSource}. Click 'FIRE RELATIVISTIC GRB' to initiate simulation.`;
     }
 
@@ -651,6 +732,7 @@
     function animate() {
       requestAnimationFrame(animate);
       const dt = clock.getDelta();
+      const elapsed = clock.getElapsedTime();
 
       if (isPlaying && isFiring) {
         simProgress += dt * 0.22;
@@ -661,8 +743,9 @@
           iconPause.classList.remove('hidden');
         }
         slider.value = simProgress;
-        updateSimulation(simProgress);
       }
+
+      updateSimulation(simProgress, elapsed);
 
       // Planetary rotation & cloud drifting
       Object.keys(bodyMeshes).forEach(name => {
@@ -689,7 +772,7 @@
       const loader = document.getElementById('loader');
       loader.style.opacity = '0';
       setTimeout(() => loader.remove(), 800);
-      updateSimulation(0);
+      updateSimulation(0, 0);
       animate();
     });
   </script>
