@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Solar System 4K Gamma-Ray Burst Impact Observatory</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; user-select: none; }
+    body, html {
+      margin: 0; padding: 0; width: 100%; height: 100%;
+      overflow: hidden; background-color: #010206;
+      font-family: 'Inter', sans-serif; color: #f1f5f9;
+    }
+    canvas { display: block; width: 100vw; height: 100vh; outline: none; }
+    .font-mono-tech { font-family: 'JetBrains Mono', monospace; }
+    .glass-panel {
+      background: rgba(8, 12, 22, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(56, 189, 248, 0.22);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    }
+    input[type="range"] {
+      -webkit-appearance: none; appearance: none; background: transparent; cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 6px; border-radius: 999px; background: rgba(148, 163, 184, 0.2);
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none; margin-top: -5px;
+      background-color: #38bdf8; height: 16px; width: 16px; border-radius: 50%;
+      box-shadow: 0 0 16px #38bdf8; border: 2px solid #ffffff; transition: transform 0.15s ease;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.25); }
+    .body-btn.active {
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.38), rgba(129, 140, 248, 0.38));
+      border-color: rgba(56, 189, 248, 0.95); color: #ffffff;
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.45);
+    }
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: rgba(10, 15, 30, 0.8); }
+    ::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, 0.5); border-radius: 4px; }
+  </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+
+  <!-- Loading Overlay -->
+  <div id="loader" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#010206] transition-opacity duration-1000">
+    <div class="relative w-20 h-20 mb-6 flex items-center justify-center">
+      <div class="absolute inset-0 border-4 border-sky-500/20 rounded-full animate-ping"></div>
+      <div class="w-16 h-16 border-4 border-sky-500/40 border-t-sky-400 rounded-full animate-spin"></div>
+    </div>
+    <p class="text-sm tracking-widest uppercase text-sky-300 font-mono-tech">Initializing WebGL Scene...</p>
+  </div>
+
+  <!-- 3D WebGL Container -->
+  <div id="canvas-container" class="fixed inset-0 z-0"></div>
+
+  <!-- Header Bar -->
+  <header class="fixed top-3 left-3 right-3 z-20 flex flex-col gap-2 pointer-events-none">
+    <div class="glass-panel rounded-2xl px-4 py-3 pointer-events-auto flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <span id="status-dot" class="w-3 h-3 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_10px_#34d399]"></span>
+          <h1 class="text-sm sm:text-base font-bold tracking-wider text-white">SOLAR SYSTEM 4K GRB OBSERVATORY</h1>
+        </div>
+        <button id="btn-fire" class="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-rose-600 via-amber-600 to-rose-600 hover:from-rose-500 hover:to-amber-500 text-white shadow-lg shadow-rose-600/40 transition flex items-center gap-2 cursor-pointer">
+          <svg class="w-4 h-4 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          <span id="fire-label">FIRE RELATIVISTIC GRB</span>
+        </button>
+      </div>
+
+      <!-- Celestial Body Selector -->
+      <div class="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 max-w-full">
+        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap mr-1">Source:</span>
+        <button data-body="Sun" class="body-btn active px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-900/80 text-slate-300 border border-slate-700 transition whitespace-nowrap cursor-pointer">Sun</button>
+        <button data-body="Mercury" class="body-btn px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-900/80 text-slate-300 border border-slate-700 transition whitespace-nowrap cursor-pointer">Mercury</button>
+        <button data-body="Venus" class="body-btn px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-900/80 text-slate-300 border border-slate-700 transition whitespace-nowrap cursor-pointer">Venus</button>
+        <button data-body="Earth" class="body-btn px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-900/80 text-slate-300 border border-slate-700 transition whitespace-nowrap cursor-pointer">Earth</button>
+        <button data-body="Mars" class="body-btn px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-900/80 text-slate-300 border border-slate-700 transition whitespace-nowrap cursor-pointer">Mars</button>
+        <button data-body="Jupiter" class="body-btn px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-900/80 text-slate-300 border border-slate-700 transition whitespace-nowrap cursor-pointer">Jupiter</button>
+        <button data-body="Saturn" class="body-btn px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-900/80 text-slate-300 border border-slate-700 transition whitespace-nowrap cursor-pointer">Saturn</button>
+        <button data-body="Uranus" class="body-btn px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-900/80 text-slate-300 border border-slate-700 transition whitespace-nowrap cursor-pointer">Uranus</button>
+        <button data-body="Neptune" class="body-btn px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-900/80 text-slate-300 border border-slate-700 transition whitespace-nowrap cursor-pointer">Neptune</button>
+        <button data-body="Pluto" class="body-btn px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-900/80 text-slate-300 border border-slate-700 transition whitespace-nowrap cursor-pointer">Pluto</button>
+      </div>
+    </div>
+
+    <!-- Camera Presets -->
+    <div class="flex items-center gap-1.5 self-start pointer-events-auto">
+      <div class="glass-panel rounded-xl p-1 flex items-center gap-1">
+        <button data-cam="overview" class="cam-btn px-3 py-1 rounded-lg text-xs font-medium bg-sky-500/25 text-sky-200 border border-sky-400/50 transition cursor-pointer">Overview</button>
+        <button data-cam="source" class="cam-btn px-3 py-1 rounded-lg text-xs font-medium text-slate-300 hover:bg-slate-800 transition cursor-pointer">Source Close-Up</button>
+        <button data-cam="earth" class="cam-btn px-3 py-1 rounded-lg text-xs font-medium text-slate-300 hover:bg-slate-800 transition cursor-pointer">Earth Orbit</button>
+        <button data-cam="corridor" class="cam-btn px-3 py-1 rounded-lg text-xs font-medium text-slate-300 hover:bg-slate-800 transition cursor-pointer">Beam Corridor</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Telemetry Panel -->
+  <aside id="telemetry-panel" class="fixed top-36 right-3 z-20 w-80 sm:w-88 glass-panel rounded-2xl p-4 pointer-events-auto max-h-[calc(100vh-160px)] overflow-y-auto">
+    <div class="flex items-center justify-between border-b border-slate-700/60 pb-2.5 mb-3 sticky top-0 bg-[#080c16]/95 backdrop-blur-md pt-1">
+      <span class="text-xs font-bold uppercase tracking-wider text-slate-300">Planetary Impact Matrix</span>
+      <span id="sim-time" class="text-xs font-mono-tech font-bold text-sky-400">T + 0.00h</span>
+    </div>
+
+    <div class="bg-slate-900/90 rounded-xl p-3 border border-slate-800 mb-3.5 text-xs shadow-inner">
+      <div class="flex justify-between font-semibold mb-1.5">
+        <span id="source-name-display" class="text-purple-400">Source: Sun (0.0 AU)</span>
+        <span id="earth-impact-status" class="text-emerald-400">Earth: Safe</span>
+      </div>
+      <p id="narrative-desc" class="text-[11px] text-slate-300 leading-relaxed">
+        Select a celestial source and trigger a relativistic gamma-ray burst to analyze planetary atmospheric stripping, EMP blackouts, and thermal shockwaves.
+      </p>
+    </div>
+
+    <div class="space-y-1.5 text-xs">
+      <div class="text-[10px] font-mono-tech uppercase tracking-wider text-slate-400 mb-1.5">Real-Time Sensor Grid</div>
+      <div id="planet-matrix-list" class="space-y-1.5"></div>
+    </div>
+  </aside>
+
+  <!-- Floating 3D Labels -->
+  <div id="label-earth" class="fixed z-10 pointer-events-none transform -translate-x-1/2 -translate-y-full pb-3 transition-opacity duration-300">
+    <div class="px-3 py-1 rounded-xl bg-slate-950/90 border border-sky-400/50 text-[11px] font-mono-tech text-sky-200 whitespace-nowrap shadow-2xl backdrop-blur-md">
+      EARTH <span id="earth-tag-status" class="text-emerald-400">[NOMINAL]</span>
+    </div>
+  </div>
+  <div id="label-source" class="fixed z-10 pointer-events-none transform -translate-x-1/2 -translate-y-full pb-3 transition-opacity duration-300">
+    <div class="px-3 py-1 rounded-xl bg-slate-950/90 border border-purple-400/50 text-[11px] font-mono-tech text-purple-200 whitespace-nowrap shadow-2xl backdrop-blur-md">
+      <span id="source-label-name">SUN</span> <span class="text-purple-300">[GRB SOURCE]</span>
+    </div>
+  </div>
+
+  <!-- Timeline Scrubber Footer -->
+  <footer class="fixed bottom-3 left-3 right-3 z-20 flex flex-col items-center pointer-events-none">
+    <div class="glass-panel rounded-2xl p-3.5 w-full max-w-3xl pointer-events-auto">
+      <div class="flex items-center gap-3.5">
+        <button id="btn-play" class="w-10 h-10 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold flex items-center justify-center shrink-0 shadow-lg shadow-sky-500/30 transition cursor-pointer" title="Play / Pause">
+          <svg id="icon-pause" class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+          <svg id="icon-play" class="w-4 h-4 hidden" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </button>
+
+        <button id="btn-reset" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center justify-center shrink-0 transition cursor-pointer" title="Reset">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        </button>
+
+        <div class="flex-1 flex flex-col">
+          <input id="timeline-slider" type="range" min="0" max="1" step="0.0005" value="0" class="w-full" />
+          <div class="flex justify-between text-[10px] font-mono-tech text-slate-400 mt-1.5 px-0.5">
+            <span>T-0 Ignition</span>
+            <span>Relativistic Beam Wavefront</span>
+            <span>Planetary Ionization</span>
+            <span>Thermal Collapse</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Three.js Simulation Script -->
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+    import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x010206, 0.001);
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 2000);
+    camera.position.set(16, 24, 60);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.3;
+    container.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.04;
+    controls.minDistance = 3.5;
+    controls.maxDistance = 300;
+    controls.target.set(13.5, 0, 0);
+
+    const renderScene = new RenderPass(scene, camera);
+    const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.6, 0.4, 0.8);
+    const composer = new EffectComposer(renderer);
+    composer.addPass(renderScene);
+    composer.addPass(bloomPass);
+
+    // Starfield
+    const starGeo = new THREE.BufferGeometry();
+    const starCount = 5000;
+    const starPos = new Float32Array(starCount * 3);
+    for (let i = 0; i < starCount; i++) {
+      const r = 400 + Math.random() * 400;
+      const th = Math.random() * Math.PI * 2;
+      const ph = Math.acos(2 * Math.random() - 1);
+      starPos[i * 3] = r * Math.sin(ph) * Math.cos(th);
+      starPos[i * 3 + 1] = r * Math.cos(ph);
+      starPos[i * 3 + 2] = r * Math.sin(ph) * Math.sin(th);
+    }
+    starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+    scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ size: 1.2, color: 0xffffff, transparent: true, opacity: 0.8 })));
+
+    // Lighting
+    scene.add(new THREE.AmbientLight(0xffffff, 0.9));
+    const sunLight = new THREE.PointLight(0xfffaed, 3.5, 400);
+    scene.add(sunLight);
+
+    const PLANET_DATA = [
+      { name: 'Sun', au: 0.0, x: 0.0, radius: 3.0, color: 0xfacc15, emissive: 0xf59e0b },
+      { name: 'Mercury', au: 0.39, x: 5.0, radius: 0.55, color: 0x94a3b8 },
+      { name: 'Venus', au: 0.72, x: 9.0, radius: 0.95, color: 0xfde047 },
+      { name: 'Earth', au: 1.0, x: 13.5, radius: 1.05, color: 0x38bdf8, healthyColor: 0x0284c7, scorchedColor: 0x9a3412 },
+      { name: 'Mars', au: 1.52, x: 18.5, radius: 0.7, color: 0xf43f5e },
+      { name: 'Jupiter', au: 5.2, x: 29.0, radius: 2.2, color: 0xd97706 },
+      { name: 'Saturn', au: 9.54, x: 39.0, radius: 1.85, color: 0xfef08a, hasRings: true },
+      { name: 'Uranus', au: 19.2, x: 49.0, radius: 1.3, color: 0x22d3ee },
+      { name: 'Neptune', au: 30.1, x: 58.0, radius: 1.25, color: 0x3b82f6 },
+      { name: 'Pluto', au: 39.5, x: 66.0, radius: 0.45, color: 0xe2e8f0 }
+    ];
+
+    const bodyMeshes = {};
+    const bodyMaterials = {};
+
+    PLANET_DATA.forEach(data => {
+      const group = new THREE.Group();
+      group.position.set(data.x, 0, 0);
+      scene.add(group);
+
+      const mat = new THREE.MeshStandardMaterial({
+        color: data.color,
+        emissive: data.emissive || 0x000000,
+        emissiveIntensity: data.emissive ? 0.8 : 0.0,
+        roughness: 0.7
+      });
+      bodyMaterials[data.name] = mat;
+
+      const mesh = new THREE.Mesh(new THREE.SphereGeometry(data.radius, 32, 32), mat);
+      group.add(mesh);
+      bodyMeshes[data.name] = mesh;
+
+      if (data.hasRings) {
+        const ringGeo = new THREE.RingGeometry(data.radius * 1.4, data.radius * 2.2, 32);
+        const ringMat = new THREE.MeshStandardMaterial({ color: 0xca8a04, side: THREE.DoubleSide, transparent: true, opacity: 0.8 });
+        const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+        ringMesh.rotation.x = Math.PI / 2 + 0.3;
+        group.add(ringMesh);
+      }
+    });
+
+    // Orbit guideline
+    const linePts = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(66, 0, 0)];
+    const orbitLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(linePts), new THREE.LineBasicMaterial({ color: 0x334155 }));
+    scene.add(orbitLine);
+
+    // GRB Beam setup
+    let selectedSource = 'Sun';
+    let isFiring = false;
+    let simProgress = 0.0;
+    let isPlaying = false;
+
+    const grbGroup = new THREE.Group();
+    scene.add(grbGroup);
+
+    const jetMat = new THREE.MeshBasicMaterial({ color: 0xc084fc, transparent: true, opacity: 0.0, blending: THREE.AdditiveBlending });
+    const leftJet = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 0.2, 1.0, 16, 1, true), jetMat);
+    leftJet.geometry.translate(0, 0.5, 0);
+    leftJet.rotation.z = -Math.PI / 2;
+    grbGroup.add(leftJet);
+
+    const rightJet = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 0.2, 1.0, 16, 1, true), jetMat);
+    rightJet.geometry.translate(0, 0.5, 0);
+    rightJet.rotation.z = Math.PI / 2;
+    grbGroup.add(rightJet);
+
+    // UI Event Handlers
+    const bodyBtns = document.querySelectorAll('.body-btn');
+    const camBtns = document.querySelectorAll('.cam-btn');
+    const btnFire = document.getElementById('btn-fire');
+    const btnPlay = document.getElementById('btn-play');
+    const iconPlay = document.getElementById('icon-play');
+    const iconPause = document.getElementById('icon-pause');
+    const btnReset = document.getElementById('btn-reset');
+    const slider = document.getElementById('timeline-slider');
+
+    const sourceNameDisp = document.getElementById('source-name-display');
+    const earthImpactDisp = document.getElementById('earth-impact-status');
+    const narrativeDesc = document.getElementById('narrative-desc');
+    const simTimeDisp = document.getElementById('sim-time');
+    const matrixList = document.getElementById('planet-matrix-list');
+    const labelSource = document.getElementById('label-source');
+    const labelEarth = document.getElementById('label-earth');
+    const sourceLabelName = document.getElementById('source-label-name');
+    const earthTagStatus = document.getElementById('earth-tag-status');
+
+    bodyBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        bodyBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedSource = btn.dataset.body;
+        sourceNameDisp.textContent = `Source: ${selectedSource} (${PLANET_DATA.find(p=>p.name===selectedSource).au} AU)`;
+        sourceLabelName.textContent = selectedSource.toUpperCase();
+        
+        const srcObj = PLANET_DATA.find(p => p.name === selectedSource);
+        grbGroup.position.x = srcObj.x;
+        controls.target.set(srcObj.x, 0, 0);
+
+        simProgress = 0.0;
+        isFiring = false;
+        isPlaying = false;
+        slider.value = 0;
+        updateSimulation(0);
+      });
+    });
+
+    camBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        camBtns.forEach(b => b.classList.remove('bg-sky-500/25', 'text-sky-200', 'border-sky-400/50'));
+        btn.classList.add('bg-sky-500/25', 'text-sky-200', 'border-sky-400/50');
+        const mode = btn.dataset.cam;
+        const srcX = PLANET_DATA.find(p => p.name === selectedSource).x;
+
+        if (mode === 'overview') { camera.position.set(srcX, 28, 65); controls.target.set(srcX, 0, 0); }
+        else if (mode === 'source') { camera.position.set(srcX - 7, 3, 11); controls.target.set(srcX, 0, 0); }
+        else if (mode === 'earth') { camera.position.set(PLANET_DATA.find(p => p.name === 'Earth').x - 5, 2, 9); controls.target.set(PLANET_DATA.find(p => p.name === 'Earth').x, 0, 0); }
+        else if (mode === 'corridor') { camera.position.set(28, 38, 55); controls.target.set(28, 0, 0); }
+      });
+    });
+
+    btnFire.addEventListener('click', () => {
+      isFiring = true; isPlaying = true; simProgress = 0.0;
+      iconPlay.classList.remove('hidden'); iconPause.classList.add('hidden');
+    });
+
+    btnPlay.addEventListener('click', () => {
+      isPlaying = !isPlaying;
+      iconPlay.classList.toggle('hidden', isPlaying);
+      iconPause.classList.toggle('hidden', !isPlaying);
+    });
+
+    btnReset.addEventListener('click', () => {
+      simProgress = 0.0; isFiring = false; isPlaying = false; slider.value = 0;
+      updateSimulation(0);
+    });
+
+    slider.addEventListener('input', (e) => {
+      simProgress = parseFloat(e.target.value); isFiring = true;
+      updateSimulation(simProgress);
+    });
+
+    function updateSimulation(t) {
+      const srcObj = PLANET_DATA.find(p => p.name === selectedSource);
+      grbGroup.position.x = srcObj.x;
+
+      const maxDist = Math.max(srcObj.x, 66.0 - srcObj.x, 1.0);
+      const activeDist = t * maxDist * 1.25;
+
+      const jetLenL = Math.min(srcObj.x, activeDist);
+      const jetLenR = Math.min(66.0 - srcObj.x, activeDist);
+
+      leftJet.scale.set(1.0, Math.max(0.01, jetLenL), 1.0);
+      leftJet.position.x = -jetLenL / 2;
+
+      rightJet.scale.set(1.0, Math.max(0.01, jetLenR), 1.0);
+      rightJet.position.x = jetLenR / 2;
+
+      const intensity = isFiring && t > 0 ? (1.0 - Math.abs(t - 0.5) * 0.4) : 0.0;
+      jetMat.opacity = intensity * 0.95;
+
+      let matrixHTML = '';
+      let earthStatus = 'Nominal (Safe)';
+      let earthHit = false;
+      let earthFlux = 0;
+
+      PLANET_DATA.forEach(planet => {
+        const distFromSource = Math.abs(planet.x - srcObj.x);
+        const hit = isFiring && activeDist >= distFromSource;
+        const flux = hit ? Math.round(120000 / (planet.au * planet.au + 0.04)) : 0;
+        const statusColor = hit ? (flux > 10000 ? 'text-rose-400' : 'text-amber-400') : 'text-emerald-400';
+        const statusText = hit ? (flux > 10000 ? 'Sterilized / Ionized' : 'Ozone Depleted') : 'Nominal';
+
+        if (planet.name === 'Earth' && hit) {
+          earthHit = true;
+          earthFlux = flux;
+          earthStatus = flux > 10000 ? 'Lethal Atmospheric Stripping' : 'Ozone Collapsed';
+        }
+
+        matrixHTML += `
+          <div class="bg-slate-900/80 rounded-xl p-2.5 border border-slate-800/80 flex items-center justify-between shadow">
+            <div>
+              <span class="font-semibold text-white">${planet.name}</span>
+              <span class="text-[10px] text-slate-400 ml-1">(${planet.au} AU)</span>
+            </div>
+            <div class="text-right">
+              <span class="text-[11px] font-mono-tech font-bold ${statusColor}">${statusText}</span>
+              <div class="text-[9px] text-slate-400 font-mono-tech">${flux.toLocaleString()} kW/m²</div>
+            </div>
+          </div>
+        `;
+      });
+
+      matrixList.innerHTML = matrixHTML;
+      earthImpactDisp.textContent = `Earth: ${earthStatus}`;
+      earthImpactDisp.className = earthHit ? 'text-rose-400 font-bold' : 'text-emerald-400 font-bold';
+
+      if (earthHit) {
+        bodyMaterials['Earth'].color.setHex(0x9a3412);
+        earthTagStatus.textContent = earthFlux > 10000 ? '[LETHAL IONIZATION]' : '[OZONE COLLAPSED]';
+        earthTagStatus.className = 'text-rose-400';
+      } else {
+        bodyMaterials['Earth'].color.setHex(0x38bdf8);
+        earthTagStatus.textContent = '[NOMINAL]';
+        earthTagStatus.className = 'text-emerald-400';
+      }
+
+      simTimeDisp.textContent = `T + ${(t * 14.0).toFixed(2)}h`;
+      narrativeDesc.textContent = isFiring 
+        ? `Gamma-ray burst beam active from ${selectedSource}. Relativistic particle wavefront sweeping planetary orbits.`
+        : `Ready. Source locked to ${selectedSource}. Click 'FIRE RELATIVISTIC GRB' to initiate simulation.`;
+    }
+
+    const projVec = new THREE.Vector3();
+    function updateLabels() {
+      const srcObj = PLANET_DATA.find(p => p.name === selectedSource);
+      projVec.set(srcObj.x, srcObj.radius + 0.7, 0).project(camera);
+      if (projVec.z < 1.0) {
+        labelSource.style.left = `${(projVec.x * 0.5 + 0.5) * window.innerWidth}px`;
+        labelSource.style.top = `${((-projVec.y * 0.5 + 0.5)) * window.innerHeight}px`;
+        labelSource.style.opacity = '1';
+      } else { labelSource.style.opacity = '0'; }
+
+      const earthObj = PLANET_DATA.find(p => p.name === 'Earth');
+      projVec.set(earthObj.x, earthObj.radius + 0.7, 0).project(camera);
+      if (projVec.z < 1.0) {
+        labelEarth.style.left = `${(projVec.x * 0.5 + 0.5) * window.innerWidth}px`;
+        labelEarth.style.top = `${((-projVec.y * 0.5 + 0.5)) * window.innerHeight}px`;
+        labelEarth.style.opacity = '1';
+      } else { labelEarth.style.opacity = '0'; }
+    }
+
+    const clock = new THREE.Clock();
+    function animate() {
+      requestAnimationFrame(animate);
+      const dt = clock.getDelta();
+
+      if (isPlaying && isFiring) {
+        simProgress += dt * 0.22;
+        if (simProgress >= 1.0) {
+          simProgress = 1.0; isPlaying = false;
+          iconPlay.classList.add('hidden'); iconPause.classList.remove('hidden');
+        }
+        slider.value = simProgress;
+      }
+
+      updateSimulation(simProgress);
+
+      Object.keys(bodyMeshes).forEach(name => {
+        bodyMeshes[name].rotation.y += dt * 0.1;
+      });
+
+      controls.update();
+      updateLabels();
+      composer.render();
+    }
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      composer.setSize(window.innerWidth, window.innerHeight);
+      bloomPass.resolution.set(window.innerWidth, window.innerHeight);
+    });
+
+    window.addEventListener('load', () => {
+      const loader = document.getElementById('loader');
+      loader.style.opacity = '0';
+      setTimeout(() => loader.remove(), 600);
+      updateSimulation(0);
+      animate();
+    });
+  </script>
+</body>
+</html>
