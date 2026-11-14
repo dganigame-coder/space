@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Solar System Gamma-Ray Burst Impact Simulator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; user-select: none; }
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #020308;
+      font-family: 'Inter', sans-serif;
+      color: #f1f5f9;
+    }
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      outline: none;
+    }
+    .font-mono-tech {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .glass-panel {
+      background: rgba(10, 15, 28, 0.78);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(148, 163, 184, 0.16);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.65);
+    }
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      background: transparent;
+      cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, 0.25);
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      margin-top: -5px;
+      background-color: #38bdf8;
+      height: 16px;
+      width: 16px;
+      border-radius: 50%;
+      box-shadow: 0 0 12px #38bdf8;
+      border: 2px solid #ffffff;
+      transition: transform 0.15s ease;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+    .body-btn.active {
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.32), rgba(99, 102, 241, 0.32));
+      border-color: rgba(56, 189, 248, 0.8);
+      color: #ffffff;
+      box-shadow: 0 0 18px rgba(56, 189, 248, 0.3);
+    }
+    /* Custom Scrollbar for Planet Selector */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
+    ::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, 0.4); border-radius: 4px; }
+  </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+
+  <!-- Loading Overlay -->
+  <div id="loader" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#020308] transition-opacity duration-700">
+    <div class="w-14 h-14 border-4 border-sky-500/30 border-t-sky-400 rounded-full animate-spin mb-4"></div>
+    <p class="text-sm tracking-widest uppercase text-sky-300 font-mono-tech">Synthesizing Solar System Ephemeris & Shaders...</p>
+  </div>
+
+  <!-- 3D WebGL Container -->
+  <div id="canvas-container" class="fixed inset-0 z-0"></div>
+
+  <!-- Top Header & Source Selector Bar -->
+  <header class="fixed top-3 left-3 right-3 z-20 flex flex-col gap-2 pointer-events-none">
+    <div class="glass-panel rounded-2xl px-4 py-2.5 pointer-events-auto flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <span id="status-dot" class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          <h1 class="text-sm sm:text-base font-bold tracking-tight text-white">SOLAR SYSTEM GRB IMPACT SIMULATOR</h1>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="btn-fire" class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white shadow-lg shadow-rose-600/30 transition flex items-center gap-1.5">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            <span id="fire-label">FIRE GRB</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Celestial Source Selector (10 Bodies) -->
+      <div class="flex items-center gap-1 overflow-x-auto pb-1 md:pb-0 max-w-full">
+        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap mr-1">Source:</span>
+        <button data-body="Sun" class="body-btn active px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-800/80 text-slate-300 border border-slate-700 transition whitespace-nowrap">Sun</button>
+        <button data-body="Mercury" class="body-btn px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-800/80 text-slate-300 border border-slate-700 transition whitespace-nowrap">Mercury</button>
+        <button data-body="Venus" class="body-btn px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-800/80 text-slate-300 border border-slate-700 transition whitespace-nowrap">Venus</button>
+        <button data-body="Earth" class="body-btn px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-800/80 text-slate-300 border border-slate-700 transition whitespace-nowrap">Earth</button>
+        <button data-body="Mars" class="body-btn px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-800/80 text-slate-300 border border-slate-700 transition whitespace-nowrap">Mars</button>
+        <button data-body="Jupiter" class="body-btn px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-800/80 text-slate-300 border border-slate-700 transition whitespace-nowrap">Jupiter</button>
+        <button data-body="Saturn" class="body-btn px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-800/80 text-slate-300 border border-slate-700 transition whitespace-nowrap">Saturn</button>
+        <button data-body="Uranus" class="body-btn px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-800/80 text-slate-300 border border-slate-700 transition whitespace-nowrap">Uranus</button>
+        <button data-body="Neptune" class="body-btn px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-800/80 text-slate-300 border border-slate-700 transition whitespace-nowrap">Neptune</button>
+        <button data-body="Pluto" class="body-btn px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-800/80 text-slate-300 border border-slate-700 transition whitespace-nowrap">Pluto</button>
+      </div>
+    </div>
+
+    <!-- Camera Presets Bar -->
+    <div class="flex items-center gap-1.5 self-start pointer-events-auto">
+      <div class="glass-panel rounded-xl p-1 flex items-center gap-1">
+        <button data-cam="overview" class="cam-btn px-2.5 py-1 rounded-lg text-xs font-medium bg-sky-500/25 text-sky-200 border border-sky-400/50 transition">Overview</button>
+        <button data-cam="source" class="cam-btn px-2.5 py-1 rounded-lg text-xs font-medium text-slate-300 hover:bg-slate-800 transition">Source View</button>
+        <button data-cam="earth" class="cam-btn px-2.5 py-1 rounded-lg text-xs font-medium text-slate-300 hover:bg-slate-800 transition">Earth Focus</button>
+        <button data-cam="path" class="cam-btn px-2.5 py-1 rounded-lg text-xs font-medium text-slate-300 hover:bg-slate-800 transition">Beam Corridor</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Right Telemetry & Multi-Planet Impact Panel -->
+  <aside id="telemetry-panel" class="fixed top-32 right-3 z-20 w-72 sm:w-80 glass-panel rounded-2xl p-3.5 pointer-events-auto max-h-[calc(100vh-140px)] overflow-y-auto">
+    <div class="flex items-center justify-between border-b border-slate-700/60 pb-2 mb-2.5 sticky top-0 bg-[#0a0f1c]/90 backdrop-blur-md pt-1">
+      <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Solar System Impact Matrix</span>
+      <span id="sim-time" class="text-xs font-mono-tech font-semibold text-sky-400">T + 0.00h</span>
+    </div>
+
+    <!-- Selected Source & Earth Summary Card -->
+    <div class="bg-slate-900/80 rounded-xl p-2.5 border border-slate-800 mb-3 text-xs">
+      <div class="flex justify-between font-semibold mb-1">
+        <span id="source-name-display" class="text-purple-400">Source: Sun (0.0 AU)</span>
+        <span id="earth-impact-status" class="text-emerald-400">Earth: Safe</span>
+      </div>
+      <p id="narrative-desc" class="text-[11px] text-slate-300 leading-relaxed">
+        Select a celestial body above and click 'FIRE GRB' to simulate a relativistic gamma-ray burst sweeping across the solar system.
+      </p>
+    </div>
+
+    <!-- Real-Time List of All Planets & Their Impact Status -->
+    <div class="space-y-1.5 text-xs">
+      <div class="text-[10px] font-mono-tech uppercase tracking-wider text-slate-400 mb-1">Planetary Impact Statuses</div>
+      <div id="planet-matrix-list" class="space-y-1.5">
+        <!-- Dynamically populated via JS -->
+      </div>
+    </div>
+  </aside>
+
+  <!-- Floating 3D Labels -->
+  <div id="label-earth" class="fixed z-10 pointer-events-none transform -translate-x-1/2 -translate-y-full pb-3 transition-opacity duration-300">
+    <div class="px-2.5 py-1 rounded-lg bg-slate-950/80 border border-sky-400/40 text-[11px] font-mono-tech text-sky-200 whitespace-nowrap shadow-lg">
+      EARTH <span id="earth-tag-status" class="text-emerald-400">[NOMINAL]</span>
+    </div>
+  </div>
+  <div id="label-source" class="fixed z-10 pointer-events-none transform -translate-x-1/2 -translate-y-full pb-3 transition-opacity duration-300">
+    <div class="px-2.5 py-1 rounded-lg bg-slate-950/80 border border-purple-400/40 text-[11px] font-mono-tech text-purple-200 whitespace-nowrap shadow-lg">
+      <span id="source-label-name">SUN</span> <span class="text-purple-300">[GRB SOURCE]</span>
+    </div>
+  </div>
+
+  <!-- Bottom Timeline Scrubber -->
+  <footer class="fixed bottom-3 left-3 right-3 z-20 flex flex-col items-center pointer-events-none">
+    <div class="glass-panel rounded-2xl p-3 w-full max-w-3xl pointer-events-auto">
+      <div class="flex items-center gap-3">
+        <button id="btn-play" class="w-9 h-9 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold flex items-center justify-center shrink-0 shadow-lg shadow-sky-500/25 transition" title="Play / Pause">
+          <svg id="icon-pause" class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+          <svg id="icon-play" class="w-4 h-4 hidden" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </button>
+
+        <button id="btn-reset" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center justify-center shrink-0 transition" title="Reset Simulation">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        </button>
+
+        <div class="flex-1 flex flex-col">
+          <input id="timeline-slider" type="range" min="0" max="1" step="0.001" value="0" class="w-full" />
+          <div class="flex justify-between text-[10px] font-mono-tech text-slate-400 mt-1 px-0.5">
+            <span>Pre-Burst</span>
+            <span>Beam Propagation</span>
+            <span>Earth Impact & EMP</span>
+            <span>Ozone Loss & Winter</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Main WebGL Three.js Application -->
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+    import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+    // =========================================================================
+    // 1. PROCEDURAL TEXTURE GENERATORS FOR ALL 10 BODIES
+    // =========================================================================
+    function hash2D(x, y) {
+      const h = Math.sin(x * 127.1 + y * 311.7) * 43758.5453123;
+      return h - Math.floor(h);
+    }
+    function valueNoise(x, y) {
+      const ix = Math.floor(x), iy = Math.floor(y);
+      const fx = x - ix, fy = y - iy;
+      const ux = fx * fx * (3.0 - 2.0 * fx), uy = fy * fy * (3.0 - 2.0 * fy);
+      const a = hash2D(ix, iy), b = hash2D(ix + 1, iy);
+      const c = hash2D(ix, iy + 1), d = hash2D(ix + 1, iy + 1);
+      return a + (b - a) * ux + (c - a) * uy + (a - b - c + d) * ux * uy;
+    }
+    function fbm3D(x, y, z, octaves = 4) {
+      let v = 0, amp = 0.5, freq = 2.0;
+      for (let i = 0; i < octaves; i++) {
+        v += amp * (valueNoise(x * freq + i * 17.3, y * freq + z * freq * 0.7) + valueNoise(z * freq - i * 11.1, y * freq)) * 0.5;
+        freq *= 2.1; amp *= 0.5;
+      }
+      return v;
+    }
+
+    function createBodyTexture(type) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512; canvas.height = 256;
+      const ctx = canvas.getContext('2d');
+      const img = ctx.createImageData(512, 256);
+
+      for (let y = 0; y < 256; y++) {
+        const theta = (y / 256) * Math.PI;
+        for (let x = 0; x < 512; x++) {
+          const phi = (x / 512) * Math.PI * 2;
+          const sx = Math.sin(theta) * Math.cos(phi);
+          const sy = Math.cos(theta);
+          const sz = Math.sin(theta) * Math.sin(phi);
+          const n = fbm3D(sx * 3.0, sy * 3.0, sz * 3.0, 4);
+          const idx = (y * 512 + x) * 4;
+
+          let r = 120, g = 120, b = 120;
+          if (type === 'Sun') {
+            const flare = fbm3D(sx * 6.0 + 1.2, sy * 6.0, sz * 6.0, 5);
+            r = 255; g = Math.floor(180 + flare * 75); b = Math.floor(40 + flare * 80);
+          } else if (type === 'Mercury') {
+            r = g = b = Math.floor(90 + n * 80);
+          } else if (type === 'Venus') {
+            r = Math.floor(210 + n * 40); g = Math.floor(170 + n * 30); b = Math.floor(110 + n * 20);
+          } else if (type === 'Earth_Healthy') {
+            const elev = fbm3D(sx * 2.5, sy * 2.5, sz * 2.5, 5);
+            if (elev < 0.5) { r = 15; g = 55; b = 135; }
+            else { r = 40 + n * 60; g = 110 + n * 50; b = 45; }
+            if (Math.abs(sy) > 0.82) { r = g = b = 245; }
+          } else if (type === 'Earth_Scorched') {
+            const elev = fbm3D(sx * 2.5, sy * 2.5, sz * 2.5, 5);
+            if (elev < 0.5) { r = 22; g = 32; b = 45; }
+            else { r = 110 + n * 40; g = 80 + n * 30; b = 55; }
+            if (Math.abs(sy) > 0.55) { r = g = b = 215; }
+          } else if (type === 'Mars') {
+            r = Math.floor(170 + n * 70); g = Math.floor(75 + n * 40); b = Math.floor(45 + n * 30);
+            if (Math.abs(sy) > 0.85) { r = g = b = 230; }
+          } else if (type === 'Jupiter') {
+            const band = Math.sin(sy * 15.0 + n * 2.5);
+            r = Math.floor(200 + band * 45); g = Math.floor(155 + band * 35); b = Math.floor(110 + band * 25);
+          } else if (type === 'Saturn') {
+            const band = Math.sin(sy * 12.0 + n * 2.0);
+            r = Math.floor(220 + band * 30); g = Math.floor(195 + band * 25); b = Math.floor(145 + band * 20);
+          } else if (type === 'Uranus') {
+            r = Math.floor(135 + n * 25); g = Math.floor(205 + n * 30); b = Math.floor(225 + n * 30);
+          } else if (type === 'Neptune') {
+            r = Math.floor(45 + n * 20); g = Math.floor(95 + n * 30); b = Math.floor(215 + n * 40);
+          } else if (type === 'Pluto') {
+            r = Math.floor(150 + n * 65); g = Math.floor(130 + n * 55); b = Math.floor(115 + n * 45);
+          }
+
+          img.data[idx] = Math.min(255, Math.max(0, r));
+          img.data[idx + 1] = Math.min(255, Math.max(0, g));
+          img.data[idx + 2] = Math.min(255, Math.max(0, b));
+          img.data[idx + 3] = 255;
+        }
+      }
+      ctx.putImageData(img, 0, 0);
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.anisotropy = 4;
+      return tex;
+    }
+
+    // =========================================================================
+    // 2. SOLAR SYSTEM SETUP & BODY DEFINITIONS
+    // =========================================================================
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x020308, 0.0012);
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1500);
+    camera.position.set(15, 22, 55);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.15;
+    container.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.minDistance = 4.0;
+    controls.maxDistance = 200;
+    controls.target.set(14, 0, 0);
+
+    const renderScene = new RenderPass(scene, camera);
+    const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.2, 0.5, 0.75);
+    const composer = new EffectComposer(renderer);
+    composer.addPass(renderScene);
+    composer.addPass(bloomPass);
+
+    // Starfield
+    const starGeo = new THREE.BufferGeometry();
+    const starCount = 6000;
+    const starPos = new Float32Array(starCount * 3);
+    for (let i = 0; i < starCount; i++) {
+      const r = 300 + Math.random() * 500;
+      const th = Math.random() * Math.PI * 2;
+      const ph = Math.acos(2 * Math.random() - 1);
+      starPos[i * 3] = r * Math.sin(ph) * Math.cos(th);
+      starPos[i * 3 + 1] = r * Math.cos(ph);
+      starPos[i * 3 + 2] = r * Math.sin(ph) * Math.sin(th);
+    }
+    starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+    scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ size: 0.8, color: 0xffffff, transparent: true, opacity: 0.85 })));
+
+    // Lighting
+    const ambientLight = new THREE.AmbientLight(0x223344, 0.6);
+    scene.add(ambientLight);
+
+    const sunLight = new THREE.PointLight(0xfffaed, 3.5, 300, 0.5);
+    scene.add(sunLight);
+
+    // Celestial Bodies Data (Distances along X-axis from Sun at x = 0)
+    // Scaled appropriately for visual clarity while maintaining relative order
+    const PLANET_DATA = [
+      { name: 'Sun', au: 0.0, x: 0.0, radius: 2.8, type: 'Sun' },
+      { name: 'Mercury', au: 0.39, x: 4.5, radius: 0.5, type: 'Mercury' },
+      { name: 'Venus', au: 0.72, x: 8.0, radius: 0.9, type: 'Venus' },
+      { name: 'Earth', au: 1.0, x: 12.0, radius: 1.0, type: 'Earth_Healthy' },
+      { name: 'Mars', au: 1.52, x: 16.5, radius: 0.65, type: 'Mars' },
+      { name: 'Jupiter', au: 5.2, x: 26.0, radius: 2.0, type: 'Jupiter' },
+      { name: 'Saturn', au: 9.54, x: 35.0, radius: 1.7, type: 'Saturn', hasRings: true },
+      { name: 'Uranus', au: 19.2, x: 44.0, radius: 1.2, type: 'Uranus' },
+      { name: 'Neptune', au: 30.1, x: 52.0, radius: 1.15, type: 'Neptune' },
+      { name: 'Pluto', au: 39.5, x: 59.0, radius: 0.45, type: 'Pluto' }
+    ];
+
+    const bodyMeshes = {};
+    const bodyGroups = {};
+
+    PLANET_DATA.forEach(data => {
+      const group = new THREE.Group();
+      group.position.set(data.x, 0, 0);
+      scene.add(group);
+      bodyGroups[data.name] = group;
+
+      let mat;
+      if (data.name === 'Sun') {
+        mat = new THREE.MeshBasicMaterial({ map: createBodyTexture('Sun') });
+      } else if (data.name === 'Earth') {
+        // Special Earth material with morph capability
+        mat = new THREE.MeshStandardMaterial({
+          map: createBodyTexture('Earth_Healthy'),
+          roughness: 0.6
+        });
+      } else {
+        mat = new THREE.MeshStandardMaterial({
+          map: createBodyTexture(data.type),
+          roughness: data.name === 'Jupiter' || data.name === 'Saturn' ? 0.4 : 0.85
+        });
+      }
+
+      const mesh = new THREE.Mesh(new THREE.SphereGeometry(data.radius, 48, 48), mat);
+      group.add(mesh);
+      bodyMeshes[data.name] = mesh;
+
+      // Add Saturn rings if applicable
+      if (data.hasRings) {
+        const ringGeo = new THREE.RingGeometry(data.radius * 1.4, data.radius * 2.3, 64);
+        const ringMat = new THREE.MeshStandardMaterial({
+          color: 0xd4b896,
+          side: THREE.DoubleSide,
+          transparent: true,
+          opacity: 0.85,
+          roughness: 0.5
+        });
+        const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+        ringMesh.rotation.x = Math.PI / 2 + 0.3;
+        group.add(ringMesh);
+      }
+
+      // Add atmospheric glow to Earth
+      if (data.name === 'Earth') {
+        const atmoGeo = new THREE.SphereGeometry(data.radius * 1.08, 32, 32);
+        const atmoMat = new THREE.MeshBasicMaterial({
+          color: 0x38bdf8,
+          transparent: true,
+          opacity: 0.3,
+          blending: THREE.AdditiveBlending,
+          side: THREE.BackSide
+        });
+        group.add(new THREE.Mesh(atmoGeo, atmoMat));
+      }
+    });
+
+    // Orbit/Distance Reference Line connecting all bodies along X axis
+    const linePts = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(59, 0, 0)];
+    const lineGeo = new THREE.BufferGeometry().setFromPoints(linePts);
+    const orbitLine = new THREE.Line(lineGeo, new THREE.LineDashedMaterial({ color: 0x334155, dashSize: 0.6, gapSize: 0.4 }));
+    orbitLine.computeLineDistances();
+    scene.add(orbitLine);
+
+    // =========================================================================
+    // 3. RELATIVISTIC GRB JET & PROPAGATION SYSTEM
+    // =========================================================================
+    let selectedSource = 'Sun';
+    let isFiring = false;
+    let simProgress = 0.0;
+    let isPlaying = false;
+
+    // GRB Jet Group
+    const grbGroup = new THREE.Group();
+    scene.add(grbGroup);
+
+    const jetCoreMat = new THREE.MeshBasicMaterial({
+      color: 0xc084fc,
+      transparent: true,
+      opacity: 0.0,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+    const leftJet = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.08, 1.0, 32, 1, true), jetCoreMat);
+    leftJet.geometry.translate(0, 0.5, 0);
+    leftJet.rotation.z = -Math.PI / 2; // Points -X
+    grbGroup.add(leftJet);
+
+    const rightJet = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.08, 1.0, 32, 1, true), jetCoreMat);
+    rightJet.geometry.translate(0, 0.5, 0);
+    rightJet.rotation.z = Math.PI / 2; // Points +X
+    grbGroup.add(rightJet);
+
+    // Shockwave wavefront rings
+    const waveGeo = new THREE.RingGeometry(0.5, 1.2, 48);
+    const waveMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide, transparent: true, opacity: 0.0, blending: THREE.AdditiveBlending });
+    const waveLeft = new THREE.Mesh(waveGeo, waveMat);
+    waveLeft.rotation.y = Math.PI / 2;
+    grbGroup.add(waveLeft);
+
+    const waveRight = new THREE.Mesh(waveGeo, waveMat.clone());
+    waveRight.rotation.y = Math.PI / 2;
+    grbGroup.add(waveRight);
+
+    // =========================================================================
+    // 4. UI CONTROLS & EVENT LISTENERS
+    // =========================================================================
+    const bodyBtns = document.querySelectorAll('.body-btn');
+    const camBtns = document.querySelectorAll('.cam-btn');
+    const btnFire = document.getElementById('btn-fire');
+    const fireLabel = document.getElementById('fire-label');
+    const btnPlay = document.getElementById('btn-play');
+    const iconPlay = document.getElementById('icon-play');
+    const iconPause = document.getElementById('icon-pause');
+    const btnReset = document.getElementById('btn-reset');
+    const slider = document.getElementById('timeline-slider');
+
+    const sourceNameDisp = document.getElementById('source-name-display');
+    const earthImpactDisp = document.getElementById('earth-impact-status');
+    const narrativeDesc = document.getElementById('narrative-desc');
+    const simTimeDisp = document.getElementById('sim-time');
+    const matrixList = document.getElementById('planet-matrix-list');
+    const labelSource = document.getElementById('label-source');
+    const labelEarth = document.getElementById('label-earth');
+    const sourceLabelName = document.getElementById('source-label-name');
+    const earthTagStatus = document.getElementById('earth-tag-status');
+
+    bodyBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        bodyBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedSource = btn.dataset.body;
+        sourceNameDisp.textContent = `Source: ${selectedSource} (${PLANET_DATA.find(p=>p.name===selectedSource).au} AU)`;
+        sourceLabelName.textContent = selectedSource.toUpperCase();
+        
+        const srcObj = PLANET_DATA.find(p => p.name === selectedSource);
+        grbGroup.position.x = srcObj.x;
+        controls.target.set(srcObj.x, 0, 0);
+
+        simProgress = 0.0;
+        isFiring = false;
+        isPlaying = false;
+        slider.value = 0;
+        updateSimulation(0);
+      });
+    });
+
+    camBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        camBtns.forEach(b => b.classList.remove('bg-sky-500/25', 'text-sky-200', 'border-sky-400/50'));
+        btn.classList.add('bg-sky-500/25', 'text-sky-200', 'border-sky-400/50');
+        const mode = btn.dataset.cam;
+        const srcX = PLANET_DATA.find(p => p.name === selectedSource).x;
+
+        if (mode === 'overview') {
+          camera.position.set(srcX, 25, 60);
+          controls.target.set(srcX, 0, 0);
+        } else if (mode === 'source') {
+          camera.position.set(srcX - 6, 3, 10);
+          controls.target.set(srcX, 0, 0);
+        } else if (mode === 'earth') {
+          camera.position.set(PLANET_DATA.find(p => p.name === 'Earth').x - 5, 2, 8);
+          controls.target.set(PLANET_DATA.find(p => p.name === 'Earth').x, 0, 0);
+        } else if (mode === 'path') {
+          camera.position.set(25, 35, 50);
+          controls.target.set(25, 0, 0);
+        }
+      });
+    });
+
+    btnFire.addEventListener('click', () => {
+      isFiring = true;
+      isPlaying = true;
+      simProgress = 0.0;
+      iconPlay.classList.remove('hidden');
+      iconPause.classList.add('hidden');
+    });
+
+    btnPlay.addEventListener('click', () => {
+      isPlaying = !isPlaying;
+      iconPlay.classList.toggle('hidden', isPlaying);
+      iconPause.classList.toggle('hidden', !isPlaying);
+    });
+
+    btnReset.addEventListener('click', () => {
+      simProgress = 0.0;
+      isFiring = false;
+      isPlaying = false;
+      slider.value = 0;
+      updateSimulation(0);
+    });
+
+    slider.addEventListener('input', (e) => {
+      simProgress = parseFloat(e.target.value);
+      isFiring = true;
+      updateSimulation(simProgress);
+    });
+
+    // =========================================================================
+    // 5. SIMULATION LOGIC & MATRIX UPDATER
+    // =========================================================================
+    function updateSimulation(t) {
+      const srcObj = PLANET_DATA.find(p => p.name === selectedSource);
+      grbGroup.position.x = srcObj.x;
+
+      const maxDist = Math.max(srcObj.x, 59.0 - srcObj.x, 1.0);
+      const activeDist = t * maxDist * 1.2;
+
+      // Update Jets length
+      const jetLenL = Math.min(srcObj.x, activeDist);
+      const jetLenR = Math.min(59.0 - srcObj.x, activeDist);
+
+      leftJet.scale.set(1.0, Math.max(0.01, jetLenL), 1.0);
+      leftJet.position.x = -jetLenL / 2;
+
+      rightJet.scale.set(1.0, Math.max(0.01, jetLenR), 1.0);
+      rightJet.position.x = jetLenR / 2;
+
+      const intensity = isFiring && t > 0 ? (1.0 - Math.abs(t - 0.5) * 0.5) : 0.0;
+      jetCoreMat.opacity = intensity * 0.9;
+      waveMat.opacity = intensity * 0.8;
+
+      waveLeft.position.x = -jetLenL;
+      waveRight.position.x = jetLenR;
+      waveLeft.scale.setScalar(1.0 + intensity * 2);
+      waveRight.scale.setScalar(1.0 + intensity * 2);
+
+      // Evaluate impact metrics for all planets
+      let matrixHTML = '';
+      let earthStatus = 'Safe (Outside Beam)';
+      let earthScorched = false;
+
+      PLANET_DATA.forEach(planet => {
+        const distFromSource = Math.abs(planet.x - srcObj.x);
+        const hit = isFiring && activeDist >= distFromSource;
+        const flux = hit ? Math.round(100000 / (planet.au * planet.au + 0.05)) : 0;
+        const statusColor = hit ? (flux > 10000 ? 'text-rose-400' : 'text-amber-400') : 'text-emerald-400';
+        const statusText = hit ? (flux > 10000 ? 'Lethal Sterilization' : 'Ozone Stripped') : 'Nominal';
+
+        if (planet.name === 'Earth' && hit) {
+          earthScorched = true;
+          earthStatus = flux > 10000 ? 'Lethal Sterilization' : 'Ozone Collapsed';
+        }
+
+        matrixHTML += `
+          <div class="bg-slate-900/70 rounded-lg p-2 border border-slate-800 flex items-center justify-between">
+            <div>
+              <span class="font-semibold text-white">${planet.name}</span>
+              <span class="text-[10px] text-slate-400 ml-1">(${planet.au} AU)</span>
+            </div>
+            <div class="text-right">
+              <span class="text-[11px] font-mono-tech font-bold ${statusColor}">${statusText}</span>
+              <div class="text-[9px] text-slate-400 font-mono-tech">${flux.toLocaleString()} kW/m²</div>
+            </div>
+          </div>
+        `;
+      });
+
+      matrixList.innerHTML = matrixHTML;
+      earthImpactDisp.textContent = `Earth: ${earthStatus}`;
+      earthImpactDisp.className = earthScorched ? 'text-rose-400 font-bold' : 'text-emerald-400 font-bold';
+
+      // Update Earth texture & appearance if hit
+      const earthMesh = bodyMeshes['Earth'];
+      if (earthScorched) {
+        earthMesh.material.map = createBodyTexture('Earth_Scorched');
+        earthMesh.material.needsUpdate = true;
+        earthTagStatus.textContent = '[OZONE COLLAPSED / SCORCHED]';
+        earthTagStatus.className = 'text-rose-400';
+      } else {
+        earthMesh.material.map = createBodyTexture('Earth_Healthy');
+        earthMesh.material.needsUpdate = true;
+        earthTagStatus.textContent = '[NOMINAL]';
+        earthTagStatus.className = 'text-emerald-400';
+      }
+
+      simTimeDisp.textContent = `T + ${(t * 12.0).toFixed(2)}h`;
+      narrativeDesc.textContent = isFiring 
+        ? `Gamma-ray burst erupting from ${selectedSource}. Relativistic plasma wavefront sweeping across planetary orbits at light speed.`
+        : `Ready. Source set to ${selectedSource}. Click 'FIRE GRB' to initiate the relativistic simulation.`;
+    }
+
+    // =========================================================================
+    // 6. FLOATING LABELS & ANIMATION LOOP
+    // =========================================================================
+    const projVec = new THREE.Vector3();
+
+    function updateLabels() {
+      // Source Label
+      const srcObj = PLANET_DATA.find(p => p.name === selectedSource);
+      projVec.set(srcObj.x, srcObj.radius + 0.6, 0).project(camera);
+      if (projVec.z < 1.0) {
+        labelSource.style.left = `${(projVec.x * 0.5 + 0.5) * window.innerWidth}px`;
+        labelSource.style.top = `${((-projVec.y * 0.5 + 0.5)) * window.innerHeight}px`;
+        labelSource.style.opacity = '1';
+      } else {
+        labelSource.style.opacity = '0';
+      }
+
+      // Earth Label
+      const earthObj = PLANET_DATA.find(p => p.name === 'Earth');
+      projVec.set(earthObj.x, earthObj.radius + 0.6, 0).project(camera);
+      if (projVec.z < 1.0) {
+        labelEarth.style.left = `${(projVec.x * 0.5 + 0.5) * window.innerWidth}px`;
+        labelEarth.style.top = `${((-projVec.y * 0.5 + 0.5)) * window.innerHeight}px`;
+        labelEarth.style.opacity = '1';
+      } else {
+        labelEarth.style.opacity = '0';
+      }
+    }
+
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const dt = clock.getDelta();
+
+      if (isPlaying && isFiring) {
+        simProgress += dt * 0.25;
+        if (simProgress >= 1.0) {
+          simProgress = 1.0;
+          isPlaying = false;
+          iconPlay.classList.add('hidden');
+          iconPause.classList.remove('hidden');
+        }
+        slider.value = simProgress;
+        updateSimulation(simProgress);
+      }
+
+      // Gentle rotation for all planetary bodies
+      Object.keys(bodyMeshes).forEach(name => {
+        bodyMeshes[name].rotation.y += dt * 0.15;
+      });
+
+      controls.update();
+      updateLabels();
+      composer.render();
+    }
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      composer.setSize(window.innerWidth, window.innerHeight);
+      bloomPass.resolution.set(window.innerWidth, window.innerHeight);
+    });
+
+    window.addEventListener('load', () => {
+      const loader = document.getElementById('loader');
+      loader.style.opacity = '0';
+      setTimeout(() => loader.remove(), 700);
+      updateSimulation(0);
+      animate();
+    });
+  </script>
+</body>
+</html>
