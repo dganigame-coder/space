@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>J0008+0128 Binary Star System - Interactive 3D Simulation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js r128 & OrbitControls -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #03050a;
+            font-family: 'Inter', sans-serif;
+            color: #e2e8f0;
+            user-select: none;
+        }
+        #canvas-container {
+            position: fixed;
+            inset: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+        }
+        .glass-panel {
+            background: rgba(10, 15, 28, 0.72);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(148, 163, 184, 0.16);
+            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7);
+        }
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* Custom range slider */
+        input[type=range] {
+            -webkit-appearance: none;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 14px;
+            width: 14px;
+            border-radius: 50%;
+            background: #38bdf8;
+            cursor: pointer;
+            margin-top: -5px;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.8);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: rgba(148, 163, 184, 0.25);
+            border-radius: 2px;
+        }
+        .theory-btn.active {
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.22), rgba(99, 102, 241, 0.22));
+            border-color: rgba(56, 189, 248, 0.65);
+            color: #ffffff;
+            box-shadow: 0 0 18px rgba(56, 189, 248, 0.18);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 3D WebGL Viewport -->
+    <div id="canvas-container"></div>
+
+    <!-- Top Header & Telemetry Badge -->
+    <header class="fixed top-4 left-4 right-4 z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pointer-events-none">
+        <div class="glass-panel rounded-2xl px-4 py-3 pointer-events-auto max-w-md">
+            <div class="flex items-center gap-2.5">
+                <span class="inline-block w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse shadow-[0_0_8px_#fbbf24]"></span>
+                <h1 class="text-base sm:text-lg font-bold tracking-tight text-white">J0008+0128 Binary System</h1>
+                <span class="text-[11px] mono px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-300 border border-sky-400/30">Pisces</span>
+            </div>
+            <p class="text-xs text-slate-300/90 mt-1 leading-relaxed">
+                Wide circular binary observed via <span class="text-white font-medium">LAMOST, APOGEE & Gaia</span>. A Red Giant orbits a mysterious <span class="text-amber-300 font-medium">~2.2 M☉</span> invisible remnant.
+            </p>
+        </div>
+
+        <!-- System Data Telemetry Card -->
+        <div class="glass-panel rounded-2xl px-4 py-2.5 pointer-events-auto hidden md:flex items-center gap-5 text-xs">
+            <div>
+                <div class="text-slate-400 text-[10px] uppercase tracking-wider">Compact Mass</div>
+                <div class="mono font-semibold text-sky-300 text-sm">2.2 M☉ <span class="text-[11px] text-slate-400">(1.8–2.8)</span></div>
+            </div>
+            <div class="h-7 w-px bg-slate-700/70"></div>
+            <div>
+                <div class="text-slate-400 text-[10px] uppercase tracking-wider">Visible Star</div>
+                <div class="font-semibold text-amber-300 text-sm">Red Giant</div>
+            </div>
+            <div class="h-7 w-px bg-slate-700/70"></div>
+            <div>
+                <div class="text-slate-400 text-[10px] uppercase tracking-wider">Orbit Geometry</div>
+                <div class="mono font-semibold text-emerald-300 text-sm">Wide / Circular</div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Floating Object Labels (Projected from 3D) -->
+    <div id="label-giant" class="fixed z-10 pointer-events-none transition-opacity duration-200 -translate-x-1/2 -translate-y-full pb-2">
+        <div class="px-2.5 py-1 rounded-lg bg-slate-950/75 border border-amber-500/40 backdrop-blur-md text-[11px] whitespace-nowrap shadow-lg">
+            <span class="font-semibold text-amber-300">Red Giant Companion</span>
+            <span class="text-slate-400 mono ml-1">~1.1 M☉</span>
+        </div>
+    </div>
+
+    <div id="label-compact" class="fixed z-10 pointer-events-none transition-opacity duration-200 -translate-x-1/2 -translate-y-full pb-2">
+        <div class="px-2.5 py-1 rounded-lg bg-slate-950/75 border border-sky-400/40 backdrop-blur-md text-[11px] whitespace-nowrap shadow-lg">
+            <span id="label-compact-title" class="font-semibold text-sky-300">Supermassive Neutron Star</span>
+            <span class="text-slate-400 mono ml-1">~2.2 M☉</span>
+        </div>
+    </div>
+
+    <div id="label-barycenter" class="fixed z-10 pointer-events-none transition-opacity duration-200 -translate-x-1/2 translate-y-3">
+        <div class="px-2 py-0.5 rounded bg-slate-950/70 border border-slate-600/40 text-[10px] mono text-slate-300 whitespace-nowrap">
+            Barycenter (Center of Mass)
+        </div>
+    </div>
+
+    <!-- Bottom / Side Interactive HUD Control Panel -->
+    <aside class="fixed bottom-4 left-4 right-4 sm:right-auto sm:w-96 z-10 glass-panel rounded-2xl p-4 flex flex-col gap-3.5 max-h-[82vh] overflow-y-auto">
+        <!-- Theory Selector -->
+        <div>
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Compact Object Hypothesis</span>
+                <span class="text-[11px] mono text-sky-400">Select Model</span>
+            </div>
+            <div class="grid grid-cols-3 gap-1.5" id="theory-buttons">
+                <button data-theory="neutron" class="theory-btn active rounded-xl border border-slate-700/70 bg-slate-900/50 p-2 text-left transition-all cursor-pointer">
+                    <div class="text-xs font-semibold leading-tight">Neutron Star</div>
+                    <div class="text-[10px] text-slate-400 mt-0.5">Supermassive</div>
+                </button>
+                <button data-theory="blackhole" class="theory-btn rounded-xl border border-slate-700/70 bg-slate-900/50 p-2 text-left transition-all cursor-pointer">
+                    <div class="text-xs font-semibold leading-tight">Black Hole</div>
+                    <div class="text-[10px] text-slate-400 mt-0.5">Low-Mass</div>
+                </button>
+                <button data-theory="whitedwarf" class="theory-btn rounded-xl border border-slate-700/70 bg-slate-900/50 p-2 text-left transition-all cursor-pointer">
+                    <div class="text-xs font-semibold leading-tight">WD Merger</div>
+                    <div class="text-[10px] text-slate-400 mt-0.5">Binary Remnant</div>
+                </button>
+            </div>
+        </div>
+
+        <!-- Active Theory Scientific Context -->
+        <div id="theory-description" class="rounded-xl bg-slate-900/65 border border-slate-800/90 p-3 text-xs leading-relaxed text-slate-300">
+            <div class="font-semibold text-sky-300 mb-1">1. Super-Sized Neutron Star (~2.2 M☉)</div>
+            Far heavier than the typical 1.4 M☉ neutron star. Because the orbit is too wide for mass siphoning, it challenges standard supernova birth physics. No radio pulsations detected yet.
+        </div>
+
+        <!-- Simulation Controls -->
+        <div class="flex flex-col gap-2.5 pt-1 border-t border-slate-800/80">
+            <div class="flex items-center justify-between gap-3">
+                <label for="speed-slider" class="text-xs text-slate-300 font-medium whitespace-nowrap">Orbital Speed</label>
+                <input id="speed-slider" type="range" min="0" max="3" step="0.1" value="1" class="w-full">
+                <span id="speed-value" class="mono text-xs text-sky-300 w-10 text-right">1.0x</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 pt-1">
+                <button id="toggle-orbits" class="flex items-center justify-center gap-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/70 px-3 py-2 text-xs font-medium text-slate-200 transition cursor-pointer">
+                    <span id="dot-orbits" class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                    Orbital Paths
+                </button>
+                <button id="toggle-gravity" class="flex items-center justify-center gap-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/70 px-3 py-2 text-xs font-medium text-slate-200 transition cursor-pointer">
+                    <span id="dot-gravity" class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                    Gravity & Labels
+                </button>
+            </div>
+        </div>
+
+        <!-- Interaction Hint -->
+        <div class="text-[11px] text-slate-400 flex items-center justify-between pt-1 border-t border-slate-800/60">
+            <span>Drag to orbit • Scroll to zoom • Right-drag to pan</span>
+            <button id="reset-camera" class="text-sky-400 hover:text-sky-300 font-medium cursor-pointer">Reset View</button>
+        </div>
+    </aside>
+
+    <script>
+        // ============================================================================
+        // J0008+0128 BINARY STAR SYSTEM - 3D WEBGL SIMULATION
+        // ============================================================================
+
+        let scene, camera, renderer, controls;
+        let clock = new THREE.Clock();
+
+        // System Parameters (Mass ratio ~ 2.2 M_sun compact object vs ~1.1 M_sun Red Giant)
+        // Barycenter sits closer to the heavier 2.2 M_sun unseen object!
+        const GIANT_ORBIT_RADIUS = 19.0;
+        const COMPACT_ORBIT_RADIUS = 9.5; // 2:1 mass ratio -> compact object orbits at half radius
+        let orbitalAngle = 0.6;
+        let simSpeed = 1.0;
+        let showOrbits = true;
+        let showGravityAndLabels = true;
+        let activeTheory = 'neutron';
+
+        // Scene Groups & Meshes
+        let giantGroup, giantMesh, giantCorona, giantLight;
+        let compactGroup;
+        let neutronModel, blackHoleModel, whiteDwarfModel;
+        let pulsarBeams, accretionDisk, lensingHalo, wdStar1, wdStar2, wdBridge;
+        let orbitRingsGroup, gravityLinesGroup, barycenterGroup;
+        let gravityTidalLine, gravityParticles;
+        let starfield;
+
+        // DOM Elements for 3D-to-2D label projection
+        const labelGiant = document.getElementById('label-giant');
+        const labelCompact = document.getElementById('label-compact');
+        const labelCompactTitle = document.getElementById('label-compact-title');
+        const labelBarycenter = document.getElementById('label-barycenter');
+
+        const THEORY_INFO = {
+            neutron: {
+                title: "Supermassive Neutron Star",
+                html: `<div class="font-semibold text-sky-300 mb-1">1. Super-Sized Neutron Star (~2.2 M☉)</div>
+                       Far heavier than the typical 1.4 M☉ neutron star. Because the orbit is too wide for mass siphoning, it challenges standard supernova birth physics. No radio pulsations detected yet.`
+            },
+            blackhole: {
+                title: "Low-Mass Black Hole",
+                html: `<div class="font-semibold text-purple-300 mb-1">2. Low-Mass Black Hole (~2.2 M☉)</div>
+                       Falls into the mysterious "mass gap" between neutron stars and black holes. Its calm circular orbit suggests a quiet collapse without a violent natal supernova kick.`
+            },
+            whitedwarf: {
+                title: "White Dwarf Merger Remnant",
+                html: `<div class="font-semibold text-cyan-300 mb-1">3. Co-Orbiting / Merged White Dwarfs</div>
+                       Two smaller white dwarf stars either remain locked in an ultra-tight inner binary or collided and merged into an unusually massive compact remnant.`
+            }
+        };
+
+        function init() {
+            const container = document.getElementById('canvas-container');
+
+            // 1. Scene & Camera
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x03050a, 0.0028);
+
+            camera = new THREE.PerspectiveCamera(48, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 26, 46);
+
+            // 2. Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.15;
+            container.appendChild(renderer.domElement);
+
+            // 3. OrbitControls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.06;
+            controls.minDistance = 8;
+            controls.maxDistance = 130;
+            controls.target.set(0, 0, 0);
+
+            // 4. Lighting
+            const ambientLight = new THREE.AmbientLight(0x1e293b, 0.75);
+            scene.add(ambientLight);
+
+            // 5. Build Celestial Objects & Guides
+            createDeepSpaceBackground();
+            createBarycenterAndOrbits();
+            createRedGiant();
+            createCompactObjectModels();
+            createGravityVisualization();
+
+            // Set initial theory state
+            setCompactTheory('neutron');
+
+            // Event Listeners
+            setupUIListeners();
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        // ----------------------------------------------------------------------------
+        // 1. DEEP SPACE STARFIELD & NEBULA DUST
+        // ----------------------------------------------------------------------------
+        function createDeepSpaceBackground() {
+            const starCount = 4500;
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(starCount * 3);
+            const colors = new Float32Array(starCount * 3);
+
+            const colorPalette = [
+                new THREE.Color(0xffffff),
+                new THREE.Color(0xbae6fd),
+                new THREE.Color(0xfde68a),
+                new THREE.Color(0xc7d2fe),
+                new THREE.Color(0xfed7aa)
+            ];
+
+            for (let i = 0; i < starCount; i++) {
+                // Distribute on a large spherical shell
+                const r = 160 + Math.random() * 260;
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos((Math.random() * 2) - 1);
+
+                positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+                positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+                positions[i * 3 + 2] = r * Math.cos(phi);
+
+                const col = colorPalette[Math.floor(Math.random() * colorPalette.length)];
+                const brightness = 0.45 + Math.random() * 0.55;
+                colors[i * 3] = col.r * brightness;
+                colors[i * 3 + 1] = col.g * brightness;
+                colors[i * 3 + 2] = col.b * brightness;
+            }
+
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const material = new THREE.PointsMaterial({
+                size: 1.15,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.85,
+                sizeAttenuation: true
+            });
+
+            starfield = new THREE.Points(geometry, material);
+            scene.add(starfield);
+
+            // Subtle distant nebula glow spheres
+            const nebulaGeo = new THREE.SphereGeometry(280, 32, 32);
+            const nebulaMat = new THREE.ShaderMaterial({
+                side: THREE.BackSide,
+                transparent: true,
+                depthWrite: false,
+                uniforms: {},
+                vertexShader: `
+                    varying vec3 vWorldPos;
+                    void main() {
+                        vec4 wp = modelMatrix * vec4(position, 1.0);
+                        vWorldPos = normalize(wp.xyz);
+                        gl_Position = projectionMatrix * viewMatrix * wp;
+                    }
+                `,
+                fragmentShader: `
+                    varying vec3 vWorldPos;
+                    void main() {
+                        float band = sin(vWorldPos.x * 3.0 + vWorldPos.y * 2.0) * cos(vWorldPos.z * 2.5);
+                        vec3 col1 = vec3(0.03, 0.06, 0.14);
+                        vec3 col2 = vec3(0.11, 0.05, 0.16);
+                        vec3 finalCol = mix(col1, col2, smoothstep(-0.5, 0.8, band));
+                        gl_FragColor = vec4(finalCol, 0.65);
+                    }
+                `
+            });
+            scene.add(new THREE.Mesh(nebulaGeo, nebulaMat));
+        }
+
+        // ----------------------------------------------------------------------------
+        // 2. RED GIANT STAR (DYNAMIC PLASMA CONVECTION SHADER + CORONA)
+        // ----------------------------------------------------------------------------
+        function createRedGiant() {
+            giantGroup = new THREE.Group();
+            scene.add(giantGroup);
+
+            const giantRadius = 3.8;
+            const geometry = new THREE.SphereGeometry(giantRadius, 64, 64);
+
+            // Custom Animated Convection / Granulation Plasma Shader
+            const plasmaMaterial = new THREE.ShaderMaterial({
+                uniforms: {
+                    uTime: { value: 0 },
+                    uColorCore: { value: new THREE.Color(0xfff3b0) },
+                    uColorMid: { value: new THREE.Color(0xf97316) },
+                    uColorEdge: { value: new THREE.Color(0x991b1b) }
+                },
+                vertexShader: `
+                    uniform float uTime;
+                    varying vec3 vNormal;
+                    varying vec3 vPosition;
+                    varying vec3 vViewPosition;
+
+                    // Simple 3D wave displacement for boiling giant photosphere
+                    float wave(vec3 p) {
+                        return sin(p.x * 2.4 + uTime * 1.1) * cos(p.y * 2.4 - uTime * 0.9) * sin(p.z * 2.4 + uTime * 0.8);
+                    }
+
+                    void main() {
+                        vNormal = normalize(normalMatrix * normal);
+                        vPosition = position;
+                        float disp = wave(position) * 0.12;
+                        vec3 displaced = position + normal * disp;
+                        vec4 mvPosition = modelViewMatrix * vec4(displaced, 1.0);
+                        vViewPosition = -mvPosition.xyz;
+                        gl_Position = projectionMatrix * mvPosition;
+                    }
+                `,
+                fragmentShader: `
+                    uniform float uTime;
+                    uniform vec3 uColorCore;
+                    uniform vec3 uColorMid;
+                    uniform vec3 uColorEdge;
+                    varying vec3 vNormal;
+                    varying vec3 vPosition;
+                    varying vec3 vViewPosition;
+
+                    // Procedural cellular plasma noise
+                    float hash(vec3 p) {
+                        p = fract(p * 0.3183099 + 0.1);
+                        p *= 17.0;
+                        return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
+                    }
+
+                    float noise(vec3 x) {
+                        vec3 i = floor(x);
+                        vec3 f = fract(x);
+                        f = f * f * (3.0 - 2.0 * f);
+                        return mix(
+                            mix(mix(hash(i + vec3(0,0,0)), hash(i + vec3(1,0,0)), f.x),
+                                mix(hash(i + vec3(0,1,0)), hash(i + vec3(1,1,0)), f.x), f.y),
+                            mix(mix(hash(i + vec3(0,0,1)), hash(i + vec3(1,0,1)), f.x),
+                                mix(hash(i + vec3(0,1,1)), hash(i + vec3(1,1,1)), f.x), f.y), f.z);
+                    }
+
+                    float fbm(vec3 p) {
+                        float v = 0.0;
+                        float a = 0.5;
+                        for (int i = 0; i < 4; i++) {
+                            v += a * noise(p);
+                            p = p * 2.05 + vec3(0.15 * uTime, -0.1 * uTime, 0.12 * uTime);
+                            a *= 0.5;
+                        }
+                        return v;
+                    }
+
+                    void main() {
+                        vec3 viewDir = normalize(vViewPosition);
+                        float fresnel = pow(1.0 - max(dot(normalize(vNormal), viewDir), 0.0), 2.2);
+
+                        float n = fbm(vPosition * 1.35 + vec3(uTime * 0.25));
+                        vec3 col = mix(uColorEdge, uColorMid, smoothstep(0.2, 0.65, n));
+                        col = mix(col, uColorCore, smoothstep(0.58, 0.9, n));
+
+                        // Limb darkening & fiery chromosphere rim
+                        col = mix(col, uColorEdge * 0.85, fresnel * 0.7);
+                        gl_FragColor = vec4(col * 1.25, 1.0);
+                    }
+                `
+            });
+
+            giantMesh = new THREE.Mesh(geometry, plasmaMaterial);
+            giantGroup.add(giantMesh);
+
+            // Outer Glowing Atmospheric Corona Halo
+            const coronaGeo = new THREE.SphereGeometry(giantRadius * 1.38, 48, 48);
+            const coronaMat = new THREE.ShaderMaterial({
+                transparent: true,
+                blending: THREE.AdditiveBlending,
+                side: THREE.BackSide,
+                depthWrite: false,
+                uniforms: {
+                    uColor: { value: new THREE.Color(0xf97316) }
+                },
+                vertexShader: `
+                    varying vec3 vNormal;
+                    void main() {
+                        vNormal = normalize(normalMatrix * normal);
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    uniform vec3 uColor;
+                    varying vec3 vNormal;
+                    void main() {
+                        float intensity = pow(0.62 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 3.2);
+                        gl_FragColor = vec4(uColor, clamp(intensity, 0.0, 1.0) * 0.85);
+                    }
+                `
+            });
+            giantCorona = new THREE.Mesh(coronaGeo, coronaMat);
+            giantGroup.add(giantCorona);
+
+            // Warm point light radiating from the Red Giant
+            giantLight = new THREE.PointLight(0xff9e44, 2.4, 90);
+            giantGroup.add(giantLight);
+        }
+
+        // ----------------------------------------------------------------------------
+        // 3. COMPACT OBJECT MODELS (3 SCIENTIFIC HYPOTHESES)
+        // ----------------------------------------------------------------------------
+        function createCompactObjectModels() {
+            compactGroup = new THREE.Group();
+            scene.add(compactGroup);
+
+            // --- MODEL A: SUPERMASSIVE NEUTRON STAR ---
+            neutronModel = new THREE.Group();
+
+            // Dense hyper-bright core
+            const nsCoreGeo = new THREE.SphereGeometry(0.68, 32, 32);
+            const nsCoreMat = new THREE.MeshStandardMaterial({
+                color: 0xe0f2fe,
+                emissive: 0x38bdf8,
+                emissiveIntensity: 2.5,
+                roughness: 0.2
+            });
+            const nsCore = new THREE.Mesh(nsCoreGeo, nsCoreMat);
+            neutronModel.add(nsCore);
+
+            // Magnetosphere energy shell
+            const nsHaloGeo = new THREE.SphereGeometry(1.15, 32, 32);
+            const nsHaloMat = new THREE.MeshBasicMaterial({
+                color: 0x0ea5e9,
+                transparent: true,
+                opacity: 0.28,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+            neutronModel.add(new THREE.Mesh(nsHaloGeo, nsHaloMat));
+
+            // Tilted Magnetic Axis with Relativistic Pulsar Cones
+            pulsarBeams = new THREE.Group();
+            pulsarBeams.rotation.z = 0.42; // Magnetic axis tilt
+
+            const beamGeo = new THREE.ConeGeometry(1.3, 14, 32, 1, true);
+            const beamMat = new THREE.ShaderMaterial({
+                transparent: true,
+                blending: THREE.AdditiveBlending,
+                side: THREE.DoubleSide,
+                depthWrite: false,
+                uniforms: {
+                    uColor: { value: new THREE.Color(0x38bdf8) }
+                },
+                vertexShader: `
+                    varying vec2 vUv;
+                    void main() {
+                        vUv = uv;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    uniform vec3 uColor;
+                    varying vec2 vUv;
+                    void main() {
+                        // Fade out toward wide end of cone (vUv.y = 0 is base, 1 is tip)
+                        float alpha = smoothstep(0.0, 0.85, vUv.y) * 0.42;
+                        gl_FragColor = vec4(uColor, alpha);
+                    }
+                `
+            });
+
+            const northBeam = new THREE.Mesh(beamGeo, beamMat);
+            northBeam.position.y = 7.0;
+            northBeam.rotation.x = Math.PI; // Tip points into neutron star core
+
+            const southBeam = new THREE.Mesh(beamGeo, beamMat);
+            southBeam.position.y = -7.0;
+
+            pulsarBeams.add(northBeam, southBeam);
+            neutronModel.add(pulsarBeams);
+            compactGroup.add(neutronModel);
+
+            // --- MODEL B: LOW-MASS BLACK HOLE ---
+            blackHoleModel = new THREE.Group();
+
+            // Event Horizon (Absolute Pitch-Black Sphere)
+            const horizonGeo = new THREE.SphereGeometry(1.05, 48, 48);
+            const horizonMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+            blackHoleModel.add(new THREE.Mesh(horizonGeo, horizonMat));
+
+            // Photon Ring (Thin razor-sharp glowing edge)
+            const photonRingGeo = new THREE.RingGeometry(1.07, 1.22, 64);
+            const photonRingMat = new THREE.MeshBasicMaterial({
+                color: 0xfde68a,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.9,
+                blending: THREE.AdditiveBlending
+            });
+            const photonRing = new THREE.Mesh(photonRingGeo, photonRingMat);
+            photonRing.rotation.x = Math.PI / 2.3;
+            blackHoleModel.add(photonRing);
+
+            // Swirling Accretion / Gravitational Lensing Disk
+            const diskGeo = new THREE.RingGeometry(1.3, 3.6, 64);
+            const diskMat = new THREE.ShaderMaterial({
+                transparent: true,
+                side: THREE.DoubleSide,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false,
+                uniforms: {
+                    uTime: { value: 0 }
+                },
+                vertexShader: `
+                    varying vec2 vUv;
+                    varying vec3 vPos;
+                    void main() {
+                        vUv = uv;
+                        vPos = position;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    uniform float uTime;
+                    varying vec3 vPos;
+                    void main() {
+                        float r = length(vPos.xy);
+                        float angle = atan(vPos.y, vPos.x);
+                        float spiral = sin(angle * 3.0 + r * 3.5 - uTime * 3.0) * 0.5 + 0.5;
+                        float radialFade = smoothstep(1.3, 1.7, r) * (1.0 - smoothstep(2.4, 3.6, r));
+                        vec3 innerCol = vec3(0.95, 0.75, 1.0);
+                        vec3 outerCol = vec3(0.55, 0.25, 0.95);
+                        vec3 col = mix(outerCol, innerCol, radialFade * (0.6 + 0.4 * spiral));
+                        gl_FragColor = vec4(col, radialFade * (0.45 + 0.35 * spiral));
+                    }
+                `
+            });
+            accretionDisk = new THREE.Mesh(diskGeo, diskMat);
+            accretionDisk.rotation.x = Math.PI / 2.3;
+            blackHoleModel.add(accretionDisk);
+
+            // Gravitational Lensing Distortion Halo (Always faces camera)
+            const lensGeo = new THREE.RingGeometry(1.05, 2.35, 64);
+            const lensMat = new THREE.ShaderMaterial({
+                transparent: true,
+                side: THREE.DoubleSide,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false,
+                vertexShader: `
+                    varying vec3 vPos;
+                    void main() {
+                        vPos = position;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    varying vec3 vPos;
+                    void main() {
+                        float r = length(vPos.xy);
+                        float ring = smoothstep(1.05, 1.18, r) * (1.0 - smoothstep(1.35, 2.35, r));
+                        gl_FragColor = vec4(0.65, 0.55, 1.0, ring * 0.55);
+                    }
+                `
+            });
+            lensingHalo = new THREE.Mesh(lensGeo, lensMat);
+            blackHoleModel.add(lensingHalo);
+
+            compactGroup.add(blackHoleModel);
+
+            // --- MODEL C: WHITE DWARF MERGER / INNER PAIR ---
+            whiteDwarfModel = new THREE.Group();
+
+            const wdGeo = new THREE.SphereGeometry(0.62, 32, 32);
+            const wdMat1 = new THREE.MeshStandardMaterial({
+                color: 0xffffff,
+                emissive: 0x67e8f9,
+                emissiveIntensity: 2.0
+            });
+            const wdMat2 = new THREE.MeshStandardMaterial({
+                color: 0xf0f9ff,
+                emissive: 0xa5f3fc,
+                emissiveIntensity: 1.8
+            });
+
+            wdStar1 = new THREE.Mesh(wdGeo, wdMat1);
+            wdStar2 = new THREE.Mesh(wdGeo, wdMat2);
+            wdStar1.position.set(1.15, 0, 0);
+            wdStar2.position.set(-1.15, 0, 0);
+
+            // Tidal plasma bridge / merger swirl between the two white dwarfs
+            const bridgeGeo = new THREE.TorusGeometry(1.15, 0.14, 16, 48);
+            const bridgeMat = new THREE.MeshBasicMaterial({
+                color: 0x22d3ee,
+                transparent: true,
+                opacity: 0.42,
+                blending: THREE.AdditiveBlending
+            });
+            wdBridge = new THREE.Mesh(bridgeGeo, bridgeMat);
+            wdBridge.rotation.x = Math.PI / 2;
+
+            whiteDwarfModel.add(wdStar1, wdStar2, wdBridge);
+            compactGroup.add(whiteDwarfModel);
+        }
+
+        // ----------------------------------------------------------------------------
+        // 4. ORBITAL RINGS, BARYCENTER & GRAVITATIONAL PULL VECTORS
+        // ----------------------------------------------------------------------------
+        function createBarycenterAndOrbits() {
+            // Barycenter Marker
+            barycenterGroup = new THREE.Group();
+            const crossMat = new THREE.LineBasicMaterial({ color: 0x94a3b8, transparent: true, opacity: 0.7 });
+            const crossPoints = [
+                new THREE.Vector3(-1.2, 0, 0), new THREE.Vector3(1.2, 0, 0),
+                new THREE.Vector3(0, 0, -1.2), new THREE.Vector3(0, 0, 1.2),
+                new THREE.Vector3(0, -1.2, 0), new THREE.Vector3(0, 1.2, 0)
+            ];
+            const crossGeo = new THREE.BufferGeometry().setFromPoints(crossPoints);
+            barycenterGroup.add(new THREE.LineSegments(crossGeo, crossMat));
+
+            const centerDot = new THREE.Mesh(
+                new THREE.SphereGeometry(0.22, 16, 16),
+                new THREE.MeshBasicMaterial({ color: 0xf8fafc })
+            );
+            barycenterGroup.add(centerDot);
+            scene.add(barycenterGroup);
+
+            // Orbital Path Rings
+            orbitRingsGroup = new THREE.Group();
+
+            // Red Giant wide circular orbit
+            const giantOrbitGeo = new THREE.RingGeometry(GIANT_ORBIT_RADIUS - 0.08, GIANT_ORBIT_RADIUS + 0.08, 128);
+            const giantOrbitMat = new THREE.MeshBasicMaterial({
+                color: 0xf59e0b,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.32
+            });
+            const giantOrbitRing = new THREE.Mesh(giantOrbitGeo, giantOrbitMat);
+            giantOrbitRing.rotation.x = Math.PI / 2;
+            orbitRingsGroup.add(giantOrbitRing);
+
+            // Compact Object tighter circular orbit
+            const compactOrbitGeo = new THREE.RingGeometry(COMPACT_ORBIT_RADIUS - 0.07, COMPACT_ORBIT_RADIUS + 0.07, 128);
+            const compactOrbitMat = new THREE.MeshBasicMaterial({
+                color: 0x38bdf8,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.38
+            });
+            const compactOrbitRing = new THREE.Mesh(compactOrbitGeo, compactOrbitMat);
+            compactOrbitRing.rotation.x = Math.PI / 2;
+            orbitRingsGroup.add(compactOrbitRing);
+
+            scene.add(orbitRingsGroup);
+        }
+
+        function createGravityVisualization() {
+            gravityLinesGroup = new THREE.Group();
+
+            // Direct Gravitational Axis Line connecting both bodies through the Barycenter
+            const lineGeo = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(0, 0, 0),
+                new THREE.Vector3(1, 0, 0)
+            ]);
+            const lineMat = new THREE.LineDashedMaterial({
+                color: 0x38bdf8,
+                dashSize: 0.9,
+                gapSize: 0.5,
+                transparent: true,
+                opacity: 0.55
+            });
+            gravityTidalLine = new THREE.Line(lineGeo, lineMat);
+            gravityLinesGroup.add(gravityTidalLine);
+
+            // Animated Gravitational Force Stream Particles along the tether
+            const particleCount = 24;
+            const pGeo = new THREE.BufferGeometry();
+            const pPos = new Float32Array(particleCount * 3);
+            pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+            const pMat = new THREE.PointsMaterial({
+                color: 0x7dd3fc,
+                size: 0.35,
+                transparent: true,
+                opacity: 0.85,
+                blending: THREE.AdditiveBlending
+            });
+            gravityParticles = new THREE.Points(pGeo, pMat);
+            gravityLinesGroup.add(gravityParticles);
+
+            scene.add(gravityLinesGroup);
+        }
+
+        // ----------------------------------------------------------------------------
+        // 5. UI CONTROLS & THEORY SWITCHING
+        // ----------------------------------------------------------------------------
+        function setCompactTheory(theory) {
+            activeTheory = theory;
+            neutronModel.visible = (theory === 'neutron');
+            blackHoleModel.visible = (theory === 'blackhole');
+            whiteDwarfModel.visible = (theory === 'whitedwarf');
+
+            // Update HUD description & floating label
+            document.getElementById('theory-description').innerHTML = THEORY_INFO[theory].html;
+            labelCompactTitle.textContent = THEORY_INFO[theory].title;
+
+            // Update active button styling
+            document.querySelectorAll('.theory-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.theory === theory);
+            });
+        }
+
+        function setupUIListeners() {
+            document.querySelectorAll('.theory-btn').forEach(btn => {
+                btn.addEventListener('click', () => setCompactTheory(btn.dataset.theory));
+            });
+
+            const speedSlider = document.getElementById('speed-slider');
+            const speedValue = document.getElementById('speed-value');
+            speedSlider.addEventListener('input', (e) => {
+                simSpeed = parseFloat(e.target.value);
+                speedValue.textContent = simSpeed.toFixed(1) + 'x';
+            });
+
+            document.getElementById('toggle-orbits').addEventListener('click', () => {
+                showOrbits = !showOrbits;
+                orbitRingsGroup.visible = showOrbits;
+                document.getElementById('dot-orbits').className = `w-2 h-2 rounded-full ${showOrbits ? 'bg-emerald-400' : 'bg-slate-600'}`;
+            });
+
+            document.getElementById('toggle-gravity').addEventListener('click', () => {
+                showGravityAndLabels = !showGravityAndLabels;
+                gravityLinesGroup.visible = showGravityAndLabels;
+                barycenterGroup.visible = showGravityAndLabels;
+                document.getElementById('dot-gravity').className = `w-2 h-2 rounded-full ${showGravityAndLabels ? 'bg-emerald-400' : 'bg-slate-600'}`;
+            });
+
+            document.getElementById('reset-camera').addEventListener('click', () => {
+                camera.position.set(0, 26, 46);
+                controls.target.set(0, 0, 0);
+                controls.update();
+            });
+        }
+
+        // ----------------------------------------------------------------------------
+        // 6. PROJECT 3D POSITIONS TO 2D SCREEN LABELS
+        // ----------------------------------------------------------------------------
+        function updateScreenLabels() {
+            if (!showGravityAndLabels) {
+                labelGiant.style.opacity = '0';
+                labelCompact.style.opacity = '0';
+                labelBarycenter.style.opacity = '0';
+                return;
+            }
+
+            projectToScreen(giantGroup.position.clone().add(new THREE.Vector3(0, 4.4, 0)), labelGiant);
+            projectToScreen(compactGroup.position.clone().add(new THREE.Vector3(0, 2.2, 0)), labelCompact);
+            projectToScreen(new THREE.Vector3(0, 0, 0), labelBarycenter);
+        }
+
+        function projectToScreen(worldPos, element) {
+            const vector = worldPos.project(camera);
+            // Hide if behind camera
+            if (vector.z > 1) {
+                element.style.opacity = '0';
+                return;
+            }
+            const x = (vector.x * 0.5 + 0.5) * window.innerWidth;
+            const y = (-(vector.y * 0.5) + 0.5) * window.innerHeight;
+            element.style.opacity = '1';
+            element.style.left = `${x}px`;
+            element.style.top = `${y}px`;
+        }
+
+        // ----------------------------------------------------------------------------
+        // 7. ANIMATION LOOP
+        // ----------------------------------------------------------------------------
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const delta = clock.getDelta();
+            const elapsed = clock.getElapsedTime();
+
+            // Advance circular orbit around shared barycenter (0, 0, 0)
+            orbitalAngle += delta * 0.35 * simSpeed;
+
+            const gx = Math.cos(orbitalAngle) * GIANT_ORBIT_RADIUS;
+            const gz = Math.sin(orbitalAngle) * GIANT_ORBIT_RADIUS;
+            giantGroup.position.set(gx, 0, gz);
+
+            // Compact object sits diametrically opposite the barycenter (phase + PI)
+            const cx = Math.cos(orbitalAngle + Math.PI) * COMPACT_ORBIT_RADIUS;
+            const cz = Math.sin(orbitalAngle + Math.PI) * COMPACT_ORBIT_RADIUS;
+            compactGroup.position.set(cx, 0, cz);
+
+            // Update Red Giant shader & slow self-rotation
+            giantMesh.material.uniforms.uTime.value = elapsed;
+            giantMesh.rotation.y += delta * 0.08;
+
+            // Update Compact Object animations
+            if (activeTheory === 'neutron') {
+                // Rapid pulsar spin
+                pulsarBeams.rotation.y += delta * (4.5 + simSpeed * 2.0);
+            } else if (activeTheory === 'blackhole') {
+                accretionDisk.material.uniforms.uTime.value = elapsed;
+                // Keep lensing halo oriented toward the viewer
+                lensingHalo.lookAt(camera.position);
+            } else if (activeTheory === 'whitedwarf') {
+                // Tight inner co-orbiting white dwarfs
+                whiteDwarfModel.rotation.y += delta * (2.5 + simSpeed * 1.5);
+            }
+
+            // Update Gravitational Pull Line & Stream Particles
+            if (showGravityAndLabels) {
+                const linePositions = gravityTidalLine.geometry.attributes.position.array;
+                linePositions[0] = gx; linePositions[1] = 0; linePositions[2] = gz;
+                linePositions[3] = cx; linePositions[4] = 0; linePositions[5] = cz;
+                gravityTidalLine.geometry.attributes.position.needsUpdate = true;
+                gravityTidalLine.computeLineDistances();
+
+                const pPositions = gravityParticles.geometry.attributes.position.array;
+                const count = pPositions.length / 3;
+                for (let i = 0; i < count; i++) {
+                    // Flow smoothly from giant toward compact object
+                    const t = ((i / count) + elapsed * 0.25 * Math.max(0.2, simSpeed)) % 1.0;
+                    pPositions[i * 3] = gx + (cx - gx) * t;
+                    pPositions[i * 3 + 1] = Math.sin(t * Math.PI) * 0.35;
+                    pPositions[i * 3 + 2] = gz + (cz - gz) * t;
+                }
+                gravityParticles.geometry.attributes.position.needsUpdate = true;
+            }
+
+            // Slow background star drift
+            starfield.rotation.y = elapsed * 0.004;
+
+            controls.update();
+            updateScreenLabels();
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        window.onload = function () {
+            init();
+            animate();
+        };
+    </script>
+</body>
+</html>
