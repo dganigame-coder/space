@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gamma-Ray Burst at Pluto — 3D WebGL Planetary Impact Simulation</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; user-select: none; }
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #020308;
+      font-family: 'Inter', sans-serif;
+      color: #f1f5f9;
+    }
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      outline: none;
+    }
+    .font-mono-tech {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .glass-panel {
+      background: rgba(10, 15, 28, 0.72);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(148, 163, 184, 0.16);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.65);
+    }
+    /* Custom Range Slider */
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      background: transparent;
+      cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, 0.25);
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      margin-top: -5px;
+      background-color: #38bdf8;
+      height: 16px;
+      width: 16px;
+      border-radius: 50%;
+      box-shadow: 0 0 12px #38bdf8;
+      border: 2px solid #ffffff;
+      transition: transform 0.15s ease;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+    .phase-btn.active {
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.28), rgba(99, 102, 241, 0.28));
+      border-color: rgba(56, 189, 248, 0.75);
+      color: #ffffff;
+      box-shadow: 0 0 18px rgba(56, 189, 248, 0.25);
+    }
+    .phase-btn.danger.active {
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.35), rgba(217, 119, 6, 0.3));
+      border-color: rgba(248, 113, 113, 0.8);
+      box-shadow: 0 0 18px rgba(239, 68, 68, 0.3);
+    }
+  </style>
+  <!-- Import Map for Three.js ES Modules & Post-Processing -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+
+  <!-- Loading Overlay -->
+  <div id="loader" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#020308] transition-opacity duration-700">
+    <div class="w-14 h-14 border-4 border-sky-500/30 border-t-sky-400 rounded-full animate-spin mb-4"></div>
+    <p class="text-sm tracking-widest uppercase text-sky-300 font-mono-tech">Synthesizing High-Definition Planetary Shaders...</p>
+  </div>
+
+  <!-- 3D WebGL Container -->
+  <div id="canvas-container" class="fixed inset-0 z-0"></div>
+
+  <!-- Top Header & Camera Presets -->
+  <header class="fixed top-3 left-3 right-3 z-20 flex flex-col md:flex-row md:items-center md:justify-between gap-2 pointer-events-none">
+    <div class="glass-panel rounded-2xl px-4 py-2.5 pointer-events-auto flex items-center justify-between gap-4">
+      <div>
+        <div class="flex items-center gap-2">
+          <span id="status-dot" class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          <h1 class="text-sm sm:text-base font-bold tracking-tight text-white">GRB-PLUTO // PLANETARY IMPACT SIMULATION</h1>
+        </div>
+        <p class="text-[11px] text-slate-400 font-mono-tech">Distance: ~39.5 AU (5.5 Light-Hours) • Relativistic Twin-Jet Event</p>
+      </div>
+      <!-- Quick Before / After Compare Toggle -->
+      <button id="btn-compare" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800/90 hover:bg-slate-700 border border-slate-600/60 text-sky-300 transition flex items-center gap-1.5 shrink-0" title="Toggle instant Before vs. After Earth state">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+        <span id="compare-label">Compare: Live</span>
+      </button>
+    </div>
+
+    <!-- Camera Views -->
+    <div class="glass-panel rounded-2xl p-1.5 pointer-events-auto flex items-center gap-1 self-start md:self-auto overflow-x-auto max-w-full">
+      <button data-cam="overview" class="cam-btn px-3 py-1.5 rounded-xl text-xs font-medium bg-sky-500/25 text-sky-200 border border-sky-400/50 transition whitespace-nowrap">System Overview</button>
+      <button data-cam="earth" class="cam-btn px-3 py-1.5 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800/80 border border-transparent transition whitespace-nowrap">Earth Close-Up</button>
+      <button data-cam="pluto" class="cam-btn px-3 py-1.5 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800/80 border border-transparent transition whitespace-nowrap">Pluto Burst Core</button>
+    </div>
+  </header>
+
+  <!-- Right Telemetry HUD -->
+  <aside id="telemetry-panel" class="fixed top-28 md:top-20 right-3 z-20 w-64 sm:w-72 glass-panel rounded-2xl p-3.5 pointer-events-auto hidden sm:block">
+    <div class="flex items-center justify-between border-b border-slate-700/60 pb-2 mb-2.5">
+      <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Planetary Telemetry</span>
+      <span id="sim-time" class="text-xs font-mono-tech font-semibold text-sky-400">T - 00:30:00</span>
+    </div>
+
+    <div class="space-y-2.5 text-xs">
+      <!-- Ozone Layer -->
+      <div>
+        <div class="flex justify-between mb-1">
+          <span class="text-slate-400">Stratospheric Ozone (O₃)</span>
+          <span id="val-ozone" class="font-mono-tech font-semibold text-emerald-400">100.0%</span>
+        </div>
+        <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+          <div id="bar-ozone" class="h-full bg-emerald-400 transition-all duration-150" style="width: 100%"></div>
+        </div>
+      </div>
+
+      <!-- NO2 Toxic Smog -->
+      <div>
+        <div class="flex justify-between mb-1">
+          <span class="text-slate-400">NO₂ Photochemical Smog</span>
+          <span id="val-no2" class="font-mono-tech font-semibold text-slate-300">0.02 ppm</span>
+        </div>
+        <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+          <div id="bar-no2" class="h-full bg-amber-600 transition-all duration-150" style="width: 2%"></div>
+        </div>
+      </div>
+
+      <!-- Surface Temp & Radiation -->
+      <div class="grid grid-cols-2 gap-2 pt-1">
+        <div class="bg-slate-900/70 rounded-xl p-2 border border-slate-800">
+          <div class="text-[10px] text-slate-400 uppercase">Global Mean Temp</div>
+          <div id="val-temp" class="text-sm font-mono-tech font-bold text-white mt-0.5">+15.0 °C</div>
+        </div>
+        <div class="bg-slate-900/70 rounded-xl p-2 border border-slate-800">
+          <div class="text-[10px] text-slate-400 uppercase">Gamma / UV Flux</div>
+          <div id="val-rad" class="text-sm font-mono-tech font-bold text-sky-300 mt-0.5">1.0x Normal</div>
+        </div>
+      </div>
+
+      <!-- Status Narrative -->
+      <div class="bg-slate-900/80 rounded-xl p-2.5 border border-slate-800/90">
+        <div id="phase-title" class="font-semibold text-sky-300 mb-1">Phase 0: Pre-Burst Equilibrium</div>
+        <p id="phase-desc" class="text-[11px] leading-relaxed text-slate-300">
+          Earth's magnetosphere and ozone layer shield a thriving biosphere. Pluto orbits quietly 5.5 light-hours away in the Kuiper Belt.
+        </p>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Floating 3D Labels (Projected from 3D coordinates) -->
+  <div id="label-earth" class="fixed z-10 pointer-events-none transform -translate-x-1/2 -translate-y-full pb-3 transition-opacity duration-300">
+    <div class="px-2.5 py-1 rounded-lg bg-slate-950/75 border border-sky-400/40 text-[11px] font-mono-tech text-sky-200 whitespace-nowrap shadow-lg">
+      EARTH <span id="earth-tag-status" class="text-emerald-400">[NOMINAL]</span>
+    </div>
+  </div>
+  <div id="label-pluto" class="fixed z-10 pointer-events-none transform -translate-x-1/2 -translate-y-full pb-3 transition-opacity duration-300">
+    <div class="px-2.5 py-1 rounded-lg bg-slate-950/75 border border-purple-400/40 text-[11px] font-mono-tech text-purple-200 whitespace-nowrap shadow-lg">
+      PLUTO (39.5 AU) <span id="pluto-tag-status" class="text-slate-400">[QUIESCENT]</span>
+    </div>
+  </div>
+
+  <!-- Bottom Interactive Timeline & Phase Controller -->
+  <footer class="fixed bottom-3 left-3 right-3 z-20 flex flex-col items-center pointer-events-none">
+    <div class="glass-panel rounded-2xl p-3 sm:p-4 w-full max-w-4xl pointer-events-auto">
+      <!-- Phase Quick-Select Pills -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-2 mb-3">
+        <button data-phase="0.0" class="phase-btn active px-2.5 py-2 rounded-xl border border-slate-700/80 bg-slate-900/60 text-left transition">
+          <div class="text-[10px] font-mono-tech text-sky-400">01 // T - 30m</div>
+          <div class="text-xs font-semibold truncate">Before Burst</div>
+        </button>
+        <button data-phase="0.26" class="phase-btn px-2.5 py-2 rounded-xl border border-slate-700/80 bg-slate-900/60 text-left transition">
+          <div class="text-[10px] font-mono-tech text-purple-400">02 // T = 0s</div>
+          <div class="text-xs font-semibold truncate">Gamma-Ray Burst</div>
+        </button>
+        <button data-phase="0.55" class="phase-btn danger px-2.5 py-2 rounded-xl border border-slate-700/80 bg-slate-900/60 text-left transition">
+          <div class="text-[10px] font-mono-tech text-rose-400">03 // T + 5.5h</div>
+          <div class="text-xs font-semibold truncate">Beam Strike & EMP</div>
+        </button>
+        <button data-phase="0.88" class="phase-btn danger px-2.5 py-2 rounded-xl border border-slate-700/80 bg-slate-900/60 text-left transition">
+          <div class="text-[10px] font-mono-tech text-amber-400">04 // +3 Months</div>
+          <div class="text-xs font-semibold truncate">Aftermath & Winter</div>
+        </button>
+      </div>
+
+      <!-- Scrubber & Playback Controls -->
+      <div class="flex items-center gap-3">
+        <button id="btn-play" class="w-10 h-10 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold flex items-center justify-center shrink-0 shadow-lg shadow-sky-500/25 transition" title="Play / Pause Simulation">
+          <svg id="icon-pause" class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+          <svg id="icon-play" class="w-5 h-5 hidden" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </button>
+
+        <button id="btn-reset" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center justify-center shrink-0 transition" title="Reset Timeline">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        </button>
+
+        <div class="flex-1 flex flex-col">
+          <input id="timeline-slider" type="range" min="0" max="1" step="0.001" value="0" class="w-full" />
+          <div class="flex justify-between text-[10px] font-mono-tech text-slate-400 mt-1 px-0.5">
+            <span>Pre-Burst</span>
+            <span>Eruption at Pluto</span>
+            <span>Ionization & EMP</span>
+            <span>NO₂ Smog & Ice Age</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Main WebGL Three.js Application -->
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+    import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+    // =========================================================================
+    // 1. PROCEDURAL HIGH-DEFINITION PLANETARY TEXTURE GENERATOR
+    //    Generates seamless equirectangular textures for Before & After Earth,
+    //    Clouds, City Lights, Specular/Roughness, and Pluto surface.
+    // =========================================================================
+    function hash2D(x, y) {
+      const h = Math.sin(x * 127.1 + y * 311.7) * 43758.5453123;
+      return h - Math.floor(h);
+    }
+
+    function valueNoise(x, y) {
+      const ix = Math.floor(x);
+      const iy = Math.floor(y);
+      const fx = x - ix;
+      const fy = y - iy;
+      const ux = fx * fx * (3.0 - 2.0 * fx);
+      const uy = fy * fy * (3.0 - 2.0 * fy);
+
+      const a = hash2D(ix, iy);
+      const b = hash2D(ix + 1, iy);
+      const c = hash2D(ix, iy + 1);
+      const d = hash2D(ix + 1, iy + 1);
+
+      return a + (b - a) * ux + (c - a) * uy + (a - b - c + d) * ux * uy;
+    }
+
+    // Seamless spherical FBM noise using 3D unit sphere coordinates
+    function fbm3D(x, y, z, octaves = 5) {
+      let value = 0.0;
+      let amp = 0.5;
+      let freq = 2.2;
+      for (let i = 0; i < octaves; i++) {
+        const n1 = valueNoise(x * freq + i * 17.3, y * freq + z * freq * 0.7);
+        const n2 = valueNoise(z * freq - i * 11.1, y * freq * 1.1 - x * freq * 0.6);
+        value += amp * ((n1 + n2) * 0.5);
+        freq *= 2.08;
+        amp *= 0.5;
+      }
+      return value;
+    }
+
+    function generatePlanetaryTextures() {
+      const width = 1024;
+      const height = 512;
+
+      const healthyCanvas = document.createElement('canvas');
+      healthyCanvas.width = width;
+      healthyCanvas.height = height;
+      const hCtx = healthyCanvas.getContext('2d');
+      const hImg = hCtx.createImageData(width, height);
+
+      const scorchedCanvas = document.createElement('canvas');
+      scorchedCanvas.width = width;
+      scorchedCanvas.height = height;
+      const sCtx = scorchedCanvas.getContext('2d');
+      const sImg = sCtx.createImageData(width, height);
+
+      const bumpCanvas = document.createElement('canvas');
+      bumpCanvas.width = width;
+      bumpCanvas.height = height;
+      const bCtx = bumpCanvas.getContext('2d');
+      const bImg = bCtx.createImageData(width, height);
+
+      const lightsCanvas = document.createElement('canvas');
+      lightsCanvas.width = width;
+      lightsCanvas.height = height;
+      const lCtx = lightsCanvas.getContext('2d');
+      const lImg = lCtx.createImageData(width, height);
+
+      const cloudCanvas = document.createElement('canvas');
+      cloudCanvas.width = width;
+      cloudCanvas.height = height;
+      const cCtx = cloudCanvas.getContext('2d');
+      const cImg = cCtx.createImageData(width, height);
+
+      for (let y = 0; y < height; y++) {
+        const v = y / height;
+        const theta = v * Math.PI; // 0 (North Pole) to PI (South Pole)
+        const sinTheta = Math.sin(theta);
+        const cosTheta = Math.cos(theta);
+        const lat = Math.abs(cosTheta); // 0 at equator, 1 at poles
+
+        for (let x = 0; x < width; x++) {
+          const u = x / width;
+          const phi = u * Math.PI * 2;
+          const sx = sinTheta * Math.cos(phi);
+          const sy = cosTheta;
+          const sz = sinTheta * Math.sin(phi);
+
+          const idx = (y * width + x) * 4;
+          const elev = fbm3D(sx * 1.4 + 1.2, sy * 1.4 - 0.5, sz * 1.4 + 0.8, 6);
+          const detail = fbm3D(sx * 6.0, sy * 6.0, sz * 6.0, 4);
+
+          // Bump map
+          const bumpVal = Math.min(255, Math.max(0, Math.floor(elev * 255)));
+          bImg.data[idx] = bumpVal;
+          bImg.data[idx + 1] = bumpVal;
+          bImg.data[idx + 2] = bumpVal;
+          bImg.data[idx + 3] = 255;
+
+          const seaLevel = 0.495;
+          const isLand = elev > seaLevel;
+
+          // --- 1. HEALTHY EARTH (BEFORE BURST) ---
+          let r = 0, g = 0, b = 0;
+          if (!isLand) {
+            // Deep ocean to coastal shelf
+            const depth = Math.max(0, (seaLevel - elev) / seaLevel);
+            r = Math.floor(10 + (1 - depth) * 24);
+            g = Math.floor(42 + (1 - depth) * 85);
+            b = Math.floor(105 + (1 - depth) * 95);
+          } else {
+            const hNorm = Math.min(1, (elev - seaLevel) / 0.35);
+            // Lush forests, plains, deserts, mountains
+            const moisture = fbm3D(sx * 2.5 - 2.0, sy * 2.5, sz * 2.5 + 1.5, 4);
+            if (hNorm > 0.68) {
+              // Mountain peaks
+              r = 140 + detail * 60;
+              g = 135 + detail * 55;
+              b = 130 + detail * 55;
+            } else if (moisture < 0.42 && lat < 0.55) {
+              // Arid desert / savanna
+              r = 185 + detail * 35;
+              g = 152 + detail * 30;
+              b = 96 + detail * 20;
+            } else {
+              // Lush green biosphere
+              r = 34 + detail * 42;
+              g = 108 + detail * 52 - hNorm * 25;
+              b = 44 + detail * 28;
+            }
+          }
+
+          // Healthy Polar Ice Caps
+          if (lat > 0.81 + (detail - 0.5) * 0.08) {
+            r = 240; g = 246; b = 255;
+          }
+
+          hImg.data[idx] = Math.min(255, r);
+          hImg.data[idx + 1] = Math.min(255, g);
+          hImg.data[idx + 2] = Math.min(255, b);
+          hImg.data[idx + 3] = 255;
+
+          // --- 2. POST-BURST EARTH (SCORCHED BIOSPHERE + GRB WINTER ICE) ---
+          let sr = 0, sg = 0, sb = 0;
+          if (!isLand) {
+            // Murky, phytoplankton-depleted dark toxic ocean
+            const depth = Math.max(0, (seaLevel - elev) / seaLevel);
+            sr = Math.floor(16 + (1 - depth) * 22);
+            sg = Math.floor(24 + (1 - depth) * 26);
+            sb = Math.floor(34 + (1 - depth) * 28);
+          } else {
+            // Withered, UV-sterilized ash/ochre/brown continents
+            const hNorm = Math.min(1, (elev - seaLevel) / 0.35);
+            sr = 88 + detail * 42 + hNorm * 25;
+            sg = 64 + detail * 32 + hNorm * 22;
+            sb = 48 + detail * 24 + hNorm * 20;
+          }
+
+          // Expanded GRB Winter Glaciation (ice advances down to mid-latitudes)
+          if (lat > 0.54 + (detail - 0.5) * 0.14) {
+            sr = 205 + detail * 25;
+            sg = 212 + detail * 25;
+            sb = 222 + detail * 25;
+          }
+
+          sImg.data[idx] = Math.min(255, sr);
+          sImg.data[idx + 1] = Math.min(255, sg);
+          sImg.data[idx + 2] = Math.min(255, sb);
+          sImg.data[idx + 3] = 255;
+
+          // --- 3. NIGHT-SIDE CITY LIGHTS (COASTAL & TEMPERATE CLUSTERS) ---
+          let lr = 0, lg = 0, lb = 0;
+          if (isLand && lat < 0.72 && (elev - seaLevel) < 0.18) {
+            const urban = fbm3D(sx * 14.0 + 4.1, sy * 14.0, sz * 14.0 - 3.2, 3);
+            if (urban > 0.63) {
+              const intensity = Math.min(1, (urban - 0.63) * 6.5);
+              lr = Math.floor(255 * intensity);
+              lg = Math.floor(195 * intensity);
+              lb = Math.floor(95 * intensity);
+            }
+          }
+          lImg.data[idx] = lr;
+          lImg.data[idx + 1] = lg;
+          lImg.data[idx + 2] = lb;
+          lImg.data[idx + 3] = 255;
+
+          // --- 4. SWIRLING CLOUD LAYER ---
+          const swirl = fbm3D(sx * 3.2 + sy * 1.1, sy * 3.5, sz * 3.2 - sy * 1.1, 5);
+          const cAlpha = Math.max(0, Math.min(255, Math.floor((swirl - 0.44) * 580)));
+          cImg.data[idx] = 255;
+          cImg.data[idx + 1] = 255;
+          cImg.data[idx + 2] = 255;
+          cImg.data[idx + 3] = cAlpha;
+        }
+      }
+
+      hCtx.putImageData(hImg, 0, 0);
+      sCtx.putImageData(sImg, 0, 0);
+      bCtx.putImageData(bImg, 0, 0);
+      lCtx.putImageData(lImg, 0, 0);
+      cCtx.putImageData(cImg, 0, 0);
+
+      // Pluto Procedural Texture
+      const plutoCanvas = document.createElement('canvas');
+      plutoCanvas.width = 512;
+      plutoCanvas.height = 256;
+      const pCtx = plutoCanvas.getContext('2d');
+      const pImg = pCtx.createImageData(512, 256);
+      for (let y = 0; y < 256; y++) {
+        const theta = (y / 256) * Math.PI;
+        for (let x = 0; x < 512; x++) {
+          const phi = (x / 512) * Math.PI * 2;
+          const sx = Math.sin(theta) * Math.cos(phi);
+          const sy = Math.cos(theta);
+          const sz = Math.sin(theta) * Math.sin(phi);
+          const n = fbm3D(sx * 2.8, sy * 2.8, sz * 2.8, 5);
+          const idx = (y * 512 + x) * 4;
+          pImg.data[idx] = Math.floor(150 + n * 75);
+          pImg.data[idx + 1] = Math.floor(132 + n * 65);
+          pImg.data[idx + 2] = Math.floor(118 + n * 58);
+          pImg.data[idx + 3] = 255;
+        }
+      }
+      pCtx.putImageData(pImg, 0, 0);
+
+      const makeTex = (canvas, isSRGB = true) => {
+        const tex = new THREE.CanvasTexture(canvas);
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.ClampToEdgeWrapping;
+        if (isSRGB) tex.colorSpace = THREE.SRGBColorSpace;
+        tex.anisotropy = 8;
+        return tex;
+      };
+
+      return {
+        healthyMap: makeTex(healthyCanvas, true),
+        scorchedMap: makeTex(scorchedCanvas, true),
+        bumpMap: makeTex(bumpCanvas, false),
+        lightsMap: makeTex(lightsCanvas, true),
+        cloudMap: makeTex(cloudCanvas, true),
+        plutoMap: makeTex(plutoCanvas, true)
+      };
+    }
+
+    // =========================================================================
+    // 2. THREE.JS SCENE, RENDERER, BLOOM POST-PROCESSING & CONTROLS
+    // =========================================================================
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x02040c, 0.0018);
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(16, 14, 34);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.12;
+    container.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.055;
+    controls.minDistance = 5.2;
+    controls.maxDistance = 120;
+    controls.target.set(6, 0, 0);
+
+    // Post-Processing: UnrealBloomPass for cinematic gamma jets & ionization flash
+    const renderScene = new RenderPass(scene, camera);
+    const bloomPass = new UnrealBloomPass(
+      new THREE.Vector2(window.innerWidth, window.innerHeight),
+      1.15, // strength
+      0.55, // radius
+      0.72  // threshold
+    );
+
+    const composer = new EffectComposer(renderer);
+    composer.addPass(renderScene);
+    composer.addPass(bloomPass);
+
+    // =========================================================================
+    // 3. DEEP SPACE STARFIELD, NEBULA & DISTANT SUN
+    // =========================================================================
+    function createStarfield() {
+      const starGeo = new THREE.BufferGeometry();
+      const count = 5500;
+      const positions = new Float32Array(count * 3);
+      const colors = new Float32Array(count * 3);
+
+      const palette = [
+        new THREE.Color(0xffffff),
+        new THREE.Color(0xcbe5ff),
+        new THREE.Color(0xffe9c4),
+        new THREE.Color(0xa5b4fc)
+      ];
+
+      for (let i = 0; i < count; i++) {
+        const r = 140 + Math.random() * 260;
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos(2 * Math.random() - 1);
+        positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+        positions[i * 3 + 1] = r * Math.cos(phi);
+        positions[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta);
+
+        const col = palette[Math.floor(Math.random() * palette.length)];
+        const brightness = 0.5 + Math.random() * 0.5;
+        colors[i * 3] = col.r * brightness;
+        colors[i * 3 + 1] = col.g * brightness;
+        colors[i * 3 + 2] = col.b * brightness;
+      }
+
+      starGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      starGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+      const starMat = new THREE.PointsMaterial({
+        size: 0.75,
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.9
+      });
+      scene.add(new THREE.Points(starGeo, starMat));
+    }
+    createStarfield();
+
+    // Distant Sun illuminating Earth's dayside
+    const sunPos = new THREE.Vector3(-42, 18, 36);
+    const sunLight = new THREE.DirectionalLight(0xfff8eb, 2.8);
+    sunLight.position.copy(sunPos);
+    scene.add(sunLight);
+
+    const ambientLight = new THREE.AmbientLight(0x1e293b, 0.55);
+    scene.add(ambientLight);
+
+    // Visual Sun Sphere + Glow
+    const sunMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(2.6, 32, 32),
+      new THREE.MeshBasicMaterial({ color: 0xffedd5 })
+    );
+    sunMesh.position.copy(sunPos.clone().multiplyScalar(2.2));
+    scene.add(sunMesh);
+
+    // =========================================================================
+    // 4. EARTH (CUSTOM GLSL BEFORE/AFTER MORPH SHADER + ATMOSPHERE + EMP)
+    // =========================================================================
+    const textures = generatePlanetaryTextures();
+    const EARTH_POS = new THREE.Vector3(-12, 0, 0);
+    const PLUTO_POS = new THREE.Vector3(28, 0, 0);
+    const EARTH_RADIUS = 3.2;
+
+    const earthGroup = new THREE.Group();
+    earthGroup.position.copy(EARTH_POS);
+    scene.add(earthGroup);
+
+    // Custom ShaderMaterial on Earth surface so we can smoothly morph between
+    // Pre-Burst lush Earth and Post-Burst scorched/glaciated Earth + night city lights!
+    const earthUniforms = {
+      uHealthyMap: { value: textures.healthyMap },
+      uScorchedMap: { value: textures.scorchedMap },
+      uLightsMap: { value: textures.lightsMap },
+      uBumpMap: { value: textures.bumpMap },
+      uSunDir: { value: sunPos.clone().normalize() },
+      uDamage: { value: 0.0 },        // 0 = Healthy Before, 1 = Post-Burst After
+      uGridAlive: { value: 1.0 },     // 1 = City lights on, 0 = Fried by EMP
+      uIonFlash: { value: 0.0 },      // Gamma strike Cherenkov ionization flash
+      uTime: { value: 0.0 }
+    };
+
+    const earthMaterial = new THREE.ShaderMaterial({
+      uniforms: earthUniforms,
+      vertexShader: `
+        varying vec2 vUv;
+        varying vec3 vNormalWorld;
+        varying vec3 vPosWorld;
+        void main() {
+          vUv = uv;
+          vec4 worldPos = modelMatrix * vec4(position, 1.0);
+          vPosWorld = worldPos.xyz;
+          vNormalWorld = normalize(mat3(modelMatrix) * normal);
+          gl_Position = projectionMatrix * viewMatrix * worldPos;
+        }
+      `,
+      fragmentShader: `
+        uniform sampler2D uHealthyMap;
+        uniform sampler2D uScorchedMap;
+        uniform sampler2D uLightsMap;
+        uniform vec3 uSunDir;
+        uniform float uDamage;
+        uniform float uGridAlive;
+        uniform float uIonFlash;
+        uniform float uTime;
+
+        varying vec2 vUv;
+        varying vec3 vNormalWorld;
+        varying vec3 vPosWorld;
+
+        void main() {
+          vec3 N = normalize(vNormalWorld);
+          float ndotl = dot(N, normalize(uSunDir));
+          float dayFactor = smoothstep(-0.18, 0.25, ndotl);
+          float nightFactor = 1.0 - smoothstep(-0.22, 0.08, ndotl);
+
+          // Blend Pre-Burst and Post-Burst planetary surface
+          vec3 healthyCol = texture2D(uHealthyMap, vUv).rgb;
+          vec3 scorchedCol = texture2D(uScorchedMap, vUv).rgb;
+          vec3 surfaceCol = mix(healthyCol, scorchedCol, uDamage);
+
+          // Dim sunlight slightly during post-burst NO2 winter
+          float sunDim = mix(1.25, 0.72, uDamage);
+          vec3 litSurface = surfaceCol * (0.06 + dayFactor * sunDim);
+
+          // Night-side city lights (flicker during EMP strike, then go permanently dark)
+          vec3 cityLights = texture2D(uLightsMap, vUv).rgb;
+          float flicker = 1.0;
+          if (uGridAlive < 0.99 && uGridAlive > 0.01) {
+            flicker = step(0.35, fract(sin(dot(vUv * 50.0, vec2(12.9898, 78.233)) + uTime * 28.0) * 43758.5453));
+          }
+          vec3 nightEmission = cityLights * nightFactor * uGridAlive * flicker * 1.45;
+
+          // Gamma-Ray Beam Strike Hemisphere (+X faces Pluto at x = +28)
+          float plutoFacing = clamp(N.x, 0.0, 1.0);
+          float strikeRim = pow(plutoFacing, 1.6);
+          vec3 gammaFlashCol = mix(vec3(0.35, 0.65, 1.0), vec3(0.95, 0.55, 1.0), 0.5) * strikeRim * uIonFlash * 3.8;
+
+          // Subtle toxic amber-brown atmospheric tint scattered onto surface in aftermath
+          vec3 smogTint = vec3(0.38, 0.16, 0.05) * uDamage * dayFactor * 0.25;
+
+          vec3 finalCol = litSurface + nightEmission + gammaFlashCol + smogTint;
+          gl_FragColor = vec4(finalCol, 1.0);
+        }
+      `
+    });
+
+    const earthMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(EARTH_RADIUS, 96, 96),
+      earthMaterial
+    );
+    earthGroup.add(earthMesh);
+
+    // Cloud Layer (transitions from crisp white clouds to dense brown-gray NO2 smog clouds)
+    const cloudMat = new THREE.MeshStandardMaterial({
+      map: textures.cloudMap,
+      transparent: true,
+      opacity: 0.85,
+      depthWrite: false,
+      roughness: 0.9,
+      color: new THREE.Color(0xffffff)
+    });
+    const cloudMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(EARTH_RADIUS * 1.016, 72, 72),
+      cloudMat
+    );
+    earthGroup.add(cloudMesh);
+
+    // Protective Ozone / NO2 Atmospheric Fresnel Halo Shader
+    const atmoUniforms = {
+      uDamage: { value: 0.0 },
+      uIonFlash: { value: 0.0 },
+      uSunDir: { value: sunPos.clone().normalize() }
+    };
+
+    const atmoMaterial = new THREE.ShaderMaterial({
+      uniforms: atmoUniforms,
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      side: THREE.BackSide,
+      depthWrite: false,
+      vertexShader: `
+        varying vec3 vNormalWorld;
+        varying vec3 vViewDir;
+        void main() {
+          vec4 worldPos = modelMatrix * vec4(position, 1.0);
+          vNormalWorld = normalize(mat3(modelMatrix) * normal);
+          vViewDir = normalize(cameraPosition - worldPos.xyz);
+          gl_Position = projectionMatrix * viewMatrix * worldPos;
+        }
+      `,
+      fragmentShader: `
+        uniform float uDamage;
+        uniform float uIonFlash;
+        uniform vec3 uSunDir;
+        varying vec3 vNormalWorld;
+        varying vec3 vViewDir;
+
+        void main() {
+          // BackSide normal points outward; dot with viewDir gives strong rim glow
+          float viewDot = dot(vNormalWorld, vViewDir);
+          float rim = pow(clamp(1.0 + viewDot, 0.0, 1.0), 2.8);
+
+          // Healthy Ozone Blue vs Post-Burst Toxic Nitrogen Dioxide (NO2) Red-Brown Smog
+          vec3 healthyOzone = vec3(0.22, 0.62, 1.0);
+          vec3 toxicNO2 = vec3(0.76, 0.31, 0.09);
+          vec3 baseAtmo = mix(healthyOzone, toxicNO2, uDamage);
+
+          // Ionization burst glow on Pluto-facing side
+          float plutoSide = clamp(vNormalWorld.x, 0.0, 1.0);
+          vec3 ionGlow = vec3(0.65, 0.45, 1.0) * plutoSide * uIonFlash * 3.2;
+
+          float alpha = rim * mix(0.85, 0.95, uDamage) + plutoSide * uIonFlash * 0.5;
+          gl_FragColor = vec4((baseAtmo * 1.2 + ionGlow) * rim, clamp(alpha, 0.0, 1.0));
+        }
+      `
+    });
+
+    const atmoMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(EARTH_RADIUS * 1.085, 72, 72),
+      atmoMaterial
+    );
+    earthGroup.add(atmoMesh);
+
+    // EMP Electromagnetic Shockwave Ring sweeping across Earth upon impact
+    const empRingGeo = new THREE.RingGeometry(EARTH_RADIUS * 1.05, EARTH_RADIUS * 1.18, 64);
+    const empRingMat = new THREE.MeshBasicMaterial({
+      color: 0x60a5fa,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.0,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+    const empRing = new THREE.Mesh(empRingGeo, empRingMat);
+    empRing.rotation.y = Math.PI / 2;
+    earthGroup.add(empRing);
+
+    // =========================================================================
+    // 5. PLUTO & RELATIVISTIC GAMMA-RAY BURST TWIN-JET SYSTEM
+    // =========================================================================
+    const plutoGroup = new THREE.Group();
+    plutoGroup.position.copy(PLUTO_POS);
+    scene.add(plutoGroup);
+
+    const plutoMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(0.95, 48, 48),
+      new THREE.MeshStandardMaterial({
+        map: textures.plutoMap,
+        roughness: 0.85,
+        metalness: 0.05
+      })
+    );
+    plutoGroup.add(plutoMesh);
+
+    // Distance Trajectory Dotted Reference Line (Pluto -> Earth)
+    const linePoints = [PLUTO_POS.clone(), EARTH_POS.clone()];
+    const lineGeo = new THREE.BufferGeometry().setFromPoints(linePoints);
+    const lineMat = new THREE.LineDashedMaterial({
+      color: 0x475569,
+      dashSize: 0.7,
+      gapSize: 0.5,
+      transparent: true,
+      opacity: 0.45
+    });
+    const distanceLine = new THREE.Line(lineGeo, lineMat);
+    distanceLine.computeLineDistances();
+    scene.add(distanceLine);
+
+    // GRB Progenitor Core Flash & Accretion Torus at Pluto
+    const grbCoreMat = new THREE.MeshBasicMaterial({
+      color: 0xe0f2fe,
+      transparent: true,
+      opacity: 0.0,
+      blending: THREE.AdditiveBlending
+    });
+    const grbCore = new THREE.Mesh(new THREE.SphereGeometry(1.5, 32, 32), grbCoreMat);
+    plutoGroup.add(grbCore);
+
+    const grbHaloMat = new THREE.MeshBasicMaterial({
+      color: 0xa855f7,
+      transparent: true,
+      opacity: 0.0,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+    const grbHalo = new THREE.Mesh(new THREE.SphereGeometry(3.8, 32, 32), grbHaloMat);
+    plutoGroup.add(grbHalo);
+
+    // Twin Relativistic Gamma-Ray Jets:
+    // Jet 1 aims directly along -X toward Earth (distance = 40 units)
+    // Jet 2 aims along +X into deep space
+    const TOTAL_BEAM_DIST = PLUTO_POS.x - EARTH_POS.x; // 40 units
+
+    const jetUniforms = {
+      uTime: { value: 0.0 },
+      uIntensity: { value: 0.0 },
+      uColorCore: { value: new THREE.Color(0xffffff) },
+      uColorOuter: { value: new THREE.Color(0x8b5cf6) }
+    };
+
+    const jetShaderMat = new THREE.ShaderMaterial({
+      uniforms: jetUniforms,
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+      vertexShader: `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform float uTime;
+        uniform float uIntensity;
+        uniform vec3 uColorCore;
+        uniform vec3 uColorOuter;
+        varying vec2 vUv;
+
+        // Simple 1D/2D plasma turbulence
+        float noise(vec2 p) {
+          return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+        }
+
+        void main() {
+          // vUv.y runs 0 (at Pluto) to 1 (tip of beam)
+          float pulse1 = sin(vUv.y * 28.0 - uTime * 24.0) * 0.5 + 0.5;
+          float pulse2 = sin(vUv.y * 65.0 - uTime * 42.0 + vUv.x * 6.28) * 0.5 + 0.5;
+          float plasma = mix(pulse1, pulse2, 0.45);
+
+          // Fade smoothly at very tip and base
+          float longitudinalFade = smoothstep(0.0, 0.04, vUv.y) * (1.0 - smoothstep(0.88, 1.0, vUv.y));
+          vec3 col = mix(uColorOuter, uColorCore, plasma * 0.75 + 0.25);
+
+          float alpha = longitudinalFade * (0.45 + plasma * 0.55) * uIntensity;
+          gl_FragColor = vec4(col * 2.2, clamp(alpha, 0.0, 1.0));
+        }
+      `
+    });
+
+    // Build Left Jet (aimed at Earth, -X) and Right Jet (counter-jet, +X)
+    function createJetMesh() {
+      // CylinderGeometry default height is 1 along Y; we shift origin to base (y = 0..1)
+      const geo = new THREE.CylinderGeometry(1.15, 0.14, 1.0, 32, 1, true);
+      geo.translate(0, 0.5, 0);
+      return new THREE.Mesh(geo, jetShaderMat);
+    }
+
+    const earthboundJet = createJetMesh();
+    earthboundJet.rotation.z = Math.PI / 2; // Points along -X
+    plutoGroup.add(earthboundJet);
+
+    const counterJet = createJetMesh();
+    counterJet.rotation.z = -Math.PI / 2; // Points along +X
+    plutoGroup.add(counterJet);
+
+    // High-Velocity Relativistic Gamma Photon Particle Stream
+    const particleCount = 420;
+    const pGeo = new THREE.BufferGeometry();
+    const pPos = new Float32Array(particleCount * 3);
+    const pOffsets = new Float32Array(particleCount);
+    const pRadii = new Float32Array(particleCount);
+    const pAngles = new Float32Array(particleCount);
+
+    for (let i = 0; i < particleCount; i++) {
+      pOffsets[i] = Math.random();
+      pRadii[i] = 0.08 + Math.random() * 0.85;
+      pAngles[i] = Math.random() * Math.PI * 2;
+      pPos[i * 3] = 0;
+      pPos[i * 3 + 1] = 0;
+      pPos[i * 3 + 2] = 0;
+    }
+    pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+
+    const pMat = new THREE.PointsMaterial({
+      color: 0xc4b5fd,
+      size: 0.28,
+      transparent: true,
+      opacity: 0.0,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+    const jetParticles = new THREE.Points(pGeo, pMat);
+    plutoGroup.add(jetParticles);
+
+    // =========================================================================
+    // 6. SIMULATION TIMELINE STATE & PHYSICS TELEMETRY ENGINE
+    // =========================================================================
+    let simProgress = 0.0; // 0.0 -> 1.0
+    let isPlaying = true;
+    let compareOverride = 'live'; // 'live' | 'before' | 'after'
+
+    // Camera transition state
+    let targetCamPos = null;
+    let targetLookAt = null;
+
+    const slider = document.getElementById('timeline-slider');
+    const btnPlay = document.getElementById('btn-play');
+    const iconPlay = document.getElementById('icon-play');
+    const iconPause = document.getElementById('icon-pause');
+    const btnReset = document.getElementById('btn-reset');
+    const btnCompare = document.getElementById('btn-compare');
+    const compareLabel = document.getElementById('compare-label');
+
+    const phaseBtns = document.querySelectorAll('.phase-btn');
+    const camBtns = document.querySelectorAll('.cam-btn');
+
+    function setPlaying(state) {
+      isPlaying = state;
+      iconPlay.classList.toggle('hidden', isPlaying);
+      iconPause.classList.toggle('hidden', !isPlaying);
+    }
+
+    btnPlay.addEventListener('click', () => {
+      if (simProgress >= 0.999 && !isPlaying) {
+        simProgress = 0;
+      }
+      setPlaying(!isPlaying);
+    });
+
+    btnReset.addEventListener('click', () => {
+      simProgress = 0;
+      compareOverride = 'live';
+      compareLabel.textContent = 'Compare: Live';
+      setPlaying(true);
+    });
+
+    slider.addEventListener('input', (e) => {
+      simProgress = parseFloat(e.target.value);
+      compareOverride = 'live';
+      compareLabel.textContent = 'Compare: Live';
+      setPlaying(false);
+    });
+
+    phaseBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        simProgress = parseFloat(btn.dataset.phase);
+        slider.value = simProgress;
+        compareOverride = 'live';
+        compareLabel.textContent = 'Compare: Live';
+        setPlaying(true);
+      });
+    });
+
+    // Instant Before / After Earth Inspection Toggle
+    btnCompare.addEventListener('click', () => {
+      if (compareOverride === 'live') {
+        compareOverride = 'before';
+        compareLabel.textContent = 'View: BEFORE Earth';
+        setPlaying(false);
+      } else if (compareOverride === 'before') {
+        compareOverride = 'after';
+        compareLabel.textContent = 'View: AFTER Earth';
+        setPlaying(false);
+      } else {
+        compareOverride = 'live';
+        compareLabel.textContent = 'Compare: Live';
+      }
+    });
+
+    // Camera Presets
+    camBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        camBtns.forEach(b => {
+          b.classList.remove('bg-sky-500/25', 'text-sky-200', 'border-sky-400/50');
+          b.classList.add('text-slate-300', 'border-transparent');
+        });
+        btn.classList.add('bg-sky-500/25', 'text-sky-200', 'border-sky-400/50');
+        btn.classList.remove('text-slate-300', 'border-transparent');
+
+        const mode = btn.dataset.cam;
+        if (mode === 'overview') {
+          targetCamPos = new THREE.Vector3(12, 13, 38);
+          targetLookAt = new THREE.Vector3(6, 0, 0);
+        } else if (mode === 'earth') {
+          targetCamPos = new THREE.Vector3(-4.5, 2.8, 9.8);
+          targetLookAt = EARTH_POS.clone();
+        } else if (mode === 'pluto') {
+          targetCamPos = new THREE.Vector3(21, 4.5, 13);
+          targetLookAt = PLUTO_POS.clone();
+        }
+      });
+    });
+
+    // Stop camera auto-glide if user manually drags OrbitControls
+    controls.addEventListener('start', () => {
+      targetCamPos = null;
+      targetLookAt = null;
+    });
+
+    function smoothstep(edge0, edge1, x) {
+      const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
+      return t * t * (3 - 2 * t);
+    }
+
+    // =========================================================================
+    // 7. UPDATE SIMULATION STATE & UI HUD
+    // =========================================================================
+    const elSimTime = document.getElementById('sim-time');
+    const elValOzone = document.getElementById('val-ozone');
+    const elBarOzone = document.getElementById('bar-ozone');
+    const elValNo2 = document.getElementById('val-no2');
+    const elBarNo2 = document.getElementById('bar-no2');
+    const elValTemp = document.getElementById('val-temp');
+    const elValRad = document.getElementById('val-rad');
+    const elPhaseTitle = document.getElementById('phase-title');
+    const elPhaseDesc = document.getElementById('phase-desc');
+    const elStatusDot = document.getElementById('status-dot');
+    const elEarthTag = document.getElementById('earth-tag-status');
+    const elPlutoTag = document.getElementById('pluto-tag-status');
+
+    function updateSimulation(t, elapsedClock) {
+      // Allow Before/After compare override to preview Earth states cleanly
+      const effectiveT = compareOverride === 'before' ? 0.0 : (compareOverride === 'after' ? 1.0 : t);
+
+      // Timeline Breakdown:
+      // 0.00 -> 0.22 : Phase 0 - Pre-Burst Normal Earth
+      // 0.22 -> 0.50 : Phase 1 - GRB Erupts at Pluto; Relativistic beam crosses 39.5 AU (5.5 light-hours)
+      // 0.50 -> 0.72 : Phase 2 - Beam Impact on Earth! Ionization flash, EMP blackout, ozone dissociation
+      // 0.72 -> 1.00 : Phase 3 - Aftermath (Weeks to Months): NO2 brown smog, UV sterilization, GRB Winter
+
+      const burstStart = 0.22;
+      const impactStart = 0.50;
+      const aftermathStart = 0.72;
+
+      // 1. Beam Propagation (0 to 1 between t=0.22 and t=0.50)
+      const beamTravel = smoothstep(burstStart, impactStart, effectiveT);
+      // Beam intensity peaks during burst & impact, then subsides in late aftermath
+      const burstEnvelope = smoothstep(burstStart, burstStart + 0.04, effectiveT) * (1.0 - smoothstep(0.66, 0.80, effectiveT));
+
+      const currentBeamLen = Math.max(0.01, beamTravel * TOTAL_BEAM_DIST);
+      earthboundJet.scale.set(1.0 + burstEnvelope * 0.4, currentBeamLen, 1.0 + burstEnvelope * 0.4);
+      counterJet.scale.set(1.0 + burstEnvelope * 0.4, currentBeamLen * 0.9, 1.0 + burstEnvelope * 0.4);
+
+      jetUniforms.uTime.value = elapsedClock;
+      jetUniforms.uIntensity.value = burstEnvelope;
+
+      // Pluto Core Flash
+      grbCoreMat.opacity = burstEnvelope * 0.95;
+      grbHaloMat.opacity = burstEnvelope * 0.65;
+      const coreScale = 0.8 + burstEnvelope * (1.6 + Math.sin(elapsedClock * 30.0) * 0.25);
+      grbCore.scale.setScalar(coreScale);
+      grbHalo.scale.setScalar(coreScale * 1.45);
+      plutoMesh.visible = effectiveT < 0.25; // Vaporized by the burst!
+
+      // Update Relativistic Beam Particles
+      pMat.opacity = burstEnvelope * 0.9;
+      if (burstEnvelope > 0.01) {
+        const posAttr = pGeo.attributes.position;
+        for (let i = 0; i < particleCount; i++) {
+          const prog = (pOffsets[i] + elapsedClock * 1.8) % 1.0;
+          const dist = prog * currentBeamLen;
+          const spread = (0.12 + prog * 0.85) * pRadii[i];
+          const ang = pAngles[i] + elapsedClock * 4.0;
+          posAttr.setXYZ(
+            i,
+            -dist,
+            Math.cos(ang) * spread,
+            Math.sin(ang) * spread
+          );
+        }
+        posAttr.needsUpdate = true;
+      }
+
+      // 2. Impact Flash & EMP Wave (t = 0.50 to 0.72)
+      const impactIntensity = smoothstep(impactStart, impactStart + 0.04, effectiveT) * (1.0 - smoothstep(0.62, 0.76, effectiveT));
+      earthUniforms.uIonFlash.value = impactIntensity;
+      atmoUniforms.uIonFlash.value = impactIntensity;
+
+      // EMP Shockwave Ring expanding across Earth
+      const empProg = smoothstep(impactStart, impactStart + 0.14, effectiveT);
+      if (empProg > 0.0 && empProg < 1.0) {
+        empRingMat.opacity = Math.sin(empProg * Math.PI) * 0.85;
+        empRing.position.x = EARTH_RADIUS * (1.0 - empProg * 2.0);
+        const ringRad = Math.sin(empProg * Math.PI) * 1.25 + 0.2;
+        empRing.scale.set(ringRad, ringRad, 1);
+      } else {
+        empRingMat.opacity = 0.0;
+      }
+
+      // 3. Planetary Transformation (Ozone Collapse, Grid Blackout, Scorched Biosphere & NO2 Smog)
+      const gridAlive = 1.0 - smoothstep(impactStart, impactStart + 0.05, effectiveT);
+      const damage = smoothstep(impactStart + 0.03, 0.96, effectiveT);
+
+      earthUniforms.uDamage.value = damage;
+      earthUniforms.uGridAlive.value = gridAlive;
+      earthUniforms.uTime.value = elapsedClock;
+      atmoUniforms.uDamage.value = damage;
+
+      // Cloud color shifts from pure white to toxic reddish-brown NO2 smog
+      cloudMat.color.lerpColors(new THREE.Color(0xffffff), new THREE.Color(0x9a5b3c), damage);
+      cloudMat.opacity = 0.82 + damage * 0.12;
+
+      // Dynamic Bloom boost during detonation & impact
+      bloomPass.strength = 1.05 + burstEnvelope * 0.65 + impactIntensity * 0.95;
+
+      // 4. Update HUD Telemetry & Phase Highlights
+      updateHUD(effectiveT, damage, gridAlive, burstEnvelope, impactIntensity);
+    }
+
+    function updateHUD(t, damage, gridAlive, burstEnv, impactEnv) {
+      // Active Phase Pill Highlight
+      let activeIdx = 0;
+      if (t >= 0.72) activeIdx = 3;
+      else if (t >= 0.50) activeIdx = 2;
+      else if (t >= 0.22) activeIdx = 1;
+
+      phaseBtns.forEach((btn, idx) => {
+        btn.classList.toggle('active', idx === activeIdx);
+      });
+
+      // Telemetry Numbers
+      const ozonePct = Math.max(2.0, (1.0 - damage * 0.98) * 100);
+      const no2Ppm = (0.02 + Math.pow(damage, 1.4) * 48.5).toFixed(2);
+      const tempC = (15.0 - damage * 31.5).toFixed(1);
+
+      elValOzone.textContent = `${ozonePct.toFixed(1)}%`;
+      elBarOzone.style.width = `${ozonePct}%`;
+      elValOzone.className = `font-mono-tech font-semibold ${ozonePct > 60 ? 'text-emerald-400' : (ozonePct > 25 ? 'text-amber-400' : 'text-rose-500')}`;
+      elBarOzone.className = `h-full transition-all duration-150 ${ozonePct > 60 ? 'bg-emerald-400' : (ozonePct > 25 ? 'bg-amber-400' : 'bg-rose-500')}`;
+
+      elValNo2.textContent = `${no2Ppm} ppm`;
+      elBarNo2.style.width = `${Math.min(100, 2 + damage * 98)}%`;
+
+      elValTemp.textContent = `${tempC > 0 ? '+' : ''}${tempC} °C`;
+
+      if (impactEnv > 0.15) {
+        elValRad.textContent = `${(1 + impactEnv * 850000).toLocaleString(undefined, { maximumFractionDigits: 0 })}x LETHAL`;
+        elValRad.className = 'text-sm font-mono-tech font-bold text-purple-400 mt-0.5';
+      } else if (damage > 0.2) {
+        elValRad.textContent = `${(1 + damage * 45).toFixed(1)}x UV-B/C`;
+        elValRad.className = 'text-sm font-mono-tech font-bold text-amber-400 mt-0.5';
+      } else {
+        elValRad.textContent = '1.0x Normal';
+        elValRad.className = 'text-sm font-mono-tech font-bold text-sky-300 mt-0.5';
+      }
+
+      // Time & Narrative
+      if (t < 0.22) {
+        const mins = Math.ceil((0.22 - t) / 0.22 * 30);
+        elSimTime.textContent = `T - 00:${String(mins).padStart(2, '0')}:00`;
+        elPhaseTitle.textContent = 'Phase 0: Pre-Burst Equilibrium';
+        elPhaseTitle.className = 'font-semibold text-sky-300 mb-1';
+        elPhaseDesc.textContent = "Earth's ozone layer and magnetic field sustain a lush biosphere. Night-side power grids shine normally; Pluto sits 39.5 AU away.";
+        elStatusDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse';
+        elEarthTag.textContent = '[BIOSPHERE NOMINAL]';
+        elEarthTag.className = 'text-emerald-400';
+        elPlutoTag.textContent = '[QUIESCENT]';
+        elPlutoTag.className = 'text-slate-400';
+      } else if (t < 0.50) {
+        const hrs = (((t - 0.22) / 0.28) * 5.5).toFixed(2);
+        elSimTime.textContent = `T + ${hrs} Hours`;
+        elPhaseTitle.textContent = 'Phase 1: Relativistic GRB Eruption';
+        elPhaseTitle.className = 'font-semibold text-purple-300 mb-1';
+        elPhaseDesc.textContent = 'A hyper-energetic gamma-ray burst detonates at Pluto. Tightly collimated twin plasma jets race across the Solar System at light speed.';
+        elStatusDot.className = 'w-2.5 h-2.5 rounded-full bg-purple-400 animate-ping';
+        elEarthTag.textContent = '[IMPACT IMMINENT]';
+        elEarthTag.className = 'text-amber-300';
+        elPlutoTag.textContent = '[GRB DETONATION]';
+        elPlutoTag.className = 'text-purple-400';
+      } else if (t < 0.72) {
+        const hrs = (5.5 + ((t - 0.50) / 0.22) * 18.5).toFixed(1);
+        elSimTime.textContent = `T + ${hrs} Hours`;
+        elPhaseTitle.textContent = 'Phase 2: Beam Impact & Global EMP';
+        elPhaseTitle.className = 'font-semibold text-rose-400 mb-1';
+        elPhaseDesc.textContent = 'Gamma rays slam into the upper atmosphere, triggering blinding Cherenkov ionization, global EMP grid blackouts, and rapid O₂/N₂ dissociation.';
+        elStatusDot.className = 'w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping';
+        elEarthTag.textContent = '[IONIZATION / EMP BLACKOUT]';
+        elEarthTag.className = 'text-rose-400';
+        elPlutoTag.textContent = '[REMNANT AFTERGLOW]';
+        elPlutoTag.className = 'text-purple-300';
+      } else {
+        const days = Math.floor(1 + ((t - 0.72) / 0.28) * 119);
+        elSimTime.textContent = `T + ${days} Days`;
+        elPhaseTitle.textContent = 'Phase 3: Ozone Collapse & GRB Winter';
+        elPhaseTitle.className = 'font-semibold text-amber-400 mb-1';
+        elPhaseDesc.textContent = '98% of ozone is destroyed. Toxic brown NO₂ smog chokes the sky, blocking sunlight and plunging Earth into a frozen, UV-sterilized winter.';
+        elStatusDot.className = 'w-2.5 h-2.5 rounded-full bg-amber-500';
+        elEarthTag.textContent = '[OZONE COLLAPSED / GRB WINTER]';
+        elEarthTag.className = 'text-amber-400';
+        elPlutoTag.textContent = '[REMNANT]';
+        elPlutoTag.className = 'text-slate-500';
+      }
+    }
+
+    // =========================================================================
+    // 8. 3D TO 2D SCREEN LABEL PROJECTION
+    // =========================================================================
+    const labelEarth = document.getElementById('label-earth');
+    const labelPluto = document.getElementById('label-pluto');
+    const projVec = new THREE.Vector3();
+
+    function updateFloatingLabels() {
+      // Earth Label
+      projVec.copy(EARTH_POS).add(new THREE.Vector3(0, EARTH_RADIUS + 0.6, 0));
+      projVec.project(camera);
+      if (projVec.z < 1.0) {
+        const x = (projVec.x * 0.5 + 0.5) * window.innerWidth;
+        const y = (-projVec.y * 0.5 + 0.5) * window.innerHeight;
+        labelEarth.style.left = `${x}px`;
+        labelEarth.style.top = `${y}px`;
+        labelEarth.style.opacity = '1';
+      } else {
+        labelEarth.style.opacity = '0';
+      }
+
+      // Pluto Label
+      projVec.copy(PLUTO_POS).add(new THREE.Vector3(0, 1.8, 0));
+      projVec.project(camera);
+      if (projVec.z < 1.0) {
+        const x = (projVec.x * 0.5 + 0.5) * window.innerWidth;
+        const y = (-projVec.y * 0.5 + 0.5) * window.innerHeight;
+        labelPluto.style.left = `${x}px`;
+        labelPluto.style.top = `${y}px`;
+        labelPluto.style.opacity = '1';
+      } else {
+        labelPluto.style.opacity = '0';
+      }
+    }
+
+    // =========================================================================
+    // 9. ANIMATION LOOP & RESIZE HANDLER
+    // =========================================================================
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const dt = Math.min(clock.getDelta(), 0.05);
+      const elapsed = clock.elapsedTime;
+
+      // Advance timeline automatically when playing
+      if (isPlaying && compareOverride === 'live') {
+        simProgress += dt * 0.036; // ~28 seconds for full cinematic cycle
+        if (simProgress >= 1.0) {
+          simProgress = 1.0;
+          setPlaying(false);
+        }
+        slider.value = simProgress;
+      }
+
+      // Gentle planetary rotation
+      earthMesh.rotation.y += dt * 0.14;
+      cloudMesh.rotation.y += dt * 0.185;
+      plutoMesh.rotation.y += dt * 0.25;
+
+      // Smooth camera preset transitions
+      if (targetCamPos && targetLookAt) {
+        camera.position.lerp(targetCamPos, 0.05);
+        controls.target.lerp(targetLookAt, 0.05);
+        if (camera.position.distanceTo(targetCamPos) < 0.08) {
+          targetCamPos = null;
+          targetLookAt = null;
+        }
+      }
+
+      controls.update();
+      updateSimulation(simProgress, elapsed);
+      updateFloatingLabels();
+
+      composer.render();
+    }
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      composer.setSize(window.innerWidth, window.innerHeight);
+      bloomPass.resolution.set(window.innerWidth, window.innerHeight);
+    });
+
+    // Hide loader once textures and shaders are ready
+    window.addEventListener('load', () => {
+      const loader = document.getElementById('loader');
+      loader.style.opacity = '0';
+      setTimeout(() => loader.remove(), 700);
+      animate();
+    });
+  </script>
+</body>
+</html>
