@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>X-ray burst and gamma-ray burst</title>
+<style>
+:root{--fg:#e9edf5;--mut:#9aa6bd;--bg:#02030a;--panel:rgba(8,12,24,.76);box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:dark}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--fg:#e9edf5;--mut:#9aa6bd;--bg:#02030a;--panel:rgba(8,12,24,.76)}}
+:root[data-theme="dark"]{--fg:#e9edf5;--mut:#9aa6bd;--bg:#02030a;--panel:rgba(8,12,24,.76)}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--fg);font-family:Georgia,"Times New Roman",serif;overflow:hidden}
+#c{position:fixed;inset:0;width:100%;height:100%;touch-action:none;display:block}
+#fl{position:fixed;inset:0;pointer-events:none;opacity:0;background:radial-gradient(circle,#fff,#c9b6ff 35%,transparent 75%)}
+.hud{position:fixed;left:0;right:0;bottom:0;padding:12px 16px calc(14px + env(safe-area-inset-bottom,0px));pointer-events:none}
+.card{pointer-events:auto;background:var(--panel);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:10px 14px;max-width:520px;backdrop-filter:blur(8px)}
+.tabs{display:flex;gap:6px;margin-bottom:8px}
+.tabs button{flex:1;padding:6px 4px}
+.tabs button.on{background:rgba(143,227,255,.2);border-color:#8fe3ff}
+.card h1{font-size:17px;margin:0 0 2px;font-weight:600}
+#ph{margin:0 0 6px;font-size:14px;color:#8fe3ff;min-height:19px}
+.fuel{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--mut);margin-bottom:6px}
+.trk{flex:1;height:6px;border-radius:3px;background:rgba(255,255,255,.12);overflow:hidden}
+#fb{height:100%;width:0;background:#ffcf8a}
+.card p.n{margin:6px 0 0;font-size:12.5px;color:var(--mut);line-height:1.4}
+#lc{width:100%;height:76px;display:block}
+.row{display:flex;gap:10px;margin-top:8px;align-items:center}
+.row span{font-size:12px;color:var(--mut)}
+button{font:inherit;font-size:13px;color:var(--fg);background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:6px 14px;cursor:pointer}
+button:focus-visible{outline:2px solid #8fe3ff;outline-offset:2px}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="fl"></div>
+<div class="hud"><div class="card">
+<div class="tabs"><button data-m="xray">X-ray burst</button><button data-m="grb">Gamma-ray burst</button><button data-m="both">Play both</button></div>
+<h1 id="ti"></h1>
+<p id="ph"></p>
+<div class="fuel" id="fr">Fuel layer<div class="trk"><div id="fb"></div></div></div>
+<canvas id="lc"></canvas>
+<p class="n" id="nt"></p>
+<div class="row"><button id="rp">Replay</button><button id="pz">Pause</button><span>Drag to rotate, pinch or scroll to zoom</span></div>
+</div></div>
+<script>
+// ---------- matrix helpers (column-major) ----------
+const M={
+ mul(a,b){const o=new Float32Array(16);for(let c=0;c<4;c++)for(let r=0;r<4;r++){let s=0;for(let k=0;k<4;k++)s+=a[k*4+r]*b[c*4+k];o[c*4+r]=s}return o},
+ persp(f,a,n,z){const t=1/Math.tan(f/2);return new Float32Array([t/a,0,0,0,0,t,0,0,0,0,(z+n)/(n-z),-1,0,0,2*z*n/(n-z),0])},
+ trans:(x,y,z)=>new Float32Array([1,0,0,0,0,1,0,0,0,0,1,0,x,y,z,1]),
+ scale:s=>new Float32Array([s,0,0,0,0,s,0,0,0,0,s,0,0,0,0,1]),
+ rotX(a){const c=Math.cos(a),s=Math.sin(a);return new Float32Array([1,0,0,0,0,c,s,0,0,-s,c,0,0,0,0,1])},
+ rotY(a){const c=Math.cos(a),s=Math.sin(a);return new Float32Array([c,0,-s,0,0,1,0,0,s,0,c,0,0,0,0,1])}
+};
+
+// ---------- WebGL setup ----------
+const cv=document.getElementById('c'),gl=cv.getContext('webgl',{antialias:true});
+const sh=(t,s)=>{const o=gl.createShader(t);gl.shaderSource(o,s);gl.compileShader(o);return o};
+const prog=(v,f)=>{const p=gl.createProgram();gl.attachShader(p,sh(gl.VERTEX_SHADER,v));gl.attachShader(p,sh(gl.FRAGMENT_SHADER,f));gl.linkProgram(p);return p};
+const L=(p,n)=>gl.getUniformLocation(p,n);
+const SVS='attribute vec3 p;uniform mat4 mv,pr;varying vec3 vn,vo;void main(){vo=p;vn=(mv*vec4(p,0.)).xyz;gl_Position=pr*mv*vec4(p,1.);}';
+const PFS='precision mediump float;varying float heat;uniform float boost;void main(){float g=max(1.-length(gl_PointCoord-.5)*2.,0.);g*=g;vec3 c=mix(vec3(1.,.5,.2),vec3(.75,.88,1.),heat);gl_FragColor=vec4(c*g*(.45+.9*heat)*boost,1.);}';
+const P={
+ star:prog('attribute vec3 p;uniform mat4 mv,pr;void main(){gl_PointSize=1.6;gl_Position=pr*mv*vec4(p,1.);}','precision mediump float;void main(){gl_FragColor=vec4(.72,.8,1.,1.);}'),
+ ns:prog(SVS,'precision highp float;varying vec3 vn,vo;uniform vec3 ign;uniform float tb,vf,tau,fuel;void main(){vec3 n=normalize(vn);float f=abs(n.z);float a=acos(clamp(dot(normalize(vo),ign),-1.,1.));float age=tb-a/vf;float on=tb>=0.?1.:0.;float burn=(on>0.&&age>0.)?exp(-age/tau):0.;float fr=on*exp(-pow(age/.12,2.));vec3 base=mix(vec3(.2,.26,.38),vec3(.5,.45,.4),fuel)*(.25+.9*f);vec3 hot=mix(vec3(1.,.28,.06),vec3(1.,.93,.8),burn)*burn*2.2;vec3 col=base*(1.-burn*.8)+hot+vec3(1.,.9,.7)*fr*1.4+vec3(.5,.7,1.)*pow(1.-f,3.)*.5;gl_FragColor=vec4(col,1.);}'),
+ emit:prog(SVS,'precision mediump float;varying vec3 vn,vo;uniform vec3 col;uniform float k;void main(){float f=abs(normalize(vn).z);gl_FragColor=vec4(col*(.35+.9*f)*k,1.);}'),
+ hole:prog(SVS,'precision mediump float;varying vec3 vn,vo;uniform vec3 col;void main(){float f=pow(1.-abs(normalize(vn).z),3.);gl_FragColor=vec4(col*f,1.);}'),
+ rim:prog(SVS,'precision mediump float;varying vec3 vn,vo;uniform vec3 col;uniform float k;void main(){float f=1.-abs(normalize(vn).z);gl_FragColor=vec4(col*(pow(f,2.2)*.9+.08)*k,1.);}'),
+ glow:prog('attribute vec3 p;uniform mat4 pr;uniform vec3 c;uniform float s;varying vec2 uv;void main(){uv=p.xy;gl_Position=pr*vec4(c+vec3(p.xy*s,0.),1.);}','precision mediump float;varying vec2 uv;uniform vec3 col;void main(){float g=pow(max(1.-length(uv),0.),2.5);gl_FragColor=vec4(col*g,1.);}'),
+ disc:prog('attribute vec4 s;uniform mat4 mv,pr;uniform float t,px;varying float heat;void main(){float R=s.x;float a=s.y+t*2.2/(R*sqrt(R));vec3 p=vec3(R*cos(a),s.z,R*sin(a));heat=1.-smoothstep(.8,3.8,R);heat*=heat;gl_Position=pr*mv*vec4(p,1.);gl_PointSize=px*(1.2+1.5*s.w)/gl_Position.w;}',PFS),
+ stream:prog('attribute vec4 s;uniform mat4 mv,pr;uniform float t,px;varying float heat;void main(){float u=fract(s.x+t*.12);float r=mix(5.4,3.6,u);float th=3.14159+u*u*1.3;vec3 p=vec3(r*cos(th),0.,r*sin(th))+s.yzw*.14*(1.-.6*u);heat=u*.6;gl_Position=pr*mv*vec4(p,1.);gl_PointSize=px*1.6/gl_Position.w;}',PFS),
+ jet:prog(
+  'attribute vec4 s;uniform mat4 mv,pr;uniform float tb,px;varying float al,ag;void main(){float age=tb-s.w,Lf=6.,u=clamp(age/Lf,0.,1.);float sg=sign(s.z),sp=abs(s.z);vec3 d=vec3(sin(s.y)*cos(s.x),sg*cos(s.y),sin(s.y)*sin(s.x));vec3 p=d*(.5+sp*age);al=(age>0.&&age<Lf)?(1.-u)*(1.-u):0.;ag=1.-smoothstep(0.,.35,u);if(al<=0.){gl_Position=vec4(2.,2.,2.,1.);gl_PointSize=0.;return;}gl_Position=pr*mv*vec4(p,1.);gl_PointSize=px*(1.5+3.*(1.-u))/gl_Position.w;}',
+  'precision mediump float;varying float al,ag;void main(){float g=max(1.-length(gl_PointCoord-.5)*2.,0.);g*=g;vec3 c=mix(vec3(.3,.8,1.),vec3(.88,.72,1.),ag);gl_FragColor=vec4(c*g*al*1.4,1.);}')
+};
+
+// ---------- geometry objects ----------
+class Mesh{
+ constructor(pos,idx,mode,size=3){this.mode=mode;this.size=size;this.idx=!!idx;this.n=idx?idx.length:pos.length/size;
+  this.pb=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,this.pb);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(pos),gl.STATIC_DRAW);
+  if(idx){this.ib=gl.createBuffer();gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,this.ib);gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,new Uint16Array(idx),gl.STATIC_DRAW)}}
+ draw(p,name='p'){const l=gl.getAttribLocation(p,name);gl.bindBuffer(gl.ARRAY_BUFFER,this.pb);gl.enableVertexAttribArray(l);gl.vertexAttribPointer(l,this.size,gl.FLOAT,false,0,0);
+  if(this.idx){gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,this.ib);gl.drawElements(this.mode,this.n,gl.UNSIGNED_SHORT,0)}else gl.drawArrays(this.mode,0,this.n)}
+}
+function sphere(la=40,lo=64){const p=[],i=[];
+ for(let y=0;y<=la;y++){const v=y/la*Math.PI;for(let x=0;x<=lo;x++){const u=x/lo*2*Math.PI;p.push(Math.cos(u)*Math.sin(v),Math.cos(v),Math.sin(u)*Math.sin(v))}}
+ for(let y=0;y<la;y++)for(let x=0;x<lo;x++){const a=y*(lo+1)+x,b=a+lo+1;i.push(a,b,a+1,b,b+1,a+1)}
+ return new Mesh(p,i,gl.TRIANGLES)}
+function starfield(n=1800){const p=[];for(let k=0;k<n;k++){const u=Math.random()*2-1,t=Math.random()*6.283,s=Math.sqrt(1-u*u),R=90+Math.random()*30;p.push(R*s*Math.cos(t),R*u,R*s*Math.sin(t))}return new Mesh(p,null,gl.POINTS)}
+function accretionDisc(n=2600){const d=[];for(let k=0;k<n;k++){const R=.8+3*Math.pow(Math.random(),1.4);d.push(R,Math.random()*6.283,(Math.random()-.5)*.08*R,Math.random())}return new Mesh(d,null,gl.POINTS,4)}
+function gasStream(n=450){const d=[];for(let k=0;k<n;k++)d.push(Math.random(),Math.random()*2-1,Math.random()*2-1,Math.random()*2-1);return new Mesh(d,null,gl.POINTS,4)}
+function jetParticles(n=3200){const d=[];for(let k=0;k<n;k++){const r=Math.random();d.push(Math.random()*6.283,r*r*.16+.01,(2.4+Math.random()*3)*(k%2?1:-1),Math.random()*1.7)}return new Mesh(d,null,gl.POINTS,4)}
+const sph=sphere(),stars=starfield(),disc=accretionDisc(),stream=gasStream(),jets=jetParticles(),quad=new Mesh([-1,-1,0,1,-1,0,-1,1,0,1,1,0],null,gl.TRIANGLE_STRIP);
+
+// ---------- draw helpers ----------
+const mix=(a,b,t)=>a.map((v,i)=>v+(b[i]-v)*t),sm=(a,b,x)=>{const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t)};
+function sphereDraw(p,view,pr,model,set){gl.useProgram(p);gl.uniformMatrix4fv(L(p,'mv'),false,M.mul(view,model));gl.uniformMatrix4fv(L(p,'pr'),false,pr);set&&set(p);sph.draw(p)}
+function glowDraw(view,pr,s,col){gl.useProgram(P.glow);gl.uniformMatrix4fv(L(P.glow,'pr'),false,pr);gl.uniform3fv(L(P.glow,'c'),[view[12],view[13],view[14]]);gl.uniform1f(L(P.glow,'s'),s);gl.uniform3fv(L(P.glow,'col'),col);quad.draw(P.glow)}
+function particles(p,mesh,view,pr,t,boost){gl.useProgram(p);gl.uniformMatrix4fv(L(p,'mv'),false,view);gl.uniformMatrix4fv(L(p,'pr'),false,pr);gl.uniform1f(L(p,'t'),t);gl.uniform1f(L(p,'px'),cv.height*.03);gl.uniform1f(L(p,'boost'),boost);mesh.draw(p,'s')}
+
+// ---------- scene segments ----------
+const IGN=[.55,.65,.52].map((v,_,a)=>v/Math.hypot(...a));
+const LX=tb=>{if(tb<0)return 0;const c=(1-Math.cos(Math.min(2.4*tb,Math.PI)))/2;return c*Math.exp(-Math.max(0,tb-1.3)/2.8)};
+const PUL=[[.1,1,.12],[.45,.7,.15],[.9,.85,.2],[1.5,.5,.25],[2.2,.3,.3]];
+const gammaLC=tb=>tb<0?0:PUL.reduce((s,[c,h,w])=>s+h*Math.exp(-Math.pow((tb-c)/w,2)),0);
+const afterLC=tb=>tb<.3?0:.55*Math.pow(1+(tb-.3)*1.2,-1.15)*(1+.3*Math.exp(-Math.pow((tb-5)/.5,2)));
+
+const SC={
+ xray:{title:'Type I X-ray burst',cycle:16,T:9,fuel:true,cam:[.5,.35,17],
+  note:'A neutron star in our own galaxy pulls gas from a companion. The fuel layer ignites, a flame sweeps the surface, and the star survives to burst again. Timescales are sped up.',
+  curves:[[t=>.08+LX(t-9),'#5fd6ff','X-ray brightness']],
+  phase:tb=>tb<0?'Accretion: gas piles up on the neutron star':tb<1.4?'Ignition: a flame front spreads across the surface':tb<6?'X-ray burst: the surface cools and the flash fades':'Quiet again: accretion rebuilds the fuel layer',
+  fuelAt:tb=>tb<0?(tb+9)/9:Math.max(0,1-tb/1.3),
+  draw(sim,now,view,pr){
+   const tb=sim-9,burst=LX(tb),fuel=this.fuelAt(tb);
+   gl.enable(gl.DEPTH_TEST);
+   sphereDraw(P.ns,view,pr,M.mul(M.rotY(now*1.2),M.scale(.5)),p=>{gl.uniform3fv(L(p,'ign'),IGN);gl.uniform1f(L(p,'tb'),tb);gl.uniform1f(L(p,'vf'),2.4);gl.uniform1f(L(p,'tau'),2.8);gl.uniform1f(L(p,'fuel'),fuel)});
+   sphereDraw(P.emit,view,pr,M.mul(M.trans(-7.2,0,0),M.scale(1.5)),p=>{gl.uniform3fv(L(p,'col'),[1,.55,.25]);gl.uniform1f(L(p,'k'),1)});
+   gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE);gl.depthMask(false);
+   glowDraw(view,pr,.9+4.5*burst,[.55,.8,1].map(v=>v*(.22+.9*burst)));
+   sphereDraw(P.rim,view,pr,M.scale(.5*(1.04+.05*fuel+.2*burst)),p=>{gl.uniform3fv(L(p,'col'),tb<0?[.75,.85,1]:[1,.85,.7]);gl.uniform1f(L(p,'k'),tb<0?.5*fuel:1.4*burst)});
+   particles(P.disc,disc,view,pr,now,1+2.2*burst);particles(P.stream,stream,view,pr,now,1);
+   gl.depthMask(true)},
+  flash:()=>0},
+ grb:{title:'Gamma-ray burst',cycle:17,T:3.2,fuel:false,cam:[.65,.3,22],
+  note:'A massive star in a distant galaxy collapses and is destroyed. Twin jets break out, and the blast wave then glows in X-rays as an afterglow. It happens once. Scale and brightness are illustrative.',
+  curves:[[t=>gammaLC(t-3.2),'#c9a6ff','gamma-ray'],[t=>afterLC(t-3.2),'#5fd6ff','X-ray afterglow']],
+  phase:tb=>tb<0?'Core collapse: the star runs out of fuel':tb<2.8?'Gamma-ray burst: jets break out of the star':tb<9?'X-ray afterglow: the blast wave sweeps up gas':'The afterglow fades toward optical and radio',
+  draw(sim,now,view,pr){
+   const tb=sim-3.2,u=Math.min(sim/3.2,1);
+   gl.enable(gl.DEPTH_TEST);
+   if(tb<0)sphereDraw(P.emit,view,pr,M.scale(1.3*(1-.74*u*u*u)*(1+.03*Math.sin(sim*40*u))),p=>{gl.uniform3fv(L(p,'col'),mix([1,.5,.25],[.7,.85,1],u));gl.uniform1f(L(p,'k'),1+.9*u)});
+   else sphereDraw(P.hole,view,pr,M.scale(.3),p=>gl.uniform3fv(L(p,'col'),[.5,.7,1]));
+   gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE);gl.depthMask(false);
+   if(tb<0){const g=.35+.5*u;glowDraw(view,pr,2.6*(1-.5*u)+.6,mix([.9,.4,.2],[.5,.7,1],u).map(v=>v*g))}
+   else{
+    const f=Math.exp(-tb*2.2);glowDraw(view,pr,1.2+7*Math.exp(-tb*2.5),[.85*f+.04,.75*f+.06,f+.1].map(v=>v*.9));
+    const R=.35+3.3*Math.pow(tb,.55);
+    sphereDraw(P.rim,view,pr,M.scale(R),p=>{gl.uniform3fv(L(p,'col'),mix([.3,.85,1],[1,.5,.2],sm(2,14,tb)));gl.uniform1f(L(p,'k'),1.5/(1+tb*.45))});
+    gl.useProgram(P.jet);gl.uniformMatrix4fv(L(P.jet,'mv'),false,view);gl.uniformMatrix4fv(L(P.jet,'pr'),false,pr);
+    gl.uniform1f(L(P.jet,'tb'),tb);gl.uniform1f(L(P.jet,'px'),cv.height*.035);jets.draw(P.jet,'s')}
+   gl.depthMask(true)},
+  flash:sim=>sim<3.2?0:Math.min(.85,Math.exp(-(sim-3.2)*4)*1.1)}
+};
+
+// ---------- light curve ----------
+const lcv=document.getElementById('lc'),lx=lcv.getContext('2d');
+function drawLC(sc,sim){
+ const d=Math.min(devicePixelRatio||1,2),w=lcv.clientWidth,h=lcv.clientHeight;
+ if(lcv.width!==w*d){lcv.width=w*d;lcv.height=h*d}
+ lx.setTransform(d,0,0,d,0,0);lx.clearRect(0,0,w,h);
+ const Y=v=>h-14-Math.min(v,1)*(h-24);
+ lx.strokeStyle='rgba(255,255,255,.18)';lx.lineWidth=1;lx.beginPath();lx.moveTo(0,h-13.5);lx.lineTo(w,h-13.5);lx.stroke();
+ sc.curves.forEach(([f,c])=>{
+  if(sc.curves.length===1){lx.beginPath();lx.moveTo(0,h-14);for(let i=0;i<=w;i+=2)lx.lineTo(i,Y(f(i/w*sc.cycle)));lx.lineTo(w,h-14);lx.closePath();lx.fillStyle='rgba(95,214,255,.16)';lx.fill()}
+  lx.strokeStyle=c;lx.lineWidth=2;lx.beginPath();
+  for(let i=0;i<=w;i+=2){const y=Y(f(i/w*sc.cycle));i?lx.lineTo(i,y):lx.moveTo(i,y)}lx.stroke()});
+ lx.font='12px Georgia,serif';let x=4;
+ sc.curves.forEach(([f,c,n])=>{lx.fillStyle=c;lx.fillText(n,x,11);x+=lx.measureText(n).width+14});
+ lx.fillStyle='#9aa6bd';lx.fillText('time',w-30,h-1);
+ const cx=sim/sc.cycle*w;lx.strokeStyle='#fff';lx.lineWidth=1;lx.beginPath();lx.moveTo(cx,0);lx.lineTo(cx,h-13);lx.stroke();
+}
+
+// ---------- interaction and segment control ----------
+let yaw=.5,pitch=.35,dist=17,drag=false;const pts=new Map();
+cv.addEventListener('pointerdown',e=>{pts.set(e.pointerId,[e.clientX,e.clientY]);drag=true;cv.setPointerCapture(e.pointerId)});
+cv.addEventListener('pointermove',e=>{const o=pts.get(e.pointerId);if(!o)return;const n=[e.clientX,e.clientY];
+ if(pts.size===2){const q=[...pts.entries()].find(([k])=>k!==e.pointerId)[1];dist=Math.max(7,Math.min(45,dist*Math.hypot(o[0]-q[0],o[1]-q[1])/Math.hypot(n[0]-q[0],n[1]-q[1])))}
+ else{yaw+=(n[0]-o[0])*.006;pitch=Math.max(-1.4,Math.min(1.4,pitch+(n[1]-o[1])*.006))}
+ pts.set(e.pointerId,n)});
+const up=e=>{pts.delete(e.pointerId);drag=pts.size>0};cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
+cv.addEventListener('wheel',e=>{e.preventDefault();dist=Math.max(7,Math.min(45,dist*(1+e.deltaY*.001)))},{passive:false});
+
+const $=id=>document.getElementById(id),ph=$('ph'),fb=$('fb'),fl=$('fl'),pz=$('pz'),tabs=[...document.querySelectorAll('.tabs button')];
+let seg='xray',sc=SC.xray,mode='xray',sim=0,playing=true,last=0,phase='';
+function setSeg(k){seg=k;sc=SC[k];[yaw,pitch,dist]=sc.cam;$('ti').textContent=sc.title;$('nt').textContent=sc.note;$('fr').style.display=sc.fuel?'flex':'none';phase='';
+ tabs.forEach(b=>b.classList.toggle('on',b.dataset.m===mode))}
+tabs.forEach(b=>b.onclick=()=>{mode=b.dataset.m;setSeg(mode==='both'?'xray':mode);sim=0;playing=true;pz.textContent='Pause'});
+$('rp').onclick=()=>{sim=0;playing=true;pz.textContent='Pause';if(mode==='both')setSeg('xray')};
+pz.onclick=()=>{playing=!playing;pz.textContent=playing?'Pause':'Play'};
+function resize(){const d=Math.min(devicePixelRatio||1,2);cv.width=innerWidth*d;cv.height=innerHeight*d;gl.viewport(0,0,cv.width,cv.height)}
+addEventListener('resize',resize);resize();setSeg('xray');
+
+// ---------- render loop ----------
+function frame(ms){
+ const now=ms/1000,dt=Math.min(now-last,.05);last=now;
+ if(playing){sim+=dt;if(sim>=sc.cycle){sim=0;if(mode==='both')setSeg(seg==='xray'?'grb':'xray')}}
+ if(!drag)yaw+=dt*.05;
+ const view=M.mul(M.trans(0,0,-dist),M.mul(M.rotX(pitch),M.rotY(yaw)));
+ const pr=M.persp(.9,cv.width/cv.height,.1,400),tb=sim-sc.T;
+
+ const name=sc.phase(tb);if(name!==phase){phase=name;ph.textContent=name}
+ if(sc.fuel)fb.style.width=(sc.fuelAt(tb)*100)+'%';
+ fl.style.opacity=sc.flash(sim);
+ drawLC(sc,sim);
+
+ gl.clearColor(.008,.012,.04,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+ gl.disable(gl.DEPTH_TEST);gl.disable(gl.BLEND);
+ gl.useProgram(P.star);gl.uniformMatrix4fv(L(P.star,'mv'),false,view);gl.uniformMatrix4fv(L(P.star,'pr'),false,pr);stars.draw(P.star);
+ sc.draw(sim,now,view,pr);
+ requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
