@@ -1,0 +1,1278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>T Coronae Borealis — The Blaze Star 3D Nova Simulation</title>
+    <!-- Tailwind CSS for sleek translucent HUD -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js r128 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #03050a;
+            font-family: 'Inter', sans-serif;
+            color: #e2e8f0;
+        }
+        #webgl-container {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            cursor: grab;
+        }
+        #webgl-container:active {
+            cursor: grabbing;
+        }
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .glass-panel {
+            background: rgba(10, 15, 28, 0.72);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(148, 163, 184, 0.16);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+        }
+        .glass-btn {
+            background: rgba(30, 41, 59, 0.65);
+            border: 1px solid rgba(148, 163, 184, 0.22);
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .glass-btn:hover {
+            background: rgba(51, 65, 85, 0.85);
+            border-color: rgba(255, 255, 255, 0.4);
+            transform: translateY(-1px);
+        }
+        .glass-btn:active {
+            transform: translateY(0);
+        }
+        .glass-btn.active {
+            background: rgba(56, 189, 248, 0.25);
+            border-color: #38bdf8;
+            color: #f0f9ff;
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.3);
+        }
+        .nova-btn {
+            background: linear-gradient(135deg, #f97316 0%, #ef4444 50%, #ec4899 100%);
+            box-shadow: 0 0 24px rgba(239, 68, 68, 0.45);
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            transition: all 0.25s ease;
+        }
+        .nova-btn:hover:not(:disabled) {
+            box-shadow: 0 0 36px rgba(249, 115, 22, 0.75);
+            transform: scale(1.02);
+        }
+        .nova-btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+        /* Custom Range Slider */
+        input[type=range] {
+            -webkit-appearance: none;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            height: 6px;
+            background: rgba(148, 163, 184, 0.25);
+            border-radius: 999px;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #38bdf8;
+            margin-top: -5px;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.8);
+        }
+        /* Screen flash overlay during nova ignition */
+        #nova-flash-overlay {
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(circle at center, rgba(255, 255, 255, 0.95) 0%, rgba(186, 230, 253, 0.65) 45%, rgba(56, 189, 248, 0) 85%);
+            pointer-events: none;
+            opacity: 0;
+            z-index: 5;
+            mix-blend-mode: screen;
+        }
+        /* Star label floating tags */
+        .star-label {
+            position: absolute;
+            pointer-events: none;
+            transform: translate(-50%, -130%);
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            padding: 3px 8px;
+            border-radius: 999px;
+            background: rgba(7, 11, 22, 0.75);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            white-space: nowrap;
+            transition: opacity 0.2s ease;
+            z-index: 3;
+        }
+    </style>
+</head>
+<body>
+    <!-- 3D WebGL Canvas Container -->
+    <div id="webgl-container"></div>
+
+    <!-- Blinding Nova Flash Overlay -->
+    <div id="nova-flash-overlay"></div>
+
+    <!-- Floating 3D Projected Labels -->
+    <div id="label-red-giant" class="star-label text-orange-300 border-orange-400/30">
+        ● Red Giant (M3III)
+    </div>
+    <div id="label-white-dwarf" class="star-label text-sky-300 border-sky-400/30">
+        ✦ White Dwarf (1.37 M☉)
+    </div>
+    <div id="label-polaris" class="star-label text-amber-200 border-amber-300/30 hidden">
+        ★ Polaris Ref (+2.0 mag)
+    </div>
+
+    <!-- UI HUD Layer -->
+    <div class="fixed inset-0 z-10 pointer-events-none flex flex-col justify-between p-3 sm:p-5">
+        
+        <!-- TOP BAR: Title, Telemetry & Audio Control -->
+        <div class="flex flex-wrap items-start justify-between gap-3">
+            <!-- Title & Telemetry Card -->
+            <div class="glass-panel rounded-2xl p-3.5 sm:p-4 pointer-events-auto max-w-md">
+                <div class="flex items-center gap-2.5">
+                    <span class="inline-block w-2.5 h-2.5 rounded-full bg-orange-500 animate-pulse shadow-[0_0_10px_#f97316]"></span>
+                    <h1 class="text-base sm:text-lg font-bold tracking-tight text-white">
+                        T Coronae Borealis <span class="text-sky-400 font-normal text-sm">("Blaze Star")</span>
+                    </h1>
+                </div>
+                <p class="text-xs text-slate-300 mt-1 leading-relaxed">
+                    Recurrent Nova Binary System • 3,000 Light-Years Away • ~80-Year Cycle
+                </p>
+
+                <!-- Real-Time Telemetry Grid -->
+                <div class="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-slate-700/60">
+                    <div>
+                        <div class="text-[10px] uppercase tracking-wider text-slate-400">Apparent Mag</div>
+                        <div id="telemetry-mag" class="mono text-sm sm:text-base font-bold text-slate-100">+10.0</div>
+                        <div id="telemetry-visibility" class="text-[10px] text-slate-400">Telescope Only</div>
+                    </div>
+                    <div>
+                        <div class="text-[10px] uppercase tracking-wider text-slate-400">vs. Polaris (+2.0)</div>
+                        <div id="telemetry-polaris" class="mono text-sm sm:text-base font-bold text-amber-300">1,580× Dimmer</div>
+                        <div class="text-[10px] text-slate-400">North Star Benchmark</div>
+                    </div>
+                    <div>
+                        <div class="text-[10px] uppercase tracking-wider text-slate-400">System State</div>
+                        <div id="telemetry-state" class="text-xs sm:text-sm font-semibold text-sky-400 mt-0.5">Accreting Gas</div>
+                        <div id="telemetry-year" class="mono text-[10px] text-slate-400">Cycle Year: 78 / 80</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Top Controls: Sound Mute/Unmute & Info Toggle -->
+            <div class="flex items-center gap-2 pointer-events-auto">
+                <button id="btn-constellation" class="glass-btn rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-medium flex items-center gap-2 text-slate-200" title="Toggle Corona Borealis Constellation Overlay">
+                    <svg class="w-4 h-4 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+                    </svg>
+                    <span class="hidden sm:inline">Constellation</span>
+                </button>
+
+                <button id="btn-info" class="glass-btn rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-medium flex items-center gap-2 text-slate-200" title="Toggle Astronomy Guide">
+                    <svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <span class="hidden sm:inline">Science Guide</span>
+                </button>
+
+                <button id="btn-audio" class="glass-btn rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-semibold flex items-center gap-2 text-slate-200 border-sky-400/40" title="Mute / Unmute Procedural Space Audio">
+                    <!-- Unmuted Icon (hidden initially until activated) -->
+                    <svg id="icon-sound-on" class="w-4 h-4 text-emerald-400 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/>
+                    </svg>
+                    <!-- Muted Icon -->
+                    <svg id="icon-sound-off" class="w-4 h-4 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/>
+                    </svg>
+                    <span id="audio-label">Unmute Audio</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- COLLAPSIBLE EDUCATIONAL SCIENCE DRAWER -->
+        <div id="info-drawer" class="glass-panel rounded-2xl p-4 max-w-md pointer-events-auto hidden self-end my-auto transition-all">
+            <div class="flex items-center justify-between border-b border-slate-700/60 pb-2 mb-2.5">
+                <h2 class="text-sm font-bold text-white flex items-center gap-2">
+                    <span class="text-sky-400">✦</span> Why Hasn't the Blaze Star Exploded Yet?
+                </h2>
+                <button id="btn-close-info" class="text-slate-400 hover:text-white text-xs px-2 py-1 rounded-lg bg-slate-800/60">✕</button>
+            </div>
+            <div class="space-y-2.5 text-xs text-slate-300 leading-relaxed">
+                <p>
+                    <strong class="text-orange-300">1. Binary Siphoning:</strong> T Coronae Borealis consists of an aging <span class="text-orange-300">Red Giant</span> bloated with hydrogen and a dead, ultra-dense <span class="text-sky-300">White Dwarf</span> orbiting every 227 days. Gravity pulls hydrogen off the Red Giant into an accretion disk around the White Dwarf.
+                </p>
+                <p>
+                    <strong class="text-sky-300">2. Unpredictable Timing (~80 Years):</strong> Last erupting in 1866 and 1946, astronomers cannot directly measure the exact rate of gas accumulation or critical ignition mass—making the exact explosion date like forecasting the weather.
+                </p>
+                <p>
+                    <strong class="text-amber-300">3. Thermonuclear Runaway:</strong> When pressure and heat reach a critical threshold, hydrogen fuses explosively across the White Dwarf's surface without destroying the star. Its brightness surges from <span class="mono text-white">+10.0</span> to <span class="mono text-amber-300">+1.7</span>—outshining Polaris—before fading over a week.
+                </p>
+            </div>
+        </div>
+
+        <!-- BOTTOM CONTROLS: Accumulation Gauge, Nova Trigger, Camera Views & Speed -->
+        <div class="flex flex-col lg:flex-row items-stretch lg:items-end justify-between gap-3">
+            
+            <!-- Camera View Presets & Speed -->
+            <div class="glass-panel rounded-2xl p-3 pointer-events-auto flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-1.5">
+                    <span class="text-[11px] uppercase tracking-wider text-slate-400 mr-1 hidden sm:inline">View:</span>
+                    <button data-cam="overview" class="cam-btn glass-btn active rounded-xl px-2.5 py-1.5 text-xs font-medium">System Orbit</button>
+                    <button data-cam="dwarf" class="cam-btn glass-btn rounded-xl px-2.5 py-1.5 text-xs font-medium">White Dwarf</button>
+                    <button data-cam="sky" class="cam-btn glass-btn rounded-xl px-2.5 py-1.5 text-xs font-medium">Northern Crown</button>
+                </div>
+
+                <div class="flex items-center gap-2 pl-2 border-l border-slate-700/60">
+                    <span class="text-[11px] text-slate-400">Sim Speed:</span>
+                    <input id="speed-slider" type="range" min="0" max="4" step="0.5" value="1" class="w-20 sm:w-24">
+                    <span id="speed-label" class="mono text-xs text-sky-300 w-8">1.0×</span>
+                </div>
+            </div>
+
+            <!-- Critical Hydrogen Accumulation & Nova Trigger Panel -->
+            <div class="glass-panel rounded-2xl p-3.5 pointer-events-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5 min-w-[300px] sm:min-w-[430px]">
+                <div class="flex-1">
+                    <div class="flex justify-between items-center text-xs mb-1.5">
+                        <span class="text-slate-300 font-medium">Hydrogen Envelope Pressure</span>
+                        <span id="pressure-pct" class="mono font-bold text-orange-400">94.0%</span>
+                    </div>
+                    <!-- Interactive Progress Bar (Click to scrub accumulation) -->
+                    <div id="pressure-bar-container" class="w-full h-3 bg-slate-800/90 rounded-full overflow-hidden border border-slate-700/80 cursor-pointer relative" title="Click anywhere on bar to adjust hydrogen buildup">
+                        <div id="pressure-bar-fill" class="h-full bg-gradient-to-r from-sky-500 via-amber-400 to-rose-500 transition-all duration-150" style="width: 94%;"></div>
+                    </div>
+                    <div class="flex justify-between text-[10px] text-slate-400 mt-1 mono">
+                        <span>1946 Nova</span>
+                        <span>Accretion Phase</span>
+                        <span class="text-rose-400">Critical Ignition</span>
+                    </div>
+                </div>
+
+                <button id="btn-trigger-nova" class="nova-btn rounded-xl px-4 py-3 text-xs sm:text-sm font-bold text-white tracking-wide flex items-center justify-center gap-2 shrink-0">
+                    <span>💥</span>
+                    <span>TRIGGER NOVA</span>
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        /**
+         * ============================================================================
+         * 1. PROCEDURAL WEB AUDIO API ENGINE (Space Drone, Plasma Accretion & Nova Blast)
+         * ============================================================================
+         */
+        class CosmicAudioEngine {
+            constructor() {
+                this.ctx = null;
+                this.isMuted = true;
+                this.isInitialized = false;
+                this.masterGain = null;
+                this.droneGain = null;
+                this.plasmaGain = null;
+                this.tensionOsc = null;
+                this.tensionGain = null;
+                this.plasmaFilter = null;
+            }
+
+            init() {
+                if (this.isInitialized) return;
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                this.ctx = new AudioContext();
+
+                // Master Gain
+                this.masterGain = this.ctx.createGain();
+                this.masterGain.gain.setValueAtTime(0.0001, this.ctx.currentTime);
+                this.masterGain.connect(this.ctx.destination);
+
+                // 1. Deep Space Sub-Bass & Harmonic Drone (D1 + A1 + E2)
+                this.droneGain = this.ctx.createGain();
+                this.droneGain.gain.setValueAtTime(0.28, this.ctx.currentTime);
+                this.droneGain.connect(this.masterGain);
+
+                const droneFreqs = [36.71, 55.0, 82.41]; // D1, A1, E2
+                droneFreqs.forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const oscGain = this.ctx.createGain();
+                    osc.type = idx === 0 ? 'sine' : 'triangle';
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    
+                    // Subtle slow LFO detune for cosmic drift
+                    const lfo = this.ctx.createOscillator();
+                    const lfoGain = this.ctx.createGain();
+                    lfo.frequency.setValueAtTime(0.07 + idx * 0.03, this.ctx.currentTime);
+                    lfoGain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+                    lfo.connect(lfoGain);
+                    lfoGain.connect(osc.frequency);
+                    lfo.start();
+
+                    oscGain.gain.setValueAtTime(idx === 0 ? 0.5 : 0.18, this.ctx.currentTime);
+                    osc.connect(oscGain);
+                    oscGain.connect(this.droneGain);
+                    osc.start();
+                });
+
+                // 2. Hydrogen Accretion Stream Crackle / Hiss (Filtered Pink Noise)
+                const bufferSize = this.ctx.sampleRate * 3;
+                const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const output = noiseBuffer.getChannelData(0);
+                let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+                for (let i = 0; i < bufferSize; i++) {
+                    const white = Math.random() * 2 - 1;
+                    b0 = 0.99886 * b0 + white * 0.0555179;
+                    b1 = 0.99332 * b1 + white * 0.0750759;
+                    b2 = 0.96900 * b2 + white * 0.1538520;
+                    b3 = 0.86650 * b3 + white * 0.3104856;
+                    b4 = 0.55000 * b4 + white * 0.5329522;
+                    b5 = -0.7616 * b5 - white * 0.0168980;
+                    output[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.04;
+                    b6 = white * 0.115926;
+                }
+
+                const whiteNoise = this.ctx.createBufferSource();
+                whiteNoise.buffer = noiseBuffer;
+                whiteNoise.loop = true;
+
+                this.plasmaFilter = this.ctx.createBiquadFilter();
+                this.plasmaFilter.type = 'bandpass';
+                this.plasmaFilter.frequency.setValueAtTime(420, this.ctx.currentTime);
+                this.plasmaFilter.Q.setValueAtTime(2.5, this.ctx.currentTime);
+
+                this.plasmaGain = this.ctx.createGain();
+                this.plasmaGain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+
+                whiteNoise.connect(this.plasmaFilter);
+                this.plasmaFilter.connect(this.plasmaGain);
+                this.plasmaGain.connect(this.masterGain);
+                whiteNoise.start();
+
+                // 3. Critical Mass Rising Harmonic Tension Oscillator
+                this.tensionOsc = this.ctx.createOscillator();
+                this.tensionOsc.type = 'sine';
+                this.tensionOsc.frequency.setValueAtTime(110, this.ctx.currentTime);
+                this.tensionGain = this.ctx.createGain();
+                this.tensionGain.gain.setValueAtTime(0.001, this.ctx.currentTime);
+                this.tensionOsc.connect(this.tensionGain);
+                this.tensionGain.connect(this.masterGain);
+                this.tensionOsc.start();
+
+                this.isInitialized = true;
+            }
+
+            toggleMute() {
+                if (!this.isInitialized) {
+                    this.init();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+                this.isMuted = !this.isMuted;
+                const now = this.ctx.currentTime;
+                this.masterGain.gain.cancelScheduledValues(now);
+                if (this.isMuted) {
+                    this.masterGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.35);
+                } else {
+                    this.masterGain.gain.exponentialRampToValueAtTime(0.75, now + 0.45);
+                }
+                return !this.isMuted;
+            }
+
+            updateContinuous(accumulation, isNovaActive, novaIntensity) {
+                if (!this.isInitialized || this.isMuted) return;
+                const now = this.ctx.currentTime;
+
+                // Modulate plasma stream filter and tension pitch based on accumulation pressure
+                const targetFreq = 320 + accumulation * 650 + (isNovaActive ? novaIntensity * 1200 : 0);
+                this.plasmaFilter.frequency.setTargetAtTime(targetFreq, now, 0.1);
+
+                const plasmaVol = isNovaActive ? 0.25 + novaIntensity * 0.3 : 0.08 + accumulation * 0.14;
+                this.plasmaGain.gain.setTargetAtTime(plasmaVol, now, 0.1);
+
+                // Tension hum rises dramatically above 75% mass buildup
+                const tensionLevel = (!isNovaActive && accumulation > 0.7)
+                    ? ((accumulation - 0.7) / 0.3) * 0.16
+                    : 0.001;
+                const tensionFreq = 110 + accumulation * 220;
+                this.tensionOsc.frequency.setTargetAtTime(tensionFreq, now, 0.1);
+                this.tensionGain.gain.setTargetAtTime(Math.max(0.001, tensionLevel), now, 0.1);
+            }
+
+            triggerNovaBlast() {
+                if (!this.isInitialized || this.isMuted) return;
+                const now = this.ctx.currentTime;
+
+                // 1. Sub-Bass Thermonuclear Shockwave Boom
+                const subOsc = this.ctx.createOscillator();
+                const subGain = this.ctx.createGain();
+                subOsc.type = 'sine';
+                subOsc.frequency.setValueAtTime(135, now);
+                subOsc.frequency.exponentialRampToValueAtTime(24, now + 2.8);
+
+                subGain.gain.setValueAtTime(0.001, now);
+                subGain.gain.linearRampToValueAtTime(0.95, now + 0.04);
+                subGain.gain.exponentialRampToValueAtTime(0.001, now + 3.8);
+
+                subOsc.connect(subGain);
+                subGain.connect(this.masterGain);
+                subOsc.start(now);
+                subOsc.stop(now + 4.0);
+
+                // 2. Shimmering Celestial Major-9th Surge Chord (D4, F#4, A4, E5, A5)
+                const chordFreqs = [293.66, 369.99, 440.0, 659.25, 880.0];
+                chordFreqs.forEach((freq, i) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = i % 2 === 0 ? 'sine' : 'triangle';
+                    osc.frequency.setValueAtTime(freq, now);
+                    osc.frequency.exponentialRampToValueAtTime(freq * 1.008, now + 5.5);
+
+                    gain.gain.setValueAtTime(0.001, now);
+                    gain.gain.linearRampToValueAtTime(0.14 / (1 + i * 0.25), now + 0.25 + i * 0.06);
+                    gain.gain.exponentialRampToValueAtTime(0.0005, now + 6.0);
+
+                    osc.connect(gain);
+                    gain.connect(this.masterGain);
+                    osc.start(now);
+                    osc.stop(now + 6.2);
+                });
+            }
+        }
+
+        const audioEngine = new CosmicAudioEngine();
+
+        /**
+         * ============================================================================
+         * 2. THREE.JS 3D WEBGL SCENE SETUP & PROCEDURAL TEXTURES
+         * ============================================================================
+         */
+        const container = document.getElementById('webgl-container');
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x03050a, 0.0022);
+
+        const camera = new THREE.PerspectiveCamera(48, window.innerWidth / window.innerHeight, 0.1, 1500);
+        camera.position.set(0, 18, 44);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.15;
+        container.appendChild(renderer.domElement);
+
+        // Helper: Generate soft radial glow sprite texture via Canvas2D
+        function createRadialGlowTexture(stops) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            const grad = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
+            stops.forEach(([offset, color]) => grad.addColorStop(offset, color));
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 256, 256);
+            const tex = new THREE.CanvasTexture(canvas);
+            return tex;
+        }
+
+        const orangeGlowTex = createRadialGlowTexture([
+            [0.0, 'rgba(255, 240, 200, 1.0)'],
+            [0.2, 'rgba(255, 130, 30, 0.85)'],
+            [0.5, 'rgba(220, 45, 10, 0.35)'],
+            [1.0, 'rgba(120, 10, 0, 0.0)']
+        ]);
+
+        const blueWhiteGlowTex = createRadialGlowTexture([
+            [0.0, 'rgba(255, 255, 255, 1.0)'],
+            [0.18, 'rgba(185, 235, 255, 0.95)'],
+            [0.45, 'rgba(56, 189, 248, 0.45)'],
+            [1.0, 'rgba(14, 116, 144, 0.0)']
+        ]);
+
+        const starPointTex = createRadialGlowTexture([
+            [0.0, 'rgba(255, 255, 255, 1.0)'],
+            [0.35, 'rgba(220, 240, 255, 0.6)'],
+            [1.0, 'rgba(255, 255, 255, 0.0)']
+        ]);
+
+        /**
+         * ============================================================================
+         * 3. BINARY SYSTEM OBJECTS: RED GIANT, WHITE DWARF, ACCRETION STREAM & NOVA
+         * ============================================================================
+         */
+        const binarySystemGroup = new THREE.Group();
+        scene.add(binarySystemGroup);
+
+        // Shared Center of Mass Orbital Parameters
+        const redGiantOrbitRadius = 5.2;
+        const whiteDwarfOrbitRadius = 11.8;
+
+        // --- A. RED GIANT STAR (Animated Turbulent Shader Surface) ---
+        const redGiantGroup = new THREE.Group();
+        binarySystemGroup.add(redGiantGroup);
+
+        const redGiantUniforms = {
+            uTime: { value: 0 },
+            uNovaFlash: { value: 0 }
+        };
+
+        const redGiantMat = new THREE.ShaderMaterial({
+            uniforms: redGiantUniforms,
+            vertexShader: `
+                uniform float uTime;
+                varying vec3 vNormal;
+                varying vec3 vPos;
+                varying float vDisplacement;
+
+                // Simple 3D pseudo-noise for convective granulation cells
+                float hash(vec3 p) {
+                    p = fract(p * 0.3183099 + 0.1);
+                    p *= 17.0;
+                    return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
+                }
+                float noise(vec3 x) {
+                    vec3 i = floor(x);
+                    vec3 f = fract(x);
+                    f = f * f * (3.0 - 2.0 * f);
+                    return mix(
+                        mix(mix(hash(i + vec3(0,0,0)), hash(i + vec3(1,0,0)), f.x),
+                            mix(hash(i + vec3(0,1,0)), hash(i + vec3(1,1,0)), f.x), f.y),
+                        mix(mix(hash(i + vec3(0,0,1)), hash(i + vec3(1,0,1)), f.x),
+                            mix(hash(i + vec3(0,1,1)), hash(i + vec3(1,1,1)), f.x), f.y), f.z);
+                }
+
+                void main() {
+                    vNormal = normalize(normalMatrix * normal);
+                    vPos = position;
+                    float n = noise(position * 0.85 + uTime * 0.45) * 0.65
+                            + noise(position * 2.1 - uTime * 0.7) * 0.35;
+                    vDisplacement = n;
+                    // Slight tidal bulge toward +X (where White Dwarf sits in local frame)
+                    float tidal = smoothstep(-2.0, 6.0, position.x) * 0.55;
+                    vec3 displaced = position + normal * (n * 0.42 + tidal);
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(displaced, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform float uTime;
+                uniform float uNovaFlash;
+                varying vec3 vNormal;
+                varying vec3 vPos;
+                varying float vDisplacement;
+
+                void main() {
+                    vec3 viewDir = vec3(0.0, 0.0, 1.0);
+                    float fresnel = pow(1.0 - abs(dot(vNormal, viewDir)), 2.2);
+
+                    vec3 deepCrimson = vec3(0.58, 0.08, 0.01);
+                    vec3 brightOrange = vec3(1.0, 0.42, 0.06);
+                    vec3 hotGold = vec3(1.0, 0.84, 0.38);
+
+                    vec3 col = mix(deepCrimson, brightOrange, smoothstep(0.2, 0.7, vDisplacement));
+                    col = mix(col, hotGold, smoothstep(0.68, 0.95, vDisplacement));
+                    // Limb glow + reflected nova illumination
+                    col += vec3(1.0, 0.35, 0.05) * fresnel * 0.75;
+                    col += vec3(0.75, 0.9, 1.0) * uNovaFlash * 0.65;
+
+                    gl_FragColor = vec4(col, 1.0);
+                }
+            `
+        });
+
+        const redGiantMesh = new THREE.Mesh(new THREE.SphereGeometry(5.6, 64, 64), redGiantMat);
+        redGiantGroup.add(redGiantMesh);
+
+        // Red Giant Outer Corona Glow Sprite
+        const redGiantGlow = new THREE.Sprite(new THREE.SpriteMaterial({
+            map: orangeGlowTex,
+            color: 0xff6a1a,
+            transparent: true,
+            blending: THREE.AdditiveBlending,
+            opacity: 0.82,
+            depthWrite: false
+        }));
+        redGiantGlow.scale.set(24, 24, 1);
+        redGiantGroup.add(redGiantGlow);
+
+        // --- B. WHITE DWARF STAR & ACCRETION DISK ---
+        const whiteDwarfGroup = new THREE.Group();
+        binarySystemGroup.add(whiteDwarfGroup);
+
+        // Dense White Dwarf Core
+        const whiteDwarfMat = new THREE.MeshBasicMaterial({ color: 0xe0f2fe });
+        const whiteDwarfMesh = new THREE.Mesh(new THREE.SphereGeometry(0.68, 32, 32), whiteDwarfMat);
+        whiteDwarfGroup.add(whiteDwarfMesh);
+
+        // White Dwarf Intense Glow Sprite (scales dramatically during Nova)
+        const whiteDwarfGlow = new THREE.Sprite(new THREE.SpriteMaterial({
+            map: blueWhiteGlowTex,
+            color: 0xbae6fd,
+            transparent: true,
+            blending: THREE.AdditiveBlending,
+            opacity: 0.92,
+            depthWrite: false
+        }));
+        whiteDwarfGlow.scale.set(6.5, 6.5, 1);
+        whiteDwarfGroup.add(whiteDwarfGlow);
+
+        // Dynamic PointLight inside White Dwarf illuminating Red Giant & Disk
+        const dwarfLight = new THREE.PointLight(0x7dd3fc, 2.2, 95);
+        whiteDwarfGroup.add(dwarfLight);
+
+        const giantLight = new THREE.PointLight(0xff6b2b, 2.5, 80);
+        redGiantGroup.add(giantLight);
+
+        // Accretion Disk around White Dwarf (Shader Ring)
+        const accretionDiskUniforms = {
+            uTime: { value: 0 },
+            uAccumulation: { value: 0.94 },
+            uNovaFlash: { value: 0 }
+        };
+
+        const accretionDiskMat = new THREE.ShaderMaterial({
+            uniforms: accretionDiskUniforms,
+            transparent: true,
+            side: THREE.DoubleSide,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+            vertexShader: `
+                varying vec2 vUv;
+                varying vec3 vPos;
+                void main() {
+                    vUv = uv;
+                    vPos = position;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform float uTime;
+                uniform float uAccumulation;
+                uniform float uNovaFlash;
+                varying vec2 vUv;
+                varying vec3 vPos;
+
+                void main() {
+                    float r = length(vPos.xy);
+                    float angle = atan(vPos.y, vPos.x);
+
+                    // Radial bounds from 0.95 to 3.9
+                    float innerMask = smoothstep(0.85, 1.25, r);
+                    float outerMask = 1.0 - smoothstep(2.6, 3.9, r);
+                    float ringMask = innerMask * outerMask;
+
+                    // Spiral Keplerian shear arms
+                    float spiral = sin(angle * 3.0 + r * 4.5 - uTime * 5.5) * 0.5 + 0.5;
+                    float fineRings = sin(r * 16.0 - uTime * 3.0) * 0.5 + 0.5;
+
+                    vec3 outerCool = vec3(0.95, 0.45, 0.15); // Warm orange hydrogen entering disk
+                    vec3 innerHot = vec3(0.55, 0.88, 1.0);   // Superheated blue-white inner boundary
+                    vec3 col = mix(innerHot, outerCool, smoothstep(1.0, 3.6, r));
+
+                    float intensity = (0.45 + 0.55 * spiral * fineRings) * (0.45 + 0.75 * uAccumulation);
+                    col = mix(col, vec3(1.0), uNovaFlash * 0.8);
+
+                    gl_FragColor = vec4(col * intensity, ringMask * (0.65 + uNovaFlash * 0.35));
+                }
+            `
+        });
+
+        const accretionDiskMesh = new THREE.Mesh(new THREE.RingGeometry(0.9, 3.9, 64, 4), accretionDiskMat);
+        accretionDiskMesh.rotation.x = Math.PI / 2;
+        whiteDwarfGroup.add(accretionDiskMesh);
+
+        // --- C. ROCHE LOBE HYDROGEN ACCRETION STREAM PARTICLES ---
+        const streamParticleCount = 420;
+        const streamGeo = new THREE.BufferGeometry();
+        const streamPositions = new Float32Array(streamParticleCount * 3);
+        const streamColors = new Float32Array(streamParticleCount * 3);
+        const streamProgress = new Float32Array(streamParticleCount);
+        const streamOffsets = new Float32Array(streamParticleCount * 2);
+
+        for (let i = 0; i < streamParticleCount; i++) {
+            streamProgress[i] = Math.random();
+            streamOffsets[i * 2] = (Math.random() - 0.5) * 1.1;
+            streamOffsets[i * 2 + 1] = (Math.random() - 0.5) * 0.55;
+        }
+        streamGeo.setAttribute('position', new THREE.BufferAttribute(streamPositions, 3));
+        streamGeo.setAttribute('color', new THREE.BufferAttribute(streamColors, 3));
+
+        const streamMat = new THREE.PointsMaterial({
+            size: 0.48,
+            map: starPointTex,
+            vertexColors: true,
+            transparent: true,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+            opacity: 0.88
+        });
+
+        const accretionStreamPoints = new THREE.Points(streamGeo, streamMat);
+        binarySystemGroup.add(accretionStreamPoints);
+
+        // --- D. NOVA EXPLOSION EXPANDING SHOCKWAVE SHELL & EJECTA PARTICLES ---
+        const shockwaveMat = new THREE.MeshBasicMaterial({
+            color: 0xbae6fd,
+            transparent: true,
+            opacity: 0.0,
+            wireframe: false,
+            blending: THREE.AdditiveBlending,
+            side: THREE.DoubleSide,
+            depthWrite: false
+        });
+        const shockwaveShell = new THREE.Mesh(new THREE.SphereGeometry(1, 48, 48), shockwaveMat);
+        whiteDwarfGroup.add(shockwaveShell);
+
+        // Secondary outer ionized shell
+        const outerShockMat = new THREE.MeshBasicMaterial({
+            color: 0x38bdf8,
+            transparent: true,
+            opacity: 0.0,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false
+        });
+        const outerShockShell = new THREE.Mesh(new THREE.SphereGeometry(1, 36, 36), outerShockMat);
+        whiteDwarfGroup.add(outerShockShell);
+
+        // Ejected Nova Plasma Sparks
+        const ejectaCount = 650;
+        const ejectaGeo = new THREE.BufferGeometry();
+        const ejectaPos = new Float32Array(ejectaCount * 3);
+        const ejectaVel = new Float32Array(ejectaCount * 3);
+        for (let i = 0; i < ejectaCount; i++) {
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos(2 * Math.random() - 1);
+            const speed = 14 + Math.random() * 24;
+            ejectaVel[i * 3] = Math.sin(phi) * Math.cos(theta) * speed;
+            ejectaVel[i * 3 + 1] = Math.cos(phi) * speed * 0.75;
+            ejectaVel[i * 3 + 2] = Math.sin(phi) * Math.sin(theta) * speed;
+        }
+        ejectaGeo.setAttribute('position', new THREE.BufferAttribute(ejectaPos, 3));
+        const ejectaMat = new THREE.PointsMaterial({
+            size: 0.55,
+            map: starPointTex,
+            color: 0xe0f2fe,
+            transparent: true,
+            opacity: 0,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false
+        });
+        const ejectaPoints = new THREE.Points(ejectaGeo, ejectaMat);
+        whiteDwarfGroup.add(ejectaPoints);
+
+        /**
+         * ============================================================================
+         * 4. DEEP SPACE STARFIELD & CORONA BOREALIS CONSTELLATION OVERLAY
+         * ============================================================================
+         */
+        const starCount = 2600;
+        const starGeo = new THREE.BufferGeometry();
+        const starPos = new Float32Array(starCount * 3);
+        const starCols = new Float32Array(starCount * 3);
+        const starPalette = [
+            new THREE.Color(0xffffff),
+            new THREE.Color(0xbae6fd),
+            new THREE.Color(0xfde68a),
+            new THREE.Color(0xfed7aa)
+        ];
+
+        for (let i = 0; i < starCount; i++) {
+            const r = 160 + Math.random() * 480;
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos(2 * Math.random() - 1);
+            starPos[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+            starPos[i * 3 + 1] = r * Math.cos(phi);
+            starPos[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta);
+
+            const c = starPalette[Math.floor(Math.random() * starPalette.length)];
+            const brightness = 0.45 + Math.random() * 0.55;
+            starCols[i * 3] = c.r * brightness;
+            starCols[i * 3 + 1] = c.g * brightness;
+            starCols[i * 3 + 2] = c.b * brightness;
+        }
+        starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+        starGeo.setAttribute('color', new THREE.BufferAttribute(starCols, 3));
+
+        const starField = new THREE.Points(starGeo, new THREE.PointsMaterial({
+            size: 1.65,
+            map: starPointTex,
+            vertexColors: true,
+            transparent: true,
+            opacity: 0.9,
+            depthWrite: false
+        }));
+        scene.add(starField);
+
+        // Corona Borealis ("Northern Crown") Constellation Backdrop Arc & Polaris Benchmark
+        const constellationGroup = new THREE.Group();
+        constellationGroup.visible = false;
+        scene.add(constellationGroup);
+
+        // Crown arc stars positioned in background sky (z = -95)
+        const crownCoords = [
+            new THREE.Vector3(-28, 16, -95),  // Theta CrB
+            new THREE.Vector3(-19, 6, -95),   // Beta CrB (Nusakan)
+            new THREE.Vector3(-8, 1, -95),    // Alpha CrB (Alphecca - brightest)
+            new THREE.Vector3(5, 3, -95),     // Gamma CrB
+            new THREE.Vector3(15, 10, -95),   // Delta CrB
+            new THREE.Vector3(22, 19, -95)    // Epsilon CrB (near T CrB!)
+        ];
+
+        const lineGeo = new THREE.BufferGeometry().setFromPoints(crownCoords);
+        const lineMat = new THREE.LineBasicMaterial({
+            color: 0x38bdf8,
+            transparent: true,
+            opacity: 0.45
+        });
+        constellationGroup.add(new THREE.Line(lineGeo, lineMat));
+
+        crownCoords.forEach((pt, idx) => {
+            const s = new THREE.Sprite(new THREE.SpriteMaterial({
+                map: blueWhiteGlowTex,
+                color: idx === 2 ? 0xffffff : 0xbae6fd,
+                transparent: true,
+                blending: THREE.AdditiveBlending
+            }));
+            const sz = idx === 2 ? 4.5 : 2.8;
+            s.scale.set(sz, sz, 1);
+            s.position.copy(pt);
+            constellationGroup.add(s);
+        });
+
+        // Polaris Reference Star in Upper Left Sky for Brightness Comparison (+2.0 mag)
+        const polarisPos = new THREE.Vector3(-42, 30, -95);
+        const polarisSprite = new THREE.Sprite(new THREE.SpriteMaterial({
+            map: blueWhiteGlowTex,
+            color: 0xfef08a,
+            transparent: true,
+            blending: THREE.AdditiveBlending
+        }));
+        polarisSprite.scale.set(5.2, 5.2, 1);
+        polarisSprite.position.copy(polarisPos);
+        constellationGroup.add(polarisSprite);
+
+        /**
+         * ============================================================================
+         * 5. INTERACTIVE ORBIT CAMERA CONTROLS (Mouse Drag, Touch & Wheel Zoom)
+         * ============================================================================
+         */
+        let camSpherical = { radius: 46, theta: 0.25, phi: 1.15 };
+        let targetSpherical = { radius: 46, theta: 0.25, phi: 1.15 };
+        let camLookTarget = new THREE.Vector3(0, 0, 0);
+        let desiredLookTarget = new THREE.Vector3(0, 0, 0);
+        let cameraFollowMode = 'overview'; // 'overview' | 'dwarf' | 'sky'
+
+        let isDragging = false;
+        let prevPointer = { x: 0, y: 0 };
+
+        function onPointerDown(x, y) {
+            isDragging = true;
+            prevPointer = { x, y };
+        }
+        function onPointerMove(x, y) {
+            if (!isDragging) return;
+            const dx = x - prevPointer.x;
+            const dy = y - prevPointer.y;
+            prevPointer = { x, y };
+
+            targetSpherical.theta -= dx * 0.0065;
+            targetSpherical.phi = Math.max(0.18, Math.min(Math.PI - 0.18, targetSpherical.phi - dy * 0.0065));
+        }
+        function onPointerUp() {
+            isDragging = false;
+        }
+
+        const domEl = renderer.domElement;
+        domEl.addEventListener('mousedown', e => onPointerDown(e.clientX, e.clientY));
+        window.addEventListener('mousemove', e => onPointerMove(e.clientX, e.clientY));
+        window.addEventListener('mouseup', onPointerUp);
+
+        domEl.addEventListener('touchstart', e => {
+            if (e.touches.length === 1) {
+                onPointerDown(e.touches[0].clientX, e.touches[0].clientY);
+            }
+        }, { passive: true });
+        window.addEventListener('touchmove', e => {
+            if (e.touches.length === 1) {
+                onPointerMove(e.touches[0].clientX, e.touches[0].clientY);
+            }
+        }, { passive: true });
+        window.addEventListener('touchend', onPointerUp);
+
+        domEl.addEventListener('wheel', e => {
+            e.preventDefault();
+            targetSpherical.radius = Math.max(11, Math.min(110, targetSpherical.radius + e.deltaY * 0.035));
+        }, { passive: false });
+
+        /**
+         * ============================================================================
+         * 6. SIMULATION STATE, NOVA ERUPTION LOGIC & HUD UPDATES
+         * ============================================================================
+         */
+        const simState = {
+            orbitAngle: 0.4,
+            simSpeed: 1.0,
+            accumulation: 0.94,      // Starts at 94% (Year ~78 of 80-year overdue buildup!)
+            isNovaActive: false,
+            novaTimer: 0,
+            novaDuration: 9.5,       // Seconds representing the ~1 week bright surge & fade
+            novaIntensity: 0
+        };
+
+        // UI Elements
+        const elMag = document.getElementById('telemetry-mag');
+        const elVis = document.getElementById('telemetry-visibility');
+        const elPolaris = document.getElementById('telemetry-polaris');
+        const elState = document.getElementById('telemetry-state');
+        const elYear = document.getElementById('telemetry-year');
+        const elPressurePct = document.getElementById('pressure-pct');
+        const elPressureFill = document.getElementById('pressure-bar-fill');
+        const elNovaOverlay = document.getElementById('nova-flash-overlay');
+        const btnTriggerNova = document.getElementById('btn-trigger-nova');
+
+        function triggerNovaEruption() {
+            if (simState.isNovaActive) return;
+            simState.isNovaActive = true;
+            simState.novaTimer = 0;
+            simState.accumulation = 1.0;
+
+            // Reset shockwaves & ejecta
+            shockwaveShell.scale.set(0.5, 0.5, 0.5);
+            outerShockShell.scale.set(0.5, 0.5, 0.5);
+            for (let i = 0; i < ejectaCount * 3; i++) {
+                ejectaPos[i] = 0;
+            }
+            ejectaGeo.attributes.position.needsUpdate = true;
+
+            // Play procedural Web Audio Nova Explosion
+            audioEngine.triggerNovaBlast();
+        }
+
+        // Button & Control Event Listeners
+        btnTriggerNova.addEventListener('click', triggerNovaEruption);
+
+        document.getElementById('btn-audio').addEventListener('click', () => {
+            const unmuted = audioEngine.toggleMute();
+            document.getElementById('icon-sound-on').classList.toggle('hidden', !unmuted);
+            document.getElementById('icon-sound-off').classList.toggle('hidden', unmuted);
+            document.getElementById('audio-label').textContent = unmuted ? 'Audio Active' : 'Unmute Audio';
+            document.getElementById('btn-audio').classList.toggle('active', unmuted);
+        });
+
+        const btnConstellation = document.getElementById('btn-constellation');
+        btnConstellation.addEventListener('click', () => {
+            constellationGroup.visible = !constellationGroup.visible;
+            btnConstellation.classList.toggle('active', constellationGroup.visible);
+            document.getElementById('label-polaris').classList.toggle('hidden', !constellationGroup.visible);
+        });
+
+        const infoDrawer = document.getElementById('info-drawer');
+        const btnInfo = document.getElementById('btn-info');
+        btnInfo.addEventListener('click', () => {
+            infoDrawer.classList.toggle('hidden');
+            btnInfo.classList.toggle('active', !infoDrawer.classList.contains('hidden'));
+        });
+        document.getElementById('btn-close-info').addEventListener('click', () => {
+            infoDrawer.classList.add('hidden');
+            btnInfo.classList.remove('active');
+        });
+
+        const speedSlider = document.getElementById('speed-slider');
+        speedSlider.addEventListener('input', (e) => {
+            simState.simSpeed = parseFloat(e.target.value);
+            document.getElementById('speed-label').textContent = simState.simSpeed.toFixed(1) + '×';
+        });
+
+        // Allow clicking on Hydrogen Accumulation bar to set buildup manually
+        document.getElementById('pressure-bar-container').addEventListener('click', (e) => {
+            if (simState.isNovaActive) return;
+            const rect = e.currentTarget.getBoundingClientRect();
+            const ratio = Math.max(0.05, Math.min(0.99, (e.clientX - rect.left) / rect.width));
+            simState.accumulation = ratio;
+        });
+
+        // Camera View Preset Buttons
+        document.querySelectorAll('.cam-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.cam-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                cameraFollowMode = btn.dataset.cam;
+
+                if (cameraFollowMode === 'overview') {
+                    targetSpherical = { radius: 46, theta: 0.25, phi: 1.15 };
+                } else if (cameraFollowMode === 'dwarf') {
+                    targetSpherical = { radius: 16, theta: 0.6, phi: 1.12 };
+                } else if (cameraFollowMode === 'sky') {
+                    targetSpherical = { radius: 68, theta: 0.0, phi: 1.42 };
+                    if (!constellationGroup.visible) {
+                        constellationGroup.visible = true;
+                        btnConstellation.classList.add('active');
+                        document.getElementById('label-polaris').classList.remove('hidden');
+                    }
+                }
+            });
+        });
+
+        // Project 3D world coordinates onto 2D screen for floating star labels
+        const labelRedGiant = document.getElementById('label-red-giant');
+        const labelWhiteDwarf = document.getElementById('label-white-dwarf');
+        const labelPolaris = document.getElementById('label-polaris');
+        const tempVec = new THREE.Vector3();
+
+        function updateScreenLabel(element, worldPos) {
+            tempVec.copy(worldPos);
+            tempVec.project(camera);
+            if (tempVec.z > 1) {
+                element.style.opacity = '0';
+                return;
+            }
+            const x = (tempVec.x * 0.5 + 0.5) * window.innerWidth;
+            const y = (-tempVec.y * 0.5 + 0.5) * window.innerHeight;
+            element.style.left = `${x}px`;
+            element.style.top = `${y}px`;
+            element.style.opacity = '1';
+        }
+
+        /**
+         * ============================================================================
+         * 7. MAIN ANIMATION LOOP
+         * ============================================================================
+         */
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const rawDt = Math.min(clock.getDelta(), 0.05);
+            const elapsed = clock.getElapsedTime();
+            const dt = rawDt * simState.simSpeed;
+
+            // 1. Orbital Motion around shared Center of Mass
+            simState.orbitAngle += dt * 0.42;
+            const cosA = Math.cos(simState.orbitAngle);
+            const sinA = Math.sin(simState.orbitAngle);
+
+            redGiantGroup.position.set(-cosA * redGiantOrbitRadius, 0, -sinA * redGiantOrbitRadius);
+            whiteDwarfGroup.position.set(cosA * whiteDwarfOrbitRadius, 0, sinA * whiteDwarfOrbitRadius);
+
+            // Rotate Red Giant so its tidal bulge always faces the White Dwarf
+            redGiantGroup.rotation.y = -simState.orbitAngle;
+
+            // 2. Hydrogen Accumulation & Automatic Nova Trigger at 100%
+            if (!simState.isNovaActive) {
+                simState.accumulation += dt * 0.0045; // Slow natural buildup so user can watch or trigger
+                if (simState.accumulation >= 1.0) {
+                    triggerNovaEruption();
+                }
+            } else {
+                // Nova Eruption Timeline (Fast ignition flash + 1-week gradual fade)
+                simState.novaTimer += rawDt * Math.max(0.6, simState.simSpeed);
+                const progress = simState.novaTimer / simState.novaDuration;
+
+                if (progress < 0.08) {
+                    // Rapid thermonuclear runaway spike
+                    simState.novaIntensity = progress / 0.08;
+                } else if (progress < 1.0) {
+                    // Exponential fade over simulated week
+                    const fadeT = (progress - 0.08) / 0.92;
+                    simState.novaIntensity = Math.pow(1.0 - fadeT, 2.2);
+                } else {
+                    // Reset cycle back to post-nova accretion
+                    simState.isNovaActive = false;
+                    simState.novaIntensity = 0;
+                    simState.accumulation = 0.08;
+                }
+            }
+
+            const novaI = simState.novaIntensity;
+
+            // 3. Update Shaders, Lights, Shockwaves & Stream Particles
+            redGiantUniforms.uTime.value = elapsed;
+            redGiantUniforms.uNovaFlash.value = novaI;
+            accretionDiskUniforms.uTime.value = elapsed;
+            accretionDiskUniforms.uAccumulation.value = simState.accumulation;
+            accretionDiskUniforms.uNovaFlash.value = novaI;
+
+            // White Dwarf Surge Visuals (+10.0 mag -> +1.7 mag = ~2,000x luminosity jump!)
+            const baseGlowSize = 6.0 + simState.accumulation * 2.5;
+            const surgeGlowSize = baseGlowSize + novaI * 38.0;
+            whiteDwarfGlow.scale.set(surgeGlowSize, surgeGlowSize, 1);
+            dwarfLight.intensity = 2.0 + simState.accumulation * 1.5 + novaI * 18.0;
+
+            // Screen flash effect on initial ignition
+            elNovaOverlay.style.opacity = simState.isNovaActive && simState.novaTimer < 1.2
+                ? Math.max(0, (1.0 - simState.novaTimer / 1.2) * 0.72).toFixed(3)
+                : '0';
+
+            // Expanding 3D Shockwave Shells & Ejecta Sparks
+            if (simState.isNovaActive) {
+                const shellRadius = 1.0 + simState.novaTimer * 5.2;
+                shockwaveShell.scale.set(shellRadius, shellRadius, shellRadius);
+                shockwaveMat.opacity = Math.max(0, novaI * 0.55);
+
+                const outerRadius = 1.0 + simState.novaTimer * 7.4;
+                outerShockShell.scale.set(outerRadius, outerRadius, outerRadius);
+                outerShockMat.opacity = Math.max(0, novaI * 0.25);
+
+                // Update Ejecta Sparks
+                const eAttr = ejectaGeo.attributes.position;
+                for (let i = 0; i < ejectaCount; i++) {
+                    eAttr.array[i * 3] += ejectaVel[i * 3] * rawDt;
+                    eAttr.array[i * 3 + 1] += ejectaVel[i * 3 + 1] * rawDt;
+                    eAttr.array[i * 3 + 2] += ejectaVel[i * 3 + 2] * rawDt;
+                }
+                eAttr.needsUpdate = true;
+                ejectaMat.opacity = Math.max(0, novaI * 0.95);
+            } else {
+                shockwaveMat.opacity = 0;
+                outerShockMat.opacity = 0;
+                ejectaMat.opacity = 0;
+            }
+
+            // Update Roche Lobe Hydrogen Accretion Stream from Red Giant to White Dwarf
+            const sPos = streamGeo.attributes.position;
+            const sCol = streamGeo.attributes.color;
+            const startPt = redGiantGroup.position;
+            const endPt = whiteDwarfGroup.position;
+
+            // Tangent vector for Coriolis curve of gas stream
+            const dirX = endPt.x - startPt.x;
+            const dirZ = endPt.z - startPt.z;
+            const perpX = -dirZ;
+            const perpZ = dirX;
+
+            for (let i = 0; i < streamParticleCount; i++) {
+                streamProgress[i] += (0.28 + simState.accumulation * 0.22) * (dt > 0 ? dt : rawDt * 0.25);
+                if (streamProgress[i] > 1.0) streamProgress[i] -= 1.0;
+
+                const t = streamProgress[i];
+                // Start near Red Giant inner Lagrange surface (t mapped from 0.28 to 0.92)
+                const pathT = 0.28 + t * 0.64;
+                const curveArch = Math.sin(t * Math.PI) * 0.26;
+                const funnelNarrow = 1.0 - t * 0.72;
+
+                const px = startPt.x + dirX * pathT + perpX * curveArch + streamOffsets[i * 2] * funnelNarrow;
+                const py = streamOffsets[i * 2 + 1] * funnelNarrow;
+                const pz = startPt.z + dirZ * pathT + perpZ * curveArch + streamOffsets[i * 2] * funnelNarrow;
+
+                sPos.array[i * 3] = px;
+                sPos.array[i * 3 + 1] = py;
+                sPos.array[i * 3 + 2] = pz;
+
+                // Color shifts from cool orange-red hydrogen to hot blue-white plasma near disk
+                sCol.array[i * 3] = 1.0 - t * 0.45;
+                sCol.array[i * 3 + 1] = 0.45 + t * 0.48;
+                sCol.array[i * 3 + 2] = 0.15 + t * 0.85;
+            }
+            sPos.needsUpdate = true;
+            sCol.needsUpdate = true;
+
+            // 4. Update Telemetry HUD & Procedural Audio
+            const currentMag = 10.0 - novaI * 8.3; // +10.0 quiescent -> +1.7 peak nova!
+            elMag.textContent = `+${currentMag.toFixed(1)}`;
+            elMag.className = `mono text-sm sm:text-base font-bold ${novaI > 0.35 ? 'text-sky-300' : 'text-slate-100'}`;
+
+            if (currentMag <= 2.0) {
+                elVis.textContent = 'Naked Eye (Bright!)';
+                elVis.className = 'text-[10px] text-emerald-400 font-semibold';
+                const brighterRatio = Math.pow(2.512, 2.0 - currentMag);
+                elPolaris.textContent = `${brighterRatio.toFixed(1)}× Brighter!`;
+                elPolaris.className = 'mono text-sm sm:text-base font-bold text-emerald-300';
+            } else if (currentMag <= 6.0) {
+                elVis.textContent = 'Faint Naked Eye';
+                elVis.className = 'text-[10px] text-amber-300';
+                const dimmerRatio = Math.round(Math.pow(2.512, currentMag - 2.0));
+                elPolaris.textContent = `${dimmerRatio.toLocaleString()}× Dimmer`;
+                elPolaris.className = 'mono text-sm sm:text-base font-bold text-amber-300';
+            } else {
+                elVis.textContent = 'Telescope Only';
+                elVis.className = 'text-[10px] text-slate-400';
+                const dimmerRatio = Math.round(Math.pow(2.512, currentMag - 2.0));
+                elPolaris.textContent = `${dimmerRatio.toLocaleString()}× Dimmer`;
+                elPolaris.className = 'mono text-sm sm:text-base font-bold text-amber-300';
+            }
+
+            if (simState.isNovaActive) {
+                elState.textContent = simState.novaTimer < 1.2 ? 'THERMONUCLEAR NOVA!' : 'Nova Fading (Week 1)';
+                elState.className = 'text-xs sm:text-sm font-bold text-rose-400 mt-0.5 animate-pulse';
+                elYear.textContent = 'ERUPTION IN PROGRESS';
+                btnTriggerNova.disabled = true;
+            } else {
+                const cycleYr = Math.min(80, Math.round(simState.accumulation * 80));
+                elState.textContent = simState.accumulation > 0.88 ? 'Critical Overdue!' : 'Accreting Hydrogen';
+                elState.className = `text-xs sm:text-sm font-semibold mt-0.5 ${simState.accumulation > 0.88 ? 'text-amber-400' : 'text-sky-400'}`;
+                elYear.textContent = `Cycle Year: ${cycleYr} / 80`;
+                btnTriggerNova.disabled = false;
+            }
+
+            const pct = (simState.accumulation * 100).toFixed(1);
+            elPressurePct.textContent = `${pct}%`;
+            elPressureFill.style.width = `${pct}%`;
+
+            audioEngine.updateContinuous(simState.accumulation, simState.isNovaActive, novaI);
+
+            // 5. Smooth Camera Tracking & Spherical Orbit Interpolation
+            if (cameraFollowMode === 'dwarf') {
+                desiredLookTarget.copy(whiteDwarfGroup.position);
+            } else if (cameraFollowMode === 'sky') {
+                desiredLookTarget.set(0, 6, -35);
+            } else {
+                desiredLookTarget.set(0, 0, 0);
+            }
+
+            camLookTarget.lerp(desiredLookTarget, 0.08);
+            camSpherical.radius += (targetSpherical.radius - camSpherical.radius) * 0.08;
+            camSpherical.theta += (targetSpherical.theta - camSpherical.theta) * 0.08;
+            camSpherical.phi += (targetSpherical.phi - camSpherical.phi) * 0.08;
+
+            camera.position.x = camLookTarget.x + camSpherical.radius * Math.sin(camSpherical.phi) * Math.sin(camSpherical.theta);
+            camera.position.y = camLookTarget.y + camSpherical.radius * Math.cos(camSpherical.phi);
+            camera.position.z = camLookTarget.z + camSpherical.radius * Math.sin(camSpherical.phi) * Math.cos(camSpherical.theta);
+            camera.lookAt(camLookTarget);
+
+            // 6. Update Floating 3D Labels
+            updateScreenLabel(labelRedGiant, new THREE.Vector3(redGiantGroup.position.x, 6.2, redGiantGroup.position.z));
+            updateScreenLabel(labelWhiteDwarf, new THREE.Vector3(whiteDwarfGroup.position.x, 2.2, whiteDwarfGroup.position.z));
+            if (constellationGroup.visible) {
+                updateScreenLabel(labelPolaris, polarisPos);
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // Responsive Resize Handler
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        window.onload = function () {
+            animate();
+        };
+    </script>
+</body>
+</html>
