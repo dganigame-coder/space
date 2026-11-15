@@ -27,19 +27,24 @@
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #030712; color: #f3f4f6; overflow: hidden; }
         .font-orbitron { font-family: 'Orbitron', sans-serif; }
-        /* Custom scrollbar */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: rgba(3, 7, 18, 0.8); }
         ::-webkit-scrollbar-thumb { background: rgba(6, 182, 212, 0.4); border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: rgba(6, 182, 212, 0.8); }
         .glass-panel {
-            background: rgba(11, 15, 25, 0.75);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            background: rgba(11, 15, 25, 0.8);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
             border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: opacity 0.3s ease, transform 0.3s ease;
         }
         .glow-text {
             text-shadow: 0 0 15px rgba(6, 182, 212, 0.5);
+        }
+        .ui-hidden {
+            opacity: 0 !important;
+            pointer-events: none !important;
+            transform: scale(0.98);
         }
     </style>
 </head>
@@ -48,8 +53,14 @@
     <!-- Three.js Canvas Container -->
     <div id="webgl-container" class="absolute inset-0 z-0"></div>
 
+    <!-- UI Visibility Toggle Button (Always accessible) -->
+    <button id="ui-toggle-btn" onclick="toggleUI()" class="absolute top-4 right-4 z-30 glass-panel px-4 py-2.5 rounded-2xl text-cyan-400 text-xs font-orbitron font-bold flex items-center space-x-2 shadow-2xl hover:bg-cyan-950/60 border border-cyan-500/30 transition-all cursor-pointer">
+        <svg id="ui-icon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+        <span id="ui-toggle-text">Hide UI</span>
+    </button>
+
     <!-- Top Sci-Fi Header -->
-    <header class="absolute top-4 left-4 right-4 z-20 flex flex-col md:flex-row items-center justify-between gap-4 pointer-events-none">
+    <header id="ui-header" class="absolute top-4 left-4 right-28 z-20 flex flex-col md:flex-row items-center justify-between gap-4 pointer-events-none">
         <div class="glass-panel px-5 py-3 rounded-2xl pointer-events-auto flex items-center space-x-3 shadow-2xl">
             <div class="w-3 h-3 rounded-full bg-cyan-400 animate-ping"></div>
             <div>
@@ -71,12 +82,12 @@
         </div>
     </header>
 
-    <!-- Left HUD: Cinematic Camera Jumps & Views -->
-    <aside class="absolute left-4 top-28 bottom-20 z-20 w-72 flex flex-col space-y-3 pointer-events-none">
+    <!-- Left HUD: Cinematic Camera Jumps & Controls -->
+    <aside id="ui-left" class="absolute left-4 top-28 bottom-20 z-20 w-72 flex flex-col space-y-3 pointer-events-none">
         <div class="glass-panel p-4 rounded-2xl pointer-events-auto flex flex-col space-y-2.5 shadow-2xl flex-shrink-0">
             <h2 class="font-orbitron text-xs font-semibold text-cyan-400 tracking-wider uppercase mb-1">Navigation Hub</h2>
             
-            <button onclick="zoomTo('solar-system')" class="w-full text-left px-3.5 py-2.5 rounded-xl bg-cyan-950/40 hover:bg-cyan-900/60 border border-cyan-500/30 hover:border-cyan-400 text-xs font-medium transition-all flex items-center justify-between group">
+            <button onclick="zoomTo('solar-system')" class="w-full text-left px-3.5 py-2.5 rounded-xl bg-cyan-950/40 hover:bg-cyan-900/60 border border-cyan-500/30 hover:border-cyan-400 text-xs font-medium transition-all flex items-center justify-between group cursor-pointer">
                 <span class="flex items-center space-x-2">
                     <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
                     <span>Solar System & Earth</span>
@@ -84,7 +95,7 @@
                 <span class="text-[10px] text-cyan-300 opacity-60 group-hover:opacity-100">0 AU</span>
             </button>
 
-            <button onclick="zoomTo('milky-way')" class="w-full text-left px-3.5 py-2.5 rounded-xl bg-purple-950/40 hover:bg-purple-900/60 border border-purple-500/30 hover:border-purple-400 text-xs font-medium transition-all flex items-center justify-between group">
+            <button onclick="zoomTo('milky-way')" class="w-full text-left px-3.5 py-2.5 rounded-xl bg-purple-950/40 hover:bg-purple-900/60 border border-purple-500/30 hover:border-purple-400 text-xs font-medium transition-all flex items-center justify-between group cursor-pointer">
                 <span class="flex items-center space-x-2">
                     <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
                     <span>Milky Way Context</span>
@@ -92,7 +103,7 @@
                 <span class="text-[10px] text-purple-300 opacity-60 group-hover:opacity-100">Local Group</span>
             </button>
 
-            <button onclick="zoomTo('grb-1')" class="w-full text-left px-3.5 py-2.5 rounded-xl bg-pink-950/40 hover:bg-pink-900/60 border border-pink-500/30 hover:border-pink-400 text-xs font-medium transition-all flex items-center justify-between group">
+            <button onclick="zoomTo('grb-1')" class="w-full text-left px-3.5 py-2.5 rounded-xl bg-pink-950/40 hover:bg-pink-900/60 border border-pink-500/30 hover:border-pink-400 text-xs font-medium transition-all flex items-center justify-between group cursor-pointer">
                 <span class="flex items-center space-x-2">
                     <svg class="w-4 h-4 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                     <span>GRB 170817A (NGC 4993)</span>
@@ -100,7 +111,7 @@
                 <span class="text-[10px] text-pink-300 opacity-60 group-hover:opacity-100">130M LY</span>
             </button>
 
-            <button onclick="zoomTo('grb-2')" class="w-full text-left px-3.5 py-2.5 rounded-xl bg-amber-950/40 hover:bg-amber-900/60 border border-amber-500/30 hover:border-amber-400 text-xs font-medium transition-all flex items-center justify-between group">
+            <button onclick="zoomTo('grb-2')" class="w-full text-left px-3.5 py-2.5 rounded-xl bg-amber-950/40 hover:bg-amber-900/60 border border-amber-500/30 hover:border-amber-400 text-xs font-medium transition-all flex items-center justify-between group cursor-pointer">
                 <span class="flex items-center space-x-2">
                     <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707"/></svg>
                     <span>GRB 980425 (ESO 184)</span>
@@ -108,7 +119,7 @@
                 <span class="text-[10px] text-amber-300 opacity-60 group-hover:opacity-100">140M LY</span>
             </button>
 
-            <button onclick="toggleScaleComparison()" class="w-full text-left px-3.5 py-2.5 rounded-xl bg-blue-950/40 hover:bg-blue-900/60 border border-blue-500/30 hover:border-blue-400 text-xs font-medium transition-all flex items-center justify-between group">
+            <button onclick="zoomTo('comparison')" class="w-full text-left px-3.5 py-2.5 rounded-xl bg-blue-950/40 hover:bg-blue-900/60 border border-blue-500/30 hover:border-blue-400 text-xs font-medium transition-all flex items-center justify-between group cursor-pointer">
                 <span class="flex items-center space-x-2">
                     <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
                     <span>Scale Comparison View</span>
@@ -117,7 +128,7 @@
             </button>
         </div>
 
-        <!-- Simulation Parameters / Toggles -->
+        <!-- Simulation Parameters & Event State Controls -->
         <div class="glass-panel p-4 rounded-2xl pointer-events-auto flex flex-col space-y-3 flex-grow overflow-y-auto">
             <h2 class="font-orbitron text-xs font-semibold text-cyan-400 tracking-wider uppercase">Simulation Controls</h2>
             
@@ -129,20 +140,28 @@
                 <input type="range" id="speed-slider" min="0.1" max="3.0" step="0.1" value="1.0" class="w-full accent-cyan-400 bg-gray-800 rounded-lg h-1.5 cursor-pointer">
             </div>
 
-            <div class="flex items-center justify-between pt-2 border-t border-gray-800">
-                <span class="text-xs text-gray-300">Orbit Animation</span>
-                <button id="toggle-orbit" onclick="toggleOrbitRotation()" class="px-3 py-1 rounded-lg bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 text-xs font-medium hover:bg-cyan-500/30 transition-all">Pause</button>
+            <!-- Gamma Burst Event State Control (Before vs Active Burst) -->
+            <div class="space-y-1.5 pt-2 border-t border-gray-800">
+                <div class="flex justify-between items-center text-xs text-gray-300">
+                    <span>GRB Event State</span>
+                    <span id="state-label" class="text-pink-400 font-mono font-bold">Active Burst</span>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="btn-state-before" onclick="setEventState('before')" class="py-2 rounded-xl bg-gray-900/80 hover:bg-gray-800 text-gray-400 border border-gray-700 text-xs font-medium transition-all cursor-pointer">Before Event</button>
+                    <button id="btn-state-active" onclick="setEventState('active')" class="py-2 rounded-xl bg-pink-500/30 hover:bg-pink-500/40 text-pink-300 border border-pink-500/60 text-xs font-medium transition-all shadow-lg shadow-pink-500/20 cursor-pointer">Active Burst</button>
+                </div>
+                <p class="text-[10px] text-gray-400 mt-1">Switch between stable progenitor state and explosive relativistic burst.</p>
             </div>
 
-            <div class="flex items-center justify-between">
-                <span class="text-xs text-gray-300">Relativistic Beams</span>
-                <button id="toggle-beams" onclick="toggleBeams()" class="px-3 py-1 rounded-lg bg-pink-500/20 text-pink-400 border border-pink-500/40 text-xs font-medium hover:bg-pink-500/30 transition-all">Active</button>
+            <div class="flex items-center justify-between pt-2 border-t border-gray-800">
+                <span class="text-xs text-gray-300">Orbit Animation</span>
+                <button id="toggle-orbit" onclick="toggleOrbitRotation()" class="px-3 py-1 rounded-lg bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 text-xs font-medium hover:bg-cyan-500/30 transition-all cursor-pointer">Pause</button>
             </div>
         </div>
     </aside>
 
     <!-- Right HUD: Scientific Info & Safety Explanation Panel -->
-    <aside class="absolute right-4 top-28 bottom-20 z-20 w-80 glass-panel p-5 rounded-2xl pointer-events-auto flex flex-col justify-between shadow-2xl overflow-y-auto">
+    <aside id="ui-right" class="absolute right-4 top-28 bottom-20 z-20 w-80 glass-panel p-5 rounded-2xl pointer-events-auto flex flex-col justify-between shadow-2xl overflow-y-auto">
         <div>
             <div class="flex items-center space-x-2 pb-3 border-b border-gray-800">
                 <div class="w-2 h-2 rounded-full bg-cyan-400"></div>
@@ -170,7 +189,7 @@
     </aside>
 
     <!-- Bottom Scale Indicator Bar -->
-    <footer class="absolute bottom-4 left-4 right-4 z-20 pointer-events-none flex justify-center">
+    <footer id="ui-footer" class="absolute bottom-4 left-4 right-4 z-20 pointer-events-none flex justify-center">
         <div class="glass-panel px-6 py-2.5 rounded-2xl pointer-events-auto flex items-center space-x-6 text-xs shadow-2xl">
             <span class="font-orbitron text-cyan-400 font-bold">SCALE RULER:</span>
             <div class="flex items-center space-x-2">
@@ -190,26 +209,18 @@
         </div>
     </footer>
 
-    <!-- Custom Modal for Info / Notifications (No alert()) -->
-    <div id="custom-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm hidden">
-        <div class="glass-panel p-6 rounded-3xl max-w-md w-full mx-4 shadow-2xl border border-cyan-500/30">
-            <h3 id="modal-title" class="font-orbitron text-base font-bold text-cyan-400 mb-2">Notification</h3>
-            <p id="modal-message" class="text-xs text-gray-300 leading-relaxed mb-5">Message goes here.</p>
-            <button onclick="closeModal()" class="w-full py-2.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-300 font-orbitron text-xs font-bold transition-all">Understood</button>
-        </div>
-    </div>
-
     <!-- Main JavaScript Application Logic -->
     <script>
         // --- Global Variables & Three.js Setup ---
         let scene, camera, renderer, controls;
         let sunMesh, earthMesh, earthOrbitGroup;
         let milkyWayGroup, ngcGalaxyGroup, esoGalaxyGroup;
-        let grbBeam1, grbBeam2, particleBeamParticles;
-        let neutronStarsGroup;
+        let jet1Mesh, jet2Mesh, particleBeamParticles;
+        let neutronStarsGroup, esoShockRing, esoSupernovaCore;
         let animationSpeed = 1.0;
         let isOrbitPaused = false;
-        let areBeamsVisible = true;
+        let eventState = 'active'; // 'before' or 'active'
+        let isUIVisible = true;
 
         // Camera presets for cinematic jumping
         const cameraPresets = {
@@ -226,14 +237,14 @@
                 distance: "~100,000 Light-Years Diameter"
             },
             'grb-1': {
-                pos: new THREE.Vector3(-120, 60, -180),
-                target: new THREE.Vector3(-150, 0, -250),
+                pos: new THREE.Vector3(-150, 40, -220),
+                target: new THREE.Vector3(-180, 10, -280),
                 title: "GRB 170817A in NGC 4993",
                 distance: "~130–144 Million Light-Years"
             },
             'grb-2': {
-                pos: new THREE.Vector3(180, 80, -200),
-                target: new THREE.Vector3(200, 0, -300),
+                pos: new THREE.Vector3(190, 50, -260),
+                target: new THREE.Vector3(220, 20, -320),
                 title: "GRB 980425 in ESO 184-G82",
                 distance: "~130 Million Light-Years"
             },
@@ -290,6 +301,9 @@
             createNGC4993System();
             createESO184System();
 
+            // Apply initial event state
+            updateEventStateVisuals();
+
             // Event Listeners
             window.addEventListener('resize', onWindowResize);
             document.getElementById('speed-slider').addEventListener('input', (e) => {
@@ -342,23 +356,19 @@
 
         // --- Solar System & Earth (Center) ---
         function createSolarSystem() {
-            // Sun
             const sunGeo = new THREE.SphereGeometry(3, 32, 32);
             const sunMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
             sunMesh = new THREE.Mesh(sunGeo, sunMat);
             scene.add(sunMesh);
 
-            // Sun glow effect
             const glowGeo = new THREE.SphereGeometry(4.2, 32, 32);
             const glowMat = new THREE.MeshBasicMaterial({ color: 0xff4500, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending });
             const sunGlow = new THREE.Mesh(glowGeo, glowMat);
             sunMesh.add(sunGlow);
 
-            // Earth Orbit Group
             earthOrbitGroup = new THREE.Group();
             scene.add(earthOrbitGroup);
 
-            // Orbit line
             const orbitPoints = [];
             for (let i = 0; i <= 64; i++) {
                 const theta = (i / 64) * Math.PI * 2;
@@ -369,14 +379,12 @@
             const orbitLine = new THREE.Line(orbitGeo, orbitMat);
             scene.add(orbitLine);
 
-            // Earth
             const earthGeo = new THREE.SphereGeometry(0.8, 32, 32);
             const earthMat = new THREE.MeshStandardMaterial({ color: 0x2563eb, roughness: 0.6, metalness: 0.2 });
             earthMesh = new THREE.Mesh(earthGeo, earthMat);
             earthMesh.position.set(18, 0, 0);
             earthOrbitGroup.add(earthMesh);
 
-            // Earth Atmosphere Glow
             const atmGeo = new THREE.SphereGeometry(1.0, 32, 32);
             const atmMat = new THREE.MeshBasicMaterial({ color: 0x67e8f9, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending });
             const earthAtm = new THREE.Mesh(atmGeo, atmMat);
@@ -409,11 +417,10 @@
                 positions[i*3+1] = y;
                 positions[i*3+2] = z;
 
-                // Color gradient from bright yellow core to blue/purple arms
                 const mixFactor = r / 70;
-                colors[i*3] = 1.0 - mixFactor * 0.3; // R
-                colors[i*3+1] = 0.9 - mixFactor * 0.5; // G
-                colors[i*3+2] = 0.4 + mixFactor * 0.6; // B
+                colors[i*3] = 1.0 - mixFactor * 0.3;
+                colors[i*3+1] = 0.9 - mixFactor * 0.5;
+                colors[i*3+2] = 0.4 + mixFactor * 0.6;
             }
 
             geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
@@ -437,14 +444,12 @@
             ngcGalaxyGroup.position.set(-180, 10, -280);
             scene.add(ngcGalaxyGroup);
 
-            // Elliptical Galaxy Core
             const galGeo = new THREE.SphereGeometry(18, 32, 32);
             galGeo.scale(1.5, 1.0, 1.2);
             const galMat = new THREE.MeshBasicMaterial({ color: 0xfef08a, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending });
             const galaxyCore = new THREE.Mesh(galGeo, galMat);
             ngcGalaxyGroup.add(galaxyCore);
 
-            // Orbiting Neutron Stars (Binary Neutron Star Merger Site)
             neutronStarsGroup = new THREE.Group();
             neutronStarsGroup.position.set(0, 0, 0);
             ngcGalaxyGroup.add(neutronStarsGroup);
@@ -458,7 +463,7 @@
             neutronStarsGroup.add(ns1);
             neutronStarsGroup.add(ns2);
 
-            // Glowing Relativistic Jet Beams (GRB 170817A)
+            // Relativistic Jets
             const jetGeo = new THREE.CylinderGeometry(0.1, 6, 90, 32, 1, true);
             jetGeo.translate(0, 45, 0);
             const jetMat = new THREE.MeshBasicMaterial({
@@ -469,15 +474,15 @@
                 side: THREE.DoubleSide
             });
 
-            const jet1 = new THREE.Mesh(jetGeo, jetMat);
-            jet1.rotation.x = Math.PI / 2;
-            ngcGalaxyGroup.add(jet1);
+            jet1Mesh = new THREE.Mesh(jetGeo, jetMat);
+            jet1Mesh.rotation.x = Math.PI / 2;
+            ngcGalaxyGroup.add(jet1Mesh);
 
-            const jet2 = new THREE.Mesh(jetGeo, jetMat);
-            jet2.rotation.x = -Math.PI / 2;
-            ngcGalaxyGroup.add(jet2);
+            jet2Mesh = new THREE.Mesh(jetGeo, jetMat);
+            jet2Mesh.rotation.x = -Math.PI / 2;
+            ngcGalaxyGroup.add(jet2Mesh);
 
-            // Animated Particle Beam Stream
+            // Particle Beam Stream
             const beamParticlesGeo = new THREE.BufferGeometry();
             const pCount = 300;
             const pPositions = new Float32Array(pCount * 3);
@@ -500,7 +505,6 @@
             esoGalaxyGroup.rotation.y = -0.3;
             scene.add(esoGalaxyGroup);
 
-            // Spiral Galaxy Arms for ESO 184
             const pCount = 1500;
             const geo = new THREE.BufferGeometry();
             const pos = new Float32Array(pCount * 3);
@@ -525,18 +529,84 @@
             const esoDisk = new THREE.Points(geo, mat);
             esoGalaxyGroup.add(esoDisk);
 
-            // Supernova Remnant / GRB Flash Core
             const snGeo = new THREE.SphereGeometry(2.5, 32, 32);
             const snMat = new THREE.MeshBasicMaterial({ color: 0xf43f5e, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending });
-            const supernovaCore = new THREE.Mesh(snGeo, snMat);
-            esoGalaxyGroup.add(supernovaCore);
+            esoSupernovaCore = new THREE.Mesh(snGeo, snMat);
+            esoGalaxyGroup.add(esoSupernovaCore);
 
-            // Supernova Expanding Shockwave Ring
             const ringGeo = new THREE.RingGeometry(3, 3.5, 32);
             const ringMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b, side: THREE.DoubleSide, transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending });
-            const shockRing = new THREE.Mesh(ringGeo, ringMat);
-            shockRing.rotation.x = Math.PI / 2;
-            esoGalaxyGroup.add(shockRing);
+            esoShockRing = new THREE.Mesh(ringGeo, ringMat);
+            esoShockRing.rotation.x = Math.PI / 2;
+            esoGalaxyGroup.add(esoShockRing);
+        }
+
+        // --- Event State Management (Before vs Active Burst) ---
+        function setEventState(state) {
+            eventState = state;
+            const label = document.getElementById('state-label');
+            const btnBefore = document.getElementById('btn-state-before');
+            const btnActive = document.getElementById('btn-state-active');
+
+            if (state === 'before') {
+                label.innerText = "Before Event (Stable Progenitor)";
+                label.className = "text-gray-400 font-mono font-bold";
+                btnBefore.className = "py-2 rounded-xl bg-cyan-500/30 text-cyan-300 border border-cyan-500/60 text-xs font-medium transition-all shadow-lg shadow-cyan-500/20 cursor-pointer";
+                btnActive.className = "py-2 rounded-xl bg-gray-900/80 hover:bg-gray-800 text-gray-400 border border-gray-700 text-xs font-medium transition-all cursor-pointer";
+            } else {
+                label.innerText = "Active Burst & Relativistic Jet";
+                label.className = "text-pink-400 font-mono font-bold";
+                btnBefore.className = "py-2 rounded-xl bg-gray-900/80 hover:bg-gray-800 text-gray-400 border border-gray-700 text-xs font-medium transition-all cursor-pointer";
+                btnActive.className = "py-2 rounded-xl bg-pink-500/30 hover:bg-pink-500/40 text-pink-300 border border-pink-500/60 text-xs font-medium transition-all shadow-lg shadow-pink-500/20 cursor-pointer";
+            }
+            updateEventStateVisuals();
+        }
+
+        function updateEventStateVisuals() {
+            if (!jet1Mesh || !jet2Mesh || !esoShockRing || !esoSupernovaCore) return;
+
+            if (eventState === 'before') {
+                jet1Mesh.visible = false;
+                jet2Mesh.visible = false;
+                if (particleBeamParticles) particleBeamParticles.visible = false;
+                esoShockRing.visible = false;
+                esoSupernovaCore.scale.set(0.4, 0.4, 0.4);
+            } else {
+                jet1Mesh.visible = true;
+                jet2Mesh.visible = true;
+                if (particleBeamParticles) particleBeamParticles.visible = true;
+                esoShockRing.visible = true;
+                esoSupernovaCore.scale.set(1.0, 1.0, 1.0);
+            }
+        }
+
+        // --- UI Visibility Toggle ---
+        function toggleUI() {
+            isUIVisible = !isUIVisible;
+            const header = document.getElementById('ui-header');
+            const left = document.getElementById('ui-left');
+            const right = document.getElementById('ui-right');
+            const footer = document.getElementById('ui-footer');
+            const toggleText = document.getElementById('ui-toggle-text');
+            const toggleBtn = document.getElementById('ui-toggle-btn');
+
+            if (!isUIVisible) {
+                header.classList.add('ui-hidden');
+                left.classList.add('ui-hidden');
+                right.classList.add('ui-hidden');
+                footer.classList.add('ui-hidden');
+                toggleText.innerText = "Restore UI";
+                toggleBtn.classList.replace('border-cyan-500/30', 'border-pink-500/50');
+                toggleBtn.classList.replace('text-cyan-400', 'text-pink-400');
+            } else {
+                header.classList.remove('ui-hidden');
+                left.classList.remove('ui-hidden');
+                right.classList.remove('ui-hidden');
+                footer.classList.remove('ui-hidden');
+                toggleText.innerText = "Hide UI";
+                toggleBtn.classList.replace('border-pink-500/50', 'border-cyan-500/30');
+                toggleBtn.classList.replace('text-pink-400', 'text-cyan-400');
+            }
         }
 
         // --- Animation Loop ---
@@ -548,25 +618,26 @@
             const delta = clock.getDelta();
             const time = clock.getElapsedTime() * animationSpeed;
 
-            // Rotate Sun & Earth orbits
             if (!isOrbitPaused) {
-                if (earthOrbitGroup) {
-                    earthOrbitGroup.rotation.y = time * 0.5;
+                if (earthOrbitGroup) earthOrbitGroup.rotation.y = time * 0.5;
+                if (sunMesh) sunMesh.rotation.y = time * 0.2;
+                if (milkyWayGroup) milkyWayGroup.rotation.y = time * 0.05;
+                if (neutronStarsGroup) neutronStarsGroup.rotation.y = time * (eventState === 'active' ? 8.0 : 2.0);
+                if (ngcGalaxyGroup) ngcGalaxyGroup.rotation.y = time * 0.02;
+                if (esoGalaxyGroup) esoGalaxyGroup.rotation.y = time * 0.03;
+            }
+
+            // Active Burst Shockwave & Pulse Animations
+            if (eventState === 'active') {
+                if (esoShockRing) {
+                    const ringScale = 1 + ((time * 3) % 6);
+                    esoShockRing.scale.set(ringScale, ringScale, ringScale);
+                    esoShockRing.material.opacity = Math.max(0, 1 - (ringScale / 6));
                 }
-                if (sunMesh) {
-                    sunMesh.rotation.y = time * 0.2;
-                }
-                if (milkyWayGroup) {
-                    milkyWayGroup.rotation.y = time * 0.05;
-                }
-                if (neutronStarsGroup) {
-                    neutronStarsGroup.rotation.y = time * 5.0; // Rapid neutron star inspiral rotation
-                }
-                if (ngcGalaxyGroup) {
-                    ngcGalaxyGroup.rotation.y = time * 0.02;
-                }
-                if (esoGalaxyGroup) {
-                    esoGalaxyGroup.rotation.y = time * 0.03;
+                if (jet1Mesh && jet2Mesh) {
+                    const pulse = 0.6 + Math.sin(time * 12) * 0.3;
+                    jet1Mesh.material.opacity = pulse;
+                    jet2Mesh.material.opacity = pulse;
                 }
             }
 
@@ -593,7 +664,6 @@
             targetOrbitTarget.copy(preset.target);
             isTransitioning = true;
 
-            // Update Right Info Panel
             document.getElementById('info-title').innerText = preset.title;
             document.getElementById('distance-display').innerText = `Distance: ${preset.distance}`;
 
@@ -623,16 +693,16 @@
             } else if (presetKey === 'grb-1') {
                 infoHTML = `
                     <p><strong class="text-pink-400">GRB 170817A</strong> is the closest and most thoroughly studied short gamma-ray burst in history (August 17, 2017).</p>
-                    <p>It was co-detected with gravitational waves (<strong class="text-cyan-400">GW170817</strong>) from colliding binary neutron stars in galaxy <strong class="text-pink-300">NGC 4993</strong>.</p>
+                    <p>Co-detected with gravitational waves (<strong class="text-cyan-400">GW170817</strong>) from colliding binary neutron stars in <strong class="text-pink-300">NGC 4993</strong>.</p>
                     <div class="bg-pink-950/40 border border-pink-500/30 p-3 rounded-xl">
                         <span class="font-semibold text-pink-300 block mb-1">Safety & Beaming Factor:</span>
-                        <p class="text-gray-400">Located ~130-144 million light-years away. Earth sat slightly outside the ultra-narrow core of the relativistic jet (off-axis view), protecting our atmosphere from high-energy ionizing radiation.</p>
+                        <p class="text-gray-400">Located ~130-144 million light-years away. Earth sat slightly outside the ultra-narrow core of the relativistic jet (off-axis view), protecting our atmosphere from ionizing radiation.</p>
                     </div>
                 `;
             } else if (presetKey === 'grb-2') {
                 infoHTML = `
                     <p><strong class="text-amber-400">GRB 980425</strong> is the closest long-duration gamma-ray burst on record (April 25, 1998).</p>
-                    <p>It occurred in spiral galaxy <strong class="text-amber-300">ESO 184-G82</strong> and was paired with bright supernova <strong class="text-cyan-400">SN 1998bw</strong>.</p>
+                    <p>Occurred in spiral galaxy <strong class="text-amber-300">ESO 184-G82</strong> and was paired with bright supernova <strong class="text-cyan-400">SN 1998bw</strong>.</p>
                     <div class="bg-amber-950/40 border border-amber-500/30 p-3 rounded-xl">
                         <span class="font-semibold text-amber-300 block mb-1">Safety Factor:</span>
                         <p class="text-gray-400">At ~130 million light-years distance, the gamma-ray flux was diluted by space expansion and the inverse-square law to harmless levels before reaching the Solar System.</p>
@@ -643,15 +713,11 @@
                     <p><strong class="text-blue-400">Intergalactic Comparative View:</strong> Visualizing the immense gulf between Earth and the two closest GRB host galaxies.</p>
                     <div class="bg-blue-950/40 border border-blue-500/30 p-3 rounded-xl space-y-2">
                         <span class="font-semibold text-blue-300 block">The Safety Equation:</span>
-                        <p class="text-gray-400">Even the brightest gamma-ray bursts require proximity (&lt; 3,000 to 5,000 light-years) and direct jet alignment to pose any threat to Earth's ozone layer. At 140 million light-years, they are cosmic spectacles rather than existential threats.</p>
+                        <p class="text-gray-400">Even the brightest gamma-ray bursts require proximity (&lt; 3,000 to 5,000 light-years) and direct jet alignment to pose any threat to Earth's ozone layer. At 140 million light-years, they are distant cosmic wonders.</p>
                     </div>
                 `;
             }
             document.getElementById('info-content').innerHTML = infoHTML;
-        }
-
-        function toggleScaleComparison() {
-            zoomTo('comparison');
         }
 
         function toggleOrbitRotation() {
@@ -670,37 +736,10 @@
             }
         }
 
-        function toggleBeams() {
-            areBeamsVisible = !areBeamsVisible;
-            if (ngcGalaxyGroup) {
-                ngcGalaxyGroup.visible = areBeamsVisible;
-            }
-            const btn = document.getElementById('toggle-beams');
-            if (areBeamsVisible) {
-                btn.innerText = "Active";
-                btn.classList.replace('bg-gray-500/20', 'bg-pink-500/20');
-                btn.classList.replace('text-gray-400', 'text-pink-400');
-            } else {
-                btn.innerText = "Hidden";
-                btn.classList.replace('bg-pink-500/20', 'bg-gray-500/20');
-                btn.classList.replace('text-pink-400', 'text-gray-400');
-            }
-        }
-
-        function closeModal() {
-            document.getElementById('custom-modal').classList.add('hidden');
-        }
-
-        function showModal(title, message) {
-            document.getElementById('modal-title').innerText = title;
-            document.getElementById('modal-message').innerText = message;
-            document.getElementById('custom-modal').classList.remove('hidden');
-        }
-
         function onWindowResize() {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.renderer?.setSize ? renderer.setSize(window.innerWidth, window.innerHeight) : renderer.setSize(window.innerWidth, window.innerHeight);
         }
 
         window.onload = init;
