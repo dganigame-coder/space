@@ -60,7 +60,7 @@
       <div class="absolute inset-0 border-4 border-sky-500/20 rounded-full animate-ping"></div>
       <div class="w-16 h-16 border-4 border-sky-500/40 border-t-sky-400 rounded-full animate-spin"></div>
     </div>
-    <p class="text-sm tracking-widest uppercase text-sky-300 font-mono-tech">Initializing WebGL Scene...</p>
+    <p class="text-sm tracking-widest uppercase text-sky-300 font-mono-tech">Synthesizing Audio Engine & 4K Shaders...</p>
   </div>
 
   <!-- 3D WebGL Container -->
@@ -120,7 +120,7 @@
         <span id="earth-impact-status" class="text-emerald-400">Earth: Safe</span>
       </div>
       <p id="narrative-desc" class="text-[11px] text-slate-300 leading-relaxed">
-        Select a celestial source and trigger a relativistic gamma-ray burst to analyze planetary atmospheric stripping, EMP blackouts, and thermal shockwaves.
+        Select a celestial source and trigger a relativistic gamma-ray burst to analyze planetary atmospheric stripping and thermal shockwaves with audio feedback.
       </p>
     </div>
 
@@ -168,7 +168,7 @@
     </div>
   </footer>
 
-  <!-- Three.js Simulation Script -->
+  <!-- Three.js & Web Audio Simulation Script -->
   <script type="module">
     import * as THREE from 'three';
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -176,6 +176,101 @@
     import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
     import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
+    // =========================================================================
+    // 1. WEB AUDIO SYNTHESIS ENGINE
+    // =========================================================================
+    let audioCtx = null;
+    let ambientOsc = null;
+    let ambientGain = null;
+
+    function initAudioEngine() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // Background Deep Space Hum (Sub-bass drone)
+        ambientOsc = audioCtx.createOscillator();
+        ambientGain = audioCtx.createGain();
+        
+        ambientOsc.type = 'sine';
+        ambientOsc.frequency.setValueAtTime(55, audioCtx.currentTime); // Low A note
+        ambientGain.gain.setValueAtTime(0.015, audioCtx.currentTime);
+        
+        ambientOsc.connect(ambientGain);
+        ambientGain.connect(audioCtx.destination);
+        ambientOsc.start();
+      } else if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playFireSound() {
+      initAudioEngine();
+      if (!audioCtx) return;
+
+      const now = audioCtx.currentTime;
+
+      // Sci-Fi Laser / Beam Whoosh
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(180, now);
+      osc.frequency.exponentialRampToValueAtTime(35, now + 2.2);
+
+      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 2.2);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 2.2);
+
+      // Low Impact Rumble Boom
+      const noiseBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 2, audioCtx.sampleRate);
+      const output = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < noiseBuffer.length; i++) {
+        output[i] = Math.random() * 2 - 1;
+      }
+
+      const whiteNoise = audioCtx.createBufferSource();
+      whiteNoise.buffer = noiseBuffer;
+
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(120, now);
+      filter.frequency.exponentialRampToValueAtTime(20, now + 2.0);
+
+      const noiseGain = audioCtx.createGain();
+      noiseGain.gain.setValueAtTime(0.35, now);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 2.0);
+
+      whiteNoise.connect(filter);
+      filter.connect(noiseGain);
+      noiseGain.connect(audioCtx.destination);
+
+      whiteNoise.start(now);
+      whiteNoise.stop(now + 2.0);
+    }
+
+    function playClickSound() {
+      initAudioEngine();
+      if (!audioCtx) return;
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(800, now);
+      osc.frequency.exponentialRampToValueAtTime(200, now + 0.05);
+      gain.gain.setValueAtTime(0.05, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.05);
+    }
+
+    // =========================================================================
+    // 2. THREE.JS 4K SCENE SETUP
+    // =========================================================================
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
     scene.fog = new THREE.FogExp2(0x010206, 0.001);
@@ -227,7 +322,7 @@
       { name: 'Sun', au: 0.0, x: 0.0, radius: 3.0, color: 0xfacc15, emissive: 0xf59e0b },
       { name: 'Mercury', au: 0.39, x: 5.0, radius: 0.55, color: 0x94a3b8 },
       { name: 'Venus', au: 0.72, x: 9.0, radius: 0.95, color: 0xfde047 },
-      { name: 'Earth', au: 1.0, x: 13.5, radius: 1.05, color: 0x38bdf8, healthyColor: 0x0284c7, scorchedColor: 0x9a3412 },
+      { name: 'Earth', au: 1.0, x: 13.5, radius: 1.05, color: 0x38bdf8 },
       { name: 'Mars', au: 1.52, x: 18.5, radius: 0.7, color: 0xf43f5e },
       { name: 'Jupiter', au: 5.2, x: 29.0, radius: 2.2, color: 0xd97706 },
       { name: 'Saturn', au: 9.54, x: 39.0, radius: 1.85, color: 0xfef08a, hasRings: true },
@@ -312,6 +407,7 @@
 
     bodyBtns.forEach(btn => {
       btn.addEventListener('click', () => {
+        playClickSound();
         bodyBtns.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         selectedSource = btn.dataset.body;
@@ -332,6 +428,7 @@
 
     camBtns.forEach(btn => {
       btn.addEventListener('click', () => {
+        playClickSound();
         camBtns.forEach(b => b.classList.remove('bg-sky-500/25', 'text-sky-200', 'border-sky-400/50'));
         btn.classList.add('bg-sky-500/25', 'text-sky-200', 'border-sky-400/50');
         const mode = btn.dataset.cam;
@@ -345,17 +442,20 @@
     });
 
     btnFire.addEventListener('click', () => {
+      playFireSound();
       isFiring = true; isPlaying = true; simProgress = 0.0;
       iconPlay.classList.remove('hidden'); iconPause.classList.add('hidden');
     });
 
     btnPlay.addEventListener('click', () => {
+      playClickSound();
       isPlaying = !isPlaying;
       iconPlay.classList.toggle('hidden', isPlaying);
       iconPause.classList.toggle('hidden', !isPlaying);
     });
 
     btnReset.addEventListener('click', () => {
+      playClickSound();
       simProgress = 0.0; isFiring = false; isPlaying = false; slider.value = 0;
       updateSimulation(0);
     });
@@ -449,7 +549,7 @@
       const earthObj = PLANET_DATA.find(p => p.name === 'Earth');
       projVec.set(earthObj.x, earthObj.radius + 0.7, 0).project(camera);
       if (projVec.z < 1.0) {
-        labelEarth.style.left = `${(projVec.x * 0.5 + 0.5) * window.innerWidth}px`;
+        labelEarth.style.left = `${(earthObj.x * 0.5 + 0.5) * window.innerWidth}px`;
         labelEarth.style.top = `${((-projVec.y * 0.5 + 0.5)) * window.innerHeight}px`;
         labelEarth.style.opacity = '1';
       } else { labelEarth.style.opacity = '0'; }
