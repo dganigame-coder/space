@@ -60,7 +60,7 @@
       <div class="absolute inset-0 border-4 border-sky-500/20 rounded-full animate-ping"></div>
       <div class="w-16 h-16 border-4 border-sky-500/40 border-t-sky-400 rounded-full animate-spin"></div>
     </div>
-    <p class="text-sm tracking-widest uppercase text-sky-300 font-mono-tech">Rendering Hyperealistic Exoplanet Shaders...</p>
+    <p class="text-sm tracking-widest uppercase text-sky-300 font-mono-tech">Synthesizing 4K Hyperrealistic Planetary Textures...</p>
   </div>
 
   <!-- 3D WebGL Container -->
@@ -120,7 +120,7 @@
         <span id="earth-impact-status" class="text-emerald-400">Earth: Safe</span>
       </div>
       <p id="narrative-desc" class="text-[11px] text-slate-300 leading-relaxed">
-        Select a celestial source and trigger a relativistic gamma-ray burst to analyze planetary atmospheric stripping, thermal shockwaves, and exoplanetary illumination.
+        Select a celestial source and trigger a relativistic gamma-ray burst to analyze planetary atmospheric stripping with hyperrealistic textures.
       </p>
     </div>
 
@@ -256,7 +256,72 @@
     }
 
     // =========================================================================
-    // 2. THREE.JS 4K SCENE SETUP
+    // 2. PROCEDURAL TEXTURE GENERATOR FOR HYPERREALISM
+    // =========================================================================
+    function createNoiseTexture(type) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512; canvas.height = 256;
+      const ctx = canvas.getContext('2d');
+      const img = ctx.createImageData(512, 256);
+      const data = img.data;
+
+      for (let y = 0; y < 256; y++) {
+        const lat = (y / 256) * Math.PI - Math.PI / 2;
+        for (let x = 0; x < 512; x++) {
+          const lon = (x / 512) * Math.PI * 2;
+          const idx = (y * 512 + x) * 4;
+
+          let r = 100, g = 100, b = 100;
+          const noise = Math.sin(x * 0.05) * Math.cos(y * 0.05) + Math.sin(x * 0.02) * 0.5;
+
+          if (type === 'Sun') {
+            const gran = Math.sin(x * 0.3) * Math.cos(y * 0.3);
+            r = 255; g = Math.floor(160 + gran * 50); b = 20;
+          } else if (type === 'Mercury') {
+            const cr = Math.floor(70 + noise * 40);
+            r = g = b = cr;
+          } else if (type === 'Venus') {
+            const cloud = Math.sin(y * 0.1 + noise * 2);
+            r = Math.floor(210 + cloud * 30); g = Math.floor(170 + cloud * 25); b = Math.floor(110 + cloud * 15);
+          } else if (type === 'Earth_Healthy') {
+            const elev = Math.sin(lon * 2) * Math.cos(lat * 3) + noise * 0.6;
+            if (elev < 0.15) { r = 15; g = 55; b = 135; } // Ocean
+            else { r = 34; g = 120; b = 45; } // Land
+            if (Math.abs(lat) > 1.2) { r = g = b = 240; } // Ice caps
+          } else if (type === 'Earth_Scorched') {
+            r = 130 + noise * 30; g = 50 + noise * 20; b = 20;
+          } else if (type === 'Mars') {
+            r = 180 + noise * 40; g = 70 + noise * 20; b = 30;
+            if (Math.abs(lat) > 1.25) { r = g = b = 230; }
+          } else if (type === 'Jupiter') {
+            const band = Math.sin(y * 0.2 + noise * 3);
+            r = Math.floor(200 + band * 45); g = Math.floor(140 + band * 30); b = Math.floor(90 + band * 20);
+          } else if (type === 'Saturn') {
+            const band = Math.sin(y * 0.25 + noise * 2);
+            r = Math.floor(220 + band * 25); g = Math.floor(190 + band * 20); b = Math.floor(140 + band * 15);
+          } else if (type === 'Uranus') {
+            r = 120 + noise * 20; g = 200 + noise * 20; b = 220 + noise * 20;
+          } else if (type === 'Neptune') {
+            r = 30 + noise * 15; g = 90 + noise * 25; b = 210 + noise * 30;
+          } else if (type === 'Pluto') {
+            r = 150 + noise * 40; g = 130 + noise * 35; b = 110 + noise * 25;
+            if (Math.abs(lon - Math.PI) < 0.6 && Math.abs(lat) < 0.5) { r = 210; g = 200; b = 190; } // Heart
+          }
+
+          data[idx] = Math.min(255, Math.max(0, r));
+          data[idx + 1] = Math.min(255, Math.max(0, g));
+          data[idx + 2] = Math.min(255, Math.max(0, b));
+          data[idx + 3] = 255;
+        }
+      }
+      ctx.putImageData(img, 0, 0);
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      return tex;
+    }
+
+    // =========================================================================
+    // 3. THREE.JS 4K SCENE SETUP
     // =========================================================================
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
@@ -305,22 +370,22 @@
     scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ size: 1.3, vertexColors: true, transparent: true, opacity: 0.85 })));
 
     // Lighting (Sun at x=0 illuminating all planets for true Day/Night shadows)
-    scene.add(new THREE.AmbientLight(0x0f172a, 1.2));
+    scene.add(new THREE.AmbientLight(0x0f172a, 0.8));
     const sunLight = new THREE.PointLight(0xfffaed, 5.0, 500, 0.3);
     sunLight.position.set(0, 0, 0);
     scene.add(sunLight);
 
     const PLANET_DATA = [
-      { name: 'Sun', au: 0.0, x: 0.0, radius: 3.2, color: 0xfbbf24, emissive: 0xf59e0b, emissiveIntensity: 2.0 },
-      { name: 'Mercury', au: 0.39, x: 5.0, radius: 0.55, color: 0x94a3b8 },
-      { name: 'Venus', au: 0.72, x: 9.0, radius: 0.95, color: 0xfde047 },
-      { name: 'Earth', au: 1.0, x: 13.5, radius: 1.05, color: 0x0284c7, isEarth: true },
-      { name: 'Mars', au: 1.52, x: 18.5, radius: 0.7, color: 0xf43f5e },
-      { name: 'Jupiter', au: 5.2, x: 29.0, radius: 2.2, color: 0xd97706 },
-      { name: 'Saturn', au: 9.54, x: 39.0, radius: 1.85, color: 0xfef08a, hasRings: true },
-      { name: 'Uranus', au: 19.2, x: 49.0, radius: 1.3, color: 0x22d3ee },
-      { name: 'Neptune', au: 30.1, x: 58.0, radius: 1.25, color: 0x3b82f6 },
-      { name: 'Pluto', au: 39.5, x: 66.0, radius: 0.45, color: 0xe2e8f0 }
+      { name: 'Sun', au: 0.0, x: 0.0, radius: 3.2, type: 'Sun', emissive: 0xf59e0b, emissiveIntensity: 2.0 },
+      { name: 'Mercury', au: 0.39, x: 5.0, radius: 0.55, type: 'Mercury' },
+      { name: 'Venus', au: 0.72, x: 9.0, radius: 0.95, type: 'Venus' },
+      { name: 'Earth', au: 1.0, x: 13.5, radius: 1.05, type: 'Earth_Healthy', isEarth: true },
+      { name: 'Mars', au: 1.52, x: 18.5, radius: 0.7, type: 'Mars' },
+      { name: 'Jupiter', au: 5.2, x: 29.0, radius: 2.2, type: 'Jupiter' },
+      { name: 'Saturn', au: 9.54, x: 39.0, radius: 1.85, type: 'Saturn', hasRings: true },
+      { name: 'Uranus', au: 19.2, x: 49.0, radius: 1.3, type: 'Uranus' },
+      { name: 'Neptune', au: 30.1, x: 58.0, radius: 1.25, type: 'Neptune' },
+      { name: 'Pluto', au: 39.5, x: 66.0, radius: 0.45, type: 'Pluto' }
     ];
 
     const bodyMeshes = {};
@@ -331,12 +396,13 @@
       group.position.set(data.x, 0, 0);
       scene.add(group);
 
+      const tex = createNoiseTexture(data.type);
       const mat = new THREE.MeshStandardMaterial({
-        color: data.color,
-        emissive: data.emissive || 0x050505,
-        emissiveIntensity: data.emissiveIntensity || 0.15,
-        roughness: 0.6,
-        metalness: 0.1
+        map: tex,
+        emissive: data.emissive || 0x020202,
+        emissiveIntensity: data.emissiveIntensity || 0.1,
+        roughness: 0.7,
+        metalness: 0.05
       });
       bodyMaterials[data.name] = mat;
 
@@ -344,13 +410,12 @@
       group.add(mesh);
       bodyMeshes[data.name] = mesh;
 
-      // Add atmospheric glow halo to Earth and Sun
       if (data.isEarth) {
-        const atmoGeo = new THREE.SphereGeometry(data.radius * 1.15, 32, 32);
-        const atmoMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.25, blending: THREE.AdditiveBlending, side: THREE.BackSide });
+        const atmoGeo = new THREE.SphereGeometry(data.radius * 1.12, 32, 32);
+        const atmoMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, side: THREE.BackSide });
         group.add(new THREE.Mesh(atmoGeo, atmoMat));
       } else if (data.name === 'Sun') {
-        const coronaGeo = new THREE.SphereGeometry(data.radius * 1.35, 32, 32);
+        const coronaGeo = new THREE.SphereGeometry(data.radius * 1.3, 32, 32);
         const coronaMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, side: THREE.BackSide });
         group.add(new THREE.Mesh(coronaGeo, coronaMat));
       }
@@ -525,13 +590,13 @@
       earthImpactDisp.className = earthHit ? 'text-rose-400 font-bold' : 'text-emerald-400 font-bold';
 
       if (earthHit) {
-        bodyMaterials['Earth'].color.setHex(0xc2410c);
-        bodyMaterials['Earth'].emissive.setHex(0x7c2d12);
+        bodyMaterials['Earth'].map = createNoiseTexture('Earth_Scorched');
+        bodyMaterials['Earth'].needsUpdate = true;
         earthTagStatus.textContent = earthFlux > 10000 ? '[LETHAL IONIZATION]' : '[OZONE COLLAPSED]';
         earthTagStatus.className = 'text-rose-400';
       } else {
-        bodyMaterials['Earth'].color.setHex(0x0284c7);
-        bodyMaterials['Earth'].emissive.setHex(0x050505);
+        bodyMaterials['Earth'].map = createNoiseTexture('Earth_Healthy');
+        bodyMaterials['Earth'].needsUpdate = true;
         earthTagStatus.textContent = '[NOMINAL]';
         earthTagStatus.className = 'text-emerald-400';
       }
