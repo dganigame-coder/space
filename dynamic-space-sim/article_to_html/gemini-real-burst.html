@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cosmic Scale: Closest Gamma-Ray Bursts vs. Earth</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        space: { 950: '#030712', 900: '#0b0f19', 800: '#111827', 700: '#1f2937' },
+                        neon: { cyan: '#06b6d4', purple: '#8b5cf6', pink: '#ec4899', amber: '#f59e0b' }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Three.js and OrbitControls -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #030712; color: #f3f4f6; overflow: hidden; }
+        .font-orbitron { font-family: 'Orbitron', sans-serif; }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(3, 7, 18, 0.8); }
+        ::-webkit-scrollbar-thumb { background: rgba(6, 182, 212, 0.4); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(6, 182, 212, 0.8); }
+        .glass-panel {
+            background: rgba(11, 15, 25, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glow-text {
+            text-shadow: 0 0 15px rgba(6, 182, 212, 0.5);
+        }
+    </style>
+</head>
+<body class="w-screen h-screen overflow-hidden select-none relative">
+
+    <!-- Three.js Canvas Container -->
+    <div id="webgl-container" class="absolute inset-0 z-0"></div>
+
+    <!-- Top Sci-Fi Header -->
+    <header class="absolute top-4 left-4 right-4 z-20 flex flex-col md:flex-row items-center justify-between gap-4 pointer-events-none">
+        <div class="glass-panel px-5 py-3 rounded-2xl pointer-events-auto flex items-center space-x-3 shadow-2xl">
+            <div class="w-3 h-3 rounded-full bg-cyan-400 animate-ping"></div>
+            <div>
+                <h1 class="font-orbitron text-lg md:text-xl font-bold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-500 glow-text">
+                    COSMIC SCALE: GRB 170817A & 980425
+                </h1>
+                <p class="text-xs text-gray-400">Interactive 3D Astrometric & Relativistic Jet Simulation</p>
+            </div>
+        </div>
+
+        <!-- Quick Status Badge -->
+        <div class="glass-panel px-4 py-2 rounded-xl pointer-events-auto flex items-center space-x-4 text-xs font-medium">
+            <div class="flex items-center space-x-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                <span class="text-gray-300">Earth Status: <strong class="text-emerald-400">100% Safe</strong></span>
+            </div>
+            <div class="h-4 w-px bg-gray-700"></div>
+            <div class="text-cyan-400 font-orbitron" id="distance-display">Distance: Solar System View</div>
+        </div>
+    </header>
+
+    <!-- Left HUD: Cinematic Camera Jumps & Views -->
+    <aside class="absolute left-4 top-28 bottom-20 z-20 w-72 flex flex-col space-y-3 pointer-events-none">
+        <div class="glass-panel p-4 rounded-2xl pointer-events-auto flex flex-col space-y-2.5 shadow-2xl flex-shrink-0">
+            <h2 class="font-orbitron text-xs font-semibold text-cyan-400 tracking-wider uppercase mb-1">Navigation Hub</h2>
+            
+            <button onclick="zoomTo('solar-system')" class="w-full text-left px-3.5 py-2.5 rounded-xl bg-cyan-950/40 hover:bg-cyan-900/60 border border-cyan-500/30 hover:border-cyan-400 text-xs font-medium transition-all flex items-center justify-between group">
+                <span class="flex items-center space-x-2">
+                    <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+                    <span>Solar System & Earth</span>
+                </span>
+                <span class="text-[10px] text-cyan-300 opacity-60 group-hover:opacity-100">0 AU</span>
+            </button>
+
+            <button onclick="zoomTo('milky-way')" class="w-full text-left px-3.5 py-2.5 rounded-xl bg-purple-950/40 hover:bg-purple-900/60 border border-purple-500/30 hover:border-purple-400 text-xs font-medium transition-all flex items-center justify-between group">
+                <span class="flex items-center space-x-2">
+                    <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                    <span>Milky Way Context</span>
+                </span>
+                <span class="text-[10px] text-purple-300 opacity-60 group-hover:opacity-100">Local Group</span>
+            </button>
+
+            <button onclick="zoomTo('grb-1')" class="w-full text-left px-3.5 py-2.5 rounded-xl bg-pink-950/40 hover:bg-pink-900/60 border border-pink-500/30 hover:border-pink-400 text-xs font-medium transition-all flex items-center justify-between group">
+                <span class="flex items-center space-x-2">
+                    <svg class="w-4 h-4 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    <span>GRB 170817A (NGC 4993)</span>
+                </span>
+                <span class="text-[10px] text-pink-300 opacity-60 group-hover:opacity-100">130M LY</span>
+            </button>
+
+            <button onclick="zoomTo('grb-2')" class="w-full text-left px-3.5 py-2.5 rounded-xl bg-amber-950/40 hover:bg-amber-900/60 border border-amber-500/30 hover:border-amber-400 text-xs font-medium transition-all flex items-center justify-between group">
+                <span class="flex items-center space-x-2">
+                    <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707"/></svg>
+                    <span>GRB 980425 (ESO 184)</span>
+                </span>
+                <span class="text-[10px] text-amber-300 opacity-60 group-hover:opacity-100">140M LY</span>
+            </button>
+
+            <button onclick="toggleScaleComparison()" class="w-full text-left px-3.5 py-2.5 rounded-xl bg-blue-950/40 hover:bg-blue-900/60 border border-blue-500/30 hover:border-blue-400 text-xs font-medium transition-all flex items-center justify-between group">
+                <span class="flex items-center space-x-2">
+                    <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                    <span>Scale Comparison View</span>
+                </span>
+                <span class="text-[10px] text-blue-300 opacity-60 group-hover:opacity-100">Compare</span>
+            </button>
+        </div>
+
+        <!-- Simulation Parameters / Toggles -->
+        <div class="glass-panel p-4 rounded-2xl pointer-events-auto flex flex-col space-y-3 flex-grow overflow-y-auto">
+            <h2 class="font-orbitron text-xs font-semibold text-cyan-400 tracking-wider uppercase">Simulation Controls</h2>
+            
+            <div class="space-y-1">
+                <div class="flex justify-between text-xs text-gray-300">
+                    <span>Jet Beam Emission</span>
+                    <span id="speed-val" class="text-cyan-400 font-mono">1.0x</span>
+                </div>
+                <input type="range" id="speed-slider" min="0.1" max="3.0" step="0.1" value="1.0" class="w-full accent-cyan-400 bg-gray-800 rounded-lg h-1.5 cursor-pointer">
+            </div>
+
+            <div class="flex items-center justify-between pt-2 border-t border-gray-800">
+                <span class="text-xs text-gray-300">Orbit Animation</span>
+                <button id="toggle-orbit" onclick="toggleOrbitRotation()" class="px-3 py-1 rounded-lg bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 text-xs font-medium hover:bg-cyan-500/30 transition-all">Pause</button>
+            </div>
+
+            <div class="flex items-center justify-between">
+                <span class="text-xs text-gray-300">Relativistic Beams</span>
+                <button id="toggle-beams" onclick="toggleBeams()" class="px-3 py-1 rounded-lg bg-pink-500/20 text-pink-400 border border-pink-500/40 text-xs font-medium hover:bg-pink-500/30 transition-all">Active</button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Right HUD: Scientific Info & Safety Explanation Panel -->
+    <aside class="absolute right-4 top-28 bottom-20 z-20 w-80 glass-panel p-5 rounded-2xl pointer-events-auto flex flex-col justify-between shadow-2xl overflow-y-auto">
+        <div>
+            <div class="flex items-center space-x-2 pb-3 border-b border-gray-800">
+                <div class="w-2 h-2 rounded-full bg-cyan-400"></div>
+                <h2 id="info-title" class="font-orbitron text-sm font-bold text-cyan-400">Solar System & Earth</h2>
+            </div>
+            
+            <div id="info-content" class="mt-4 space-y-3 text-xs text-gray-300 leading-relaxed">
+                <p>You are viewing Earth and the inner Solar System. Earth orbits our Sun at ~1 Astronomical Unit (AU).</p>
+                <p>When extreme cosmic phenomena like <strong class="text-pink-400">Gamma-Ray Bursts (GRBs)</strong> occur in distant galaxies, their sheer energy output is staggering—yet distance and geometry ensure complete safety for our planet.</p>
+                <div class="bg-cyan-950/40 border border-cyan-500/30 p-3 rounded-xl">
+                    <span class="font-semibold text-cyan-300 block mb-1">Why Earth was safe:</span>
+                    <ul class="list-disc pl-4 space-y-1 text-gray-400">
+                        <li><strong>Vast Distance:</strong> ~130–140 million light-years away.</li>
+                        <li><strong>Inverse-Square Law:</strong> Radiation intensity drops exponentially with distance ($1/d^2$).</li>
+                        <li><strong>Beaming Angles:</strong> Narrow relativistic jets were either off-axis or directed away from Earth's line of sight.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="pt-4 border-t border-gray-800 text-[11px] text-gray-500 flex justify-between items-center">
+            <span>Three.js WebGL Engine</span>
+            <span class="font-mono text-cyan-400">4K Astrometric Scale</span>
+        </div>
+    </aside>
+
+    <!-- Bottom Scale Indicator Bar -->
+    <footer class="absolute bottom-4 left-4 right-4 z-20 pointer-events-none flex justify-center">
+        <div class="glass-panel px-6 py-2.5 rounded-2xl pointer-events-auto flex items-center space-x-6 text-xs shadow-2xl">
+            <span class="font-orbitron text-cyan-400 font-bold">SCALE RULER:</span>
+            <div class="flex items-center space-x-2">
+                <div class="w-2 h-2 rounded-full bg-cyan-400"></div>
+                <span class="text-gray-300">1 AU (Sun-Earth)</span>
+            </div>
+            <div class="w-12 h-0.5 bg-gray-700"></div>
+            <div class="flex items-center space-x-2">
+                <div class="w-2 h-2 rounded-full bg-purple-400"></div>
+                <span class="text-gray-300">100,000 LY (Milky Way)</span>
+            </div>
+            <div class="w-12 h-0.5 bg-gray-700"></div>
+            <div class="flex items-center space-x-2">
+                <div class="w-2 h-2 rounded-full bg-pink-400"></div>
+                <span class="text-gray-300">140 Million LY (Closest GRBs)</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Custom Modal for Info / Notifications (No alert()) -->
+    <div id="custom-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm hidden">
+        <div class="glass-panel p-6 rounded-3xl max-w-md w-full mx-4 shadow-2xl border border-cyan-500/30">
+            <h3 id="modal-title" class="font-orbitron text-base font-bold text-cyan-400 mb-2">Notification</h3>
+            <p id="modal-message" class="text-xs text-gray-300 leading-relaxed mb-5">Message goes here.</p>
+            <button onclick="closeModal()" class="w-full py-2.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-300 font-orbitron text-xs font-bold transition-all">Understood</button>
+        </div>
+    </div>
+
+    <!-- Main JavaScript Application Logic -->
+    <script>
+        // --- Global Variables & Three.js Setup ---
+        let scene, camera, renderer, controls;
+        let sunMesh, earthMesh, earthOrbitGroup;
+        let milkyWayGroup, ngcGalaxyGroup, esoGalaxyGroup;
+        let grbBeam1, grbBeam2, particleBeamParticles;
+        let neutronStarsGroup;
+        let animationSpeed = 1.0;
+        let isOrbitPaused = false;
+        let areBeamsVisible = true;
+
+        // Camera presets for cinematic jumping
+        const cameraPresets = {
+            'solar-system': {
+                pos: new THREE.Vector3(0, 35, 70),
+                target: new THREE.Vector3(0, 0, 0),
+                title: "Solar System & Earth",
+                distance: "1 AU (Astronomical Unit)"
+            },
+            'milky-way': {
+                pos: new THREE.Vector3(0, 180, 250),
+                target: new THREE.Vector3(0, 0, 0),
+                title: "Milky Way Galaxy Context",
+                distance: "~100,000 Light-Years Diameter"
+            },
+            'grb-1': {
+                pos: new THREE.Vector3(-120, 60, -180),
+                target: new THREE.Vector3(-150, 0, -250),
+                title: "GRB 170817A in NGC 4993",
+                distance: "~130–144 Million Light-Years"
+            },
+            'grb-2': {
+                pos: new THREE.Vector3(180, 80, -200),
+                target: new THREE.Vector3(200, 0, -300),
+                title: "GRB 980425 in ESO 184-G82",
+                distance: "~130 Million Light-Years"
+            },
+            'comparison': {
+                pos: new THREE.Vector3(0, 250, 450),
+                target: new THREE.Vector3(0, 0, -100),
+                title: "Scale & Safety Comparison",
+                distance: "Intergalactic Comparative Scale"
+            }
+        };
+
+        let targetCameraPos = new THREE.Vector3(0, 35, 70);
+        let targetOrbitTarget = new THREE.Vector3(0, 0, 0);
+        let isTransitioning = false;
+
+        function init() {
+            const container = document.getElementById('webgl-container');
+
+            // Scene
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x030712, 0.001);
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 5000);
+            camera.position.set(0, 35, 70);
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.2;
+            container.appendChild(renderer.domElement);
+
+            // Controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.maxDistance = 2000;
+            controls.minDistance = 2;
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const sunLight = new THREE.PointLight(0xffffff, 2.5, 1000);
+            sunLight.position.set(0, 0, 0);
+            scene.add(sunLight);
+
+            // Build Universe Objects
+            createStarfield();
+            createSolarSystem();
+            createMilkyWay();
+            createNGC4993System();
+            createESO184System();
+
+            // Event Listeners
+            window.addEventListener('resize', onWindowResize);
+            document.getElementById('speed-slider').addEventListener('input', (e) => {
+                animationSpeed = parseFloat(e.target.value);
+                document.getElementById('speed-val').innerText = animationSpeed.toFixed(1) + 'x';
+            });
+
+            // Start animation loop
+            animate();
+        }
+
+        // --- Procedural Starfield Background ---
+        function createStarfield() {
+            const particleCount = 4000;
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(particleCount * 3);
+            const colors = new Float32Array(particleCount * 3);
+
+            const colorOptions = [
+                new THREE.Color(0xffffff),
+                new THREE.Color(0x06b6d4),
+                new THREE.Color(0x8b5cf6),
+                new THREE.Color(0xfde047)
+            ];
+
+            for (let i = 0; i < particleCount * 3; i += 3) {
+                positions[i] = (Math.random() - 0.5) * 3000;
+                positions[i+1] = (Math.random() - 0.5) * 3000;
+                positions[i+2] = (Math.random() - 0.5) * 3000;
+
+                const col = colorOptions[Math.floor(Math.random() * colorOptions.length)];
+                colors[i] = col.r;
+                colors[i+1] = col.g;
+                colors[i+2] = col.b;
+            }
+
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const material = new THREE.PointsMaterial({
+                size: 2.5,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.8
+            });
+
+            const starField = new THREE.Points(geometry, material);
+            scene.add(starField);
+        }
+
+        // --- Solar System & Earth (Center) ---
+        function createSolarSystem() {
+            // Sun
+            const sunGeo = new THREE.SphereGeometry(3, 32, 32);
+            const sunMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
+            sunMesh = new THREE.Mesh(sunGeo, sunMat);
+            scene.add(sunMesh);
+
+            // Sun glow effect
+            const glowGeo = new THREE.SphereGeometry(4.2, 32, 32);
+            const glowMat = new THREE.MeshBasicMaterial({ color: 0xff4500, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending });
+            const sunGlow = new THREE.Mesh(glowGeo, glowMat);
+            sunMesh.add(sunGlow);
+
+            // Earth Orbit Group
+            earthOrbitGroup = new THREE.Group();
+            scene.add(earthOrbitGroup);
+
+            // Orbit line
+            const orbitPoints = [];
+            for (let i = 0; i <= 64; i++) {
+                const theta = (i / 64) * Math.PI * 2;
+                orbitPoints.push(new THREE.Vector3(Math.cos(theta) * 18, 0, Math.sin(theta) * 18));
+            }
+            const orbitGeo = new THREE.BufferGeometry().setFromPoints(orbitPoints);
+            const orbitMat = new THREE.LineBasicMaterial({ color: 0x06b6d4, transparent: true, opacity: 0.25 });
+            const orbitLine = new THREE.Line(orbitGeo, orbitMat);
+            scene.add(orbitLine);
+
+            // Earth
+            const earthGeo = new THREE.SphereGeometry(0.8, 32, 32);
+            const earthMat = new THREE.MeshStandardMaterial({ color: 0x2563eb, roughness: 0.6, metalness: 0.2 });
+            earthMesh = new THREE.Mesh(earthGeo, earthMat);
+            earthMesh.position.set(18, 0, 0);
+            earthOrbitGroup.add(earthMesh);
+
+            // Earth Atmosphere Glow
+            const atmGeo = new THREE.SphereGeometry(1.0, 32, 32);
+            const atmMat = new THREE.MeshBasicMaterial({ color: 0x67e8f9, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending });
+            const earthAtm = new THREE.Mesh(atmGeo, atmMat);
+            earthMesh.add(earthAtm);
+        }
+
+        // --- Milky Way Galaxy Context ---
+        function createMilkyWay() {
+            milkyWayGroup = new THREE.Group();
+            milkyWayGroup.position.set(0, -20, -60);
+            milkyWayGroup.rotation.x = 0.4;
+            scene.add(milkyWayGroup);
+
+            const particleCount = 3000;
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(particleCount * 3);
+            const colors = new Float32Array(particleCount * 3);
+
+            for (let i = 0; i < particleCount; i++) {
+                const r = Math.pow(Math.random(), 0.7) * 70;
+                const arms = 4;
+                const armAngle = ((i % arms) / arms) * Math.PI * 2;
+                const theta = armAngle + r * 0.05 + (Math.random() - 0.5) * 0.4;
+
+                const x = Math.cos(theta) * r;
+                const z = Math.sin(theta) * r;
+                const y = (Math.random() - 0.5) * (8 * (1 - r/70));
+
+                positions[i*3] = x;
+                positions[i*3+1] = y;
+                positions[i*3+2] = z;
+
+                // Color gradient from bright yellow core to blue/purple arms
+                const mixFactor = r / 70;
+                colors[i*3] = 1.0 - mixFactor * 0.3; // R
+                colors[i*3+1] = 0.9 - mixFactor * 0.5; // G
+                colors[i*3+2] = 0.4 + mixFactor * 0.6; // B
+            }
+
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const material = new THREE.PointsMaterial({
+                size: 1.5,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.75,
+                blending: THREE.AdditiveBlending
+            });
+
+            const mwStars = new THREE.Points(geometry, material);
+            milkyWayGroup.add(mwStars);
+        }
+
+        // --- NGC 4993 (GRB 170817A Host Galaxy & Neutron Star Merger) ---
+        function createNGC4993System() {
+            ngcGalaxyGroup = new THREE.Group();
+            ngcGalaxyGroup.position.set(-180, 10, -280);
+            scene.add(ngcGalaxyGroup);
+
+            // Elliptical Galaxy Core
+            const galGeo = new THREE.SphereGeometry(18, 32, 32);
+            galGeo.scale(1.5, 1.0, 1.2);
+            const galMat = new THREE.MeshBasicMaterial({ color: 0xfef08a, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending });
+            const galaxyCore = new THREE.Mesh(galGeo, galMat);
+            ngcGalaxyGroup.add(galaxyCore);
+
+            // Orbiting Neutron Stars (Binary Neutron Star Merger Site)
+            neutronStarsGroup = new THREE.Group();
+            neutronStarsGroup.position.set(0, 0, 0);
+            ngcGalaxyGroup.add(neutronStarsGroup);
+
+            const nsGeo = new THREE.SphereGeometry(0.5, 16, 16);
+            const nsMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            const ns1 = new THREE.Mesh(nsGeo, nsMat);
+            ns1.position.set(3, 0, 0);
+            const ns2 = new THREE.Mesh(nsGeo, nsMat);
+            ns2.position.set(-3, 0, 0);
+            neutronStarsGroup.add(ns1);
+            neutronStarsGroup.add(ns2);
+
+            // Glowing Relativistic Jet Beams (GRB 170817A)
+            const jetGeo = new THREE.CylinderGeometry(0.1, 6, 90, 32, 1, true);
+            jetGeo.translate(0, 45, 0);
+            const jetMat = new THREE.MeshBasicMaterial({
+                color: 0x38bdf8,
+                transparent: true,
+                opacity: 0.7,
+                blending: THREE.AdditiveBlending,
+                side: THREE.DoubleSide
+            });
+
+            const jet1 = new THREE.Mesh(jetGeo, jetMat);
+            jet1.rotation.x = Math.PI / 2;
+            ngcGalaxyGroup.add(jet1);
+
+            const jet2 = new THREE.Mesh(jetGeo, jetMat);
+            jet2.rotation.x = -Math.PI / 2;
+            ngcGalaxyGroup.add(jet2);
+
+            // Animated Particle Beam Stream
+            const beamParticlesGeo = new THREE.BufferGeometry();
+            const pCount = 300;
+            const pPositions = new Float32Array(pCount * 3);
+            for (let i = 0; i < pCount * 3; i += 3) {
+                pPositions[i] = (Math.random() - 0.5) * 2;
+                pPositions[i+1] = Math.random() * 80;
+                pPositions[i+2] = (Math.random() - 0.5) * 2;
+            }
+            beamParticlesGeo.setAttribute('position', new THREE.BufferAttribute(pPositions, 3));
+            const beamParticlesMat = new THREE.PointsMaterial({ color: 0x06b6d4, size: 1.2, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending });
+            particleBeamParticles = new THREE.Points(beamParticlesGeo, beamParticlesMat);
+            ngcGalaxyGroup.add(particleBeamParticles);
+        }
+
+        // --- ESO 184-G82 (GRB 980425 Host Galaxy & Supernova SN 1998bw) ---
+        function createESO184System() {
+            esoGalaxyGroup = new THREE.Group();
+            esoGalaxyGroup.position.set(220, 20, -320);
+            esoGalaxyGroup.rotation.x = 0.6;
+            esoGalaxyGroup.rotation.y = -0.3;
+            scene.add(esoGalaxyGroup);
+
+            // Spiral Galaxy Arms for ESO 184
+            const pCount = 1500;
+            const geo = new THREE.BufferGeometry();
+            const pos = new Float32Array(pCount * 3);
+            const cols = new Float32Array(pCount * 3);
+
+            for (let i = 0; i < pCount; i++) {
+                const r = Math.random() * 35;
+                const theta = (i % 2 === 0 ? 1 : -1) * r * 0.3 + Math.random() * 0.2;
+                pos[i*3] = Math.cos(theta) * r;
+                pos[i*3+1] = (Math.random() - 0.5) * 3;
+                pos[i*3+2] = Math.sin(theta) * r;
+
+                cols[i*3] = 0.9;
+                cols[i*3+1] = 0.4 + Math.random() * 0.3;
+                cols[i*3+2] = 0.8;
+            }
+
+            geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+            geo.setAttribute('color', new THREE.BufferAttribute(cols, 3));
+
+            const mat = new THREE.PointsMaterial({ size: 1.2, vertexColors: true, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending });
+            const esoDisk = new THREE.Points(geo, mat);
+            esoGalaxyGroup.add(esoDisk);
+
+            // Supernova Remnant / GRB Flash Core
+            const snGeo = new THREE.SphereGeometry(2.5, 32, 32);
+            const snMat = new THREE.MeshBasicMaterial({ color: 0xf43f5e, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending });
+            const supernovaCore = new THREE.Mesh(snGeo, snMat);
+            esoGalaxyGroup.add(supernovaCore);
+
+            // Supernova Expanding Shockwave Ring
+            const ringGeo = new THREE.RingGeometry(3, 3.5, 32);
+            const ringMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b, side: THREE.DoubleSide, transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending });
+            const shockRing = new THREE.Mesh(ringGeo, ringMat);
+            shockRing.rotation.x = Math.PI / 2;
+            esoGalaxyGroup.add(shockRing);
+        }
+
+        // --- Animation Loop ---
+        let clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const delta = clock.getDelta();
+            const time = clock.getElapsedTime() * animationSpeed;
+
+            // Rotate Sun & Earth orbits
+            if (!isOrbitPaused) {
+                if (earthOrbitGroup) {
+                    earthOrbitGroup.rotation.y = time * 0.5;
+                }
+                if (sunMesh) {
+                    sunMesh.rotation.y = time * 0.2;
+                }
+                if (milkyWayGroup) {
+                    milkyWayGroup.rotation.y = time * 0.05;
+                }
+                if (neutronStarsGroup) {
+                    neutronStarsGroup.rotation.y = time * 5.0; // Rapid neutron star inspiral rotation
+                }
+                if (ngcGalaxyGroup) {
+                    ngcGalaxyGroup.rotation.y = time * 0.02;
+                }
+                if (esoGalaxyGroup) {
+                    esoGalaxyGroup.rotation.y = time * 0.03;
+                }
+            }
+
+            // Smooth camera transition lerping
+            if (isTransitioning) {
+                camera.position.lerp(targetCameraPos, 0.05);
+                controls.target.lerp(targetOrbitTarget, 0.05);
+
+                if (camera.position.distanceTo(targetCameraPos) < 1.0) {
+                    isTransitioning = false;
+                }
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // --- Camera Zoom & HUD Switcher ---
+        function zoomTo(presetKey) {
+            const preset = cameraPresets[presetKey];
+            if (!preset) return;
+
+            targetCameraPos.copy(preset.pos);
+            targetOrbitTarget.copy(preset.target);
+            isTransitioning = true;
+
+            // Update Right Info Panel
+            document.getElementById('info-title').innerText = preset.title;
+            document.getElementById('distance-display').innerText = `Distance: ${preset.distance}`;
+
+            let infoHTML = '';
+            if (presetKey === 'solar-system') {
+                infoHTML = `
+                    <p>You are viewing Earth and the inner Solar System. Earth orbits our Sun at ~1 Astronomical Unit (AU).</p>
+                    <p>When extreme cosmic phenomena like <strong class="text-pink-400">Gamma-Ray Bursts (GRBs)</strong> occur in distant galaxies, their sheer energy output is staggering—yet distance and geometry ensure complete safety for our planet.</p>
+                    <div class="bg-cyan-950/40 border border-cyan-500/30 p-3 rounded-xl">
+                        <span class="font-semibold text-cyan-300 block mb-1">Why Earth was safe:</span>
+                        <ul class="list-disc pl-4 space-y-1 text-gray-400">
+                            <li><strong>Vast Distance:</strong> ~130–140 million light-years away.</li>
+                            <li><strong>Inverse-Square Law:</strong> Radiation intensity drops exponentially with distance ($1/d^2$).</li>
+                            <li><strong>Beaming Angles:</strong> Narrow relativistic jets were either off-axis or directed away from Earth's line of sight.</li>
+                        </ul>
+                    </div>
+                `;
+            } else if (presetKey === 'milky-way') {
+                infoHTML = `
+                    <p>The <strong class="text-purple-400">Milky Way Galaxy</strong> spans approximately 100,000 light-years across.</p>
+                    <p>Our Solar System resides in the Orion Arm, safely tucked away from galactic center cataclysms.</p>
+                    <div class="bg-purple-950/40 border border-purple-500/30 p-3 rounded-xl">
+                        <span class="font-semibold text-purple-300 block mb-1">Scale Context:</span>
+                        <p class="text-gray-400">The closest gamma-ray bursts ever recorded occurred in distant galaxies roughly <strong>1,300 times</strong> farther away than the diameter of our entire galaxy!</p>
+                    </div>
+                `;
+            } else if (presetKey === 'grb-1') {
+                infoHTML = `
+                    <p><strong class="text-pink-400">GRB 170817A</strong> is the closest and most thoroughly studied short gamma-ray burst in history (August 17, 2017).</p>
+                    <p>It was co-detected with gravitational waves (<strong class="text-cyan-400">GW170817</strong>) from colliding binary neutron stars in galaxy <strong class="text-pink-300">NGC 4993</strong>.</p>
+                    <div class="bg-pink-950/40 border border-pink-500/30 p-3 rounded-xl">
+                        <span class="font-semibold text-pink-300 block mb-1">Safety & Beaming Factor:</span>
+                        <p class="text-gray-400">Located ~130-144 million light-years away. Earth sat slightly outside the ultra-narrow core of the relativistic jet (off-axis view), protecting our atmosphere from high-energy ionizing radiation.</p>
+                    </div>
+                `;
+            } else if (presetKey === 'grb-2') {
+                infoHTML = `
+                    <p><strong class="text-amber-400">GRB 980425</strong> is the closest long-duration gamma-ray burst on record (April 25, 1998).</p>
+                    <p>It occurred in spiral galaxy <strong class="text-amber-300">ESO 184-G82</strong> and was paired with bright supernova <strong class="text-cyan-400">SN 1998bw</strong>.</p>
+                    <div class="bg-amber-950/40 border border-amber-500/30 p-3 rounded-xl">
+                        <span class="font-semibold text-amber-300 block mb-1">Safety Factor:</span>
+                        <p class="text-gray-400">At ~130 million light-years distance, the gamma-ray flux was diluted by space expansion and the inverse-square law to harmless levels before reaching the Solar System.</p>
+                    </div>
+                `;
+            } else if (presetKey === 'comparison') {
+                infoHTML = `
+                    <p><strong class="text-blue-400">Intergalactic Comparative View:</strong> Visualizing the immense gulf between Earth and the two closest GRB host galaxies.</p>
+                    <div class="bg-blue-950/40 border border-blue-500/30 p-3 rounded-xl space-y-2">
+                        <span class="font-semibold text-blue-300 block">The Safety Equation:</span>
+                        <p class="text-gray-400">Even the brightest gamma-ray bursts require proximity (&lt; 3,000 to 5,000 light-years) and direct jet alignment to pose any threat to Earth's ozone layer. At 140 million light-years, they are cosmic spectacles rather than existential threats.</p>
+                    </div>
+                `;
+            }
+            document.getElementById('info-content').innerHTML = infoHTML;
+        }
+
+        function toggleScaleComparison() {
+            zoomTo('comparison');
+        }
+
+        function toggleOrbitRotation() {
+            isOrbitPaused = !isOrbitPaused;
+            const btn = document.getElementById('toggle-orbit');
+            if (isOrbitPaused) {
+                btn.innerText = "Resume";
+                btn.classList.replace('bg-cyan-500/20', 'bg-emerald-500/20');
+                btn.classList.replace('text-cyan-400', 'text-emerald-400');
+                btn.classList.replace('border-cyan-500/40', 'border-emerald-500/40');
+            } else {
+                btn.innerText = "Pause";
+                btn.classList.replace('bg-emerald-500/20', 'bg-cyan-500/20');
+                btn.classList.replace('text-emerald-400', 'text-cyan-400');
+                btn.classList.replace('border-emerald-500/40', 'border-cyan-500/40');
+            }
+        }
+
+        function toggleBeams() {
+            areBeamsVisible = !areBeamsVisible;
+            if (ngcGalaxyGroup) {
+                ngcGalaxyGroup.visible = areBeamsVisible;
+            }
+            const btn = document.getElementById('toggle-beams');
+            if (areBeamsVisible) {
+                btn.innerText = "Active";
+                btn.classList.replace('bg-gray-500/20', 'bg-pink-500/20');
+                btn.classList.replace('text-gray-400', 'text-pink-400');
+            } else {
+                btn.innerText = "Hidden";
+                btn.classList.replace('bg-pink-500/20', 'bg-gray-500/20');
+                btn.classList.replace('text-pink-400', 'text-gray-400');
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('custom-modal').classList.add('hidden');
+        }
+
+        function showModal(title, message) {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-message').innerText = message;
+            document.getElementById('custom-modal').classList.remove('hidden');
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
