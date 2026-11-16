@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SN 2026ahvu in NGC 1433 — 3D WebGL Visualization</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Three.js & OrbitControls via unpkg/jsdelivr -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #03050a;
+            font-family: 'Inter', sans-serif;
+            color: #e2e8f0;
+            user-select: none;
+        }
+        canvas#webgl-canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        .font-mono-tech {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* Custom Range Slider Styling */
+        input[type=range].astro-slider {
+            -webkit-appearance: none;
+            background: transparent;
+        }
+        input[type=range].astro-slider::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: rgba(56, 189, 248, 0.25);
+            border-radius: 999px;
+            border: 1px solid rgba(56, 189, 248, 0.4);
+        }
+        input[type=range].astro-slider::-webkit-slider-thumb {
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #38bdf8;
+            box-shadow: 0 0 10px #38bdf8, 0 0 20px #0284c7;
+            cursor: pointer;
+            -webkit-appearance: none;
+            margin-top: -6px;
+            transition: transform 0.15s ease;
+        }
+        input[type=range].astro-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            background: #7dd3fc;
+        }
+        /* Glassmorphism HUD panels */
+        .hud-panel {
+            background: rgba(9, 14, 26, 0.78);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.65);
+        }
+        .glow-badge {
+            box-shadow: 0 0 14px rgba(56, 189, 248, 0.35);
+        }
+        /* Subtle pulse animation for beacon label */
+        @keyframes pulseSlow {
+            0%, 100% { opacity: 0.9; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.04); }
+        }
+        .animate-pulse-slow {
+            animation: pulseSlow 2.5s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- WebGL Canvas -->
+    <canvas id="webgl-canvas"></canvas>
+
+    <!-- 3D Projected Marker Overlay for SN 2026ahvu in Galaxy View -->
+    <div id="sn-marker-overlay" class="fixed z-10 pointer-events-none transition-opacity duration-300" style="left: 50%; top: 50%; transform: translate(-50%, -50%);">
+        <div class="relative flex items-center">
+            <!-- Target Reticle -->
+            <div id="sn-reticle" class="w-10 h-10 rounded-full border border-amber-400/80 flex items-center justify-center shadow-[0_0_15px_rgba(251,191,36,0.6)]">
+                <div class="w-1.5 h-1.5 rounded-full bg-amber-300"></div>
+            </div>
+            <!-- Callout Line & Tag -->
+            <div class="ml-2 px-2.5 py-1 rounded-md bg-slate-950/85 border border-amber-400/50 text-xs whitespace-nowrap shadow-lg">
+                <div class="font-semibold text-amber-300 tracking-wide flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+                    SN 2026ahvu
+                </div>
+                <div id="sn-marker-mag" class="font-mono-tech text-[10px] text-slate-300">Mag: 17.0 (Rising)</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top-Left Header & View Switcher HUD -->
+    <header class="fixed top-3 left-3 right-3 md:right-auto md:max-w-md z-20 flex flex-col gap-2.5 pointer-events-none">
+        <div class="hud-panel rounded-xl p-3.5 md:p-4 pointer-events-auto">
+            <div class="flex items-center justify-between gap-2 mb-1">
+                <span class="text-[10px] font-mono-tech uppercase tracking-widest px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-400/30">
+                    Type Ia Supernova • ~50 Mly
+                </span>
+                <span class="text-[11px] font-mono-tech text-slate-400">RA 03h 42m • Dec -47° 13'</span>
+            </div>
+            <h1 class="text-base md:text-lg font-bold text-white tracking-tight leading-snug">
+                SN 2026ahvu in NGC 1433
+            </h1>
+            <p class="text-xs text-slate-300/90 mt-1 leading-relaxed">
+                Interactive 3D simulation of the nearby barred spiral galaxy discovery by ATLAS and the thermonuclear detonation of an accreting white dwarf.
+            </p>
+
+            <!-- Camera / Scene Mode Toggle Buttons -->
+            <div class="grid grid-cols-2 gap-2 mt-3">
+                <button id="btn-view-galaxy" class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all bg-sky-500 text-slate-950 shadow-[0_0_15px_rgba(56,189,248,0.45)] cursor-pointer">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
+                    Galaxy: NGC 1433
+                </button>
+                <button id="btn-view-binary" class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-600/60 cursor-pointer">
+                    <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    Close-Up: Type Ia Binary
+                </button>
+            </div>
+        </div>
+
+        <!-- Scientific Context Pills (Collapsible / Compact on Mobile) -->
+        <div class="hud-panel rounded-xl p-3 pointer-events-auto hidden sm:block">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Astrophysics Insights</span>
+                <div class="flex gap-1">
+                    <button data-topic="candle" class="topic-tab px-2 py-0.5 rounded text-[11px] font-medium bg-sky-500/25 text-sky-300 border border-sky-400/40 cursor-pointer">Standard Candle</button>
+                    <button data-topic="binary" class="topic-tab px-2 py-0.5 rounded text-[11px] font-medium bg-slate-800/80 text-slate-400 hover:text-slate-200 cursor-pointer">Roche Accretion</button>
+                    <button data-topic="early" class="topic-tab px-2 py-0.5 rounded text-[11px] font-medium bg-slate-800/80 text-slate-400 hover:text-slate-200 cursor-pointer">Early Catch</button>
+                </div>
+            </div>
+            <p id="topic-description" class="text-xs text-slate-300 leading-relaxed">
+                <strong class="text-sky-300">Cosmic Distance Ladder:</strong> Because Type Ia supernovae detonate at a consistent critical mass (~1.44 M☉, the Chandrasekhar limit), their uniform peak luminosity makes them ideal "standard candles" for measuring cosmic distances.
+            </p>
+        </div>
+    </header>
+
+    <!-- Top-Right Telemetry & Observatory Status -->
+    <aside class="fixed top-3 right-3 z-20 hidden lg:flex flex-col gap-2 w-64 pointer-events-none">
+        <div class="hud-panel rounded-xl p-3.5 pointer-events-auto">
+            <div class="text-[10px] font-mono-tech uppercase tracking-wider text-slate-400 mb-2 flex items-center justify-between">
+                <span>Live Telemetry</span>
+                <span class="text-emerald-400 flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> ACTIVE</span>
+            </div>
+            <div class="space-y-2 text-xs">
+                <div class="flex justify-between border-b border-slate-800 pb-1">
+                    <span class="text-slate-400">Host Galaxy</span>
+                    <span class="font-mono-tech text-slate-100">NGC 1433 (SB(r)ab)</span>
+                </div>
+                <div class="flex justify-between border-b border-slate-800 pb-1">
+                    <span class="text-slate-400">Distance</span>
+                    <span class="font-mono-tech text-slate-100">~50 Million ly</span>
+                </div>
+                <div class="flex justify-between border-b border-slate-800 pb-1">
+                    <span class="text-slate-400">Discovery Date</span>
+                    <span class="font-mono-tech text-slate-100">Nov 2, 2026 (ATLAS)</span>
+                </div>
+                <div class="flex justify-between border-b border-slate-800 pb-1">
+                    <span class="text-slate-400">Apparent Mag</span>
+                    <span id="hud-mag" class="font-mono-tech font-semibold text-amber-300">17.00 mag</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-400">Phase Status</span>
+                    <span id="hud-phase" class="font-mono-tech text-sky-300">Early Rise</span>
+                </div>
+            </div>
+            <div class="mt-3 pt-2 border-t border-slate-800/80 text-[10px] text-slate-400 flex items-center justify-between">
+                <span>Drag: Orbit • Scroll: Zoom</span>
+                <button id="btn-reset-cam" class="text-sky-400 hover:text-sky-300 underline cursor-pointer">Reset View</button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Bottom Interactive Timeline & Light Curve Graph HUD -->
+    <footer class="fixed bottom-3 left-3 right-3 z-20 flex flex-col md:flex-row items-stretch md:items-end justify-between gap-3 pointer-events-none">
+        
+        <!-- Timeline Scrubber & Playback Controls -->
+        <div class="hud-panel rounded-xl p-3.5 md:p-4 flex-1 max-w-2xl pointer-events-auto">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                <div class="flex items-center gap-2.5">
+                    <button id="btn-play-pause" class="w-9 h-9 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 flex items-center justify-center transition shadow-[0_0_12px_rgba(56,189,248,0.4)] cursor-pointer" title="Play / Pause Simulation">
+                        <svg id="icon-pause" class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                        <svg id="icon-play" class="w-4 h-4 hidden" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                    </button>
+                    <div>
+                        <div class="text-xs font-semibold text-white flex items-center gap-2">
+                            <span id="timeline-date">Nov 2, 2026 (Day 0.0)</span>
+                            <span id="timeline-badge" class="text-[10px] font-mono-tech px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-400/30">ATLAS Discovery</span>
+                        </div>
+                        <div class="text-[11px] text-slate-400" id="timeline-subtext">White dwarf nears Chandrasekhar limit (1.44 M☉)</div>
+                    </div>
+                </div>
+
+                <!-- Trigger Detonation / Peak Jump Shortcut -->
+                <button id="btn-trigger-peak" class="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/40 transition cursor-pointer">
+                    ⚡ Jump to Peak (Day 18)
+                </button>
+            </div>
+
+            <!-- Scrubber Bar -->
+            <div class="relative pt-1">
+                <input id="timeline-slider" type="range" min="0" max="90" step="0.1" value="0" class="astro-slider w-full">
+                <div class="flex justify-between text-[10px] font-mono-tech text-slate-400 mt-1">
+                    <span>Day 0 (Nov 2 • Mag 17.0)</span>
+                    <span class="text-amber-300">Day 18 (Peak • Mag 13.5)</span>
+                    <span>Day 90 (Nebular Decay)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Real-Time Light Curve SVG Graph -->
+        <div class="hud-panel rounded-xl p-3 w-full md:w-96 pointer-events-auto">
+            <div class="flex items-center justify-between mb-1">
+                <span class="text-[11px] font-semibold text-slate-200 tracking-wide">Type Ia Light Curve (Apparent Mag)</span>
+                <span id="graph-mag-readout" class="text-[11px] font-mono-tech text-amber-300 font-semibold">17.00 mag</span>
+            </div>
+            <div class="relative w-full h-28 bg-slate-950/70 rounded-lg border border-slate-800/90 overflow-hidden">
+                <svg id="light-curve-svg" viewBox="0 0 340 110" class="w-full h-full">
+                    <defs>
+                        <linearGradient id="curveGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.45"/>
+                            <stop offset="100%" stop-color="#38bdf8" stop-opacity="0.02"/>
+                        </linearGradient>
+                    </defs>
+                    <!-- Horizontal Grid Lines (Magnitudes 13, 15, 17) -->
+                    <line x1="32" y1="18" x2="330" y2="18" stroke="#1e293b" stroke-width="1" stroke-dasharray="3,3"/>
+                    <line x1="32" y1="54" x2="330" y2="54" stroke="#1e293b" stroke-width="1" stroke-dasharray="3,3"/>
+                    <line x1="32" y1="90" x2="330" y2="90" stroke="#1e293b" stroke-width="1" stroke-dasharray="3,3"/>
+
+                    <!-- Y-Axis Labels (Inverted astronomical magnitude scale: brighter is higher) -->
+                    <text x="27" y="21" fill="#64748b" font-size="8" font-family="JetBrains Mono" text-anchor="end">13.0</text>
+                    <text x="27" y="57" fill="#64748b" font-size="8" font-family="JetBrains Mono" text-anchor="end">15.0</text>
+                    <text x="27" y="93" fill="#64748b" font-size="8" font-family="JetBrains Mono" text-anchor="end">17.0</text>
+
+                    <!-- Observatory Milestones -->
+                    <!-- ATLAS Discovery at Day 0 -->
+                    <circle cx="35" cy="90" r="3" fill="#38bdf8"/>
+                    <text x="39" y="102" fill="#38bdf8" font-size="7.5" font-family="Inter">ATLAS (Nov 2)</text>
+
+                    <!-- Gemini South & DECam Follow-up Window -->
+                    <rect x="65" y="10" width="95" height="88" fill="rgba(56, 189, 248, 0.06)" rx="3"/>
+                    <text x="112" y="102" fill="#94a3b8" font-size="7.5" font-family="Inter" text-anchor="middle">Gemini South / DECam</text>
+
+                    <!-- Area & Path populated via JS -->
+                    <path id="lc-area" fill="url(#curveGrad)" d=""/>
+                    <path id="lc-path" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" d=""/>
+
+                    <!-- Vertical Scrubber Line & Glowing Dot -->
+                    <line id="lc-cursor-line" x1="35" y1="10" x2="35" y2="95" stroke="#38bdf8" stroke-width="1" stroke-dasharray="2,2"/>
+                    <circle id="lc-cursor-glow" cx="35" cy="90" r="7" fill="rgba(251, 191, 36, 0.35)"/>
+                    <circle id="lc-cursor-dot" cx="35" cy="90" r="3.5" fill="#ffffff" stroke="#fbbf24" stroke-width="2"/>
+                </svg>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        /**
+         * SN 2026ahvu in NGC 1433 — Interactive 3D WebGL Astronomical Visualization
+         * Built with Three.js
+         */
+
+        // ==========================================
+        // 1. ASTROPHYSICAL LIGHT CURVE MODEL
+        // ==========================================
+        // Models Type Ia apparent magnitude from Day 0 (Nov 2, 2026, Mag 17.0)
+        // rising rapidly to Peak Brightness at Day 18 (Mag 13.5), followed by
+        // radioactive Nickel-56 -> Cobalt-56 -> Iron-56 decay over 90 days.
+        function getApparentMagnitude(day) {
+            if (day <= 18) {
+                // Smooth fireball expansion rise: 17.0 -> 13.5
+                const t = day / 18;
+                // Ease-out curve matching rapid early brightening
+                const riseFactor = 1 - Math.pow(1 - t, 2.35);
+                return 17.0 - 3.5 * riseFactor;
+            } else {
+                // Post-maximum decline: initial faster drop (first 15 days ~1.1 mag)
+                // followed by slower Co-56 exponential tail (~0.015 mag/day)
+                const dt = day - 18;
+                const fastDrop = 1.15 * (1 - Math.exp(-dt / 12));
+                const slowTail = 0.017 * dt;
+                return Math.min(17.5, 13.5 + fastDrop + slowTail);
+            }
+        }
+
+        // Convert apparent magnitude to relative linear flux (normalized 0.04 to 1.0)
+        function getNormalizedLuminosity(mag) {
+            // Pogson's ratio: 2.512^(13.5 - mag)
+            const flux = Math.pow(2.512, 13.5 - mag);
+            return Math.max(0.03, Math.min(1.0, flux));
+        }
+
+        // ==========================================
+        // 2. THREE.JS SCENE & RENDERER SETUP
+        // ==========================================
+        const canvas = document.getElementById('webgl-canvas');
+        const renderer = new THREE.WebGLRenderer({
+            canvas: canvas,
+            antialias: true,
+            powerPreference: 'high-performance'
+        });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.15;
+
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x03050a, 0.0018);
+
+        const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1500);
+        camera.position.set(0, 48, 72);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.06;
+        controls.minDistance = 8;
+        controls.maxDistance = 240;
+
+        // ==========================================
+        // 3. PROCEDURAL GLOW & NEBULA TEXTURES
+        // ==========================================
+        function createRadialSpriteTexture(innerColor, midColor, outerColor, size = 128) {
+            const c = document.createElement('canvas');
+            c.width = size;
+            c.height = size;
+            const ctx = c.getContext('2d');
+            const half = size / 2;
+            const grad = ctx.createRadialGradient(half, half, 0, half, half, half);
+            grad.addColorStop(0.0, innerColor);
+            grad.addColorStop(0.3, midColor);
+            grad.addColorStop(0.7, outerColor);
+            grad.addColorStop(1.0, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, size, size);
+            const tex = new THREE.CanvasTexture(c);
+            return tex;
+        }
+
+        function createDiffractionSpikeTexture(size = 256) {
+            const c = document.createElement('canvas');
+            c.width = size;
+            c.height = size;
+            const ctx = c.getContext('2d');
+            const half = size / 2;
+
+            // Core radial glow
+            const grad = ctx.createRadialGradient(half, half, 0, half, half, half);
+            grad.addColorStop(0.0, 'rgba(255, 255, 255, 1)');
+            grad.addColorStop(0.12, 'rgba(255, 240, 200, 0.9)');
+            grad.addColorStop(0.35, 'rgba(251, 191, 36, 0.35)');
+            grad.addColorStop(1.0, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, size, size);
+
+            // 4-point telescope diffraction spikes
+            ctx.globalCompositeOperation = 'lighter';
+            const drawSpike = (angle) => {
+                ctx.save();
+                ctx.translate(half, half);
+                ctx.rotate(angle);
+                const sGrad = ctx.createLinearGradient(-half, 0, half, 0);
+                sGrad.addColorStop(0.0, 'rgba(255,255,255,0)');
+                sGrad.addColorStop(0.45, 'rgba(255,248,220,0.45)');
+                sGrad.addColorStop(0.5, 'rgba(255,255,255,0.95)');
+                sGrad.addColorStop(0.55, 'rgba(255,248,220,0.45)');
+                sGrad.addColorStop(1.0, 'rgba(255,255,255,0)');
+                ctx.fillStyle = sGrad;
+                ctx.fillRect(-half, -1.5, size, 3);
+                ctx.restore();
+            };
+            drawSpike(0);
+            drawSpike(Math.PI / 2);
+
+            return new THREE.CanvasTexture(c);
+        }
+
+        const starGlowTex = createRadialSpriteTexture('rgba(255,255,255,1)', 'rgba(200,225,255,0.6)', 'rgba(56,189,248,0.08)');
+        const softCloudTex = createRadialSpriteTexture('rgba(255,255,255,0.45)', 'rgba(255,255,255,0.15)', 'rgba(255,255,255,0)');
+        const snFlareTex = createDiffractionSpikeTexture(256);
+
+        // ==========================================
+        // 4. DEEP SPACE BACKGROUND STARFIELD
+        // ==========================================
+        function buildDeepStarfield() {
+            const count = 4500;
+            const geo = new THREE.BufferGeometry();
+            const positions = new Float32Array(count * 3);
+            const colors = new Float32Array(count * 3);
+
+            const palette = [
+                new THREE.Color(0xcbd5e1),
+                new THREE.Color(0x93c5fd),
+                new THREE.Color(0xfde68a),
+                new THREE.Color(0xfca5a5),
+                new THREE.Color(0xffffff)
+            ];
+
+            for (let i = 0; i < count; i++) {
+                const r = 260 + Math.random() * 550;
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+
+                positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+                positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+                positions[i * 3 + 2] = r * Math.cos(phi);
+
+                const col = palette[Math.floor(Math.random() * palette.length)];
+                const brightness = 0.4 + Math.random() * 0.6;
+                colors[i * 3] = col.r * brightness;
+                colors[i * 3 + 1] = col.g * brightness;
+                colors[i * 3 + 2] = col.b * brightness;
+            }
+
+            geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const mat = new THREE.PointsMaterial({
+                size: 1.6,
+                map: starGlowTex,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.85,
+                depthWrite: false,
+                blending: THREE.AdditiveBlending
+            });
+
+            const stars = new THREE.Points(geo, mat);
+            scene.add(stars);
+        }
+        buildDeepStarfield();
+
+        // ==========================================
+        // 5. SCENE A: BARRED SPIRAL GALAXY NGC 1433
+        // ==========================================
+        // NGC 1433 is a classic SB(r)ab barred spiral galaxy with a bright central bar,
+        // inner star-forming ring, and tightly wound spiral arms.
+        const galaxyGroup = new THREE.Group();
+        scene.add(galaxyGroup);
+
+        let snGalaxyAnchor = new THREE.Vector3(21.5, 0.35, -13.2); // Supernova location on spiral arm
+        let snBeaconSprite, snHaloSprite, snPointLight;
+
+        function buildNGC1433() {
+            const particleCount = 34000;
+            const geo = new THREE.BufferGeometry();
+            const positions = new Float32Array(particleCount * 3);
+            const colors = new Float32Array(particleCount * 3);
+
+            const colorCore = new THREE.Color(0xfff4d6);
+            const colorBar = new THREE.Color(0xfbbf24);
+            const colorArmBlue = new THREE.Color(0x60a5fa);
+            const colorArmCyan = new THREE.Color(0x38bdf8);
+            const colorHIIPink = new THREE.Color(0xf43f5e);
+            const colorOuter = new THREE.Color(0x94a3b8);
+
+            for (let i = 0; i < particleCount; i++) {
+                const rand = Math.random();
+                let x = 0, y = 0, z = 0;
+                const col = new THREE.Color();
+
+                if (rand < 0.22) {
+                    // 1. Bright Galactic Bulge & Core
+                    const r = Math.pow(Math.random(), 1.8) * 7.5;
+                    const theta = Math.random() * Math.PI * 2;
+                    const phi = Math.acos(2 * Math.random() - 1);
+                    x = r * Math.sin(phi) * Math.cos(theta) * 1.25;
+                    y = r * Math.cos(phi) * 0.42;
+                    z = r * Math.sin(phi) * Math.sin(theta);
+
+                    col.copy(colorCore).lerp(colorBar, r / 7.5);
+                } else if (rand < 0.42) {
+                    // 2. Prominent Central Bar (Characteristic of NGC 1433)
+                    const barLength = 17.5;
+                    const t = (Math.random() * 2 - 1); // -1 to 1 along bar
+                    const spreadWidth = (1 - Math.abs(t) * 0.45) * 3.1;
+                    x = t * barLength + (Math.random() - 0.5) * 1.5;
+                    z = (Math.random() - 0.5) * spreadWidth * 2;
+                    y = (Math.random() - 0.5) * 1.1 * (1 - Math.abs(t) * 0.5);
+
+                    col.copy(colorBar).lerp(colorCore, 1 - Math.abs(t));
+                } else {
+                    // 3. Inner Ring & Two Primary Logarithmic Spiral Arms
+                    const armIndex = i % 2; // 0 or 1
+                    const t = Math.pow(Math.random(), 0.85); // 0 to 1 along arm
+                    const baseRadius = 15.5 + t * 29.0;
+                    const spiralAngle = armIndex * Math.PI + t * 3.65;
+
+                    // Scatter width increases slightly outward
+                    const armSpread = (0.24 + t * 0.35) * (Math.random() - 0.5) * 2;
+                    const radialJitter = (Math.random() - 0.5) * (2.6 + t * 4.2);
+
+                    const angle = spiralAngle + armSpread;
+                    const radius = baseRadius + radialJitter;
+
+                    x = Math.cos(angle) * radius;
+                    z = Math.sin(angle) * radius;
+                    y = (Math.random() - 0.5) * (1.2 - t * 0.5);
+
+                    // Star population coloring: young blue clusters + pink H-II star-forming knots
+                    const knotChance = Math.random();
+                    if (knotChance < 0.14 && Math.abs(armSpread) < 0.14) {
+                        col.copy(colorHIIPink);
+                    } else if (knotChance < 0.65) {
+                        col.copy(colorArmBlue).lerp(colorArmCyan, Math.random());
+                    } else {
+                        col.copy(colorOuter).lerp(colorBar, 0.35 * (1 - t));
+                    }
+                }
+
+                // Slight galactic warp at outer edges
+                const dist = Math.sqrt(x * x + z * z);
+                if (dist > 30) {
+                    y += Math.sin(x * 0.08) * (dist - 30) * 0.04;
+                }
+
+                positions[i * 3] = x;
+                positions[i * 3 + 1] = y;
+                positions[i * 3 + 2] = z;
+
+                colors[i * 3] = col.r;
+                colors[i * 3 + 1] = col.g;
+                colors[i * 3 + 2] = col.b;
+            }
+
+            geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const mat = new THREE.PointsMaterial({
+                size: 0.95,
+                map: starGlowTex,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.88,
+                depthWrite: false,
+                blending: THREE.AdditiveBlending
+            });
+
+            const galaxyPoints = new THREE.Points(geo, mat);
+            galaxyGroup.add(galaxyPoints);
+
+            // Soft Galactic Core Volumetric Glow
+            const coreSpriteMat = new THREE.SpriteMaterial({
+                map: createRadialSpriteTexture('rgba(255,250,235,0.95)', 'rgba(253,224,71,0.35)', 'rgba(245,158,11,0)'),
+                transparent: true,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+            const coreSprite = new THREE.Sprite(coreSpriteMat);
+            coreSprite.scale.set(24, 14, 1);
+            galaxyGroup.add(coreSprite);
+
+            // Position SN 2026ahvu cleanly on one of the outer spiral arms
+            const snAngle = 0.72; // Along arm 0
+            const snRadius = 24.5;
+            snGalaxyAnchor.set(Math.cos(snAngle) * snRadius, 0.35, Math.sin(snAngle) * snRadius);
+
+            // Supernova Beacon Sprite (Diffraction Spikes + Intense Core)
+            const snMat = new THREE.SpriteMaterial({
+                map: snFlareTex,
+                color: 0xfffbeb,
+                transparent: true,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+            snBeaconSprite = new THREE.Sprite(snMat);
+            snBeaconSprite.position.copy(snGalaxyAnchor);
+            snBeaconSprite.scale.set(4, 4, 1);
+            galaxyGroup.add(snBeaconSprite);
+
+            // Outer Supernova Expanding Halo in Galaxy View
+            const snHaloMat = new THREE.SpriteMaterial({
+                map: createRadialSpriteTexture('rgba(255,255,255,0.8)', 'rgba(56,189,248,0.35)', 'rgba(56,189,248,0)'),
+                transparent: true,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+            snHaloSprite = new THREE.Sprite(snHaloMat);
+            snHaloSprite.position.copy(snGalaxyAnchor);
+            snHaloSprite.scale.set(6, 6, 1);
+            galaxyGroup.add(snHaloSprite);
+
+            // Subtle galactic tilt for dramatic 3D perspective
+            galaxyGroup.rotation.x = 0.28;
+            galaxyGroup.rotation.z = -0.14;
+        }
+        buildNGC1433();
+
+        // ==========================================
+        // 6. SCENE B: TYPE Ia BINARY SYSTEM & DETONATION
+        // ==========================================
+        // Close-up 3D system showing:
+        // - Companion Red Giant / Subgiant donor star
+        // - Dense Carbon-Oxygen White Dwarf
+        // - Roche Lobe Overflow accretion stream & swirling accretion disk
+        // - Thermonuclear detonation shockwave shells & ejecta upon reaching Chandrasekhar limit
+        const binaryGroup = new THREE.Group();
+        binaryGroup.visible = false;
+        scene.add(binaryGroup);
+
+        let companionMesh, companionGlow, whiteDwarfMesh, wdCoreGlow;
+        let accretionDiskPoints, accretionStreamPoints;
+        let shockwaveShell1, shockwaveShell2, ejectaPoints;
+        let binaryLight;
+
+        const streamParticleCount = 750;
+        const diskParticleCount = 2200;
+        const ejectaParticleCount = 3500;
+        let ejectaVelocities = [];
+
+        function buildBinarySystem() {
+            // Ambient & Point lighting for 3D spherical shading of companion star
+            const ambient = new THREE.AmbientLight(0x1e293b, 0.9);
+            binaryGroup.add(ambient);
+
+            binaryLight = new THREE.PointLight(0xfffbeb, 2.5, 160);
+            binaryLight.position.set(6, 0, 0);
+            binaryGroup.add(binaryLight);
+
+            // 1. Companion Donor Star (Orange-Red Subgiant/Giant)
+            const compGeo = new THREE.SphereGeometry(5.2, 48, 48);
+            const compMat = new THREE.MeshStandardMaterial({
+                color: 0xf97316,
+                emissive: 0xea580c,
+                emissiveIntensity: 0.85,
+                roughness: 0.7
+            });
+            companionMesh = new THREE.Mesh(compGeo, compMat);
+            companionMesh.position.set(-11, 0, 0);
+            // Slight tidal elongation toward white dwarf (Roche lobe distortion)
+            companionMesh.scale.set(1.16, 0.96, 0.96);
+            binaryGroup.add(companionMesh);
+
+            const compGlowMat = new THREE.SpriteMaterial({
+                map: createRadialSpriteTexture('rgba(251,146,60,0.8)', 'rgba(234,88,12,0.3)', 'rgba(194,65,12,0)'),
+                transparent: true,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+            companionGlow = new THREE.Sprite(compGlowMat);
+            companionGlow.scale.set(22, 20, 1);
+            companionMesh.add(companionGlow);
+
+            // 2. White Dwarf Progenitor (Compact, ultra-hot blue-white core)
+            const wdGeo = new THREE.SphereGeometry(1.15, 32, 32);
+            const wdMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            whiteDwarfMesh = new THREE.Mesh(wdGeo, wdMat);
+            whiteDwarfMesh.position.set(7.5, 0, 0);
+            binaryGroup.add(whiteDwarfMesh);
+
+            const wdGlowMat = new THREE.SpriteMaterial({
+                map: snFlareTex,
+                color: 0xe0f2fe,
+                transparent: true,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+            wdCoreGlow = new THREE.Sprite(wdGlowMat);
+            wdCoreGlow.scale.set(11, 11, 1);
+            whiteDwarfMesh.add(wdCoreGlow);
+
+            // 3. Swirling Accretion Disk around White Dwarf
+            const diskGeo = new THREE.BufferGeometry();
+            const diskPos = new Float32Array(diskParticleCount * 3);
+            const diskCol = new Float32Array(diskParticleCount * 3);
+
+            for (let i = 0; i < diskParticleCount; i++) {
+                const r = 1.6 + Math.pow(Math.random(), 1.2) * 5.6;
+                const theta = Math.random() * Math.PI * 2;
+                diskPos[i * 3] = Math.cos(theta) * r;
+                diskPos[i * 3 + 1] = (Math.random() - 0.5) * 0.25 * (r / 6);
+                diskPos[i * 3 + 2] = Math.sin(theta) * r;
+
+                const heat = 1 - (r - 1.6) / 5.6;
+                const c = new THREE.Color().setHSL(0.08 + heat * 0.48, 0.9, 0.55 + heat * 0.35);
+                diskCol[i * 3] = c.r;
+                diskCol[i * 3 + 1] = c.g;
+                diskCol[i * 3 + 2] = c.b;
+            }
+            diskGeo.setAttribute('position', new THREE.BufferAttribute(diskPos, 3));
+            diskGeo.setAttribute('color', new THREE.BufferAttribute(diskCol, 3));
+
+            const diskMat = new THREE.PointsMaterial({
+                size: 0.35,
+                map: starGlowTex,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.85,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+            accretionDiskPoints = new THREE.Points(diskGeo, diskMat);
+            accretionDiskPoints.position.copy(whiteDwarfMesh.position);
+            binaryGroup.add(accretionDiskPoints);
+
+            // 4. Roche Lobe Overflow Accretion Stream (L1 Lagrange Bridge)
+            const streamGeo = new THREE.BufferGeometry();
+            const streamPos = new Float32Array(streamParticleCount * 3);
+            const streamCol = new Float32Array(streamParticleCount * 3);
+
+            for (let i = 0; i < streamParticleCount; i++) {
+                const t = i / streamParticleCount;
+                const c = new THREE.Color(0xfb923c).lerp(new THREE.Color(0x7dd3fc), t);
+                streamCol[i * 3] = c.r;
+                streamCol[i * 3 + 1] = c.g;
+                streamCol[i * 3 + 2] = c.b;
+            }
+            streamGeo.setAttribute('position', new THREE.BufferAttribute(streamPos, 3));
+            streamGeo.setAttribute('color', new THREE.BufferAttribute(streamCol, 3));
+
+            const streamMat = new THREE.PointsMaterial({
+                size: 0.42,
+                map: starGlowTex,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.9,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+            accretionStreamPoints = new THREE.Points(streamGeo, streamMat);
+            binaryGroup.add(accretionStreamPoints);
+
+            // 5. Supernova Shockwave Shells & Ejecta Cloud
+            const shellGeo1 = new THREE.SphereGeometry(1, 48, 48);
+            const shellMat1 = new THREE.MeshBasicMaterial({
+                color: 0x7dd3fc,
+                transparent: true,
+                opacity: 0.0,
+                wireframe: false,
+                blending: THREE.AdditiveBlending,
+                side: THREE.DoubleSide,
+                depthWrite: false
+            });
+            shockwaveShell1 = new THREE.Mesh(shellGeo1, shellMat1);
+            shockwaveShell1.position.copy(whiteDwarfMesh.position);
+            binaryGroup.add(shockwaveShell1);
+
+            const shellGeo2 = new THREE.SphereGeometry(1, 36, 36);
+            const shellMat2 = new THREE.MeshBasicMaterial({
+                color: 0xfbbf24,
+                transparent: true,
+                opacity: 0.0,
+                wireframe: true,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+            shockwaveShell2 = new THREE.Mesh(shellGeo2, shellMat2);
+            shockwaveShell2.position.copy(whiteDwarfMesh.position);
+            binaryGroup.add(shockwaveShell2);
+
+            // High-velocity Heavy Element Ejecta (Ni-56, Fe, Si, S)
+            const ejectaGeo = new THREE.BufferGeometry();
+            const ejectaPos = new Float32Array(ejectaParticleCount * 3);
+            const ejectaCol = new Float32Array(ejectaParticleCount * 3);
+
+            for (let i = 0; i < ejectaParticleCount; i++) {
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+                const speed = 0.45 + Math.random() * 1.15;
+
+                const vx = Math.sin(phi) * Math.cos(theta) * speed;
+                const vy = Math.sin(phi) * Math.sin(theta) * speed;
+                const vz = Math.cos(phi) * speed;
+                ejectaVelocities.push({ vx, vy, vz });
+
+                ejectaPos[i * 3] = whiteDwarfMesh.position.x;
+                ejectaPos[i * 3 + 1] = 0;
+                ejectaPos[i * 3 + 2] = 0;
+
+                const c = new THREE.Color().setHSL(0.06 + Math.random() * 0.52, 0.95, 0.65);
+                ejectaCol[i * 3] = c.r;
+                ejectaCol[i * 3 + 1] = c.g;
+                ejectaCol[i * 3 + 2] = c.b;
+            }
+            ejectaGeo.setAttribute('position', new THREE.BufferAttribute(ejectaPos, 3));
+            ejectaGeo.setAttribute('color', new THREE.BufferAttribute(ejectaCol, 3));
+
+            const ejectaMat = new THREE.PointsMaterial({
+                size: 0.55,
+                map: starGlowTex,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+            ejectaPoints = new THREE.Points(ejectaGeo, ejectaMat);
+            binaryGroup.add(ejectaPoints);
+
+            binaryGroup.rotation.x = 0.32;
+        }
+        buildBinarySystem();
+
+        // ==========================================
+        // 7. LIGHT CURVE SVG PATH GENERATION
+        // ==========================================
+        const svgPath = document.getElementById('lc-path');
+        const svgArea = document.getElementById('lc-area');
+        const lcCursorLine = document.getElementById('lc-cursor-line');
+        const lcCursorDot = document.getElementById('lc-cursor-dot');
+        const lcCursorGlow = document.getElementById('lc-cursor-glow');
+
+        function dayToSvgX(day) {
+            return 35 + (day / 90) * 292;
+        }
+        function magToSvgY(mag) {
+            // Mag 13.0 -> y = 18; Mag 17.0 -> y = 90
+            return 18 + ((mag - 13.0) / 4.0) * 72;
+        }
+
+        function initLightCurveGraph() {
+            let dPath = '';
+            for (let day = 0; day <= 90; day += 1) {
+                const x = dayToSvgX(day).toFixed(1);
+                const y = magToSvgY(getApparentMagnitude(day)).toFixed(1);
+                dPath += (day === 0 ? `M ${x} ${y}` : ` L ${x} ${y}`);
+            }
+            svgPath.setAttribute('d', dPath);
+            svgArea.setAttribute('d', `${dPath} L ${dayToSvgX(90)} 95 L ${dayToSvgX(0)} 95 Z`);
+        }
+        initLightCurveGraph();
+
+        // ==========================================
+        // 8. STATE, UI CONTROLS & CAMERA TRANSITIONS
+        // ==========================================
+        let currentMode = 'galaxy'; // 'galaxy' or 'binary'
+        let simDay = 0.0;
+        let isPlaying = true;
+        let targetCamPos = new THREE.Vector3(0, 48, 72);
+        let targetLookAt = new THREE.Vector3(0, 0, 0);
+        let isTransitioningCam = false;
+
+        const slider = document.getElementById('timeline-slider');
+        const btnPlayPause = document.getElementById('btn-play-pause');
+        const iconPlay = document.getElementById('icon-play');
+        const iconPause = document.getElementById('icon-pause');
+        const btnGalaxy = document.getElementById('btn-view-galaxy');
+        const btnBinary = document.getElementById('btn-view-binary');
+        const snMarkerOverlay = document.getElementById('sn-marker-overlay');
+
+        function switchViewMode(mode) {
+            currentMode = mode;
+            isTransitioningCam = true;
+
+            if (mode === 'galaxy') {
+                galaxyGroup.visible = true;
+                binaryGroup.visible = false;
+                snMarkerOverlay.style.opacity = '1';
+
+                targetCamPos.set(0, 48, 72);
+                targetLookAt.set(0, 0, 0);
+
+                btnGalaxy.className = 'flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all bg-sky-500 text-slate-950 shadow-[0_0_15px_rgba(56,189,248,0.45)] cursor-pointer';
+                btnBinary.className = 'flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-600/60 cursor-pointer';
+            } else {
+                galaxyGroup.visible = false;
+                binaryGroup.visible = true;
+                snMarkerOverlay.style.opacity = '0';
+
+                targetCamPos.set(0, 14, 34);
+                targetLookAt.set(0, 0, 0);
+
+                btnBinary.className = 'flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all bg-amber-400 text-slate-950 shadow-[0_0_15px_rgba(251,191,36,0.45)] cursor-pointer';
+                btnGalaxy.className = 'flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-600/60 cursor-pointer';
+            }
+        }
+
+        btnGalaxy.addEventListener('click', () => switchViewMode('galaxy'));
+        btnBinary.addEventListener('click', () => switchViewMode('binary'));
+
+        document.getElementById('btn-reset-cam').addEventListener('click', () => {
+            switchViewMode(currentMode);
+        });
+
+        btnPlayPause.addEventListener('click', () => {
+            isPlaying = !isPlaying;
+            iconPlay.classList.toggle('hidden', isPlaying);
+            iconPause.classList.toggle('hidden', !isPlaying);
+        });
+
+        slider.addEventListener('input', (e) => {
+            simDay = parseFloat(e.target.value);
+            updateHUDAndVisuals(0);
+        });
+
+        document.getElementById('btn-trigger-peak').addEventListener('click', () => {
+            simDay = 18.0;
+            slider.value = simDay;
+            updateHUDAndVisuals(0);
+        });
+
+        // Scientific Topic Tabs
+        const topicCopy = {
+            candle: '<strong class="text-sky-300">Cosmic Distance Ladder:</strong> Because Type Ia supernovae detonate at a consistent critical mass (~1.44 M☉, the Chandrasekhar limit), their uniform peak luminosity makes them ideal "standard candles" for measuring cosmic distances.',
+            binary: '<strong class="text-amber-300">Roche Lobe Overflow:</strong> In a close binary system, a dense carbon-oxygen white dwarf siphons hydrogen and helium gas from its companion star until core pressure ignites runaway carbon fusion.',
+            early: '<strong class="text-emerald-300">Early Discovery Advantage:</strong> Caught by ATLAS on Nov 2 while still brightening (Mag 17 → 13.5), Gemini South and DECam can capture early shock-breakout spectra before peak luminosity.'
+        };
+        document.querySelectorAll('.topic-tab').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.topic-tab').forEach(b => {
+                    b.className = 'topic-tab px-2 py-0.5 rounded text-[11px] font-medium bg-slate-800/80 text-slate-400 hover:text-slate-200 cursor-pointer';
+                });
+                btn.className = 'topic-tab px-2 py-0.5 rounded text-[11px] font-medium bg-sky-500/25 text-sky-300 border border-sky-400/40 cursor-pointer';
+                document.getElementById('topic-description').innerHTML = topicCopy[btn.dataset.topic];
+            });
+        });
+
+        // Format Date from Nov 2, 2026 + simDay
+        const baseDate = new Date(Date.UTC(2026, 10, 2)); // Nov 2, 2026
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+        function formatSimDate(daysOffset) {
+            const d = new Date(baseDate.getTime() + daysOffset * 86400000);
+            return `${monthNames[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}`;
+        }
+
+        // ==========================================
+        // 9. REAL-TIME SIMULATION UPDATE LOOP
+        // ==========================================
+        const tempVec3 = new THREE.Vector3();
+
+        function updateHUDAndVisuals(elapsedTime) {
+            const mag = getApparentMagnitude(simDay);
+            const lum = getNormalizedLuminosity(mag);
+
+            // Update Light Curve SVG Cursor
+            const cx = dayToSvgX(simDay);
+            const cy = magToSvgY(mag);
+            lcCursorLine.setAttribute('x1', cx);
+            lcCursorLine.setAttribute('x2', cx);
+            lcCursorDot.setAttribute('cx', cx);
+            lcCursorDot.setAttribute('cy', cy);
+            lcCursorGlow.setAttribute('cx', cx);
+            lcCursorGlow.setAttribute('cy', cy);
+
+            // Update Text Readouts
+            const magStr = mag.toFixed(2);
+            document.getElementById('graph-mag-readout').textContent = `${magStr} mag`;
+            document.getElementById('hud-mag').textContent = `${magStr} mag`;
+            document.getElementById('sn-marker-mag').textContent = `Mag: ${mag.toFixed(1)} • ${simDay < 18 ? 'Rising' : 'Decay'}`;
+            document.getElementById('timeline-date').textContent = `${formatSimDate(simDay)} (Day ${simDay.toFixed(1)})`;
+
+            const badgeEl = document.getElementById('timeline-badge');
+            const subtextEl = document.getElementById('timeline-subtext');
+            const phaseEl = document.getElementById('hud-phase');
+
+            if (simDay < 2.0) {
+                badgeEl.textContent = 'ATLAS Discovery';
+                subtextEl.textContent = 'White dwarf exceeds Chandrasekhar limit (1.44 M☉) — detonation begins';
+                phaseEl.textContent = 'Shock Breakout';
+            } else if (simDay < 17.5) {
+                badgeEl.textContent = 'Rapid Fireball Rise';
+                subtextEl.textContent = 'Expanding Nickel-56 ejecta shell rapidly brightens toward peak';
+                phaseEl.textContent = 'Rising Phase';
+            } else if (simDay <= 21.0) {
+                badgeEl.textContent = 'Peak Luminosity';
+                subtextEl.textContent = 'Maximum brightness (~Mag 13.5) — outshining billions of host stars';
+                phaseEl.textContent = 'Maximum Light';
+            } else {
+                badgeEl.textContent = 'Radioactive Decay';
+                subtextEl.textContent = 'Powered by Cobalt-56 → Iron-56 radioactive decay; tracked by DECam';
+                phaseEl.textContent = 'Nebular Decline';
+            }
+
+            // ------------------------------------------
+            // Update Scene A: Galaxy NGC 1433 Beacon
+            // ------------------------------------------
+            const pulse = 1 + Math.sin(elapsedTime * 6) * 0.08;
+            const beaconScale = (3.5 + lum * 24.0) * pulse;
+            snBeaconSprite.scale.set(beaconScale, beaconScale, 1);
+            snHaloSprite.scale.set(beaconScale * 1.65, beaconScale * 1.65, 1);
+            snHaloSprite.material.opacity = 0.25 + lum * 0.65;
+
+            // Project 3D Supernova position to 2D screen coordinates for HUD reticle
+            if (currentMode === 'galaxy') {
+                snBeaconSprite.getWorldPosition(tempVec3);
+                tempVec3.project(camera);
+
+                if (tempVec3.z < 1) {
+                    const screenX = (tempVec3.x * 0.5 + 0.5) * window.innerWidth;
+                    const screenY = (-tempVec3.y * 0.5 + 0.5) * window.innerHeight;
+                    snMarkerOverlay.style.left = `${screenX}px`;
+                    snMarkerOverlay.style.top = `${screenY}px`;
+                    snMarkerOverlay.style.opacity = '1';
+                } else {
+                    snMarkerOverlay.style.opacity = '0';
+                }
+            }
+
+            // ------------------------------------------
+            // Update Scene B: Binary System & Explosion
+            // ------------------------------------------
+            // Orbital motion of binary pair around center of mass
+            const orbitAngle = elapsedTime * 0.65;
+            const compDist = 11.0 + (simDay > 1 ? Math.min(4.5, simDay * 0.06) : 0); // Companion recoils slightly post-blast
+            const wdDist = 7.5;
+
+            companionMesh.position.set(Math.cos(orbitAngle) * compDist, 0, Math.sin(orbitAngle) * compDist);
+            whiteDwarfMesh.position.set(-Math.cos(orbitAngle) * wdDist, 0, -Math.sin(orbitAngle) * wdDist);
+            binaryLight.position.copy(whiteDwarfMesh.position);
+
+            // Rotate accretion disk and update Roche Lobe stream bridge
+            accretionDiskPoints.position.copy(whiteDwarfMesh.position);
+            accretionDiskPoints.rotation.y = elapsedTime * 2.8;
+
+            const streamArr = accretionStreamPoints.geometry.attributes.position.array;
+            for (let i = 0; i < streamParticleCount; i++) {
+                // Flow particles continuously from companion surface toward white dwarf
+                const flow = ((i / streamParticleCount) + elapsedTime * 0.45) % 1;
+                const pStart = companionMesh.position;
+                const pEnd = whiteDwarfMesh.position;
+
+                // Curved Coriolis deflection trajectory
+                const curveOffset = Math.sin(flow * Math.PI) * 2.6;
+                const perpX = -(pEnd.z - pStart.z) / (compDist + wdDist);
+                const perpZ = (pEnd.x - pStart.x) / (compDist + wdDist);
+
+                streamArr[i * 3] = pStart.x + (pEnd.x - pStart.x) * flow + perpX * curveOffset;
+                streamArr[i * 3 + 1] = Math.sin(flow * Math.PI * 3 + i) * 0.18;
+                streamArr[i * 3 + 2] = pStart.z + (pEnd.z - pStart.z) * flow + perpZ * curveOffset;
+            }
+            accretionStreamPoints.geometry.attributes.position.needsUpdate = true;
+
+            // Supernova Detonation Expansion (simDay > 0.5 triggers blast wave & ejecta)
+            shockwaveShell1.position.copy(whiteDwarfMesh.position);
+            shockwaveShell2.position.copy(whiteDwarfMesh.position);
+
+            if (simDay <= 0.5) {
+                // Pre-detonation accretion state
+                shockwaveShell1.visible = false;
+                shockwaveShell2.visible = false;
+                ejectaPoints.visible = false;
+                accretionDiskPoints.visible = true;
+                accretionStreamPoints.visible = true;
+                whiteDwarfMesh.visible = true;
+                wdCoreGlow.scale.set(11 + Math.sin(elapsedTime * 12) * 1.5, 11 + Math.sin(elapsedTime * 12) * 1.5, 1);
+                binaryLight.intensity = 2.2;
+            } else {
+                // Active Supernova Explosion & Expanding Remnant
+                const blastAge = simDay - 0.5;
+                shockwaveShell1.visible = true;
+                shockwaveShell2.visible = true;
+                ejectaPoints.visible = true;
+
+                // Accretion disk is blown away by the thermonuclear shockwave
+                accretionDiskPoints.visible = blastAge < 2.0;
+                accretionStreamPoints.visible = blastAge < 1.5;
+
+                // Expanding shockwave shells
+                const shellRadius = 1.5 + Math.pow(blastAge, 0.72) * 2.6;
+                shockwaveShell1.scale.set(shellRadius, shellRadius, shellRadius);
+                shockwaveShell1.material.opacity = Math.max(0.02, 0.42 * lum);
+
+                shockwaveShell2.scale.set(shellRadius * 0.82, shellRadius * 0.82, shellRadius * 0.82);
+                shockwaveShell2.rotation.y = elapsedTime * 0.25;
+                shockwaveShell2.material.opacity = Math.max(0.02, 0.32 * lum);
+
+                // Central fireball core flare
+                const coreSize = 10 + lum * 36;
+                wdCoreGlow.scale.set(coreSize, coreSize, 1);
+                binaryLight.intensity = 2.0 + lum * 7.5;
+
+                // Update expanding ejecta particles
+                const ejArr = ejectaPoints.geometry.attributes.position.array;
+                const expansionScale = Math.pow(blastAge, 0.78) * 3.1;
+                for (let i = 0; i < ejectaParticleCount; i++) {
+                    const v = ejectaVelocities[i];
+                    ejArr[i * 3] = whiteDwarfMesh.position.x + v.vx * expansionScale;
+                    ejArr[i * 3 + 1] = v.vy * expansionScale;
+                    ejArr[i * 3 + 2] = whiteDwarfMesh.position.z + v.vz * expansionScale;
+                }
+                ejectaPoints.geometry.attributes.position.needsUpdate = true;
+                ejectaPoints.material.opacity = Math.max(0.15, Math.min(0.95, lum * 1.15));
+            }
+        }
+
+        // ==========================================
+        // 10. ANIMATION LOOP & RESIZE HANDLER
+        // ==========================================
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const delta = clock.getDelta();
+            const elapsed = clock.getElapsedTime();
+
+            // Advance timeline automatically if playing
+            if (isPlaying) {
+                // Pacing: slower during the dramatic first 22 days (discovery -> peak), slightly faster in decay
+                const speed = simDay < 22 ? 2.6 : 4.8;
+                simDay += delta * speed;
+                if (simDay > 90) {
+                    simDay = 0; // Loop smoothly
+                }
+                slider.value = simDay;
+            }
+
+            // Gentle rotation of NGC 1433
+            if (galaxyGroup.visible) {
+                galaxyGroup.rotation.y += delta * 0.035;
+            }
+
+            // Smooth camera preset transitions
+            if (isTransitioningCam) {
+                camera.position.lerp(targetCamPos, 0.08);
+                controls.target.lerp(targetLookAt, 0.08);
+                if (camera.position.distanceTo(targetCamPos) < 0.25) {
+                    isTransitioningCam = false;
+                }
+            }
+
+            controls.update();
+            updateHUDAndVisuals(elapsed);
+            renderer.render(scene, camera);
+        }
+
+        // Cancel auto camera lerp if user grabs controls manually
+        controls.addEventListener('start', () => {
+            isTransitioningCam = false;
+        });
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        window.onload = function () {
+            updateHUDAndVisuals(0);
+            animate();
+        };
+    </script>
+</body>
+</html>
