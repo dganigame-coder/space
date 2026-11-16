@@ -212,7 +212,7 @@
 
             <!-- Action Buttons Row -->
             <div class="flex items-center justify-between pt-1 border-t border-white/10">
-                <div class="text-[11px] text-slate-400 hidden sm:block">Tip: Drag the black hole to test orbital slingshots and tidal stripping.</div>
+                <div class="text-[11px] text-slate-400 hidden sm:block">Tip: Drag the black hole anywhere on screen to disrupt orbits instantly.</div>
                 <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
                     <button id="pause-btn" class="btn-pill px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold text-white flex items-center justify-center gap-1.5">
                         <span id="pause-icon">⏸</span>
@@ -716,7 +716,7 @@
             streamGeom.attributes.color.needsUpdate = true;
         }
 
-        // --- RAYCASTING & CANVAS-BOUND DRAGGING (FIXED) ---
+        // --- RAYCASTING & FIXED POINTER DRAGGING ---
         const raycaster = new THREE.Raycaster();
         const pointerNDC = new THREE.Vector2();
         const eclipticPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
@@ -740,7 +740,13 @@
                 if (raycaster.ray.intersectPlane(eclipticPlane, planeIntersect)) {
                     state.isDraggingBH = true;
                     controls.enabled = false;
-                    dragOffset.subVectors(blackHoleGroup.position, planeIntersect);
+                    
+                    if (hitsBH) {
+                        dragOffset.subVectors(blackHoleGroup.position, planeIntersect);
+                    } else {
+                        dragOffset.set(0, 0, 0);
+                        state.bhTargetPos.copy(planeIntersect);
+                    }
                 }
             }
         }
@@ -761,33 +767,20 @@
             controls.enabled = (state.interactionMode === 'camera');
         }
 
-        // Mouse Events bound directly to Canvas
-        domEl.addEventListener('mousedown', (e) => {
-            if (e.button !== 0) return;
+        domEl.addEventListener('pointerdown', (e) => {
+            if (e.pointerType === 'mouse' && e.button !== 0) return;
             onPointerDown(e.clientX, e.clientY);
         });
-        window.addEventListener('mousemove', (e) => {
-            onPointerMove(e.clientX, e.clientY);
-        });
-        window.addEventListener('mouseup', onPointerUp);
 
-        // Touch Events bound directly to Canvas
-        domEl.addEventListener('touchstart', (e) => {
-            if (e.touches.length === 1) {
-                onPointerDown(e.touches[0].clientX, e.touches[0].clientY);
-            } else {
-                state.isDraggingBH = false;
-                controls.enabled = true;
+        window.addEventListener('pointermove', (e) => {
+            if (state.isDraggingBH) {
+                e.preventDefault();
+                onPointerMove(e.clientX, e.clientY);
             }
-        }, { passive: true });
+        }, { passive: false });
 
-        domEl.addEventListener('touchmove', (e) => {
-            if (e.touches.length === 1 && state.isDraggingBH) {
-                onPointerMove(e.touches[0].clientX, e.touches[0].clientY);
-            }
-        }, { passive: true });
-
-        domEl.addEventListener('touchend', onPointerUp);
+        window.addEventListener('pointerup', onPointerUp);
+        window.addEventListener('pointercancel', onPointerUp);
 
         // --- UI BINDINGS ---
         document.getElementById('mode-drag-btn').addEventListener('click', () => {
