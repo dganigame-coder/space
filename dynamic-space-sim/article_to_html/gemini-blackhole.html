@@ -119,14 +119,14 @@
             </div>
             <div>
                 <h1 class="text-sm sm:text-base font-semibold tracking-tight text-white leading-tight">Rogue Black Hole Simulator</h1>
-                <p class="text-[11px] text-slate-400 leading-tight">Frame-Dragging & N-Body Gravitational Physics</p>
+                <p class="text-[11px] text-slate-400 leading-tight">Drag with finger/mouse to disrupt orbits</p>
             </div>
         </div>
 
         <!-- Live Event Alert Pill -->
         <div id="telemetry-pill" class="glass-panel rounded-full px-3.5 py-1.5 pointer-events-auto flex items-center gap-2 text-xs border border-orange-500/30">
             <span id="telemetry-dot" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span id="telemetry-text" class="mono text-[11px] sm:text-xs text-slate-200">System nominal — Drag black hole to disrupt orbits</span>
+            <span id="telemetry-text" class="mono text-[11px] sm:text-xs text-slate-200">System nominal — Drag black hole to begin</span>
         </div>
     </header>
 
@@ -212,7 +212,7 @@
 
             <!-- Action Buttons Row -->
             <div class="flex items-center justify-between pt-1 border-t border-white/10">
-                <div class="text-[11px] text-slate-400 hidden sm:block">Tip: Positive spin swirls counter-clockwise; negative spin reverses the vortex.</div>
+                <div class="text-[11px] text-slate-400 hidden sm:block">Tip: Drag the black hole to test orbital slingshots and tidal stripping.</div>
                 <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
                     <button id="pause-btn" class="btn-pill px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold text-white flex items-center justify-center gap-1.5">
                         <span id="pause-icon">⏸</span>
@@ -229,7 +229,7 @@
     <script>
         /**
          * ============================================================================
-         * ROGUE BLACK HOLE SIMULATION WITH RELATIVISTIC FRAME-DRAGGING & N-BODY PHYSICS
+         * ROGUE BLACK HOLE SIMULATION WITH FRAME-DRAGGING & N-BODY PHYSICS
          * ============================================================================
          */
 
@@ -237,7 +237,7 @@
             paused: false,
             timeScale: 1.0,
             bhMassSolar: 15.0,
-            bhSpin: 0.85,            // Spin parameter for Lense-Thirring space-time whirlpool
+            bhSpin: 0.85,
             interactionMode: 'drag',
             visibilityBoost: true,
             showLabelsAndTrails: true,
@@ -301,10 +301,6 @@
                 grad.addColorStop(0, '#c29b61'); grad.addColorStop(0.5, '#e6be7a'); grad.addColorStop(1, '#b88b4a');
                 ctx.fillStyle = grad;
                 ctx.fillRect(0, 0, 512, 256);
-                for (let i = 0; i < 40; i++) {
-                    ctx.fillStyle = 'rgba(255, 240, 200, 0.12)';
-                    ctx.fillRect(0, Math.random() * 256, 512, Math.random() * 14 + 3);
-                }
             } else if (type === 'earth') {
                 ctx.fillStyle = '#0b3d91';
                 ctx.fillRect(0, 0, 512, 256);
@@ -323,12 +319,6 @@
             } else if (type === 'mars') {
                 ctx.fillStyle = '#c1440e';
                 ctx.fillRect(0, 0, 512, 256);
-                for (let i = 0; i < 120; i++) {
-                    ctx.fillStyle = Math.random() > 0.4 ? 'rgba(110, 30, 8, 0.32)' : 'rgba(230, 120, 70, 0.25)';
-                    ctx.beginPath();
-                    ctx.ellipse(Math.random() * 512, Math.random() * 256, Math.random() * 28 + 6, Math.random() * 14 + 4, 0, 0, Math.PI * 2);
-                    ctx.fill();
-                }
             } else if (type === 'jupiter') {
                 const bands = ['#8c6d53', '#d9c5b2', '#b5653b', '#e6d7c3', '#9e502c', '#cbb399', '#7d5c43', '#dfd0be'];
                 for (let y = 0; y < 256; y += 8) {
@@ -513,7 +503,6 @@
         const photonRing = new THREE.Mesh(new THREE.RingGeometry(1.02, 1.14, 64), new THREE.MeshBasicMaterial({ color: 0xffedd5, side: THREE.DoubleSide, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending }));
         blackHoleGroup.add(photonRing);
 
-        // Accretion Disk with Frame-Dragging (Lense-Thirring Whirlpool)
         const diskUniforms = {
             uTime: { value: 0 },
             uBoost: { value: 0 },
@@ -533,7 +522,6 @@
                     float r = length(vLocalPos.xy);
                     float baseAngle = atan(vLocalPos.y, vLocalPos.x);
 
-                    // Relativistic Frame-Dragging: spacetime twists proportional to spin / r^3
                     float frameDrag = uSpin / (r * r * r + 0.05);
                     float draggedAngle = baseAngle - uTime * (3.0 + frameDrag * 14.0);
 
@@ -565,7 +553,6 @@
         accretionDisk.rotation.x = Math.PI * 0.44;
         blackHoleGroup.add(accretionDisk);
 
-        // Lensing Halo
         const lensingUniforms = { uTime: { value: 0 }, uBoost: { value: 0 } };
         const lensingMat = new THREE.ShaderMaterial({
             uniforms: lensingUniforms, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
@@ -729,42 +716,78 @@
             streamGeom.attributes.color.needsUpdate = true;
         }
 
-        // --- RAYCASTING & DRAGGING ---
+        // --- RAYCASTING & CANVAS-BOUND DRAGGING (FIXED) ---
         const raycaster = new THREE.Raycaster();
         const pointerNDC = new THREE.Vector2();
         const eclipticPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
         const dragOffset = new THREE.Vector3();
         const planeIntersect = new THREE.Vector3();
 
-        function updatePointer(x, y) {
+        function updatePointer(clientX, clientY) {
             const rect = renderer.domElement.getBoundingClientRect();
-            pointerNDC.x = ((x - rect.left) / rect.width) * 2 - 1;
-            pointerNDC.y = -((y - rect.top) / rect.height) * 2 + 1;
+            pointerNDC.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+            pointerNDC.y = -((clientY - rect.top) / rect.height) * 2 + 1;
         }
 
-        window.addEventListener('mousedown', (e) => {
-            if (e.button !== 0) return;
-            updatePointer(e.clientX, e.clientY);
+        const domEl = renderer.domElement;
+
+        function onPointerDown(clientX, clientY) {
+            updatePointer(clientX, clientY);
             raycaster.setFromCamera(pointerNDC, camera);
-            if (state.interactionMode === 'drag' || raycaster.intersectObject(bhHitMesh).length > 0) {
+            
+            const hitsBH = raycaster.intersectObject(bhHitMesh).length > 0;
+            if (state.interactionMode === 'drag' || hitsBH) {
                 if (raycaster.ray.intersectPlane(eclipticPlane, planeIntersect)) {
                     state.isDraggingBH = true;
                     controls.enabled = false;
                     dragOffset.subVectors(blackHoleGroup.position, planeIntersect);
                 }
             }
-        });
-        window.addEventListener('mousemove', (e) => {
+        }
+
+        function onPointerMove(clientX, clientY) {
             if (!state.isDraggingBH) return;
-            updatePointer(e.clientX, e.clientY);
+            updatePointer(clientX, clientY);
             raycaster.setFromCamera(pointerNDC, camera);
             if (raycaster.ray.intersectPlane(eclipticPlane, planeIntersect)) {
                 state.bhTargetPos.copy(planeIntersect).add(dragOffset);
                 state.bhTargetPos.x = THREE.MathUtils.clamp(state.bhTargetPos.x, -155, 155);
                 state.bhTargetPos.z = THREE.MathUtils.clamp(state.bhTargetPos.z, -155, 155);
             }
+        }
+
+        function onPointerUp() {
+            state.isDraggingBH = false;
+            controls.enabled = (state.interactionMode === 'camera');
+        }
+
+        // Mouse Events bound directly to Canvas
+        domEl.addEventListener('mousedown', (e) => {
+            if (e.button !== 0) return;
+            onPointerDown(e.clientX, e.clientY);
         });
-        window.addEventListener('mouseup', () => { state.isDraggingBH = false; controls.enabled = (state.interactionMode === 'camera'); });
+        window.addEventListener('mousemove', (e) => {
+            onPointerMove(e.clientX, e.clientY);
+        });
+        window.addEventListener('mouseup', onPointerUp);
+
+        // Touch Events bound directly to Canvas
+        domEl.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) {
+                onPointerDown(e.touches[0].clientX, e.touches[0].clientY);
+            } else {
+                state.isDraggingBH = false;
+                controls.enabled = true;
+            }
+        }, { passive: true });
+
+        domEl.addEventListener('touchmove', (e) => {
+            if (e.touches.length === 1 && state.isDraggingBH) {
+                onPointerMove(e.touches[0].clientX, e.touches[0].clientY);
+            }
+        }, { passive: true });
+
+        domEl.addEventListener('touchend', onPointerUp);
 
         // --- UI BINDINGS ---
         document.getElementById('mode-drag-btn').addEventListener('click', () => {
