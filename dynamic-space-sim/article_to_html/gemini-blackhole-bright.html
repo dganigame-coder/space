@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relativistic Black Hole Jet: Limb Brightening & Anisotropic Pitch Angles</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js & OrbitControls -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #02040a;
+            font-family: 'Inter', sans-serif;
+            color: #e2e8f0;
+            user-select: none;
+        }
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* Custom Glassmorphism Panels */
+        .glass-panel {
+            background: rgba(8, 13, 26, 0.72);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(56, 189, 248, 0.22);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.65);
+        }
+        /* Custom Range Sliders */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            background: rgba(30, 41, 59, 0.8);
+            height: 6px;
+            border-radius: 999px;
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #38bdf8;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.8);
+            transition: transform 0.15s ease, background-color 0.15s ease;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.18);
+            background: #7dd3fc;
+        }
+        /* Custom Scrollbar for small viewports */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(56, 189, 248, 0.3);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Main WebGL Container -->
+    <div id="canvas-container" class="fixed inset-0 z-0"></div>
+
+    <!-- Top-Left Scientific Header & Physics Info -->
+    <div class="fixed top-4 left-4 z-10 max-w-sm sm:max-w-md pointer-events-auto">
+        <div class="glass-panel rounded-2xl p-4 sm:p-5 transition-all duration-300">
+            <div class="flex items-center justify-between gap-2 mb-1.5">
+                <span class="px-2.5 py-0.5 text-[10px] font-semibold tracking-wider uppercase rounded-full bg-sky-500/20 text-sky-300 border border-sky-400/30 mono">
+                    EHT / Centaurus A Simulation
+                </span>
+                <button id="toggle-info-btn" class="text-xs text-slate-400 hover:text-sky-300 transition px-2 py-1 rounded-lg hover:bg-white/5">
+                    Hide Info
+                </button>
+            </div>
+            <h1 class="text-lg sm:text-xl font-bold text-white tracking-tight leading-snug">
+                Relativistic Jet Limb Brightening
+            </h1>
+            <div id="info-content" class="mt-2.5 space-y-2 text-xs sm:text-[13px] text-slate-300 leading-relaxed">
+                <p>
+                    Observations of <strong class="text-sky-300 font-medium">Centaurus A</strong> reveal that the outer edges ("limbs") of black hole jets glow far brighter than their central spine.
+                </p>
+                <p class="text-slate-400 text-xs">
+                    <span class="text-cyan-300 font-semibold">Physics Mechanism:</span> Electrons spiral along curved helical magnetic fields. When electron <span class="text-amber-300 font-medium">pitch angles</span> are anisotropically aligned near the jet boundary, their forward-beamed <span class="text-sky-300 font-medium">synchrotron radiation</span> aligns with our line of sight along the edges.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom-Left Real-Time 2D Brightness Cross-Section Graph -->
+    <div id="graph-panel" class="fixed bottom-4 left-4 z-10 w-64 sm:w-72 pointer-events-auto transition-opacity duration-300">
+        <div class="glass-panel rounded-2xl p-3.5">
+            <div class="flex items-center justify-between mb-1.5">
+                <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-300">
+                    Transverse Brightness Profile
+                </span>
+                <span id="profile-badge" class="text-[10px] mono px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-400/30">
+                    M-Shape (Limb)
+                </span>
+            </div>
+            <div class="relative w-full h-28 bg-slate-950/70 rounded-xl border border-slate-800/80 overflow-hidden">
+                <canvas id="profile-canvas" class="w-full h-full"></canvas>
+            </div>
+            <div class="flex justify-between text-[10px] text-slate-400 mono mt-1.5 px-1">
+                <span>-R (Left Limb)</span>
+                <span>0 (Spine)</span>
+                <span>+R (Right Limb)</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right / Bottom-Right Control Panel -->
+    <div class="fixed top-4 right-4 z-10 w-72 sm:w-80 max-h-[calc(100vh-2rem)] overflow-y-auto pointer-events-auto">
+        <div class="glass-panel rounded-2xl p-4 space-y-4">
+            
+            <!-- Camera View Presets -->
+            <div>
+                <div class="flex items-center justify-between mb-2">
+                    <label class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                        Camera Viewpoints
+                    </label>
+                    <span class="text-[10px] text-sky-400/80 mono">Drag to Orbit</span>
+                </div>
+                <div class="grid grid-cols-2 gap-1.5">
+                    <button data-cam="side" class="cam-btn active-cam px-2.5 py-2 rounded-xl text-xs font-medium bg-sky-500/25 text-sky-200 border border-sky-400/50 transition text-left flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-sky-400 shadow-[0_0_8px_#38bdf8]"></span>
+                        Side / EHT View
+                    </button>
+                    <button data-cam="closeup" class="cam-btn px-2.5 py-2 rounded-xl text-xs font-medium bg-slate-800/60 hover:bg-slate-800 text-slate-300 border border-slate-700/70 transition text-left flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                        Pitch Angles
+                    </button>
+                    <button data-cam="axis" class="cam-btn px-2.5 py-2 rounded-xl text-xs font-medium bg-slate-800/60 hover:bg-slate-800 text-slate-300 border border-slate-700/70 transition text-left flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-purple-400"></span>
+                        Jet Axis View
+                    </button>
+                    <button data-cam="oblique" class="cam-btn px-2.5 py-2 rounded-xl text-xs font-medium bg-slate-800/60 hover:bg-slate-800 text-slate-300 border border-slate-700/70 transition text-left flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                        Wide System
+                    </button>
+                </div>
+            </div>
+
+            <hr class="border-slate-800/80">
+
+            <!-- Physics Sliders -->
+            <div class="space-y-3.5">
+                <!-- Pitch Angle Anisotropy -->
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <label for="anisotropy-slider" class="text-xs font-medium text-slate-200">
+                            Pitch Angle Anisotropy
+                        </label>
+                        <span id="anisotropy-val" class="text-xs mono font-semibold text-cyan-300">90%</span>
+                    </div>
+                    <input id="anisotropy-slider" type="range" min="0" max="100" value="90" class="w-full">
+                    <div class="flex justify-between text-[10px] text-slate-400 mt-1">
+                        <span>0% Isotropic (Center-Bright)</span>
+                        <span>100% Anisotropic (Limb)</span>
+                    </div>
+                </div>
+
+                <!-- Jet Velocity / Relativistic Beaming -->
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <label for="velocity-slider" class="text-xs font-medium text-slate-200">
+                            Relativistic Jet Flow (β = v/c)
+                        </label>
+                        <span id="velocity-val" class="text-xs mono font-semibold text-sky-300">0.94c</span>
+                    </div>
+                    <input id="velocity-slider" type="range" min="10" max="100" value="75" class="w-full">
+                </div>
+            </div>
+
+            <hr class="border-slate-800/80">
+
+            <!-- Layer Visibility Toggles -->
+            <div>
+                <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                    Visualization Layers
+                </label>
+                <div class="space-y-2 text-xs">
+                    <label class="flex items-center justify-between cursor-pointer p-1.5 rounded-lg hover:bg-white/5 transition">
+                        <span class="text-slate-200 flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-sm bg-blue-500/80 inline-block"></span>
+                            Helical Magnetic Field Lines
+                        </span>
+                        <input id="toggle-bfield" type="checkbox" checked class="accent-sky-400 w-4 h-4 rounded cursor-pointer">
+                    </label>
+
+                    <label class="flex items-center justify-between cursor-pointer p-1.5 rounded-lg hover:bg-white/5 transition">
+                        <span class="text-slate-200 flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-sm bg-amber-400 inline-block"></span>
+                            Synchrotron Emission Cones
+                        </span>
+                        <input id="toggle-cones" type="checkbox" checked class="accent-sky-400 w-4 h-4 rounded cursor-pointer">
+                    </label>
+
+                    <label class="flex items-center justify-between cursor-pointer p-1.5 rounded-lg hover:bg-white/5 transition">
+                        <span class="text-slate-200 flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-sm bg-cyan-300 inline-block"></span>
+                            Volumetric Limb Sheath
+                        </span>
+                        <input id="toggle-sheath" type="checkbox" checked class="accent-sky-400 w-4 h-4 rounded cursor-pointer">
+                    </label>
+
+                    <label class="flex items-center justify-between cursor-pointer p-1.5 rounded-lg hover:bg-white/5 transition">
+                        <span class="text-slate-200 flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-sm bg-emerald-400 inline-block"></span>
+                            Cross-Section Brightness Graph
+                        </span>
+                        <input id="toggle-graph" type="checkbox" checked class="accent-sky-400 w-4 h-4 rounded cursor-pointer">
+                    </label>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        /**
+         * Relativistic Black Hole Jet: Limb Brightening & Anisotropic Pitch Angles
+         * Three.js Interactive Astrophysics Simulation
+         */
+        window.onload = function () {
+            // --- Simulation State ---
+            const state = {
+                anisotropy: 0.90,      // 0.0 (Isotropic center-bright) to 1.0 (Anisotropic limb-bright)
+                jetSpeed: 0.75,        // Controls particle advection speed & beaming factor
+                showBField: true,
+                showCones: true,
+                showSheath: true,
+                showGraph: true,
+                time: 0
+            };
+
+            // --- Scene, Camera, Renderer Setup ---
+            const container = document.getElementById('canvas-container');
+            const scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x02040a, 0.0085);
+
+            const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 500);
+            camera.position.set(0, 6, 36);
+
+            const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.25;
+            container.appendChild(renderer.domElement);
+
+            const controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.06;
+            controls.maxDistance = 95;
+            controls.minDistance = 4;
+            controls.target.set(0, 4.5, 0);
+
+            // Smooth camera transition target state
+            let cameraTransition = {
+                active: false,
+                targetPos: new THREE.Vector3(0, 6, 36),
+                targetLook: new THREE.Vector3(0, 4.5, 0)
+            };
+
+            // Stop automated transition when user interacts manually
+            controls.addEventListener('start', () => {
+                cameraTransition.active = false;
+            });
+
+            // --- Procedural Soft Glow Texture ---
+            function createGlowTexture() {
+                const canvas = document.createElement('canvas');
+                canvas.width = 128;
+                canvas.height = 128;
+                const ctx = canvas.getContext('2d');
+                const grad = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+                grad.addColorStop(0.0, 'rgba(255, 255, 255, 1.0)');
+                grad.addColorStop(0.2, 'rgba(220, 248, 255, 0.85)');
+                grad.addColorStop(0.5, 'rgba(56, 189, 248, 0.3)');
+                grad.addColorStop(1.0, 'rgba(0, 0, 0, 0.0)');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, 128, 128);
+                const tex = new THREE.CanvasTexture(canvas);
+                return tex;
+            }
+            const glowTexture = createGlowTexture();
+
+            // --- Deep Space Starfield ---
+            function createStarfield() {
+                const starCount = 2400;
+                const geo = new THREE.BufferGeometry();
+                const positions = new Float32Array(starCount * 3);
+                const colors = new Float32Array(starCount * 3);
+
+                for (let i = 0; i < starCount; i++) {
+                    const r = 80 + Math.random() * 180;
+                    const theta = Math.random() * Math.PI * 2;
+                    const phi = Math.acos(2 * Math.random() - 1);
+                    positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+                    positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+                    positions[i * 3 + 2] = r * Math.cos(phi);
+
+                    const tint = Math.random();
+                    const c = new THREE.Color();
+                    if (tint < 0.3) c.setHex(0x93c5fd);
+                    else if (tint < 0.6) c.setHex(0xfde68a);
+                    else c.setHex(0xffffff);
+                    c.multiplyScalar(0.4 + Math.random() * 0.6);
+
+                    colors[i * 3] = c.r;
+                    colors[i * 3 + 1] = c.g;
+                    colors[i * 3 + 2] = c.b;
+                }
+                geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+                const mat = new THREE.PointsMaterial({
+                    size: 0.55,
+                    vertexColors: true,
+                    transparent: true,
+                    opacity: 0.85,
+                    depthWrite: false
+                });
+                return new THREE.Points(geo, mat);
+            }
+            scene.add(createStarfield());
+
+            // --- 1. Supermassive Black Hole & Relativistic Accretion Disk ---
+            const blackHoleGroup = new THREE.Group();
+            scene.add(blackHoleGroup);
+
+            // Event Horizon Sphere
+            const bhRadius = 1.65;
+            const bhGeo = new THREE.SphereGeometry(bhRadius, 48, 48);
+            const bhMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+            const eventHorizon = new THREE.Mesh(bhGeo, bhMat);
+            blackHoleGroup.add(eventHorizon);
+
+            // Photon Ring / Gravitational Lensing Halo (Billboarded Shader)
+            const lensHaloGeo = new THREE.PlaneGeometry(6.8, 6.8);
+            const lensHaloMat = new THREE.ShaderMaterial({
+                transparent: true,
+                depthWrite: false,
+                blending: THREE.AdditiveBlending,
+                uniforms: {
+                    uTime: { value: 0 }
+                },
+                vertexShader: `
+                    varying vec2 vUv;
+                    void main() {
+                        vUv = uv;
+                        // Billboard facing camera
+                        vec4 mvPosition = modelViewMatrix * vec4(0.0, 0.0, 0.0, 1.0);
+                        mvPosition.xy += position.xy;
+                        gl_Position = projectionMatrix * mvPosition;
+                    }
+                `,
+                fragmentShader: `
+                    varying vec2 vUv;
+                    uniform float uTime;
+                    void main() {
+                        vec2 p = (vUv - 0.5) * 2.0;
+                        float r = length(p);
+                        // Thin bright photon ring just outside event horizon (~0.52 in normalized plane)
+                        float ring = exp(-pow((r - 0.52) * 18.0, 2.0)) * 1.4;
+                        float outerGlow = exp(-r * 3.8) * 0.65;
+                        float angle = atan(p.y, p.x);
+                        float doppler = 0.8 + 0.25 * cos(angle - 0.4 + sin(uTime * 0.5) * 0.1);
+                        vec3 col = mix(vec3(1.0, 0.55, 0.15), vec3(0.4, 0.85, 1.0), smoothstep(0.45, 0.75, r));
+                        float alpha = clamp((ring + outerGlow) * doppler, 0.0, 1.0);
+                        if (r < 0.47) alpha = 0.0; // Mask inside shadow
+                        gl_FragColor = vec4(col * alpha * 1.3, alpha);
+                    }
+                `
+            });
+            const lensHalo = new THREE.Mesh(lensHaloGeo, lensHaloMat);
+            blackHoleGroup.add(lensHalo);
+
+            // Swirling Accretion Disk Shader
+            const diskGeo = new THREE.RingGeometry(1.95, 9.2, 96, 16);
+            diskGeo.rotateX(-Math.PI / 2);
+            const diskMat = new THREE.ShaderMaterial({
+                transparent: true,
+                side: THREE.DoubleSide,
+                depthWrite: false,
+                blending: THREE.AdditiveBlending,
+                uniforms: {
+                    uTime: { value: 0 }
+                },
+                vertexShader: `
+                    varying vec2 vUv;
+                    varying vec3 vPos;
+                    void main() {
+                        vUv = uv;
+                        vPos = position;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    varying vec2 vUv;
+                    varying vec3 vPos;
+                    uniform float uTime;
+
+                    float hash(vec2 p) {
+                        return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+                    }
+                    float noise(vec2 p) {
+                        vec2 i = floor(p);
+                        vec2 f = fract(p);
+                        f = f * f * (3.0 - 2.0 * f);
+                        return mix(
+                            mix(hash(i + vec2(0.0, 0.0)), hash(i + vec2(1.0, 0.0)), f.x),
+                            mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x),
+                            f.y
+                        );
+                    }
+
+                    void main() {
+                        float r = length(vPos.xz);
+                        float normR = (r - 1.95) / (9.2 - 1.95);
+                        if (normR < 0.0 || normR > 1.0) discard;
+
+                        float angle = atan(vPos.z, vPos.x);
+                        // Keplerian differential rotation
+                        float speed = 2.8 / pow(r, 0.65);
+                        float spiral = angle + r * 1.15 - uTime * speed;
+
+                        float n1 = noise(vec2(r * 2.2, spiral * 3.0));
+                        float n2 = noise(vec2(r * 5.0 - uTime, spiral * 6.0));
+                        float bands = 0.55 + 0.45 * sin(spiral * 4.0 + n1 * 3.5);
+                        float detail = mix(n1, n2, 0.45) * bands;
+
+                        // Radial falloff
+                        float innerEdge = smoothstep(0.0, 0.08, normR);
+                        float outerEdge = pow(1.0 - normR, 1.8);
+
+                        // Doppler beaming boost on left approaching side
+                        float doppler = 1.0 + 0.35 * (-vPos.x / r);
+
+                        // Temperature gradient: inner hot white-blue/gold -> outer deep amber-orange
+                        vec3 hotColor = vec3(0.85, 0.95, 1.0);
+                        vec3 midColor = vec3(1.0, 0.62, 0.22);
+                        vec3 outerColor = vec3(0.75, 0.22, 0.08);
+
+                        vec3 col = mix(hotColor, midColor, smoothstep(0.0, 0.35, normR));
+                        col = mix(col, outerColor, smoothstep(0.35, 0.95, normR));
+
+                        float intensity = innerEdge * outerEdge * (0.45 + 0.85 * detail) * doppler;
+                        gl_FragColor = vec4(col * intensity * 1.45, clamp(intensity, 0.0, 1.0));
+                    }
+                `
+            });
+            const accretionDisk = new THREE.Mesh(diskGeo, diskMat);
+            blackHoleGroup.add(accretionDisk);
+
+            // --- Jet Geometry Helper Functions ---
+            // Parabolic collimating jet radius profile R(y)
+            const JET_HEIGHT = 24.0;
+            function getJetRadius(absY) {
+                // Starts narrow near black hole poles, expands parabolically and collimates
+                return 0.65 + 2.55 * Math.pow(absY / JET_HEIGHT, 0.62);
+            }
+
+            // --- 2. Helical / Curved Magnetic Field Lines ---
+            const bFieldGroup = new THREE.Group();
+            scene.add(bFieldGroup);
+
+            const fieldLineMaterial = new THREE.MeshBasicMaterial({
+                color: 0x3b82f6,
+                transparent: true,
+                opacity: 0.28,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+
+            const outerFieldLineMaterial = new THREE.MeshBasicMaterial({
+                color: 0x38bdf8,
+                transparent: true,
+                opacity: 0.42,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+
+            function buildMagneticFieldLines() {
+                const strandsPerShell = 8;
+                const shells = [0.42, 0.96]; // Inner spine shell & outer limb boundary shell
+                const directions = [1, -1]; // North & South relativistic jets
+
+                directions.forEach(dir => {
+                    shells.forEach((shellFactor, sIdx) => {
+                        for (let i = 0; i < strandsPerShell; i++) {
+                            const baseAngle = (i / strandsPerShell) * Math.PI * 2;
+                            const points = [];
+                            const segments = 64;
+
+                            for (let s = 0; s <= segments; s++) {
+                                const t = s / segments;
+                                const absY = 1.4 + t * (JET_HEIGHT - 1.4);
+                                const y = dir * absY;
+                                const r = getJetRadius(absY) * shellFactor;
+                                // Helical twist along the jet axis
+                                const twist = baseAngle + dir * (t * Math.PI * 3.2);
+                                points.push(new THREE.Vector3(
+                                    Math.cos(twist) * r,
+                                    y,
+                                    Math.sin(twist) * r
+                                ));
+                            }
+
+                            const curve = new THREE.CatmullRomCurve3(points);
+                            const tubeGeo = new THREE.TubeGeometry(curve, 64, sIdx === 1 ? 0.035 : 0.022, 6, false);
+                            const mesh = new THREE.Mesh(tubeGeo, sIdx === 1 ? outerFieldLineMaterial : fieldLineMaterial);
+                            bFieldGroup.add(mesh);
+                        }
+                    });
+                });
+            }
+            buildMagneticFieldLines();
+
+            // --- 3. Volumetric Limb Brightening Jet Sheath (Custom Shader) ---
+            // Renders continuous plasma glow whose edge brightness responds dynamically to Pitch Angle Anisotropy
+            const sheathGroup = new THREE.Group();
+            scene.add(sheathGroup);
+
+            const sheathUniforms = {
+                uTime: { value: 0 },
+                uAnisotropy: { value: state.anisotropy },
+                uJetSpeed: { value: state.jetSpeed }
+            };
+
+            const sheathMat = new THREE.ShaderMaterial({
+                transparent: true,
+                side: THREE.DoubleSide,
+                depthWrite: false,
+                blending: THREE.AdditiveBlending,
+                uniforms: sheathUniforms,
+                vertexShader: `
+                    varying vec3 vNormalView;
+                    varying vec3 vViewPosition;
+                    varying vec2 vUv;
+                    varying float vAbsY;
+
+                    void main() {
+                        vUv = uv;
+                        vAbsY = abs(position.y);
+                        vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
+                        vViewPosition = -mvPos.xyz;
+                        vNormalView = normalize(normalMatrix * normal);
+                        gl_Position = projectionMatrix * mvPos;
+                    }
+                `,
+                fragmentShader: `
+                    varying vec3 vNormalView;
+                    varying vec3 vViewPosition;
+                    varying vec2 vUv;
+                    varying float vAbsY;
+
+                    uniform float uTime;
+                    uniform float uAnisotropy;
+                    uniform float uJetSpeed;
+
+                    void main() {
+                        vec3 viewDir = normalize(vViewPosition);
+                        vec3 n = normalize(vNormalView);
+                        // Cosine of angle between surface normal and line of sight:
+                        // ~1.0 at center spine, ~0.0 at grazing outer limbs!
+                        float ndotv = abs(dot(n, viewDir));
+
+                        // Limb factor peaks sharply near grazing angle (ndotv -> 0)
+                        float limbEdge = pow(1.0 - ndotv, 3.2);
+                        // Center-bright factor peaks when looking through core (ndotv -> 1)
+                        float centerCore = pow(ndotv, 1.6);
+
+                        // Blend between Isotropic (center-bright) and Anisotropic (limb-bright)
+                        float profile = mix(centerCore * 0.75, limbEdge * 1.45, uAnisotropy);
+
+                        // Flowing plasma striations along helical shear
+                        float flow = sin(vAbsY * 1.8 - uTime * (4.0 + uJetSpeed * 6.0) + vUv.x * 18.8495) * 0.5 + 0.5;
+                        float fineStriation = sin(vAbsY * 4.5 - uTime * 8.0 - vUv.x * 31.4159) * 0.5 + 0.5;
+                        float plasmaTex = 0.72 + 0.28 * mix(flow, fineStriation, 0.4);
+
+                        // Fade smoothly at base near black hole and far outer boundary
+                        float baseFade = smoothstep(1.3, 3.2, vAbsY);
+                        float topFade = 1.0 - smoothstep(16.0, 24.0, vAbsY);
+
+                        // Color: intense electric cyan/white on bright limbs, deeper sapphire blue in diffuse body
+                        vec3 coreCol = vec3(0.15, 0.45, 0.95);
+                        vec3 limbCol = vec3(0.65, 0.95, 1.0);
+                        vec3 finalCol = mix(coreCol, limbCol, clamp(limbEdge * uAnisotropy * 1.3, 0.0, 1.0));
+
+                        float alpha = profile * plasmaTex * baseFade * topFade * 0.62;
+                        gl_FragColor = vec4(finalCol * alpha * 1.4, clamp(alpha, 0.0, 1.0));
+                    }
+                `
+            });
+
+            function createJetSheathMesh(direction) {
+                const radialSegs = 64;
+                const heightSegs = 48;
+                const geo = new THREE.CylinderGeometry(1, 1, JET_HEIGHT - 1.3, radialSegs, heightSegs, true);
+                const pos = geo.attributes.position;
+
+                for (let i = 0; i < pos.count; i++) {
+                    // Map cylinder y from [-H/2, H/2] to [1.3, JET_HEIGHT]
+                    const normY = (pos.getY(i) / (JET_HEIGHT - 1.3)) + 0.5;
+                    const absY = 1.3 + normY * (JET_HEIGHT - 1.3);
+                    const r = getJetRadius(absY);
+                    const angle = Math.atan2(pos.getZ(i), pos.getX(i));
+
+                    pos.setXYZ(i, Math.cos(angle) * r, direction * absY, Math.sin(angle) * r);
+                }
+                geo.computeVertexNormals();
+                return new THREE.Mesh(geo, sheathMat);
+            }
+
+            sheathGroup.add(createJetSheathMesh(1));
+            sheathGroup.add(createJetSheathMesh(-1));
+
+            // --- 4. Relativistic Electron Plasma Particles with Pitch Angle Emission ---
+            // Thousands of electrons spiraling along curved magnetic fields; brightness depends on
+            // radial position (limb vs spine) and Pitch Angle Anisotropy!
+            const PARTICLE_COUNT = 5500;
+            const particleGeo = new THREE.BufferGeometry();
+            const pPositions = new Float32Array(PARTICLE_COUNT * 3);
+            const pColors = new Float32Array(PARTICLE_COUNT * 3);
+            const pSizes = new Float32Array(PARTICLE_COUNT);
+
+            // Particle metadata for helical motion
+            const particlesMeta = [];
+            for (let i = 0; i < PARTICLE_COUNT; i++) {
+                const dir = i % 2 === 0 ? 1 : -1;
+                // Bias radial distribution slightly so outer limb sheath is richly populated
+                const u = Math.random();
+                const radialRatio = Math.pow(u, 0.68); // 0 = central spine, 1 = outer limb boundary
+                particlesMeta.push({
+                    dir: dir,
+                    progress: Math.random(),             // 0..1 along jet length
+                    radialRatio: radialRatio,
+                    baseAngle: Math.random() * Math.PI * 2,
+                    gyroPhase: Math.random() * Math.PI * 2,
+                    speedOffset: 0.8 + Math.random() * 0.4
+                });
+            }
+
+            particleGeo.setAttribute('position', new THREE.BufferAttribute(pPositions, 3));
+            particleGeo.setAttribute('color', new THREE.BufferAttribute(pColors, 3));
+            particleGeo.setAttribute('size', new THREE.BufferAttribute(pSizes, 1));
+
+            // Custom Point Shader for crisp glowing synchrotron electrons
+            const particleMat = new THREE.ShaderMaterial({
+                transparent: true,
+                depthWrite: false,
+                blending: THREE.AdditiveBlending,
+                uniforms: {
+                    uTex: { value: glowTexture },
+                    uPixelRatio: { value: renderer.getPixelRatio() }
+                },
+                vertexShader: `
+                    attribute vec3 color;
+                    attribute float size;
+                    varying vec3 vColor;
+                    uniform float uPixelRatio;
+
+                    void main() {
+                        vColor = color;
+                        vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+                        gl_PointSize = size * uPixelRatio * (180.0 / -mvPosition.z);
+                        gl_Position = projectionMatrix * mvPosition;
+                    }
+                `,
+                fragmentShader: `
+                    uniform sampler2D uTex;
+                    varying vec3 vColor;
+                    void main() {
+                        vec4 texColor = texture2D(uTex, gl_PointCoord);
+                        gl_FragColor = vec4(vColor * texColor.rgb, texColor.a);
+                    }
+                `
+            });
+
+            const electronPoints = new THREE.Points(particleGeo, particleMat);
+            scene.add(electronPoints);
+
+            // --- 5. Hero Pitch Angle & Synchrotron Emission Cone Visualizers ---
+            // Detailed 3D indicators along the North jet showing electrons spiraling around magnetic field lines
+            // and emitting beamed synchrotron radiation cones whose orientation depends on Anisotropy!
+            const conesGroup = new THREE.Group();
+            scene.add(conesGroup);
+
+            const sampleIndicators = [];
+            const sampleHeights = [5.5, 9.5, 13.5, 17.5];
+            const sampleSides = [-1, 1]; // Left limb and Right limb
+
+            // Cone geometry pointing along +Y locally so we can orient it cleanly
+            const coneHeight = 2.4;
+            const coneGeo = new THREE.ConeGeometry(0.55, coneHeight, 24, 1, true);
+            coneGeo.translate(0, coneHeight * 0.5, 0);
+
+            const coneMat = new THREE.ShaderMaterial({
+                transparent: true,
+                side: THREE.DoubleSide,
+                depthWrite: false,
+                blending: THREE.AdditiveBlending,
+                uniforms: {
+                    uTime: { value: 0 }
+                },
+                vertexShader: `
+                    varying vec2 vUv;
+                    void main() {
+                        vUv = uv;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    varying vec2 vUv;
+                    uniform float uTime;
+                    void main() {
+                        // vUv.y is 0 at tip (electron), 1 at wide base
+                        float fade = pow(1.0 - vUv.y, 1.8);
+                        float pulse = 0.8 + 0.2 * sin(uTime * 6.0 - vUv.y * 8.0);
+                        vec3 col = mix(vec3(1.0, 0.85, 0.35), vec3(0.25, 0.9, 1.0), vUv.y);
+                        gl_FragColor = vec4(col * fade * pulse * 1.3, fade * 0.78);
+                    }
+                `
+            });
+
+            const electronCoreGeo = new THREE.SphereGeometry(0.14, 16, 16);
+            const electronCoreMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
+
+            sampleHeights.forEach((yPos, hIdx) => {
+                sampleSides.forEach((side, sIdx) => {
+                    const holder = new THREE.Group();
+                    const electronMesh = new THREE.Mesh(electronCoreGeo, electronCoreMat);
+                    const beamCone = new THREE.Mesh(coneGeo, coneMat);
+                    holder.add(electronMesh);
+                    holder.add(beamCone);
+                    conesGroup.add(holder);
+
+                    sampleIndicators.push({
+                        holder,
+                        beamCone,
+                        yPos,
+                        side,
+                        phase: hIdx * 1.1 + sIdx * Math.PI
+                    });
+                });
+            });
+
+            // --- Update Particle & Cone Physics ---
+            const tmpColor = new THREE.Color();
+            const camRight = new THREE.Vector3();
+            const camDir = new THREE.Vector3();
+
+            function updatePhysics(dt) {
+                state.time += dt;
+                const t = state.time;
+
+                // Update Shader Uniforms
+                lensHaloMat.uniforms.uTime.value = t;
+                diskMat.uniforms.uTime.value = t;
+                sheathUniforms.uTime.value = t;
+                sheathUniforms.uAnisotropy.value = state.anisotropy;
+                sheathUniforms.uJetSpeed.value = state.jetSpeed;
+                coneMat.uniforms.uTime.value = t;
+
+                // Compute camera horizontal basis in XZ plane to evaluate limb projection dynamically
+                camera.getWorldDirection(camDir);
+                camRight.crossVectors(camDir, new THREE.Vector3(0, 1, 0)).normalize();
+
+                const flowRate = (0.12 + state.jetSpeed * 0.35) * dt;
+                const aniso = state.anisotropy;
+
+                // Update 5,500 relativistic electrons
+                for (let i = 0; i < PARTICLE_COUNT; i++) {
+                    const m = particlesMeta[i];
+                    m.progress += flowRate * m.speedOffset;
+                    if (m.progress > 1.0) m.progress -= 1.0;
+
+                    const absY = 1.4 + m.progress * (JET_HEIGHT - 1.4);
+                    const y = m.dir * absY;
+                    const maxR = getJetRadius(absY);
+                    const r = maxR * m.radialRatio;
+
+                    // Helical path along magnetic field + rapid Larmor gyration
+                    const helicalAngle = m.baseAngle + m.dir * (m.progress * Math.PI * 3.2 - t * 1.4);
+                    const gyroRadius = 0.06 + 0.08 * m.radialRatio;
+                    const gyroAngle = m.gyroPhase + t * 14.0;
+
+                    const x = Math.cos(helicalAngle) * r + Math.cos(gyroAngle) * gyroRadius;
+                    const z = Math.sin(helicalAngle) * r + Math.sin(gyroAngle) * gyroRadius;
+
+                    pPositions[i * 3] = x;
+                    pPositions[i * 3 + 1] = y;
+                    pPositions[i * 3 + 2] = z;
+
+                    // Compute apparent projected limb proximity relative to current viewer angle:
+                    // Projection along screen-horizontal axis (camRight)
+                    const projectedX = Math.abs(x * camRight.x + z * camRight.z) / Math.max(maxR, 0.01);
+                    const limbProximity = Math.min(1.0, Math.pow(projectedX, 1.4));
+
+                    // Synchrotron beaming intensity based on pitch angle anisotropy:
+                    // High anisotropy -> outer limb particles beam directly toward observer (bright cyan/white)
+                    // Low anisotropy (isotropic) -> center spine particles dominate by volume density
+                    const isotropicWeight = (1.0 - m.radialRatio * 0.65);
+                    const anisotropicWeight = Math.pow(limbProximity, 2.2) * (0.35 + 0.65 * m.radialRatio);
+
+                    const brightness = THREE.MathUtils.lerp(isotropicWeight, anisotropicWeight * 1.65, aniso);
+
+                    // Fade smoothly at ends of jet
+                    const endFade = Math.sin(m.progress * Math.PI);
+                    const finalIntensity = brightness * (0.35 + 0.65 * endFade);
+
+                    // Color shift: hot white-cyan on high-emission limb electrons, deep electric blue in dimmer spine
+                    tmpColor.setRGB(
+                        0.12 + finalIntensity * 0.78,
+                        0.38 + finalIntensity * 0.62,
+                        0.85 + finalIntensity * 0.15
+                    );
+                    tmpColor.multiplyScalar(0.35 + finalIntensity * 1.15);
+
+                    pColors[i * 3] = tmpColor.r;
+                    pColors[i * 3 + 1] = tmpColor.g;
+                    pColors[i * 3 + 2] = tmpColor.b;
+
+                    pSizes[i] = 0.16 + finalIntensity * 0.34;
+                }
+
+                particleGeo.attributes.position.needsUpdate = true;
+                particleGeo.attributes.color.needsUpdate = true;
+                particleGeo.attributes.size.needsUpdate = true;
+
+                // Update Hero Synchrotron Emission Cones on outer limbs
+                const toCam = new THREE.Vector3();
+                const jetTangent = new THREE.Vector3();
+                const targetDir = new THREE.Vector3();
+                const upVec = new THREE.Vector3(0, 1, 0);
+
+                sampleIndicators.forEach(ind => {
+                    const r = getJetRadius(ind.yPos) * 0.95;
+                    // Position along the visual left/right limb relative to camera
+                    const wobble = Math.sin(t * 3.0 + ind.phase) * 0.12;
+                    const pos = new THREE.Vector3()
+                        .copy(camRight)
+                        .multiplyScalar(ind.side * (r + wobble))
+                        .add(new THREE.Vector3(0, ind.yPos, 0));
+
+                    ind.holder.position.copy(pos);
+
+                    // Jet tangent direction (upward along outward flare)
+                    jetTangent.set(camRight.x * ind.side * 0.14, 1.0, camRight.z * ind.side * 0.14).normalize();
+
+                    // Direction toward camera observer
+                    toCam.subVectors(camera.position, pos).normalize();
+
+                    // When Anisotropy = 1.0, large pitch angle directs synchrotron cone toward observer's line of sight!
+                    // When Anisotropy = 0.0, cone points strictly forward along jet axis (missing side observer).
+                    targetDir.lerpVectors(jetTangent, toCam, aniso * 0.82).normalize();
+                    ind.beamCone.quaternion.setFromUnitVectors(upVec, targetDir);
+
+                    // Scale cone intensity with anisotropy
+                    const coneScale = 0.55 + aniso * 0.65;
+                    ind.beamCone.scale.set(coneScale, coneScale, coneScale);
+                });
+            }
+
+            // --- 6. Real-Time 2D Brightness Cross-Section Graph ---
+            const profileCanvas = document.getElementById('profile-canvas');
+            const pCtx = profileCanvas.getContext('2d');
+            const profileBadge = document.getElementById('profile-badge');
+
+            function resizeProfileCanvas() {
+                const rect = profileCanvas.parentElement.getBoundingClientRect();
+                profileCanvas.width = rect.width * window.devicePixelRatio;
+                profileCanvas.height = rect.height * window.devicePixelRatio;
+            }
+            resizeProfileCanvas();
+
+            function drawCrossSectionGraph() {
+                if (!state.showGraph) return;
+                const w = profileCanvas.width;
+                const h = profileCanvas.height;
+                const dpr = window.devicePixelRatio || 1;
+
+                pCtx.clearRect(0, 0, w, h);
+
+                // Subtle grid lines
+                pCtx.strokeStyle = 'rgba(56, 189, 248, 0.12)';
+                pCtx.lineWidth = 1 * dpr;
+                for (let gx = 1; gx < 4; gx++) {
+                    pCtx.beginPath();
+                    pCtx.moveTo((w * gx) / 4, 0);
+                    pCtx.lineTo((w * gx) / 4, h);
+                    pCtx.stroke();
+                }
+                for (let gy = 1; gy < 3; gy++) {
+                    pCtx.beginPath();
+                    pCtx.moveTo(0, (h * gy) / 3);
+                    pCtx.lineTo(w, (h * gy) / 3);
+                    pCtx.stroke();
+                }
+
+                // Compute intensity profile I(x) across normalized jet width x in [-1.2, 1.2]
+                const aniso = state.anisotropy;
+                const samples = 120;
+                const padX = 12 * dpr;
+                const padTop = 14 * dpr;
+                const padBottom = 8 * dpr;
+                const plotW = w - padX * 2;
+                const plotH = h - padTop - padBottom;
+
+                pCtx.beginPath();
+                for (let i = 0; i <= samples; i++) {
+                    const norm = (i / samples) * 2.4 - 1.2; // -1.2 to +1.2
+                    const absX = Math.abs(norm);
+
+                    // Isotropic center-bright Gaussian-like chord profile
+                    const centerCurve = Math.exp(-Math.pow(absX / 0.58, 2.0));
+
+                    // Anisotropic double-peaked "M-shape" limb brightening profile (peaks at x = +-0.85)
+                    const leftPeak = Math.exp(-Math.pow((norm + 0.82) / 0.24, 2.0));
+                    const rightPeak = Math.exp(-Math.pow((norm - 0.82) / 0.24, 2.0));
+                    const coreDip = 0.24 * Math.exp(-Math.pow(absX / 0.45, 2.0));
+                    const limbCurve = Math.min(1.0, leftPeak + rightPeak + coreDip);
+
+                    // Subtle live plasma scintillation
+                    const shimmer = 1.0 + 0.025 * Math.sin(state.time * 7.0 + norm * 9.0);
+                    const intensity = THREE.MathUtils.lerp(centerCurve, limbCurve, aniso) * shimmer;
+
+                    const px = padX + (i / samples) * plotW;
+                    const py = padTop + plotH * (1.0 - Math.min(1.0, intensity));
+
+                    if (i === 0) pCtx.moveTo(px, py);
+                    else pCtx.lineTo(px, py);
+                }
+
+                // Stroke curve
+                pCtx.strokeStyle = aniso > 0.45 ? '#38bdf8' : '#fbbf24';
+                pCtx.lineWidth = 2.4 * dpr;
+                pCtx.stroke();
+
+                // Fill gradient beneath curve
+                pCtx.lineTo(padX + plotW, padTop + plotH);
+                pCtx.lineTo(padX, padTop + plotH);
+                pCtx.closePath();
+
+                const grad = pCtx.createLinearGradient(0, padTop, 0, padTop + plotH);
+                if (aniso > 0.45) {
+                    grad.addColorStop(0, 'rgba(56, 189, 248, 0.35)');
+                    grad.addColorStop(1, 'rgba(56, 189, 248, 0.0)');
+                } else {
+                    grad.addColorStop(0, 'rgba(251, 191, 36, 0.35)');
+                    grad.addColorStop(1, 'rgba(251, 191, 36, 0.0)');
+                }
+                pCtx.fillStyle = grad;
+                pCtx.fill();
+
+                // Update Badge Text
+                if (aniso >= 0.65) {
+                    profileBadge.textContent = 'M-Shape (Limb)';
+                    profileBadge.className = 'text-[10px] mono px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-400/30';
+                } else if (aniso >= 0.35) {
+                    profileBadge.textContent = 'Flat-Top Transition';
+                    profileBadge.className = 'text-[10px] mono px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-400/30';
+                } else {
+                    profileBadge.textContent = 'Center-Bright (Iso)';
+                    profileBadge.className = 'text-[10px] mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-400/30';
+                }
+            }
+
+            // --- UI Controls & Event Listeners ---
+            const anisotropySlider = document.getElementById('anisotropy-slider');
+            const anisotropyVal = document.getElementById('anisotropy-val');
+            anisotropySlider.addEventListener('input', (e) => {
+                const v = parseInt(e.target.value, 10);
+                state.anisotropy = v / 100;
+                anisotropyVal.textContent = `${v}%`;
+            });
+
+            const velocitySlider = document.getElementById('velocity-slider');
+            const velocityVal = document.getElementById('velocity-val');
+            velocitySlider.addEventListener('input', (e) => {
+                const v = parseInt(e.target.value, 10);
+                state.jetSpeed = v / 100;
+                const beta = (0.50 + 0.49 * state.jetSpeed).toFixed(2);
+                velocityVal.textContent = `${beta}c`;
+            });
+
+            // Layer Toggles
+            document.getElementById('toggle-bfield').addEventListener('change', (e) => {
+                state.showBField = e.target.checked;
+                bFieldGroup.visible = state.showBField;
+            });
+
+            document.getElementById('toggle-cones').addEventListener('change', (e) => {
+                state.showCones = e.target.checked;
+                conesGroup.visible = state.showCones;
+            });
+
+            document.getElementById('toggle-sheath').addEventListener('change', (e) => {
+                state.showSheath = e.target.checked;
+                sheathGroup.visible = state.showSheath;
+            });
+
+            const graphPanel = document.getElementById('graph-panel');
+            document.getElementById('toggle-graph').addEventListener('change', (e) => {
+                state.showGraph = e.target.checked;
+                graphPanel.style.opacity = state.showGraph ? '1' : '0';
+                graphPanel.style.pointerEvents = state.showGraph ? 'auto' : 'none';
+            });
+
+            // Info Box Collapse Toggle
+            const toggleInfoBtn = document.getElementById('toggle-info-btn');
+            const infoContent = document.getElementById('info-content');
+            let infoVisible = true;
+            toggleInfoBtn.addEventListener('click', () => {
+                infoVisible = !infoVisible;
+                infoContent.style.display = infoVisible ? 'block' : 'none';
+                toggleInfoBtn.textContent = infoVisible ? 'Hide Info' : 'Show Info';
+            });
+
+            // Camera Preset Buttons
+            const camPresets = {
+                side: {
+                    pos: new THREE.Vector3(0, 6.5, 34),
+                    look: new THREE.Vector3(0, 5.5, 0)
+                },
+                closeup: {
+                    pos: new THREE.Vector3(5.8, 10.5, 11.5),
+                    look: new THREE.Vector3(1.2, 9.5, 0)
+                },
+                axis: {
+                    pos: new THREE.Vector3(0.5, 31, 4.5),
+                    look: new THREE.Vector3(0, 4, 0)
+                },
+                oblique: {
+                    pos: new THREE.Vector3(-24, 16, 36),
+                    look: new THREE.Vector3(0, 1.5, 0)
+                }
+            };
+
+            const camButtons = document.querySelectorAll('.cam-btn');
+            camButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const presetKey = btn.getAttribute('data-cam');
+                    const preset = camPresets[presetKey];
+                    if (!preset) return;
+
+                    cameraTransition.targetPos.copy(preset.pos);
+                    cameraTransition.targetLook.copy(preset.look);
+                    cameraTransition.active = true;
+
+                    // Update active button styling
+                    camButtons.forEach(b => {
+                        b.className = 'cam-btn px-2.5 py-2 rounded-xl text-xs font-medium bg-slate-800/60 hover:bg-slate-800 text-slate-300 border border-slate-700/70 transition text-left flex items-center gap-1.5';
+                    });
+                    btn.className = 'cam-btn active-cam px-2.5 py-2 rounded-xl text-xs font-medium bg-sky-500/25 text-sky-200 border border-sky-400/50 transition text-left flex items-center gap-1.5';
+                });
+            });
+
+            // Responsive Window Resize Handler
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                particleMat.uniforms.uPixelRatio.value = renderer.getPixelRatio();
+                resizeProfileCanvas();
+            });
+
+            // --- Main Animation Loop ---
+            let lastTime = performance.now();
+            function animate(now) {
+                requestAnimationFrame(animate);
+                const dt = Math.min((now - lastTime) / 1000, 0.05);
+                lastTime = now;
+
+                // Smooth camera preset interpolation
+                if (cameraTransition.active) {
+                    camera.position.lerp(cameraTransition.targetPos, 0.065);
+                    controls.target.lerp(cameraTransition.targetLook, 0.065);
+                    if (camera.position.distanceTo(cameraTransition.targetPos) < 0.08) {
+                        cameraTransition.active = false;
+                    }
+                }
+
+                updatePhysics(dt);
+                drawCrossSectionGraph();
+
+                controls.update();
+                renderer.render(scene, camera);
+            }
+
+            // Start loop
+            animate(performance.now());
+        };
+    </script>
+</body>
+</html>
