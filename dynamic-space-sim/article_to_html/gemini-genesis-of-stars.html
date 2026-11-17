@@ -1,0 +1,1385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Genesis of a Star — 3D Cosmic Creation Simulator</title>
+    <!-- Tailwind CSS for clean HUD styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Space Grotesk & JetBrains Mono for sci-fi telemetry aesthetics -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Three.js & Post-Processing from reliable CDNJS (r128) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #020308;
+            font-family: 'Inter', sans-serif;
+            color: #e2e8f0;
+        }
+        #canvas-container {
+            position: fixed;
+            inset: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            outline: none;
+        }
+        .font-display {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+        .font-mono-tech {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* Glassmorphism HUD panels */
+        .hud-glass {
+            background: rgba(8, 12, 24, 0.62);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(148, 163, 184, 0.16);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        }
+        .hud-pill {
+            background: rgba(15, 23, 42, 0.65);
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .hud-pill:hover {
+            background: rgba(30, 41, 59, 0.85);
+            border-color: rgba(56, 189, 248, 0.5);
+            transform: translateY(-1px);
+        }
+        .era-btn-active {
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(129, 140, 248, 0.25));
+            border-color: rgba(56, 189, 248, 0.85) !important;
+            box-shadow: 0 0 18px rgba(56, 189, 248, 0.25);
+        }
+        /* Custom subtle range slider */
+        input[type=range] {
+            -webkit-appearance: none;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            height: 4px;
+            border-radius: 999px;
+            background: rgba(148, 163, 184, 0.25);
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 14px;
+            width: 14px;
+            border-radius: 50%;
+            background: #38bdf8;
+            box-shadow: 0 0 10px #38bdf8;
+            margin-top: -5px;
+            cursor: pointer;
+            transition: transform 0.15s ease;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.25);
+        }
+        /* Fade transitions for HUD toggle */
+        .ui-layer {
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+        .ui-hidden {
+            opacity: 0 !important;
+            pointer-events: none !important;
+            transform: translateY(8px);
+        }
+        /* Custom scrollbar for mobile stage strip */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Fullscreen 3D WebGL Viewport -->
+    <div id="canvas-container"></div>
+
+    <!-- Floating Toggle HUD Button (Always accessible) -->
+    <button id="toggle-hud-btn" title="Toggle Cinema Mode (H)" class="fixed top-4 right-4 z-30 hud-glass rounded-full px-3.5 py-2 text-xs font-mono-tech text-slate-200 hover:text-sky-300 hover:border-sky-400/50 transition flex items-center gap-2 cursor-pointer">
+        <svg id="eye-icon" class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+        </svg>
+        <span id="hud-btn-label" class="hidden sm:inline">CINEMA VIEW</span>
+    </button>
+
+    <!-- Main HUD Interface -->
+    <div id="hud-wrapper" class="ui-layer fixed inset-0 z-20 pointer-events-none flex flex-col justify-between p-3 sm:p-6">
+        
+        <!-- Top Bar: Title & Real-Time Cosmic Telemetry -->
+        <div class="flex flex-col lg:flex-row lg:items-start justify-between gap-3 pr-14 sm:pr-32">
+            <!-- Era Header & Narrative Description -->
+            <div class="hud-glass rounded-2xl p-4 sm:p-5 max-w-xl pointer-events-auto">
+                <div class="flex items-center gap-2.5 mb-1.5">
+                    <span id="era-badge" class="px-2.5 py-0.5 rounded-full text-[11px] font-mono-tech font-semibold uppercase tracking-wider bg-sky-500/20 text-sky-300 border border-sky-400/30">
+                        ERA 01 / 06
+                    </span>
+                    <span id="cosmic-epoch-label" class="text-xs font-mono-tech text-slate-400">
+                        t = 0 to 380,000 Years
+                    </span>
+                </div>
+                <h1 id="era-title" class="font-display text-xl sm:text-2xl font-bold text-white tracking-tight mb-1.5">
+                    The Big Bang & Primordial Plasma
+                </h1>
+                <p id="era-description" class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                    An unimaginably hot, dense singularity expands rapidly. Quantum ripples seed density variations as pure energy cools into quarks, protons, and the first neutral hydrogen and helium atoms.
+                </p>
+            </div>
+
+            <!-- Live Physical Telemetry Panel -->
+            <div class="hud-glass rounded-2xl p-3.5 sm:p-4 pointer-events-auto grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-2.5 sm:gap-3 min-w-[270px] lg:w-80">
+                <div class="bg-slate-950/50 rounded-xl p-2.5 border border-slate-800/80">
+                    <div class="text-[10px] font-mono-tech uppercase tracking-wider text-slate-400">Cosmic Time</div>
+                    <div id="tel-time" class="font-mono-tech text-xs sm:text-sm font-semibold text-sky-300 mt-0.5">10⁻³² s → 380k yr</div>
+                </div>
+                <div class="bg-slate-950/50 rounded-xl p-2.5 border border-slate-800/80">
+                    <div class="text-[10px] font-mono-tech uppercase tracking-wider text-slate-400">Temperature</div>
+                    <div id="tel-temp" class="font-mono-tech text-xs sm:text-sm font-semibold text-amber-300 mt-0.5">10²⁷ K → 3,000 K</div>
+                </div>
+                <div class="bg-slate-950/50 rounded-xl p-2.5 border border-slate-800/80">
+                    <div class="text-[10px] font-mono-tech uppercase tracking-wider text-slate-400">Composition</div>
+                    <div id="tel-elements" class="font-mono-tech text-xs sm:text-sm font-semibold text-emerald-300 mt-0.5">75% H, 25% He</div>
+                </div>
+                <div class="bg-slate-950/50 rounded-xl p-2.5 border border-slate-800/80">
+                    <div class="text-[10px] font-mono-tech uppercase tracking-wider text-slate-400">Dominant Physics</div>
+                    <div id="tel-physics" class="font-mono-tech text-xs sm:text-sm font-semibold text-purple-300 mt-0.5 truncate" title="Inflation & Nucleosynthesis">Nucleosynthesis</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Control Dock: Timeline Scrubber, Stage Selector & Playback -->
+        <div class="flex flex-col gap-2.5 max-w-5xl w-full mx-auto pointer-events-auto">
+            
+            <!-- Era Quick-Select Pills -->
+            <div id="era-selector-strip" class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-0.5">
+                <!-- Populated dynamically via JS -->
+            </div>
+
+            <!-- Playback & Continuous Timeline Bar -->
+            <div class="hud-glass rounded-2xl p-3 sm:px-5 sm:py-3.5 flex flex-col sm:flex-row items-center gap-3 sm:gap-5">
+                
+                <!-- Transport Buttons -->
+                <div class="flex items-center gap-2 shrink-0">
+                    <button id="prev-btn" title="Previous Era" class="hud-pill rounded-xl p-2 text-slate-200 hover:text-white cursor-pointer">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                    </button>
+                    <button id="play-pause-btn" class="rounded-xl px-4 py-2 bg-sky-500 hover:bg-sky-400 text-slate-950 font-display font-semibold text-xs sm:text-sm flex items-center gap-1.5 shadow-lg shadow-sky-500/25 transition cursor-pointer">
+                        <svg id="play-icon" class="w-4 h-4 hidden" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>
+                        <svg id="pause-icon" class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M5.75 3a.75.75 0 00-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 00.75-.75V3.75A.75.75 0 007.25 3h-1.5zM12.75 3a.75.75 0 00-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 00.75-.75V3.75a.75.75 0 00-.75-.75h-1.5z"/></svg>
+                        <span id="play-label">AUTO-JOURNEY</span>
+                    </button>
+                    <button id="next-btn" title="Next Era" class="hud-pill rounded-xl p-2 text-slate-200 hover:text-white cursor-pointer">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    </button>
+                </div>
+
+                <!-- Master Progress Scrubber -->
+                <div class="flex-1 w-full flex items-center gap-3">
+                    <span class="text-[11px] font-mono-tech text-slate-400 shrink-0">0.0 Byr</span>
+                    <div class="relative flex-1 flex items-center">
+                        <input id="timeline-slider" type="range" min="0" max="5.999" step="0.002" value="0" class="w-full z-10">
+                        <!-- Milestone tick marks -->
+                        <div class="absolute inset-x-0 flex justify-between pointer-events-none px-1">
+                            <span class="w-1 h-2 bg-slate-500/60 rounded-full"></span>
+                            <span class="w-1 h-2 bg-slate-500/60 rounded-full"></span>
+                            <span class="w-1 h-2 bg-slate-500/60 rounded-full"></span>
+                            <span class="w-1 h-2 bg-slate-500/60 rounded-full"></span>
+                            <span class="w-1 h-2 bg-slate-500/60 rounded-full"></span>
+                            <span class="w-1 h-2 bg-slate-500/60 rounded-full"></span>
+                        </div>
+                    </div>
+                    <span class="text-[11px] font-mono-tech text-amber-300 shrink-0">9.2 Byr (Sun)</span>
+                </div>
+
+                <!-- Speed & Camera Reset -->
+                <div class="flex items-center gap-2 shrink-0">
+                    <button id="speed-btn" title="Simulation Speed" class="hud-pill rounded-xl px-2.5 py-1.5 text-xs font-mono-tech text-slate-300 hover:text-sky-300 cursor-pointer">
+                        1.0x
+                    </button>
+                    <button id="reset-cam-btn" title="Reset Camera Angle" class="hud-pill rounded-xl p-2 text-slate-300 hover:text-sky-300 cursor-pointer">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                    </button>
+                </div>
+
+            </div>
+            
+            <!-- Subtle Interaction Hint -->
+            <div class="text-center text-[11px] text-slate-400/80 font-mono-tech hidden sm:block">
+                Drag to orbit 3D space • Scroll/Pinch to zoom • Right-drag to pan • Press [Space] to pause
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Non-Blocking Message Box (Replaces alert) -->
+    <div id="toast-box" class="fixed top-20 left-1/2 -translate-x-1/2 z-40 hud-glass rounded-full px-4 py-2 text-xs font-mono-tech text-sky-300 opacity-0 pointer-events-none transition-opacity duration-300">
+        WebGL Initialized
+    </div>
+
+    <script>
+        /**
+         * ============================================================================
+         * COSMIC GENESIS SIMULATOR — HYPER-REALISTIC 3D WEBGL / THREE.JS ENGINE
+         * ============================================================================
+         * Traces the physical evolution of the universe across 6 major epochs:
+         *  0: Big Bang & Primordial Plasma (Inflation, Recombination)
+         *  1: Dark Ages & Dark Matter Cosmic Web (Filaments & Halo Wells)
+         *  2: Population III Monster Stars & Pair-Instability Supernova (Heavy Element Alchemical Seeding)
+         *  3: Galactic Assembly & Giant Molecular Cloud (Spiral Density Waves & Cold Dusty Nursery)
+         *  4: Jeans Collapse, Protostar & Accretion Disk (Angular Momentum & Bipolar Jets)
+         *  5: Hydrogen Ignition & Main Sequence Sun (ZAMS Hydrostatic Equilibrium)
+         */
+
+        // ============================================================================
+        // 1. SCIENTIFIC DATA & COSMIC EPOCH DEFINITIONS
+        // ============================================================================
+        const COSMIC_ERAS = [
+            {
+                id: 0,
+                shortTitle: "1. Big Bang",
+                badge: "ERA 01 / 06",
+                epoch: "t = 0 → 380,000 Years",
+                title: "The Big Bang & Primordial Plasma",
+                description: "Space itself erupts from a hot, dense singularity. Quantum ripples seed density fluctuations as pure energy cools into quarks, protons, and the first neutral hydrogen and helium atoms (Recombination).",
+                time: "10⁻³² s → 380k yr",
+                temp: "10²⁷ K → 3,000 K",
+                elements: "75% H, 25% He, Trace Li",
+                physics: "Inflation & Nucleosynthesis",
+                camPos: [0, 8, 52],
+                camTarget: [0, 0, 0]
+            },
+            {
+                id: 1,
+                shortTitle: "2. Dark Matter Web",
+                badge: "ERA 02 / 06",
+                epoch: "t = 100 Million Years",
+                title: "The Dark Ages & Dark Matter Cosmic Web",
+                description: "Invisible, collisionless dark matter collapses along quantum ripples into a vast 3D Cosmic Web of filaments and nodes. Its gravity pulls primordial hydrogen and helium gas into deep potential wells.",
+                time: "~100 Million yrs",
+                temp: "60 K → 200 K",
+                elements: "Primordial H & He + Dark Matter",
+                physics: "Collisionless Gravitational Infall",
+                camPos: [26, 18, 58],
+                camTarget: [0, 0, 0]
+            },
+            {
+                id: 2,
+                shortTitle: "3. Pop III Supernova",
+                badge: "ERA 03 / 06",
+                epoch: "t = 200 Million Years",
+                title: "Population III Monster Stars & Supernovae",
+                description: "Colossal, ultra-hot blue-white giant stars (100–300 solar masses) ignite inside dark matter halos. They live fast and detonate in Pair-Instability Supernovae, forging and blasting the universe's first carbon, oxygen, silicon, and iron dust.",
+                time: "~200 Million yrs",
+                temp: "100,000 K (Surface) / 10⁸ K (Core)",
+                elements: "First C, O, Si, Mg, Fe forged",
+                physics: "Triple-Alpha & Pair-Instability SN",
+                camPos: [14, 10, 44],
+                camTarget: [0, 0, 0]
+            },
+            {
+                id: 3,
+                shortTitle: "4. Molecular Cloud",
+                badge: "ERA 04 / 06",
+                epoch: "t = 500M – 9 Billion Years",
+                title: "Galactic Assembly & Giant Molecular Cloud",
+                description: "Galactic spiral density waves and supernova shockwaves compress dust-enriched interstellar gas. Dust grains shield the interior from UV light, cooling the cloud to 10 K so atoms bond into molecular hydrogen (H₂).",
+                time: "~9.1 Billion yrs",
+                temp: "10 K – 20 K (Frigid Core)",
+                elements: "Molecular H₂, He, Silicate/Carbon Dust",
+                physics: "Spiral Density Waves & Dust Shielding",
+                camPos: [22, 24, 46],
+                camTarget: [0, 0, 0]
+            },
+            {
+                id: 4,
+                shortTitle: "5. Protostar & Jets",
+                badge: "ERA 05 / 06",
+                epoch: "t = 9.19 Billion Years",
+                title: "Jeans Collapse, Protostar & Accretion Disk",
+                description: "Exceeding the Jeans Mass, a dense cloud core collapses under gravity. Conservation of angular momentum flattens infalling gas into a spinning protoplanetary accretion disk while magnetic fields launch bipolar jets.",
+                time: "+100,000 yrs collapse",
+                temp: "4,000 K (Surface) → 5×10⁶ K (Core)",
+                elements: "Ionized H/He Plasma & Silicate Disk",
+                physics: "Jeans Instability & Angular Momentum",
+                camPos: [24, 13, 34],
+                camTarget: [0, 0, 0]
+            },
+            {
+                id: 5,
+                shortTitle: "6. Main Sequence Sun",
+                badge: "ERA 06 / 06",
+                epoch: "t = 9.2 Billion Years (4.6 Bya)",
+                title: "Hydrogen Ignition & Main Sequence Sun",
+                description: "Core temperatures breach 10 million Kelvin, igniting sustained proton-proton nuclear fusion. Outward radiation pressure balances inward gravity—achieving Hydrostatic Equilibrium as a stable G-type star.",
+                time: "Zero-Age Main Sequence",
+                temp: "5,778 K (Surface) / 1.57×10⁷ K (Core)",
+                elements: "H → He Fusion (600M tons/sec)",
+                physics: "Proton-Proton Chain & Hydrostatic Eq.",
+                camPos: [0, 4, 27],
+                camTarget: [0, 0, 0]
+            }
+        ];
+
+        // ============================================================================
+        // 2. CUSTOM GLSL SHADERS (PROCEDURAL SOLAR SURFACE, CORONA, NEBULA & PARTICLES)
+        // ============================================================================
+
+        // 3D Simplex Noise GLSL chunk shared across shaders
+        const GLSL_NOISE_3D = `
+            vec4 permute(vec4 x){return mod(((x*34.0)+1.0)*x, 289.0);}
+            vec4 taylorInvSqrt(vec4 r){return 1.79284291400159 - 0.85373472095314 * r;}
+
+            float snoise(vec3 v){ 
+                const vec2  C = vec2(1.0/6.0, 1.0/3.0) ;
+                const vec4  D = vec4(0.0, 0.5, 1.0, 2.0);
+
+                vec3 i  = floor(v + dot(v, C.yyy) );
+                vec3 x0 =   v - i + dot(i, C.xxx) ;
+
+                vec3 g = step(x0.yzx, x0.xyz);
+                vec3 l = 1.0 - g;
+                vec3 i1 = min( g.xyz, l.zxy );
+                vec3 i2 = max( g.xyz, l.zxy );
+
+                vec3 x1 = x0 - i1 + 1.0 * C.xxx;
+                vec3 x2 = x0 - i2 + 2.0 * C.xxx;
+                vec3 x3 = x0 - 1. + 3.0 * C.xxx;
+
+                i = mod(i, 289.0 ); 
+                vec4 p = permute( permute( permute( 
+                            i.z + vec4(0.0, i1.z, i2.z, 1.0 ))
+                        + i.y + vec4(0.0, i1.y, i2.y, 1.0 )) 
+                        + i.x + vec4(0.0, i1.x, i2.x, 1.0 ));
+
+                float n_ = 1.0/7.0;
+                vec3  ns = n_ * D.wyz - D.xzx;
+
+                vec4 j = p - 49.0 * floor(p * ns.z *ns.z);
+
+                vec4 x_ = floor(j * ns.z);
+                vec4 y_ = floor(j - 7.0 * x_ );
+
+                vec4 x = x_ *ns.x + ns.yyyy;
+                vec4 y = y_ *ns.x + ns.yyyy;
+                vec4 h = 1.0 - abs(x) - abs(y);
+
+                vec4 b0 = vec4( x.xy, y.xy );
+                vec4 b1 = vec4( x.zw, y.zw );
+
+                vec4 s0 = floor(b0)*2.0 + 1.0;
+                vec4 s1 = floor(b1)*2.0 + 1.0;
+                vec4 sh = -step(h, vec4(0.0));
+
+                vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy ;
+                vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww ;
+
+                vec3 p0 = vec3(a0.xy,h.x);
+                vec3 p1 = vec3(a0.zw,h.y);
+                vec3 p2 = vec3(a1.xy,h.z);
+                vec3 p3 = vec3(a1.zw,h.w);
+
+                vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));
+                p0 *= norm.x;
+                p1 *= norm.y;
+                p2 *= norm.z;
+                p3 *= norm.w;
+
+                vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
+                m = m * m;
+                return 42.0 * dot( m*m, vec4( dot(p0,x0), dot(p1,x1), 
+                                            dot(p2,x2), dot(p3,x3) ) );
+            }
+
+            float fbm(vec3 p) {
+                float value = 0.0;
+                float amplitude = 0.5;
+                float frequency = 1.0;
+                for (int i = 0; i < 5; i++) {
+                    value += amplitude * snoise(p * frequency);
+                    frequency *= 2.05;
+                    amplitude *= 0.5;
+                }
+                return value;
+            }
+        `;
+
+        // Hyper-Realistic Star Surface Shader (Adapts from Blue Pop III -> Amber Protostar -> Yellow-White Main Sequence Sun)
+        const STAR_SURFACE_VERTEX = `
+            varying vec3 vNormal;
+            varying vec3 vPosition;
+            varying vec3 vWorldPosition;
+            uniform float uTime;
+            uniform float uTurbulence;
+            ${GLSL_NOISE_3D}
+
+            void main() {
+                vNormal = normalize(normalMatrix * normal);
+                vPosition = position;
+                
+                // Subtle boiling plasma displacement on surface
+                float disp = snoise(position * 2.4 + vec3(uTime * 0.45)) * uTurbulence;
+                vec3 newPos = position + normal * disp;
+                
+                vec4 worldPos = modelMatrix * vec4(newPos, 1.0);
+                vWorldPosition = worldPos.xyz;
+                gl_Position = projectionMatrix * viewMatrix * worldPos;
+            }
+        `;
+
+        const STAR_SURFACE_FRAGMENT = `
+            varying vec3 vNormal;
+            varying vec3 vPosition;
+            varying vec3 vWorldPosition;
+            
+            uniform float uTime;
+            uniform vec3 uCoreColor;
+            uniform vec3 uMidColor;
+            uniform vec3 uDarkColor;
+            uniform float uSpotIntensity;
+            uniform float uOpacity;
+            uniform float uBrightness;
+
+            ${GLSL_NOISE_3D}
+
+            void main() {
+                // Multi-layered convection granules
+                vec3 p = vPosition * 2.2;
+                float n1 = fbm(p + vec3(uTime * 0.18, -uTime * 0.12, uTime * 0.15));
+                float n2 = fbm(p * 3.8 - vec3(uTime * 0.35));
+                float granules = smoothstep(-0.4, 0.75, n1 * 0.65 + n2 * 0.35);
+
+                // Magnetic sunspot regions
+                float spotNoise = snoise(vPosition * 1.15 + vec3(uTime * 0.04));
+                float sunspots = smoothstep(0.48, 0.72, spotNoise) * uSpotIntensity;
+
+                // Blend plasma colors
+                vec3 baseCol = mix(uDarkColor, uMidColor, granules);
+                baseCol = mix(baseCol, uCoreColor, pow(granules, 2.2));
+                baseCol = mix(baseCol, uDarkColor * 0.28, sunspots);
+
+                // Physical Solar Limb Darkening & Bright Chromospheric Rim
+                vec3 viewDir = normalize(cameraPosition - vWorldPosition);
+                float ndotv = max(dot(normalize(vNormal), viewDir), 0.0);
+                float limbDarkening = pow(ndotv, 0.55);
+                float rimGlow = pow(1.0 - ndotv, 3.2);
+
+                vec3 finalColor = baseCol * (0.45 + 0.75 * limbDarkening) + uMidColor * rimGlow * 0.85;
+                finalColor *= uBrightness;
+
+                gl_FragColor = vec4(finalColor, uOpacity);
+            }
+        `;
+
+        // Volumetric Corona / Atmosphere Glow Shader
+        const CORONA_VERTEX = `
+            varying vec3 vNormal;
+            varying vec3 vWorldPosition;
+            void main() {
+                vNormal = normalize(normalMatrix * normal);
+                vec4 worldPos = modelMatrix * vec4(position, 1.0);
+                vWorldPosition = worldPos.xyz;
+                gl_Position = projectionMatrix * viewMatrix * worldPos;
+            }
+        `;
+
+        const CORONA_FRAGMENT = `
+            varying vec3 vNormal;
+            varying vec3 vWorldPosition;
+            uniform vec3 uColor;
+            uniform float uIntensity;
+            uniform float uTime;
+            ${GLSL_NOISE_3D}
+
+            void main() {
+                vec3 viewDir = normalize(cameraPosition - vWorldPosition);
+                // Backside sphere rendering for soft radial halo
+                float viewDot = dot(normalize(vNormal), viewDir);
+                float radial = clamp(1.0 + viewDot, 0.0, 1.0);
+                
+                // Dynamic solar coronal streamers
+                float streamer = snoise(vWorldPosition * 0.45 + vec3(uTime * 0.25)) * 0.25 + 0.85;
+                float glow = pow(radial, 3.8) * uIntensity * streamer;
+
+                gl_FragColor = vec4(uColor * glow, clamp(glow, 0.0, 1.0));
+            }
+        `;
+
+        // Cosmic Particle Shader (Handles 28,000 morphing particles with crisp bokeh & temperature colors)
+        const PARTICLE_VERTEX = `
+            attribute vec3 aColor;
+            attribute float aSize;
+            attribute float aAlpha;
+            varying vec3 vColor;
+            varying float vAlpha;
+            uniform float uPixelRatio;
+
+            void main() {
+                vColor = aColor;
+                vAlpha = aAlpha;
+                vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+                gl_Position = projectionMatrix * mvPosition;
+                gl_PointSize = clamp((aSize * uPixelRatio * 180.0) / max(-mvPosition.z, 1.0), 1.0, 68.0);
+            }
+        `;
+
+        const PARTICLE_FRAGMENT = `
+            varying vec3 vColor;
+            varying float vAlpha;
+
+            void main() {
+                vec2 uv = gl_PointCoord - vec2(0.5);
+                float dist = length(uv);
+                if (dist > 0.5) discard;
+
+                // Soft glowing core + smooth exponential falloff
+                float core = smoothstep(0.5, 0.05, dist);
+                float hotCenter = smoothstep(0.18, 0.0, dist);
+                vec3 col = vColor + vec3(hotCenter * 0.45);
+                
+                gl_FragColor = vec4(col, core * vAlpha);
+            }
+        `;
+
+        // ============================================================================
+        // 3. SCENE INITIALIZATION, RENDERER & UNREAL BLOOM POST-PROCESSING
+        // ============================================================================
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x020308, 0.0022);
+
+        const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 8, 52);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.15;
+        container.appendChild(renderer.domElement);
+
+        // OrbitControls for smooth mouse & touch 3D inspection
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.06;
+        controls.minDistance = 8;
+        controls.maxDistance = 160;
+        controls.rotateSpeed = 0.75;
+        controls.zoomSpeed = 0.9;
+
+        // Post-processing Composer with UnrealBloomPass for hyper-realistic plasma & starlight glow
+        const composer = new THREE.EffectComposer(renderer);
+        const renderPass = new THREE.RenderPass(scene, camera);
+        composer.addPass(renderPass);
+
+        const bloomPass = new THREE.UnrealBloomPass(
+            new THREE.Vector2(window.innerWidth, window.innerHeight),
+            1.35,  // strength
+            0.65,  // radius
+            0.22   // threshold
+        );
+        composer.addPass(bloomPass);
+
+        // ============================================================================
+        // 4. PROCEDURAL 3D COSMIC ENTITIES & PARTICLE MORPHING SYSTEM
+        // ============================================================================
+
+        // 4A. Deep Background Starfield (Static subtle cosmos depth)
+        function createBackgroundStars() {
+            const count = 4500;
+            const geo = new THREE.BufferGeometry();
+            const pos = new Float32Array(count * 3);
+            const cols = new Float32Array(count * 3);
+            const sizes = new Float32Array(count);
+            const alphas = new Float32Array(count);
+
+            const palette = [
+                new THREE.Color(0xcbd5e1),
+                new THREE.Color(0x93c5fd),
+                new THREE.Color(0xfde68a),
+                new THREE.Color(0xe9d5ff)
+            ];
+
+            for (let i = 0; i < count; i++) {
+                const r = 180 + Math.random() * 280;
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+                pos[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+                pos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+                pos[i * 3 + 2] = r * Math.cos(phi);
+
+                const c = palette[Math.floor(Math.random() * palette.length)];
+                cols[i * 3] = c.r;
+                cols[i * 3 + 1] = c.g;
+                cols[i * 3 + 2] = c.b;
+
+                sizes[i] = 0.6 + Math.random() * 1.4;
+                alphas[i] = 0.25 + Math.random() * 0.55;
+            }
+
+            geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+            geo.setAttribute('aColor', new THREE.BufferAttribute(cols, 3));
+            geo.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1));
+            geo.setAttribute('aAlpha', new THREE.BufferAttribute(alphas, 1));
+
+            const mat = new THREE.ShaderMaterial({
+                vertexShader: PARTICLE_VERTEX,
+                fragmentShader: PARTICLE_FRAGMENT,
+                uniforms: { uPixelRatio: { value: renderer.getPixelRatio() } },
+                transparent: true,
+                depthWrite: false,
+                blending: THREE.AdditiveBlending
+            });
+            const points = new THREE.Points(geo, mat);
+            scene.add(points);
+            return points;
+        }
+        const bgStars = createBackgroundStars();
+
+        // 4B. Primary Dynamic Cosmic Particle Field (24,000 particles morphing across all 6 eras)
+        const PARTICLE_COUNT = 24000;
+        const particleGeo = new THREE.BufferGeometry();
+        const currentPos = new Float32Array(PARTICLE_COUNT * 3);
+        const currentCol = new Float32Array(PARTICLE_COUNT * 3);
+        const currentSize = new Float32Array(PARTICLE_COUNT);
+        const currentAlpha = new Float32Array(PARTICLE_COUNT);
+
+        // Pre-allocated state buffers for smooth interpolation between eras
+        const statePositions = Array.from({ length: 6 }, () => new Float32Array(PARTICLE_COUNT * 3));
+        const stateColors = Array.from({ length: 6 }, () => new Float32Array(PARTICLE_COUNT * 3));
+        const stateSizes = Array.from({ length: 6 }, () => new Float32Array(PARTICLE_COUNT));
+        const stateAlphas = Array.from({ length: 6 }, () => new Float32Array(PARTICLE_COUNT));
+
+        // Helper: Generate Dark Matter Web Nodes & Filaments (Used in Era 1 & Era 2)
+        const webNodes = [
+            new THREE.Vector3(0, 0, 0),
+            new THREE.Vector3(-18, 12, -10),
+            new THREE.Vector3(20, 14, -8),
+            new THREE.Vector3(-16, -14, 12),
+            new THREE.Vector3(18, -11, 14),
+            new THREE.Vector3(0, 20, 15),
+            new THREE.Vector3(4, -22, -14),
+            new THREE.Vector3(-25, 2, -2),
+            new THREE.Vector3(26, -3, -4)
+        ];
+        const webEdges = [
+            [0,1],[0,2],[0,3],[0,4],[0,5],[0,6],
+            [1,5],[1,7],[1,3],[2,5],[2,8],[2,4],
+            [3,6],[3,7],[4,6],[4,8],[5,2],[6,4]
+        ];
+
+        // Precompute target distributions for each of the 6 Cosmic Eras
+        function precomputeCosmicStates() {
+            const cWhiteHot = new THREE.Color(0xffffff);
+            const cPlasmaGold = new THREE.Color(0xffb703);
+            const cPlasmaBlue = new THREE.Color(0x38bdf8);
+            const cQuarkMagenta = new THREE.Color(0xf472b6);
+
+            const cDarkViolet = new THREE.Color(0x6d28d9);
+            const cIndigoWeb = new THREE.Color(0x4338ca);
+            const cPrimordialGas = new THREE.Color(0x38bdf8);
+
+            const cPop3Blue = new THREE.Color(0x93c5fd);
+            const cHeavyCarbon = new THREE.Color(0xf97316);
+            const cHeavyOxygen = new THREE.Color(0x22d3ee);
+            const cHeavyIron = new THREE.Color(0xfacc15);
+
+            const cNebulaTeal = new THREE.Color(0x0d9488);
+            const cNebulaCrimson = new THREE.Color(0xe11d48);
+            const cColdDust = new THREE.Color(0x6366f1);
+            const cDenseCore = new THREE.Color(0xf59e0b);
+
+            const cDiskAmber = new THREE.Color(0xf97316);
+            const cDiskGold = new THREE.Color(0xfde047);
+            const cJetCyan = new THREE.Color(0x38bdf8);
+
+            const cSolarFlare = new THREE.Color(0xfb923c);
+            const cCoronaGold = new THREE.Color(0xfef08a);
+
+            for (let i = 0; i < PARTICLE_COUNT; i++) {
+                const frac = i / PARTICLE_COUNT;
+                const u = Math.random();
+                const v = Math.random();
+                const theta = u * 2.0 * Math.PI;
+                const phi = Math.acos(2.0 * v - 1.0);
+                const sinPhi = Math.sin(phi);
+                const dirX = sinPhi * Math.cos(theta);
+                const dirY = sinPhi * Math.sin(theta);
+                const dirZ = Math.cos(phi);
+
+                // ---------------------------------------------------------
+                // ERA 0: BIG BANG & PRIMORDIAL PLASMA (Expanding Quantum Sphere + Shockwave)
+                // ---------------------------------------------------------
+                {
+                    const shellBias = Math.pow(Math.random(), 0.55);
+                    const radius = 2.0 + shellBias * 26.0;
+                    // Quantum acoustic ripples
+                    const ripple = 1.0 + 0.14 * Math.sin(dirX * 6.0) * Math.cos(dirY * 6.0) * Math.sin(dirZ * 6.0);
+                    statePositions[0][i * 3]     = dirX * radius * ripple;
+                    statePositions[0][i * 3 + 1] = dirY * radius * ripple;
+                    statePositions[0][i * 3 + 2] = dirZ * radius * ripple;
+
+                    const col = new THREE.Color();
+                    if (radius < 7.0) {
+                        col.lerpColors(cWhiteHot, cPlasmaGold, radius / 7.0);
+                    } else if (radius < 18.0) {
+                        col.lerpColors(cPlasmaGold, cQuarkMagenta, (radius - 7.0) / 11.0);
+                    } else {
+                        col.lerpColors(cQuarkMagenta, cPlasmaBlue, (radius - 18.0) / 10.0);
+                    }
+                    stateColors[0][i * 3] = col.r;
+                    stateColors[0][i * 3 + 1] = col.g;
+                    stateColors[0][i * 3 + 2] = col.b;
+                    stateSizes[0][i] = radius < 8.0 ? 2.4 : (0.9 + Math.random() * 1.6);
+                    stateAlphas[0][i] = 0.85 * (1.0 - (radius / 34.0) * 0.45);
+                }
+
+                // ---------------------------------------------------------
+                // ERA 1: DARK AGES & DARK MATTER COSMIC WEB
+                // ---------------------------------------------------------
+                {
+                    const edge = webEdges[i % webEdges.length];
+                    const nA = webNodes[edge[0]];
+                    const nB = webNodes[edge[1]];
+                    // Concentrate particles near nodes and along filaments
+                    let t = Math.random();
+                    if (Math.random() < 0.35) {
+                        t = Math.random() < 0.5 ? Math.pow(t, 3.0) : 1.0 - Math.pow(t, 3.0);
+                    }
+                    const spread = (1.2 + Math.sin(t * Math.PI) * 3.2) * (Math.random() * 1.4);
+                    const px = THREE.MathUtils.lerp(nA.x, nB.x, t) + dirX * spread;
+                    const py = THREE.MathUtils.lerp(nA.y, nB.y, t) + dirY * spread;
+                    const pz = THREE.MathUtils.lerp(nA.z, nB.z, t) + dirZ * spread;
+
+                    statePositions[1][i * 3] = px;
+                    statePositions[1][i * 3 + 1] = py;
+                    statePositions[1][i * 3 + 2] = pz;
+
+                    const isBaryonGas = (i % 4 === 0);
+                    const col = new THREE.Color();
+                    if (isBaryonGas) {
+                        col.lerpColors(cPrimordialGas, cWhiteHot, Math.random() * 0.35);
+                    } else {
+                        col.lerpColors(cDarkViolet, cIndigoWeb, Math.random());
+                    }
+                    stateColors[1][i * 3] = col.r;
+                    stateColors[1][i * 3 + 1] = col.g;
+                    stateColors[1][i * 3 + 2] = col.b;
+                    stateSizes[1][i] = isBaryonGas ? 1.35 : 1.85;
+                    stateAlphas[1][i] = isBaryonGas ? 0.75 : 0.48;
+                }
+
+                // ---------------------------------------------------------
+                // ERA 2: POPULATION III STARS & PAIR-INSTABILITY SUPERNOVA REMNANT
+                // ---------------------------------------------------------
+                {
+                    // Central supernova blast shell + filamentary heavy-element ejecta
+                    const isCoreStar = frac < 0.12;
+                    let r;
+                    if (isCoreStar) {
+                        r = Math.pow(Math.random(), 0.7) * 5.0;
+                    } else {
+                        // Expanding spherical shockwave shell with clumpy fingers
+                        const clump = 1.0 + 0.25 * Math.sin(theta * 5.0) * Math.sin(phi * 4.0);
+                        r = (11.0 + Math.pow(Math.random(), 1.8) * 14.0) * clump;
+                    }
+
+                    statePositions[2][i * 3] = dirX * r;
+                    statePositions[2][i * 3 + 1] = dirY * r;
+                    statePositions[2][i * 3 + 2] = dirZ * r;
+
+                    const col = new THREE.Color();
+                    if (isCoreStar) {
+                        col.lerpColors(cWhiteHot, cPop3Blue, Math.random());
+                    } else {
+                        const elemPick = i % 3;
+                        if (elemPick === 0) col.copy(cHeavyCarbon);
+                        else if (elemPick === 1) col.copy(cHeavyOxygen);
+                        else col.copy(cHeavyIron);
+                    }
+                    stateColors[2][i * 3] = col.r;
+                    stateColors[2][i * 3 + 1] = col.g;
+                    stateColors[2][i * 3 + 2] = col.b;
+                    stateSizes[2][i] = isCoreStar ? 2.2 : (1.1 + Math.random() * 1.5);
+                    stateAlphas[2][i] = isCoreStar ? 0.92 : 0.68;
+                }
+
+                // ---------------------------------------------------------
+                // ERA 3: GALACTIC ASSEMBLY & GIANT MOLECULAR CLOUD (GMC)
+                // ---------------------------------------------------------
+                {
+                    // 70% forms a swirling spiral galaxy & dense GMC pillars; 30% cold dark-core nursery
+                    const isDenseNursery = frac < 0.32;
+                    if (isDenseNursery) {
+                        // Dense, turbulent cold molecular cloud core at center
+                        const r = Math.pow(Math.random(), 0.65) * 9.5;
+                        const twist = r * 0.35;
+                        const x = dirX * r;
+                        const y = dirY * r * 0.75;
+                        const z = dirZ * r;
+                        statePositions[3][i * 3] = x * Math.cos(twist) - z * Math.sin(twist);
+                        statePositions[3][i * 3 + 1] = y;
+                        statePositions[3][i * 3 + 2] = x * Math.sin(twist) + z * Math.cos(twist);
+
+                        const col = new THREE.Color().lerpColors(cColdDust, cDenseCore, 1.0 - r / 9.5);
+                        stateColors[3][i * 3] = col.r;
+                        stateColors[3][i * 3 + 1] = col.g;
+                        stateColors[3][i * 3 + 2] = col.b;
+                        stateSizes[3][i] = 2.1;
+                        stateAlphas[3][i] = 0.78;
+                    } else {
+                        // Spiral density wave arms compressing ISM gas
+                        const arm = i % 2;
+                        const dist = 4.0 + Math.pow(Math.random(), 0.85) * 28.0;
+                        const spiralAngle = dist * 0.24 + arm * Math.PI + (Math.random() - 0.5) * 0.65;
+                        const thickness = (1.0 - dist / 34.0) * 3.2 + 0.5;
+                        statePositions[3][i * 3] = Math.cos(spiralAngle) * dist;
+                        statePositions[3][i * 3 + 1] = (Math.random() - 0.5) * thickness;
+                        statePositions[3][i * 3 + 2] = Math.sin(spiralAngle) * dist;
+
+                        const col = new THREE.Color().lerpColors(cNebulaCrimson, cNebulaTeal, dist / 32.0);
+                        stateColors[3][i * 3] = col.r;
+                        stateColors[3][i * 3 + 1] = col.g;
+                        stateColors[3][i * 3 + 2] = col.b;
+                        stateSizes[3][i] = 1.45;
+                        stateAlphas[3][i] = 0.65;
+                    }
+                }
+
+                // ---------------------------------------------------------
+                // ERA 4: JEANS COLLAPSE, PROTOSTAR, ACCRETION DISK & BIPOLAR JETS
+                // ---------------------------------------------------------
+                {
+                    if (frac < 0.16) {
+                        // Bipolar Relativistic Magnetic Jets shooting along +/- Y axis
+                        const sign = (i % 2 === 0) ? 1 : -1;
+                        const jetY = sign * (3.2 + Math.pow(Math.random(), 1.3) * 24.0);
+                        const collimation = 0.35 + Math.abs(jetY) * 0.065;
+                        const ang = Math.random() * Math.PI * 2;
+                        const rad = Math.random() * collimation;
+
+                        statePositions[4][i * 3] = Math.cos(ang) * rad;
+                        statePositions[4][i * 3 + 1] = jetY;
+                        statePositions[4][i * 3 + 2] = Math.sin(ang) * rad;
+
+                        const col = new THREE.Color().lerpColors(cWhiteHot, cJetCyan, Math.abs(jetY) / 26.0);
+                        stateColors[4][i * 3] = col.r;
+                        stateColors[4][i * 3 + 1] = col.g;
+                        stateColors[4][i * 3 + 2] = col.b;
+                        stateSizes[4][i] = 1.65;
+                        stateAlphas[4][i] = 0.85 * (1.0 - Math.abs(jetY) / 29.0);
+                    } else {
+                        // Flattened Protoplanetary Accretion Disk
+                        const r = 3.8 + Math.pow(Math.random(), 1.1) * 19.5;
+                        const ang = Math.random() * Math.PI * 2;
+                        const diskHeight = (0.18 + (r / 24.0) * 1.1) * (Math.random() - 0.5);
+
+                        statePositions[4][i * 3] = Math.cos(ang) * r;
+                        statePositions[4][i * 3 + 1] = diskHeight;
+                        statePositions[4][i * 3 + 2] = Math.sin(ang) * r;
+
+                        const col = new THREE.Color().lerpColors(cDiskGold, cDiskAmber, (r - 3.8) / 19.5);
+                        stateColors[4][i * 3] = col.r;
+                        stateColors[4][i * 3 + 1] = col.g;
+                        stateColors[4][i * 3 + 2] = col.b;
+                        stateSizes[4][i] = 1.35;
+                        stateAlphas[4][i] = 0.78 * (1.0 - (r - 3.8) / 22.0);
+                    }
+                }
+
+                // ---------------------------------------------------------
+                // ERA 5: HYDROGEN IGNITION & MAIN SEQUENCE SUN (CORONA & PROMINENCES)
+                // ---------------------------------------------------------
+                {
+                    // Solar corona plasma particles & magnetic loop prominences orbiting the Sun
+                    const isProminence = frac < 0.25;
+                    if (isProminence) {
+                        // Magnetic loop arcs near solar surface (radius ~ 5.2 - 7.8)
+                        const loopAngle = (i % 12) * (Math.PI / 6);
+                        const arcT = Math.random() * Math.PI;
+                        const loopR = 5.1 + Math.sin(arcT) * 2.4;
+                        const tilt = ((i % 5) - 2) * 0.45;
+                        const lx = Math.cos(loopAngle + Math.cos(arcT) * 0.25) * loopR;
+                        const ly = Math.sin(arcT) * 2.6 * Math.sin(loopAngle + tilt);
+                        const lz = Math.sin(loopAngle + Math.cos(arcT) * 0.25) * loopR;
+
+                        statePositions[5][i * 3] = lx + (Math.random() - 0.5) * 0.3;
+                        statePositions[5][i * 3 + 1] = ly + (Math.random() - 0.5) * 0.3;
+                        statePositions[5][i * 3 + 2] = lz + (Math.random() - 0.5) * 0.3;
+
+                        stateColors[5][i * 3] = cSolarFlare.r;
+                        stateColors[5][i * 3 + 1] = cSolarFlare.g;
+                        stateColors[5][i * 3 + 2] = cSolarFlare.b;
+                        stateSizes[5][i] = 1.6;
+                        stateAlphas[5][i] = 0.85;
+                    } else {
+                        // Radiant solar wind & outer coronal halo
+                        const r = 5.6 + Math.pow(Math.random(), 2.2) * 22.0;
+                        statePositions[5][i * 3] = dirX * r;
+                        statePositions[5][i * 3 + 1] = dirY * r;
+                        statePositions[5][i * 3 + 2] = dirZ * r;
+
+                        const col = new THREE.Color().lerpColors(cWhiteHot, cCoronaGold, Math.min((r - 5.6) / 10.0, 1.0));
+                        stateColors[5][i * 3] = col.r;
+                        stateColors[5][i * 3 + 1] = col.g;
+                        stateColors[5][i * 3 + 2] = col.b;
+                        stateSizes[5][i] = 1.1;
+                        stateAlphas[5][i] = Math.max(0.0, 0.55 * (1.0 - (r - 5.6) / 20.0));
+                    }
+                }
+            }
+
+            // Initialize buffers with Era 0
+            currentPos.set(statePositions[0]);
+            currentCol.set(stateColors[0]);
+            currentSize.set(stateSizes[0]);
+            currentAlpha.set(stateAlphas[0]);
+        }
+        precomputeCosmicStates();
+
+        particleGeo.setAttribute('position', new THREE.BufferAttribute(currentPos, 3));
+        particleGeo.setAttribute('aColor', new THREE.BufferAttribute(currentCol, 3));
+        particleGeo.setAttribute('aSize', new THREE.BufferAttribute(currentSize, 1));
+        particleGeo.setAttribute('aAlpha', new THREE.BufferAttribute(currentAlpha, 1));
+
+        const particleMaterial = new THREE.ShaderMaterial({
+            vertexShader: PARTICLE_VERTEX,
+            fragmentShader: PARTICLE_FRAGMENT,
+            uniforms: {
+                uPixelRatio: { value: renderer.getPixelRatio() }
+            },
+            transparent: true,
+            depthWrite: false,
+            blending: THREE.AdditiveBlending
+        });
+
+        const cosmicParticles = new THREE.Points(particleGeo, particleMaterial);
+        scene.add(cosmicParticles);
+
+        // 4C. Dark Matter Cosmic Web Filament Lines (Visible during Era 1)
+        function createDarkMatterWebLines() {
+            const points = [];
+            webEdges.forEach(([a, b]) => {
+                points.push(webNodes[a], webNodes[b]);
+            });
+            const geo = new THREE.BufferGeometry().setFromPoints(points);
+            const mat = new THREE.LineBasicMaterial({
+                color: 0x7c3aed,
+                transparent: true,
+                opacity: 0.0,
+                blending: THREE.AdditiveBlending
+            });
+            const lines = new THREE.LineSegments(geo, mat);
+            scene.add(lines);
+            return lines;
+        }
+        const darkMatterLines = createDarkMatterWebLines();
+
+        // 4D. Central Hero Star Sphere (Morphs from Singularity -> Pop III Giant -> Protostar -> Main Sequence Sun)
+        const starGeo = new THREE.SphereGeometry(5.0, 96, 96);
+        const starMaterial = new THREE.ShaderMaterial({
+            vertexShader: STAR_SURFACE_VERTEX,
+            fragmentShader: STAR_SURFACE_FRAGMENT,
+            uniforms: {
+                uTime: { value: 0 },
+                uTurbulence: { value: 0.14 },
+                uCoreColor: { value: new THREE.Color(0xffffff) },
+                uMidColor: { value: new THREE.Color(0xffb703) },
+                uDarkColor: { value: new THREE.Color(0xd97706) },
+                uSpotIntensity: { value: 0.0 },
+                uOpacity: { value: 1.0 },
+                uBrightness: { value: 1.6 }
+            },
+            transparent: true
+        });
+        const heroStar = new THREE.Mesh(starGeo, starMaterial);
+        scene.add(heroStar);
+
+        // Volumetric Corona Atmosphere Halo around Hero Star
+        const coronaGeo = new THREE.SphereGeometry(7.6, 64, 64);
+        const coronaMaterial = new THREE.ShaderMaterial({
+            vertexShader: CORONA_VERTEX,
+            fragmentShader: CORONA_FRAGMENT,
+            uniforms: {
+                uColor: { value: new THREE.Color(0xfbbf24) },
+                uIntensity: { value: 1.1 },
+                uTime: { value: 0 }
+            },
+            transparent: true,
+            side: THREE.BackSide,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false
+        });
+        const heroCorona = new THREE.Mesh(coronaGeo, coronaMaterial);
+        scene.add(heroCorona);
+
+        // ============================================================================
+        // 5. TIMELINE STATE, INTERPOLATION ENGINE & UI SYNCHRONIZATION
+        // ============================================================================
+        let timelineProgress = 0.0; // Continuous value from 0.0 to 5.999
+        let targetTimeline = 0.0;
+        let isPlaying = true;
+        let playbackSpeed = 1.0;
+        let activeEraIndex = -1;
+        let userInteractingCamera = false;
+        let manualSeekLock = false;
+
+        // DOM References
+        const sliderEl = document.getElementById('timeline-slider');
+        const playPauseBtn = document.getElementById('play-pause-btn');
+        const playIcon = document.getElementById('play-icon');
+        const pauseIcon = document.getElementById('pause-icon');
+        const playLabel = document.getElementById('play-label');
+        const speedBtn = document.getElementById('speed-btn');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const resetCamBtn = document.getElementById('reset-cam-btn');
+        const toggleHudBtn = document.getElementById('toggle-hud-btn');
+        const hudWrapper = document.getElementById('hud-wrapper');
+        const hudBtnLabel = document.getElementById('hud-btn-label');
+        const eraStrip = document.getElementById('era-selector-strip');
+        const toastBox = document.getElementById('toast-box');
+
+        function showToast(msg) {
+            toastBox.textContent = msg;
+            toastBox.style.opacity = '1';
+            clearTimeout(toastBox._timer);
+            toastBox._timer = setTimeout(() => {
+                toastBox.style.opacity = '0';
+            }, 2200);
+        }
+
+        // Build Era Quick-Select Buttons
+        const eraButtons = [];
+        COSMIC_ERAS.forEach((era, idx) => {
+            const btn = document.createElement('button');
+            btn.className = 'hud-pill rounded-xl px-3 py-1.5 text-xs font-display font-medium text-slate-200 whitespace-nowrap shrink-0 cursor-pointer';
+            btn.textContent = era.shortTitle;
+            btn.addEventListener('click', () => {
+                jumpToEra(idx);
+            });
+            eraStrip.appendChild(btn);
+            eraButtons.push(btn);
+        });
+
+        function jumpToEra(index) {
+            const clamped = Math.max(0, Math.min(COSMIC_ERAS.length - 1, index));
+            targetTimeline = clamped;
+            timelineProgress = clamped;
+            sliderEl.value = clamped;
+            userInteractingCamera = false;
+            updateHUDForEra(clamped, true);
+        }
+
+        // Update HUD Text & Telemetry when entering a new Cosmic Era
+        function updateHUDForEra(eraIdx, force = false) {
+            if (eraIdx === activeEraIndex && !force) return;
+            activeEraIndex = eraIdx;
+            const data = COSMIC_ERAS[eraIdx];
+
+            document.getElementById('era-badge').textContent = data.badge;
+            document.getElementById('cosmic-epoch-label').textContent = data.epoch;
+            document.getElementById('era-title').textContent = data.title;
+            document.getElementById('era-description').textContent = data.description;
+
+            document.getElementById('tel-time').textContent = data.time;
+            document.getElementById('tel-temp').textContent = data.temp;
+            document.getElementById('tel-elements').textContent = data.elements;
+            document.getElementById('tel-physics').textContent = data.physics;
+
+            eraButtons.forEach((btn, idx) => {
+                if (idx === eraIdx) btn.classList.add('era-btn-active');
+                else btn.classList.remove('era-btn-active');
+            });
+        }
+
+        // Smoothly interpolate visual parameters between Era A and Era B
+        const tempColorA = new THREE.Color();
+        const tempColorB = new THREE.Color();
+
+        function updateCosmicVisuals(progress, elapsedTime) {
+            const idxA = Math.min(Math.floor(progress), 5);
+            const idxB = Math.min(idxA + 1, 5);
+            // Smoothstep easing for rich visual morphing
+            const rawT = progress - idxA;
+            const t = rawT * rawT * (3.0 - 2.0 * rawT);
+
+            updateHUDForEra(Math.round(progress));
+
+            // 1. Morph all 24,000 cosmic particles between Era A and Era B
+            const posA = statePositions[idxA];
+            const posB = statePositions[idxB];
+            const colA = stateColors[idxA];
+            const colB = stateColors[idxB];
+            const sizA = stateSizes[idxA];
+            const sizB = stateSizes[idxB];
+            const alpA = stateAlphas[idxA];
+            const alpB = stateAlphas[idxB];
+
+            const posAttr = particleGeo.attributes.position.array;
+            const colAttr = particleGeo.attributes.aColor.array;
+            const sizAttr = particleGeo.attributes.aSize.array;
+            const alpAttr = particleGeo.attributes.aAlpha.array;
+
+            for (let i = 0; i < PARTICLE_COUNT; i++) {
+                const i3 = i * 3;
+                // Add subtle orbital/turbulent swirl based on current era
+                const swirlAngle = elapsedTime * (idxA === 4 ? 0.55 : 0.14) * (1.0 - (i % 10) * 0.05);
+                const bx = posA[i3] + (posB[i3] - posA[i3]) * t;
+                const by = posA[i3 + 1] + (posB[i3 + 1] - posA[i3 + 1]) * t;
+                const bz = posA[i3 + 2] + (posB[i3 + 2] - posA[i3 + 2]) * t;
+
+                const cosS = Math.cos(swirlAngle);
+                const sinS = Math.sin(swirlAngle);
+                posAttr[i3]     = bx * cosS - bz * sinS;
+                posAttr[i3 + 1] = by;
+                posAttr[i3 + 2] = bx * sinS + bz * cosS;
+
+                colAttr[i3]     = colA[i3] + (colB[i3] - colA[i3]) * t;
+                colAttr[i3 + 1] = colA[i3 + 1] + (colB[i3 + 1] - colA[i3 + 1]) * t;
+                colAttr[i3 + 2] = colA[i3 + 2] + (colB[i3 + 2] - colA[i3 + 2]) * t;
+
+                sizAttr[i] = sizA[i] + (sizB[i] - sizA[i]) * t;
+                alpAttr[i] = alpA[i] + (alpB[i] - alpA[i]) * t;
+            }
+
+            particleGeo.attributes.position.needsUpdate = true;
+            particleGeo.attributes.aColor.needsUpdate = true;
+            particleGeo.attributes.aSize.needsUpdate = true;
+            particleGeo.attributes.aAlpha.needsUpdate = true;
+
+            // 2. Dark Matter Filament Lines Opacity (Peaks in Era 1)
+            const webStrength = Math.max(0, 1.0 - Math.abs(progress - 1.0) * 1.35);
+            darkMatterLines.material.opacity = webStrength * 0.42;
+            darkMatterLines.rotation.y = elapsedTime * 0.06;
+
+            // 3. Hero Central Star Sphere & Corona Morphing Across Eras
+            // Era 0: Singularity flash -> shrinks out
+            // Era 1: Hidden (Dark Ages)
+            // Era 2: Colossal Blue-White Population III Star -> Supernova Flash
+            // Era 3: Hidden inside dark cold Molecular Cloud
+            // Era 4: Glowing Amber/Orange Protostar
+            // Era 5: Hyper-Realistic Boiling Main-Sequence Sun (ZAMS)
+            const eraConfigs = [
+                { scale: 0.75, opacity: 0.95, core: 0xffffff, mid: 0x38bdf8, dark: 0xf472b6, spot: 0.0, turb: 0.25, corona: 0x7dd3fc, coronaInt: 1.5, bright: 2.2 },
+                { scale: 0.01, opacity: 0.0,  core: 0x4338ca, mid: 0x312e81, dark: 0x1e1b4b, spot: 0.0, turb: 0.05, corona: 0x4338ca, coronaInt: 0.0, bright: 0.5 },
+                { scale: 1.32, opacity: 1.0,  core: 0xffffff, mid: 0x93c5fd, dark: 0x2563eb, spot: 0.1, turb: 0.22, corona: 0x60a5fa, coronaInt: 1.65, bright: 2.1 },
+                { scale: 0.15, opacity: 0.0,  core: 0xf59e0b, mid: 0xb45309, dark: 0x451a03, spot: 0.0, turb: 0.10, corona: 0xf59e0b, coronaInt: 0.0, bright: 0.5 },
+                { scale: 0.68, opacity: 1.0,  core: 0xfef08a, mid: 0xf97316, dark: 0x9a3412, spot: 0.25, turb: 0.18, corona: 0xfb923c, coronaInt: 1.25, bright: 1.75 },
+                { scale: 1.02, opacity: 1.0,  core: 0xffffff, mid: 0xfbbf24, dark: 0xd97706, spot: 0.65, turb: 0.11, corona: 0xf59e0b, coronaInt: 1.35, bright: 1.65 }
+            ];
+
+            const cfgA = eraConfigs[idxA];
+            const cfgB = eraConfigs[idxB];
+
+            const curScale = THREE.MathUtils.lerp(cfgA.scale, cfgB.scale, t);
+            heroStar.scale.setScalar(curScale);
+            heroCorona.scale.setScalar(curScale * 1.05);
+
+            starMaterial.uniforms.uTime.value = elapsedTime;
+            starMaterial.uniforms.uOpacity.value = THREE.MathUtils.lerp(cfgA.opacity, cfgB.opacity, t);
+            starMaterial.uniforms.uSpotIntensity.value = THREE.MathUtils.lerp(cfgA.spot, cfgB.spot, t);
+            starMaterial.uniforms.uTurbulence.value = THREE.MathUtils.lerp(cfgA.turb, cfgB.turb, t);
+            starMaterial.uniforms.uBrightness.value = THREE.MathUtils.lerp(cfgA.bright, cfgB.bright, t);
+
+            tempColorA.setHex(cfgA.core); tempColorB.setHex(cfgB.core);
+            starMaterial.uniforms.uCoreColor.value.lerpColors(tempColorA, tempColorB, t);
+
+            tempColorA.setHex(cfgA.mid); tempColorB.setHex(cfgB.mid);
+            starMaterial.uniforms.uMidColor.value.lerpColors(tempColorA, tempColorB, t);
+
+            tempColorA.setHex(cfgA.dark); tempColorB.setHex(cfgB.dark);
+            starMaterial.uniforms.uDarkColor.value.lerpColors(tempColorA, tempColorB, t);
+
+            tempColorA.setHex(cfgA.corona); tempColorB.setHex(cfgB.corona);
+            coronaMaterial.uniforms.uColor.value.lerpColors(tempColorA, tempColorB, t);
+            coronaMaterial.uniforms.uIntensity.value = THREE.MathUtils.lerp(cfgA.coronaInt, cfgB.coronaInt, t);
+            coronaMaterial.uniforms.uTime.value = elapsedTime;
+
+            heroStar.rotation.y = elapsedTime * 0.18;
+            heroStar.visible = starMaterial.uniforms.uOpacity.value > 0.01;
+            heroCorona.visible = coronaMaterial.uniforms.uIntensity.value > 0.01;
+
+            // 4. Cinematic Camera Choreography (Unless user is actively dragging/zooming)
+            if (!userInteractingCamera) {
+                const camA = COSMIC_ERAS[idxA].camPos;
+                const camB = COSMIC_ERAS[idxB].camPos;
+                const desiredX = THREE.MathUtils.lerp(camA[0], camB[0], t) + Math.sin(elapsedTime * 0.25) * 3.5;
+                const desiredY = THREE.MathUtils.lerp(camA[1], camB[1], t) + Math.cos(elapsedTime * 0.2) * 2.0;
+                const desiredZ = THREE.MathUtils.lerp(camA[2], camB[2], t);
+
+                camera.position.x = THREE.MathUtils.lerp(camera.position.x, desiredX, 0.035);
+                camera.position.y = THREE.MathUtils.lerp(camera.position.y, desiredY, 0.035);
+                camera.position.z = THREE.MathUtils.lerp(camera.position.z, desiredZ, 0.035);
+            }
+        }
+
+        // ============================================================================
+        // 6. EVENT LISTENERS & INTERACTIVE CONTROLS
+        // ============================================================================
+        controls.addEventListener('start', () => {
+            userInteractingCamera = true;
+        });
+
+        sliderEl.addEventListener('input', (e) => {
+            manualSeekLock = true;
+            const val = parseFloat(e.target.value);
+            timelineProgress = val;
+            targetTimeline = val;
+            userInteractingCamera = false;
+        });
+
+        sliderEl.addEventListener('change', () => {
+            manualSeekLock = false;
+        });
+
+        function togglePlayPause() {
+            isPlaying = !isPlaying;
+            if (isPlaying) {
+                playIcon.classList.add('hidden');
+                pauseIcon.classList.remove('hidden');
+                playLabel.textContent = 'AUTO-JOURNEY';
+                userInteractingCamera = false;
+                showToast('Auto-Journey Resumed');
+            } else {
+                playIcon.classList.remove('hidden');
+                pauseIcon.classList.add('hidden');
+                playLabel.textContent = 'PAUSED';
+                showToast('Simulation Paused');
+            }
+        }
+        playPauseBtn.addEventListener('click', togglePlayPause);
+
+        prevBtn.addEventListener('click', () => {
+            const current = Math.floor(timelineProgress + 0.1);
+            jumpToEra(Math.max(0, current - 1));
+        });
+
+        nextBtn.addEventListener('click', () => {
+            const current = Math.floor(timelineProgress);
+            jumpToEra(Math.min(5, current + 1));
+        });
+
+        const speeds = [0.5, 1.0, 2.0, 3.0];
+        let speedIdx = 1;
+        speedBtn.addEventListener('click', () => {
+            speedIdx = (speedIdx + 1) % speeds.length;
+            playbackSpeed = speeds[speedIdx];
+            speedBtn.textContent = playbackSpeed.toFixed(1) + 'x';
+            showToast(`Timeline Speed: ${playbackSpeed.toFixed(1)}x`);
+        });
+
+        resetCamBtn.addEventListener('click', () => {
+            userInteractingCamera = false;
+            controls.target.set(0, 0, 0);
+            showToast('Camera View Centered');
+        });
+
+        let hudVisible = true;
+        function toggleHUD() {
+            hudVisible = !hudVisible;
+            if (hudVisible) {
+                hudWrapper.classList.remove('ui-hidden');
+                hudBtnLabel.textContent = 'CINEMA VIEW';
+            } else {
+                hudWrapper.classList.add('ui-hidden');
+                hudBtnLabel.textContent = 'SHOW HUD';
+            }
+        }
+        toggleHudBtn.addEventListener('click', toggleHUD);
+
+        // Keyboard shortcuts
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                togglePlayPause();
+            } else if (e.key === 'h' || e.key === 'H') {
+                toggleHUD();
+            } else if (e.key === 'ArrowRight') {
+                nextBtn.click();
+            } else if (e.key === 'ArrowLeft') {
+                prevBtn.click();
+            }
+        });
+
+        // Responsive Window Resize Handler
+        window.addEventListener('resize', () => {
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            camera.aspect = w / h;
+            camera.updateProjectionMatrix();
+            renderer.setSize(w, h);
+            composer.setSize(w, h);
+            bloomPass.setSize(w, h);
+            const pr = Math.min(window.devicePixelRatio, 2);
+            renderer.setPixelRatio(pr);
+            particleMaterial.uniforms.uPixelRatio.value = pr;
+        });
+
+        // ============================================================================
+        // 7. MAIN ANIMATION LOOP (STARTED ON WINDOW LOAD)
+        // ============================================================================
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const dt = Math.min(clock.getDelta(), 0.1);
+            const elapsed = clock.getElapsedTime();
+
+            // Advance timeline automatically in Auto-Journey mode
+            if (isPlaying && !manualSeekLock) {
+                // ~7.5 seconds per cosmic era at 1.0x speed
+                timelineProgress += dt * 0.135 * playbackSpeed;
+                if (timelineProgress >= 5.999) {
+                    // Gently hold at Main Sequence Sun before looping smoothly
+                    timelineProgress = 5.999;
+                }
+                sliderEl.value = timelineProgress;
+            }
+
+            updateCosmicVisuals(timelineProgress, elapsed);
+
+            bgStars.rotation.y = elapsed * 0.008;
+            controls.update();
+            composer.render();
+        }
+
+        window.onload = function () {
+            updateHUDForEra(0, true);
+            animate();
+        };
+    </script>
+</body>
+</html>
