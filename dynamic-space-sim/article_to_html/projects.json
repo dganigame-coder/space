@@ -1,0 +1,227 @@
+[
+  {
+    "title": "Earth",
+    "relativePath": "earth.html",
+    "path": "Objects/Earth/earth.html"
+  },
+  {
+    "title": "AI Horde Standalone Image Generator",
+    "relativePath": "ai_horde_standalone_image_generator.html",
+    "path": "ai-space-sim/ai_horde_standalone_image_generator.html"
+  },
+  {
+    "title": "AI Space Image Generator",
+    "relativePath": "puter_image_generator_test.html",
+    "path": "ai-space-sim/puter_image_generator_test.html"
+  },
+  {
+    "title": "Space Object Generator",
+    "relativePath": "space_object_generator.html",
+    "path": "ai-space-sim/space_object_generator.html"
+  },
+  {
+    "title": "Test Image AI",
+    "relativePath": "test_image_ai.html",
+    "path": "ai-space-sim/test_image_ai.html"
+  },
+  {
+    "title": "Banana Space",
+    "relativePath": "bananaspace.html",
+    "path": "bananaspace.html"
+  },
+  {
+    "title": "Bing Multi Space Player",
+    "relativePath": "bing-multi-space-player.html",
+    "path": "bing-multi-space-player.html"
+  },
+  {
+    "title": "Black Hole Pace",
+    "relativePath": "blackholepace.html",
+    "path": "blackholepace.html"
+  },
+  {
+    "title": "Capital Space",
+    "relativePath": "capital-space.html",
+    "path": "capital-space.html"
+  },
+  {
+    "title": "AI Space Command Simulator",
+    "relativePath": "ai_space_command_simulator.html",
+    "path": "dynamic-space-sim/ai_space_command_simulator.html"
+  },
+  {
+    "title": "Claude Burst",
+    "relativePath": "claude-burst.html",
+    "path": "dynamic-space-sim/article_to_html/claude-burst.html"
+  },
+  {
+    "title": "Copilot Space",
+    "relativePath": "copilot-space.html",
+    "path": "dynamic-space-sim/article_to_html/copilot-space.html"
+  },
+  {
+    "title": "Gemini Betelgeuse",
+    "relativePath": "gemini-betelgeuse.html",
+    "path": "dynamic-space-sim/article_to_html/gemini-betelgeuse.html"
+  },
+  {
+    "title": "Gemini Bright Black Hole",
+    "relativePath": "gemini-blackhole-bright.html",
+    "path": "dynamic-space-sim/article_to_html/gemini-blackhole-bright.html"
+  },
+  {
+    "title": "Gemini Black Hole Solar System",
+    "relativePath": "gemini-blackhole-solarsystem.html",
+    "path": "dynamic-space-sim/article_to_html/gemini-blackhole-solarsystem.html"
+  },
+  {
+    "title": "Gemini Black Hole",
+    "relativePath": "gemini-blackhole.html",
+    "path": "dynamic-space-sim/article_to_html/gemini-blackhole.html"
+  },
+  {
+    "title": "Gemini Blaze",
+    "relativePath": "gemini-blaze.html",
+    "path": "dynamic-space-sim/article_to_html/gemini-blaze.html"
+  },
+  {
+    "title": "Gemini Burst",
+    "relativePath": "gemini-burst.html",
+    "path": "dynamic-space-sim/article_to_html/gemini-burst.html"
+  },
+  {
+    "title": "Earth Influence Burst",
+    "relativePath": "gemini-earth-influence-burst.html",
+    "path": "dynamic-space-sim/article_to_html/gemini-earth-influence-burst.html"
+  },
+  {
+    "title": "Gamma Burst",
+    "relativePath": "gemini-gamma-burst.html",
+    "path": "dynamic-space-sim/article_to_html/gemini-gamma-burst.html"
+  },
+  {
+    "title": "Genesis of Stars",
+    "relativePath": "gemini-genesis-of-stars.html",
+    "path": "dynamic-space-sim/article_to_html/gemini-genesis-of-stars.html"
+  },
+  {
+    "title": "Gemini J0008+0128",
+    "relativePath": "gemini-j0008+0128.html",
+    "path": "dynamic-space-sim/article_to_html/gemini-j0008+0128.html"
+  },
+  {
+    "title": "Gemini NGC1433",
+    "relativePath": "gemini-ngc1433.html",
+    "path": "dynamic-space-sim/article_to_html/gemini-ngc1433.html"
+  },
+  {
+    "title": "Real Burst",
+    "relativePath": "gemini-real-burst.html",
+    "path": "dynamic-space-sim/article_to_html/gemini-real-burst.html"
+  },
+  {
+    "title": "Gemini Space",
+    "relativePath": "gemini-space.html",
+    "path": "dynamic-space-sim/article_to_html/gemini-space.html"
+  },
+  {
+    "title": "GPT Space",
+    "relativePath": "gpt-space.html",
+    "path": "dynamic-space-sim/article_to_html/gpt-space.html"
+  },
+  {
+    "title": "Temporary Page",
+    "relativePath": "tmp.html",
+    "path": "dynamic-space-sim/article_to_html/tmp.html"
+  },
+  {
+    "title": "X-Ray Burst",
+    "relativePath": "xray-burst-gemini.html",
+    "path": "dynamic-space-sim/article_to_html/xray-burst-gemini.html"
+  },
+  {
+    "title": "Deep Space AI",
+    "relativePath": "deep-space-ai.html",
+    "path": "dynamic-space-sim/deep-space-ai.html"
+  },
+  {
+    "title": "Pollinations Test",
+    "relativePath": "pollinations-test.html",
+    "path": "dynamic-space-sim/pollinations-test.html"
+  },
+  {
+    "title": "Dynamic Space Temporary Page",
+    "relativePath": "tmp.html",
+    "path": "dynamic-space-sim/tmp.html"
+  },
+  {
+    "title": "Google Drive",
+    "relativePath": "gdrive.html",
+    "path": "gdrive.html"
+  },
+  {
+    "title": "Space Navigator",
+    "relativePath": "gspacenav.html",
+    "path": "gspacenav.html"
+  },
+  {
+    "title": "Multiplayer",
+    "relativePath": "multiplayer.html",
+    "path": "multiplayer.html"
+  },
+  {
+    "title": "GPT Nebulas",
+    "relativePath": "gptNebulas.html",
+    "path": "navisoftspace/gptNebulas.html"
+  },
+  {
+    "title": "Test Nebula",
+    "relativePath": "testNebula.html",
+    "path": "navisoftspace/horizonObjects/testNebula.html"
+  },
+  {
+    "title": "NaviSoft Space",
+    "relativePath": "index.html",
+    "path": "navisoftspace/index.html"
+  },
+  {
+    "title": "Test Audio",
+    "relativePath": "test-audio.html",
+    "path": "navisoftspace/test-audio.html"
+  },
+  {
+    "title": "Universe Simulator",
+    "relativePath": "index.html",
+    "path": "sim/index.html"
+  },
+  {
+    "title": "Test Model",
+    "relativePath": "testmodel.html",
+    "path": "sim/testmodel.html"
+  },
+  {
+    "title": "Universe Border",
+    "relativePath": "universe-border.html",
+    "path": "sim/universe-border.html"
+  },
+  {
+    "title": "Space Navigator",
+    "relativePath": "spacenav.html",
+    "path": "spacenav.html"
+  },
+  {
+    "title": "Space Ti Player",
+    "relativePath": "spacetiplayer.html",
+    "path": "spacetiplayer.html"
+  },
+  {
+    "title": "Space Ti Puyer",
+    "relativePath": "spacetiplyer.html",
+    "path": "spacetiplyer.html"
+  },
+  {
+    "title": "Test",
+    "relativePath": "test.html",
+    "path": "test.html"
+  }
+]
