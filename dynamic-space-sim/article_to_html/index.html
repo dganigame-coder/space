@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -132,23 +131,6 @@
 
 <script>
 
-// ========================================
-// GITHUB CONFIGURATION
-// ========================================
-
-const OWNER = "dganigame-coder";
-const REPO = "space";
-const BRANCH = "main";
-
-// Leave empty when GitHub Pages is published
-// from the repository root.
-// Use "docs" when Pages is published from /docs.
-const PUBLISH_ROOT = "";
-
-// ========================================
-// HELPERS
-// ========================================
-
 const gallery = document.getElementById("gallery");
 const status = document.getElementById("status");
 const count = document.getElementById("count");
@@ -161,82 +143,6 @@ function encodePath(path) {
         .join("/");
 }
 
-function getFilename(path) {
-    return path.split("/").pop().replace(/\.html?$/i, "");
-}
-
-// ========================================
-// GET HTML TITLE
-// ========================================
-
-async function getPageTitle(path) {
-
-    const url =
-        `https://raw.githubusercontent.com/` +
-        `${OWNER}/${REPO}/` +
-        `${encodePath(BRANCH)}/` +
-        `${encodePath(path)}`;
-
-    try {
-
-        const response = await fetch(url);
-
-        if (!response.ok) {
-            return getFilename(path);
-        }
-
-        const html = await response.text();
-
-        const parsed = new DOMParser().parseFromString(
-            html,
-            "text/html"
-        );
-
-        return (
-            parsed.querySelector("title")
-                ?.textContent
-                ?.trim()
-            || getFilename(path)
-        );
-
-    } catch (error) {
-
-        console.warn("Could not read title:", path, error);
-
-        return getFilename(path);
-    }
-}
-
-// ========================================
-// LIMIT CONCURRENT REQUESTS
-// ========================================
-
-async function mapLimit(items, limit, callback) {
-
-    let nextIndex = 0;
-
-    const workers = Array.from(
-        { length: Math.min(limit, items.length) },
-        async () => {
-
-            while (nextIndex < items.length) {
-
-                const index = nextIndex++;
-
-                items[index] = await callback(items[index]);
-            }
-        }
-    );
-
-    await Promise.all(workers);
-
-    return items;
-}
-
-// ========================================
-// CREATE GALLERY
-// ========================================
-
 function renderGallery(pages) {
 
     gallery.innerHTML = "";
@@ -245,28 +151,21 @@ function renderGallery(pages) {
 
     const filtered = pages.filter(page =>
         page.title.toLowerCase().includes(query) ||
-        page.path.toLowerCase().includes(query)
+        (page.relativePath || "").toLowerCase().includes(query)
     );
 
     count.textContent =
         `${filtered.length} of ${pages.length} projects`;
 
     if (filtered.length === 0) {
-
         gallery.textContent = "No matching HTML projects found.";
-
         return;
     }
 
     filtered.forEach(page => {
 
         const link = document.createElement("a");
-
         link.className = "page-card";
-
-        // Relative URL works with GitHub Pages,
-        // including project sites.
-
         link.href = "./" + encodePath(page.relativePath);
 
         const title = document.createElement("div");
@@ -284,82 +183,25 @@ function renderGallery(pages) {
     });
 }
 
-// ========================================
-// LOAD REPOSITORY HTML FILES
-// ========================================
-
 async function loadProjects() {
 
     try {
 
-        const apiURL =
-            `https://api.github.com/repos/` +
-            `${OWNER}/${REPO}/git/trees/` +
-            `${encodeURIComponent(BRANCH)}?recursive=1`;
-
-        const response = await fetch(apiURL, {
-            headers: {
-                "Accept": "application/vnd.github+json"
-            }
+        const response = await fetch("./projects.json", {
+            cache: "no-store"
         });
 
         if (!response.ok) {
             throw new Error(
-                `GitHub API error: ${response.status}`
+                `Could not load projects.json: ${response.status}`
             );
         }
 
-        const data = await response.json();
+        const pages = await response.json();
 
-        if (data.truncated) {
-            throw new Error(
-                "Repository tree is too large for one API response."
-            );
+        if (!Array.isArray(pages)) {
+            throw new Error("projects.json must contain an array.");
         }
-
-        const rootPrefix = PUBLISH_ROOT
-            ? PUBLISH_ROOT.replace(/^\/+|\/+$/g, "") + "/"
-            : "";
-
-        const excludedIndex = rootPrefix + "index.html";
-
-        // Find every HTML file in the published directory.
-
-        const htmlFiles = data.tree.filter(file => {
-
-            return (
-                file.type === "blob" &&
-                file.path.startsWith(rootPrefix) &&
-                /\.html?$/i.test(file.path) &&
-                file.path !== excludedIndex
-            );
-        });
-
-        status.textContent =
-            `Found ${htmlFiles.length} HTML files. Reading titles...`;
-
-        // Read titles with a maximum of 8 simultaneous requests.
-
-        const pages = await mapLimit(
-            htmlFiles,
-            8,
-            async file => {
-
-                const relativePath = rootPrefix
-                    ? file.path.slice(rootPrefix.length)
-                    : file.path;
-
-                const title = await getPageTitle(file.path);
-
-                return {
-                    title,
-                    path: file.path,
-                    relativePath
-                };
-            }
-        );
-
-        // Alphabetical sorting.
 
         pages.sort((a, b) =>
             a.title.localeCompare(b.title)
@@ -368,8 +210,6 @@ async function loadProjects() {
         status.textContent = "Gallery loaded successfully.";
 
         renderGallery(pages);
-
-        // Keep pages available for filtering.
 
         search.addEventListener("input", () => {
             renderGallery(pages);
@@ -383,10 +223,6 @@ async function loadProjects() {
             "Could not load projects: " + error.message;
     }
 }
-
-// ========================================
-// START
-// ========================================
 
 loadProjects();
 
