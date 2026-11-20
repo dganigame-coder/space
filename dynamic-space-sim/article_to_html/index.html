@@ -1,0 +1,396 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My HTML Gallery</title>
+
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        padding: 30px;
+        font-family: Arial, sans-serif;
+        background: #101522;
+        color: #f1f5f9;
+    }
+
+    .container {
+        max-width: 1100px;
+        margin: auto;
+    }
+
+    h1 {
+        margin-bottom: 8px;
+    }
+
+    .subtitle {
+        color: #94a3b8;
+        margin-bottom: 28px;
+    }
+
+    #search {
+        width: 100%;
+        padding: 14px;
+        border-radius: 10px;
+        border: 1px solid #334155;
+        background: #1e293b;
+        color: white;
+        font-size: 16px;
+        margin-bottom: 22px;
+    }
+
+    #gallery {
+        display: grid;
+        grid-template-columns: repeat(
+            auto-fill,
+            minmax(230px, 1fr)
+        );
+        gap: 16px;
+    }
+
+    .page-card {
+        display: block;
+        padding: 20px;
+        border-radius: 12px;
+        background: #1e293b;
+        border: 1px solid #334155;
+        color: white;
+        text-decoration: none;
+        transition: 0.2s;
+        min-width: 0;
+    }
+
+    .page-card:hover {
+        background: #293950;
+        border-color: #38bdf8;
+        transform: translateY(-3px);
+    }
+
+    .page-title {
+        font-size: 17px;
+        font-weight: bold;
+        margin-bottom: 10px;
+        overflow-wrap: anywhere;
+    }
+
+    .page-path {
+        font-size: 12px;
+        color: #94a3b8;
+        overflow-wrap: anywhere;
+    }
+
+    #status {
+        color: #94a3b8;
+        margin: 20px 0;
+    }
+
+    .count {
+        color: #38bdf8;
+        margin-bottom: 15px;
+    }
+
+    @media (max-width: 600px) {
+        body {
+            padding: 18px;
+        }
+
+        #gallery {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>🚀 My HTML Projects</h1>
+
+    <div class="subtitle">
+        Automatically discovered HTML applications
+    </div>
+
+    <input
+        type="search"
+        id="search"
+        placeholder="Search projects..."
+    >
+
+    <div id="status">Loading HTML projects...</div>
+
+    <div class="count" id="count"></div>
+
+    <div id="gallery"></div>
+
+</div>
+
+<script>
+
+// ========================================
+// GITHUB CONFIGURATION
+// ========================================
+
+const OWNER = "YOUR_GITHUB_USERNAME";
+const REPO = "YOUR_REPOSITORY";
+const BRANCH = "main";
+
+// Leave empty when GitHub Pages is published
+// from the repository root.
+// Use "docs" when Pages is published from /docs.
+const PUBLISH_ROOT = "";
+
+// ========================================
+// HELPERS
+// ========================================
+
+const gallery = document.getElementById("gallery");
+const status = document.getElementById("status");
+const count = document.getElementById("count");
+const search = document.getElementById("search");
+
+function encodePath(path) {
+    return path
+        .split("/")
+        .map(segment => encodeURIComponent(segment))
+        .join("/");
+}
+
+function getFilename(path) {
+    return path.split("/").pop().replace(/\.html?$/i, "");
+}
+
+// ========================================
+// GET HTML TITLE
+// ========================================
+
+async function getPageTitle(path) {
+
+    const url =
+        `https://raw.githubusercontent.com/` +
+        `${OWNER}/${REPO}/` +
+        `${encodePath(BRANCH)}/` +
+        `${encodePath(path)}`;
+
+    try {
+
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            return getFilename(path);
+        }
+
+        const html = await response.text();
+
+        const parsed = new DOMParser().parseFromString(
+            html,
+            "text/html"
+        );
+
+        return (
+            parsed.querySelector("title")
+                ?.textContent
+                ?.trim()
+            || getFilename(path)
+        );
+
+    } catch (error) {
+
+        console.warn("Could not read title:", path, error);
+
+        return getFilename(path);
+    }
+}
+
+// ========================================
+// LIMIT CONCURRENT REQUESTS
+// ========================================
+
+async function mapLimit(items, limit, callback) {
+
+    let nextIndex = 0;
+
+    const workers = Array.from(
+        { length: Math.min(limit, items.length) },
+        async () => {
+
+            while (nextIndex < items.length) {
+
+                const index = nextIndex++;
+
+                items[index] = await callback(items[index]);
+            }
+        }
+    );
+
+    await Promise.all(workers);
+
+    return items;
+}
+
+// ========================================
+// CREATE GALLERY
+// ========================================
+
+function renderGallery(pages) {
+
+    gallery.innerHTML = "";
+
+    const query = search.value.toLowerCase().trim();
+
+    const filtered = pages.filter(page =>
+        page.title.toLowerCase().includes(query) ||
+        page.path.toLowerCase().includes(query)
+    );
+
+    count.textContent =
+        `${filtered.length} of ${pages.length} projects`;
+
+    if (filtered.length === 0) {
+
+        gallery.textContent = "No matching HTML projects found.";
+
+        return;
+    }
+
+    filtered.forEach(page => {
+
+        const link = document.createElement("a");
+
+        link.className = "page-card";
+
+        // Relative URL works with GitHub Pages,
+        // including project sites.
+
+        link.href = "./" + encodePath(page.relativePath);
+
+        const title = document.createElement("div");
+        title.className = "page-title";
+        title.textContent = "🌐 " + page.title;
+
+        const path = document.createElement("div");
+        path.className = "page-path";
+        path.textContent = page.relativePath;
+
+        link.appendChild(title);
+        link.appendChild(path);
+
+        gallery.appendChild(link);
+    });
+}
+
+// ========================================
+// LOAD REPOSITORY HTML FILES
+// ========================================
+
+async function loadProjects() {
+
+    try {
+
+        const apiURL =
+            `https://api.github.com/repos/` +
+            `${OWNER}/${REPO}/git/trees/` +
+            `${encodeURIComponent(BRANCH)}?recursive=1`;
+
+        const response = await fetch(apiURL, {
+            headers: {
+                "Accept": "application/vnd.github+json"
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(
+                `GitHub API error: ${response.status}`
+            );
+        }
+
+        const data = await response.json();
+
+        if (data.truncated) {
+            throw new Error(
+                "Repository tree is too large for one API response."
+            );
+        }
+
+        const rootPrefix = PUBLISH_ROOT
+            ? PUBLISH_ROOT.replace(/^\/+|\/+$/g, "") + "/"
+            : "";
+
+        const excludedIndex = rootPrefix + "index.html";
+
+        // Find every HTML file in the published directory.
+
+        const htmlFiles = data.tree.filter(file => {
+
+            return (
+                file.type === "blob" &&
+                file.path.startsWith(rootPrefix) &&
+                /\.html?$/i.test(file.path) &&
+                file.path !== excludedIndex
+            );
+        });
+
+        status.textContent =
+            `Found ${htmlFiles.length} HTML files. Reading titles...`;
+
+        // Read titles with a maximum of 8 simultaneous requests.
+
+        const pages = await mapLimit(
+            htmlFiles,
+            8,
+            async file => {
+
+                const relativePath = rootPrefix
+                    ? file.path.slice(rootPrefix.length)
+                    : file.path;
+
+                const title = await getPageTitle(file.path);
+
+                return {
+                    title,
+                    path: file.path,
+                    relativePath
+                };
+            }
+        );
+
+        // Alphabetical sorting.
+
+        pages.sort((a, b) =>
+            a.title.localeCompare(b.title)
+        );
+
+        status.textContent = "Gallery loaded successfully.";
+
+        renderGallery(pages);
+
+        // Keep pages available for filtering.
+
+        search.addEventListener("input", () => {
+            renderGallery(pages);
+        });
+
+    } catch (error) {
+
+        console.error(error);
+
+        status.textContent =
+            "Could not load projects: " + error.message;
+    }
+}
+
+// ========================================
+// START
+// ========================================
+
+loadProjects();
+
+</script>
+
+</body>
+</html>
