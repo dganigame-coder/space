@@ -23,14 +23,8 @@
         margin: auto;
     }
 
-    h1 {
-        margin-bottom: 8px;
-    }
-
-    .subtitle {
-        color: #94a3b8;
-        margin-bottom: 28px;
-    }
+    h1 { margin-bottom: 8px; }
+    .subtitle { color: #94a3b8; margin-bottom: 28px; }
 
     #search {
         width: 100%;
@@ -45,10 +39,7 @@
 
     #gallery {
         display: grid;
-        grid-template-columns: repeat(
-            auto-fill,
-            minmax(230px, 1fr)
-        );
+        grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
         gap: 16px;
     }
 
@@ -83,58 +74,35 @@
         overflow-wrap: anywhere;
     }
 
-    #status {
-        color: #94a3b8;
-        margin: 20px 0;
-    }
-
-    .count {
-        color: #38bdf8;
-        margin-bottom: 15px;
-    }
+    #status { color: #94a3b8; margin: 20px 0; }
+    .count { color: #38bdf8; margin-bottom: 15px; }
 
     @media (max-width: 600px) {
-        body {
-            padding: 18px;
-        }
-
-        #gallery {
-            grid-template-columns: 1fr;
-        }
+        body { padding: 18px; }
+        #gallery { grid-template-columns: 1fr; }
     }
 </style>
 </head>
 
 <body>
-
 <div class="container">
-
     <h1>🚀 My HTML Projects</h1>
-
-    <div class="subtitle">
-        Automatically discovered HTML applications
-    </div>
-
-    <input
-        type="search"
-        id="search"
-        placeholder="Search projects..."
-    >
-
+    <div class="subtitle">Automatically discovered HTML applications</div>
+    <input type="search" id="search" placeholder="Search projects...">
     <div id="status">Loading HTML projects...</div>
-
     <div class="count" id="count"></div>
-
     <div id="gallery"></div>
-
 </div>
 
 <script>
-
 const gallery = document.getElementById("gallery");
 const status = document.getElementById("status");
 const count = document.getElementById("count");
 const search = document.getElementById("search");
+
+// Derive the GitHub Pages site root from this index.html's own location.
+// This works for /space/ project pages as well as custom domains.
+const siteRoot = new URL("../../", window.location.href);
 
 function encodePath(path) {
     return path
@@ -143,19 +111,23 @@ function encodePath(path) {
         .join("/");
 }
 
-function renderGallery(pages) {
+function getProjectHref(page) {
+    // Manifest paths are repository-root-relative. Resolve them from the
+    // GitHub Pages site root instead of appending them to this index URL.
+    const repositoryPath = page.path || page.relativePath;
+    return new URL(encodePath(repositoryPath), siteRoot).href;
+}
 
+function renderGallery(pages) {
     gallery.innerHTML = "";
 
     const query = search.value.toLowerCase().trim();
-
     const filtered = pages.filter(page =>
         page.title.toLowerCase().includes(query) ||
-        (page.relativePath || "").toLowerCase().includes(query)
+        (page.path || page.relativePath || "").toLowerCase().includes(query)
     );
 
-    count.textContent =
-        `${filtered.length} of ${pages.length} projects`;
+    count.textContent = `${filtered.length} of ${pages.length} projects`;
 
     if (filtered.length === 0) {
         gallery.textContent = "No matching HTML projects found.";
@@ -163,10 +135,9 @@ function renderGallery(pages) {
     }
 
     filtered.forEach(page => {
-
         const link = document.createElement("a");
         link.className = "page-card";
-        link.href = "/space/" + encodePath(page.path);
+        link.href = getProjectHref(page);
 
         const title = document.createElement("div");
         title.className = "page-title";
@@ -174,27 +145,20 @@ function renderGallery(pages) {
 
         const path = document.createElement("div");
         path.className = "page-path";
-        path.textContent = page.relativePath;
+        path.textContent = page.path || page.relativePath;
 
         link.appendChild(title);
         link.appendChild(path);
-
         gallery.appendChild(link);
     });
 }
 
 async function loadProjects() {
-
     try {
-
-        const response = await fetch("./projects.json", {
-            cache: "no-store"
-        });
+        const response = await fetch("./projects.json", { cache: "no-store" });
 
         if (!response.ok) {
-            throw new Error(
-                `Could not load projects.json: ${response.status}`
-            );
+            throw new Error(`Could not load projects.json: ${response.status}`);
         }
 
         const pages = await response.json();
@@ -203,30 +167,18 @@ async function loadProjects() {
             throw new Error("projects.json must contain an array.");
         }
 
-        pages.sort((a, b) =>
-            a.title.localeCompare(b.title)
-        );
-
+        pages.sort((a, b) => a.title.localeCompare(b.title));
         status.textContent = "Gallery loaded successfully.";
-
         renderGallery(pages);
 
-        search.addEventListener("input", () => {
-            renderGallery(pages);
-        });
-
+        search.addEventListener("input", () => renderGallery(pages));
     } catch (error) {
-
         console.error(error);
-
-        status.textContent =
-            "Could not load projects: " + error.message;
+        status.textContent = "Could not load projects: " + error.message;
     }
 }
 
 loadProjects();
-
 </script>
-
 </body>
 </html>
