@@ -166,7 +166,7 @@ function renderGallery(pages) {
 
         const link = document.createElement("a");
         link.className = "page-card";
-        link.href = "./" + encodePath(page.relativePath);
+        link.href = "/space/" + encodePath(page.path);
 
         const title = document.createElement("div");
         title.className = "page-title";
