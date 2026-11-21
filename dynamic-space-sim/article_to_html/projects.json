@@ -1,18 +1,8 @@
 [
   {
-    "title": "AI Space Command Simulator",
-    "relativePath": "ai_space_command_simulator.html",
-    "path": "dynamic-space-sim/ai_space_command_simulator.html"
-  },
-  {
     "title": "Claude Burst",
     "relativePath": "claude-burst.html",
     "path": "dynamic-space-sim/article_to_html/claude-burst.html"
-  },
-  {
-    "title": "Copilot Space",
-    "relativePath": "copilot-space.html",
-    "path": "dynamic-space-sim/article_to_html/copilot-space.html"
   },
   {
     "title": "Gemini Betelgeuse",
