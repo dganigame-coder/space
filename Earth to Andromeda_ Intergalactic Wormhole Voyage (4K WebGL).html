@@ -1,0 +1,1812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Earth to Andromeda: Intergalactic Wormhole Voyage (4K WebGL)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Import Map for Three.js r164 & JSM Post-Processing Addons -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/"
+        }
+    }
+    </script>
+
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #010308;
+            font-family: 'Inter', sans-serif;
+            color: #e6f4ff;
+            user-select: none;
+        }
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+        .glass-panel {
+            background: rgba(4, 9, 20, 0.72);
+            backdrop-filter: blur(22px);
+            -webkit-backdrop-filter: blur(22px);
+            border: 1px solid rgba(56, 189, 248, 0.22);
+            box-shadow: 0 18px 50px rgba(0, 0, 0, 0.82), inset 0 0 24px rgba(56, 189, 248, 0.05);
+        }
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* Range Sliders */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 5px;
+            cursor: pointer;
+            background: rgba(56, 189, 248, 0.2);
+            border-radius: 999px;
+            border: 1px solid rgba(56, 189, 248, 0.28);
+        }
+        input[type=range]::-webkit-slider-thumb {
+            height: 15px;
+            width: 15px;
+            border-radius: 50%;
+            background: #38bdf8;
+            box-shadow: 0 0 12px #38bdf8, 0 0 24px rgba(56, 189, 248, 0.75);
+            cursor: pointer;
+            -webkit-appearance: none;
+            margin-top: -6px;
+            transition: transform 0.15s ease;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+        .stage-pill {
+            background: rgba(15, 23, 42, 0.65);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .stage-pill:hover {
+            border-color: rgba(56, 189, 248, 0.5);
+            background: rgba(14, 165, 233, 0.16);
+        }
+        .stage-pill.active {
+            background: linear-gradient(135deg, rgba(14, 165, 233, 0.32), rgba(245, 158, 11, 0.28));
+            border-color: rgba(56, 189, 248, 0.75);
+            color: #ffffff;
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.28);
+        }
+        .cam-pill.active {
+            background: rgba(56, 189, 248, 0.28);
+            border-color: rgba(56, 189, 248, 0.68);
+            color: #ffffff;
+            box-shadow: 0 0 14px rgba(56, 189, 248, 0.25);
+        }
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(56, 189, 248, 0.3);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Fullscreen 4K WebGL Canvas Container -->
+    <div id="canvas-container" class="fixed inset-0 z-0"></div>
+
+    <!-- Top Header & Camera Controls -->
+    <div class="fixed top-4 left-4 right-4 z-30 flex flex-wrap items-center justify-between gap-3 pointer-events-none">
+        <!-- Mission Title & 4K Badge -->
+        <div class="glass-panel rounded-2xl px-4 py-2.5 flex items-center gap-3 pointer-events-auto">
+            <div class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping"></div>
+            <div>
+                <div class="flex items-center gap-2">
+                    <span class="text-[10px] font-semibold tracking-widest uppercase text-cyan-300 mono">ISV AETHER-IX • RELATIVISTIC MISSION</span>
+                    <span id="res-badge" class="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-400/40 text-cyan-200 mono">4K ULTRA DPI</span>
+                </div>
+                <h1 class="text-sm sm:text-base font-bold tracking-tight text-white">Earth to Andromeda: Intergalactic Wormhole Voyage</h1>
+            </div>
+        </div>
+
+        <!-- Camera Mode Switcher & Hide HUD Button -->
+        <div class="flex flex-wrap items-center gap-2 pointer-events-auto">
+            <div class="glass-panel rounded-2xl p-1 flex items-center gap-1">
+                <button id="cam-chase" class="cam-pill active px-3 py-1.5 rounded-xl text-xs font-medium text-sky-100 border border-transparent hover:bg-sky-400/20 transition cursor-pointer">
+                    Cinematic Chase
+                </button>
+                <button id="cam-cockpit" class="cam-pill px-3 py-1.5 rounded-xl text-xs font-medium text-amber-200 border border-transparent hover:bg-amber-400/20 transition cursor-pointer">
+                    Hull / Bridge Cam
+                </button>
+                <button id="cam-orbit" class="cam-pill px-3 py-1.5 rounded-xl text-xs font-medium text-sky-100 border border-transparent hover:bg-sky-400/20 transition cursor-pointer">
+                    Free Orbit
+                </button>
+            </div>
+
+            <button id="toggle-hud-btn" class="glass-panel rounded-2xl px-3.5 py-2 text-xs font-semibold text-sky-200 hover:text-white hover:border-sky-300/60 transition flex items-center gap-2 cursor-pointer">
+                <svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                </svg>
+                <span id="hud-btn-label">Hide HUD</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Interactive HUD Overlay -->
+    <div id="hud-wrapper" class="fixed inset-0 z-20 pointer-events-none flex flex-col justify-between p-4 pt-20 transition-opacity duration-300">
+        
+        <!-- Top-Left: Live Mission Telemetry & Narrative Log -->
+        <div class="flex flex-col lg:flex-row justify-between items-start gap-4 w-full">
+            <div class="glass-panel rounded-2xl p-4 sm:p-5 max-w-md pointer-events-auto">
+                <div class="flex items-center justify-between mb-2">
+                    <span id="stage-kicker" class="text-[11px] font-bold uppercase tracking-wider text-cyan-400 mono">STAGE 01 / 05 • SOL SYSTEM</span>
+                    <span id="status-pill" class="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 mono">ORBITAL IGNITION</span>
+                </div>
+
+                <h2 id="stage-title" class="text-base sm:text-lg font-bold text-white mb-1.5">Departing Earth Orbit</h2>
+                <p id="stage-desc" class="text-xs sm:text-[13px] leading-relaxed text-slate-300 mb-3.5">
+                    The interstellar starship <span class="text-cyan-300 font-semibold">ISV Aether-IX</span> fires its twin magnetoplasmadynamic fusion nacelles above Earth's illuminated twilight limb, breaking free of Low Earth Orbit toward deep interplanetary space.
+                </p>
+
+                <!-- Telemetry Grid -->
+                <div class="grid grid-cols-2 gap-2 p-2.5 rounded-xl bg-black/45 border border-sky-500/20 mono text-[11px]">
+                    <div>
+                        <div class="text-slate-400 text-[10px]">CURRENT SECTOR</div>
+                        <div id="tel-sector" class="text-cyan-300 font-semibold text-xs truncate">Earth / Orion Arm</div>
+                    </div>
+                    <div>
+                        <div class="text-slate-400 text-[10px]">DISTANCE TRAVELED</div>
+                        <div id="tel-distance" class="text-amber-300 font-semibold text-xs">420 km</div>
+                    </div>
+                    <div>
+                        <div class="text-slate-400 text-[10px]">PROPULSION / VELOCITY</div>
+                        <div id="tel-velocity" class="text-sky-200 font-semibold text-xs">11.2 km/s (Escape)</div>
+                    </div>
+                    <div>
+                        <div class="text-slate-400 text-[10px]">SPACETIME METRIC</div>
+                        <div id="tel-metric" class="text-emerald-300 font-semibold text-xs">Flat Minkowski (1.00)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Bar: 5-Stage Journey Navigator + Playback Controls -->
+        <div class="flex flex-col gap-3 w-full max-w-6xl mx-auto pointer-events-auto">
+            
+            <!-- Timeline Progress Bar & Playback Controls -->
+            <div class="glass-panel rounded-2xl px-4 py-3 flex flex-col md:flex-row items-center gap-3">
+                <div class="flex items-center gap-2 shrink-0">
+                    <button id="play-pause-btn" class="px-3.5 py-1.5 rounded-xl bg-sky-500/25 hover:bg-sky-500/40 border border-sky-400/50 text-xs font-bold text-white flex items-center gap-1.5 transition cursor-pointer">
+                        <span id="play-pause-icon">❚❚</span>
+                        <span id="play-pause-text">Pause</span>
+                    </button>
+                    <button id="restart-btn" class="px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-600/50 text-xs font-medium text-slate-200 transition cursor-pointer" title="Restart Voyage">
+                        ↺ Restart
+                    </button>
+                </div>
+
+                <!-- Interactive Mission Scrub Slider -->
+                <div class="flex-1 w-full flex items-center gap-3">
+                    <span id="progress-pct" class="mono text-xs text-cyan-300 font-semibold w-11 text-right">0%</span>
+                    <input id="timeline-scrubber" type="range" min="0" max="1000" value="0" class="flex-1">
+                </div>
+
+                <!-- Speed & 4K Toggle -->
+                <div class="flex items-center gap-3 shrink-0">
+                    <div class="flex items-center gap-2">
+                        <span class="text-[11px] text-slate-400 mono">Speed:</span>
+                        <select id="speed-select" class="bg-slate-900/90 border border-sky-500/30 rounded-lg px-2 py-1 text-xs text-sky-200 mono outline-none cursor-pointer">
+                            <option value="0.5">0.5×</option>
+                            <option value="1.0" selected>1.0×</option>
+                            <option value="1.8">1.8×</option>
+                            <option value="3.0">3.0×</option>
+                        </select>
+                    </div>
+                    <button id="quality-toggle" class="text-[10px] px-2.5 py-1.5 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 border border-sky-400/40 text-sky-200 font-semibold mono transition cursor-pointer">
+                        4K Mode: ON
+                    </button>
+                </div>
+            </div>
+
+            <!-- 5 Stage Jump Pills -->
+            <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                <button data-stage="0" class="stage-pill active rounded-xl px-3 py-2 text-left cursor-pointer">
+                    <div class="text-[10px] font-bold text-cyan-300 mono">STAGE 01</div>
+                    <div class="text-xs font-semibold text-white truncate">1. Earth Departure</div>
+                </button>
+                <button data-stage="1" class="stage-pill rounded-xl px-3 py-2 text-left cursor-pointer">
+                    <div class="text-[10px] font-bold text-sky-300 mono">STAGE 02</div>
+                    <div class="text-xs font-semibold text-white truncate">2. Deep Space Cruise</div>
+                </button>
+                <button data-stage="2" class="stage-pill rounded-xl px-3 py-2 text-left cursor-pointer">
+                    <div class="text-[10px] font-bold text-amber-300 mono">STAGE 03</div>
+                    <div class="text-xs font-semibold text-white truncate">3. Wormhole Transit</div>
+                </button>
+                <button data-stage="3" class="stage-pill rounded-xl px-3 py-2 text-left cursor-pointer">
+                    <div class="text-[10px] font-bold text-fuchsia-300 mono">STAGE 04</div>
+                    <div class="text-xs font-semibold text-white truncate">4. Andromeda Galaxy</div>
+                </button>
+                <button data-stage="4" class="stage-pill col-span-2 sm:col-span-1 rounded-xl px-3 py-2 text-left cursor-pointer">
+                    <div class="text-[10px] font-bold text-emerald-300 mono">STAGE 05</div>
+                    <div class="text-xs font-semibold text-white truncate">5. Habitable Exoplanet</div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+        /**
+         * HYPERREALISTIC 4K WEBGL 5-STAGE INTERGALACTIC VOYAGE
+         * 1. Departing Earth (Milky Way) ->
+         * 2. Deep Space Cruise & Milky Way Edge ->
+         * 3. Traversing the Relativistic Morris-Thorne Wormhole ->
+         * 4. Arriving in the Andromeda Galaxy (M31) ->
+         * 5. Orbiting an Earth-Like Habitable Exoplanet ("Kepler-M31b")
+         */
+
+        let scene, camera, renderer, composer, bloomPass, controls;
+        let spaceship, centrifugeRing, deflectorMesh, leftPlume, rightPlume, leftLight, rightLight, navStrobes = [];
+        let exhaustParticles, exhaustGeo, exhaustVelocities = [];
+        let earthGroup, earthMesh, earthClouds, moonMesh;
+        let milkyWayGalaxy, andromedaGalaxy, deepStars, spaceDustStreaks;
+        let wormholeGroup, wormholeTunnelMat, entranceLensMat, exitLensMat, exoticRings = [];
+        let exoplanetGroup, exoplanetMesh, exoClouds, exoMoon1, exoMoon2, hostStarGlow;
+        let flightCurve;
+
+        const clock = new THREE.Clock();
+
+        // Spatial Layout Coordinates along the 5-Stage Cosmic Corridor
+        const POS_EARTH       = new THREE.Vector3(0, 0, 0);
+        const POS_MILKY_WAY   = new THREE.Vector3(-28, 14, -75);
+        const POS_WORMHOLE_IN = new THREE.Vector3(0, 4, -185);
+        const POS_WORMHOLE_OUT= new THREE.Vector3(0, -4, -315);
+        const POS_ANDROMEDA   = new THREE.Vector3(34, 18, -425);
+        const POS_EXOPLANET   = new THREE.Vector3(0, 0, -560);
+
+        // Stage Metadata & Telemetry Definitions
+        const STAGES = [
+            {
+                range: [0.00, 0.20],
+                kicker: "STAGE 01 / 05 • SOL SYSTEM",
+                title: "Departing Earth Orbit",
+                desc: "The interstellar starship ISV Aether-IX fires its twin magnetoplasmadynamic fusion nacelles above Earth's illuminated twilight limb, breaking free of Low Earth Orbit toward deep interplanetary space.",
+                sector: "Earth / Orion Arm",
+                status: "ORBITAL IGNITION",
+                statusClass: "bg-cyan-500/20 text-cyan-300 border-cyan-400/40",
+                metric: "Flat Minkowski (1.00)"
+            },
+            {
+                range: [0.20, 0.42],
+                kicker: "STAGE 02 / 05 • INTERSTELLAR VOID",
+                title: "Deep Space Cruise & Milky Way Rim",
+                desc: "Accelerating to relativistic cruise velocity, the ship leaves the glowing spiral disk of the Milky Way behind, navigating through interstellar dust lanes toward the stabilized wormhole aperture.",
+                sector: "Outer Orion Spur",
+                status: "CRUISE ACCELERATION",
+                statusClass: "bg-sky-500/20 text-sky-300 border-sky-400/40",
+                metric: "Lorentz γ = 1.42"
+            },
+            {
+                range: [0.42, 0.66],
+                kicker: "STAGE 03 / 05 • MORRIS-THORNE BRIDGE",
+                title: "Traversing the Relativistic Wormhole",
+                desc: "Passing through the gravitational Einstein lensing ring, ISV Aether-IX enters the exotic-matter-stabilized spacetime throat—folding 2.537 million light-years of intergalactic space into a brief relativistic transit.",
+                sector: "Einstein-Rosen Throat",
+                status: "HYPERSPACE TRANSIT",
+                statusClass: "bg-amber-500/20 text-amber-300 border-amber-400/40",
+                metric: "Curved Throat (b₀ = 1.8m)"
+            },
+            {
+                range: [0.66, 0.84],
+                kicker: "STAGE 04 / 05 • MESSIER 31 (ANDROMEDA)",
+                title: "Arriving in the Andromeda Galaxy",
+                desc: "Emerging from the exit portal in a flash of blueshifted Cherenkov light, the vessel sweeps past the majestic golden core and violet-blue spiral arms of the Andromeda Galaxy toward a G-type sun.",
+                sector: "Andromeda Spiral Arm",
+                status: "GALACTIC APPROACH",
+                statusClass: "bg-fuchsia-500/20 text-fuchsia-300 border-fuchsia-400/40",
+                metric: "Blueshift z = -0.001"
+            },
+            {
+                range: [0.84, 1.00],
+                kicker: "STAGE 05 / 05 • EXOPLANET KEPLER-M31b",
+                title: "Orbiting an Earth-Like Habitable World",
+                desc: "Decelerating into a stable capture orbit 2.537 million light-years from home, ISV Aether-IX surveys a lush habitable exoplanet complete with liquid sapphire oceans, emerald continents, and breathable clouds.",
+                sector: "Kepler-M31b Orbit",
+                status: "ORBITAL INSERTION",
+                statusClass: "bg-emerald-500/20 text-emerald-300 border-emerald-400/40",
+                metric: "1.04 Earth Masses • 289 K"
+            }
+        ];
+
+        // Simulation State
+        const state = {
+            progress: 0.0,         // 0.0 to 1.0 along the entire 5-stage voyage
+            playing: true,
+            speed: 1.0,
+            cameraMode: 'chase',   // 'chase' | 'cockpit' | 'orbit'
+            is4K: true,
+            hudVisible: true,
+            currentStageIdx: 0,
+            manualScrubbing: false
+        };
+
+        function init() {
+            const container = document.getElementById('canvas-container');
+
+            // 1. Scene & Deep Cosmic Backdrop
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x010308);
+            scene.fog = new THREE.FogExp2(0x010308, 0.0022);
+
+            // 2. Camera
+            camera = new THREE.PerspectiveCamera(46, window.innerWidth / window.innerHeight, 0.1, 900);
+
+            // 3. WebGLRenderer with 4K High-DPI & ACES Filmic Tone Mapping
+            renderer = new THREE.WebGLRenderer({
+                antialias: true,
+                powerPreference: 'high-performance',
+                stencil: false
+            });
+            updatePixelRatio();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.18;
+            container.appendChild(renderer.domElement);
+
+            // 4. OrbitControls (Active in 'orbit' mode, smoothly synced otherwise)
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.minDistance = 2.5;
+            controls.maxDistance = 120;
+
+            // 5. Post-Processing Bloom Pipeline
+            const renderPass = new RenderPass(scene, camera);
+            bloomPass = new UnrealBloomPass(
+                new THREE.Vector2(window.innerWidth, window.innerHeight),
+                1.15, // strength
+                0.62, // radius
+                0.28  // threshold
+            );
+            composer = new EffectComposer(renderer);
+            composer.addPass(renderPass);
+            composer.addPass(bloomPass);
+
+            // 6. Global Starlight & Key Directional Lights
+            const ambient = new THREE.AmbientLight(0x182538, 1.35);
+            scene.add(ambient);
+
+            // Sun light illuminating Earth (Stage 1)
+            const solLight = new THREE.DirectionalLight(0xfff6e5, 3.2);
+            solLight.position.set(45, 22, 35);
+            scene.add(solLight);
+
+            // Andromeda Host Star light illuminating Habitable Exoplanet (Stage 5)
+            const m31StarLight = new THREE.PointLight(0xfff1d6, 4.5, 180);
+            m31StarLight.position.set(42, 24, -525);
+            scene.add(m31StarLight);
+
+            // 7. Build All 3D Assets & Cosmic Environments
+            buildFlightSpline();
+            buildDeepStarfieldAndDust();
+            buildStage1EarthSystem();
+            buildGalaxies();
+            buildStage3TraversableWormhole();
+            buildStage5HabitableExoplanet();
+            buildHyperrealisticSpaceship();
+            buildEngineExhaustParticles();
+
+            // 8. Bind UI & Resize Listeners
+            bindUI();
+            window.addEventListener('resize', onWindowResize);
+
+            // Start 4K Render Loop
+            animate();
+        }
+
+        /**
+         * Builds a smooth 3D Catmull-Rom flight spline connecting all 5 stages seamlessly
+         */
+        function buildFlightSpline() {
+            flightCurve = new THREE.CatmullRomCurve3([
+                // Stage 1: Departing Low Earth Orbit around Earth (0,0,0)
+                new THREE.Vector3(-9.5, 3.8, 7.5),
+                new THREE.Vector3(-4.5, 4.8, -5.5),
+                new THREE.Vector3(4.5, 3.5, -22.0),
+
+                // Stage 2: Deep Space Cruise past Milky Way spiral disk
+                new THREE.Vector3(-6.0, 6.5, -68.0),
+                new THREE.Vector3(-2.5, 5.0, -130.0),
+
+                // Stage 3: Wormhole Approach, Throat Traversal & Exit
+                new THREE.Vector3(0.0, 4.0, -185.0),  // Entrance Mouth
+                new THREE.Vector3(-3.2, 1.2, -228.0), // Curved Throat Mid-1
+                new THREE.Vector3(3.2, -1.8, -272.0), // Curved Throat Mid-2
+                new THREE.Vector3(0.0, -4.0, -315.0), // Exit Mouth
+
+                // Stage 4: Andromeda Galaxy Spiral Sweep
+                new THREE.Vector3(8.5, 3.5, -375.0),
+                new THREE.Vector3(11.0, 5.5, -445.0),
+                new THREE.Vector3(4.0, 2.5, -505.0),
+
+                // Stage 5: Capture & Orbit around Habitable Exoplanet (0,0,-560)
+                new THREE.Vector3(-8.5, 2.8, -548.0),
+                new THREE.Vector3(-11.2, 1.5, -562.0),
+                new THREE.Vector3(-3.5, -1.8, -573.5),
+                new THREE.Vector3(8.8, -0.8, -567.0)
+            ]);
+        }
+
+        /**
+         * Procedurally creates a crisp glowing circular sprite texture
+         */
+        function createGlowTexture(innerHex = 'rgba(255,255,255,1)', midHex = 'rgba(130,210,255,0.45)') {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64;
+            canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+            grad.addColorStop(0.0, innerHex);
+            grad.addColorStop(0.32, midHex);
+            grad.addColorStop(1.0, 'rgba(0,0,0,0)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 64, 64);
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        /**
+         * Deep Parallax Starfield + Relativistic Space Dust Streaks
+         */
+        function buildDeepStarfieldAndDust() {
+            const starCount = 12000;
+            const pos = new Float32Array(starCount * 3);
+            const col = new Float32Array(starCount * 3);
+
+            const starColors = [
+                new THREE.Color(0xffffff),
+                new THREE.Color(0xbae6fd),
+                new THREE.Color(0xfef08a),
+                new THREE.Color(0xf5d0fe),
+                new THREE.Color(0x93c5fd)
+            ];
+
+            for (let i = 0; i < starCount; i++) {
+                pos[i * 3]     = (Math.random() - 0.5) * 520;
+                pos[i * 3 + 1] = (Math.random() - 0.5) * 380;
+                pos[i * 3 + 2] = 90 - Math.random() * 820;
+
+                const c = starColors[Math.floor(Math.random() * starColors.length)];
+                const b = 0.45 + Math.random() * 0.55;
+                col[i * 3]     = c.r * b;
+                col[i * 3 + 1] = c.g * b;
+                col[i * 3 + 2] = c.b * b;
+            }
+
+            const geo = new THREE.BufferGeometry();
+            geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+            geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+
+            const mat = new THREE.PointsMaterial({
+                size: 0.72,
+                map: createGlowTexture(),
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.9,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+
+            deepStars = new THREE.Points(geo, mat);
+            scene.add(deepStars);
+
+            // Local Micro-Meteoroid / Interstellar Dust Motes around the flight path
+            const dustCount = 1600;
+            const dPos = new Float32Array(dustCount * 3);
+            for (let i = 0; i < dustCount; i++) {
+                dPos[i * 3]     = (Math.random() - 0.5) * 75;
+                dPos[i * 3 + 1] = (Math.random() - 0.5) * 55;
+                dPos[i * 3 + 2] = 20 - Math.random() * 620;
+            }
+            const dGeo = new THREE.BufferGeometry();
+            dGeo.setAttribute('position', new THREE.BufferAttribute(dPos, 3));
+            const dMat = new THREE.PointsMaterial({
+                size: 0.22,
+                color: 0x7dd3fc,
+                transparent: true,
+                opacity: 0.45,
+                blending: THREE.AdditiveBlending
+            });
+            spaceDustStreaks = new THREE.Points(dGeo, dMat);
+            scene.add(spaceDustStreaks);
+        }
+
+        /**
+         * STAGE 1: Photorealistic 3D Earth with Procedural Continents, Oceans, Polar Ice,
+         * Swirling Cloud Layer, Rayleigh Fresnel Atmosphere Rim & Orbiting Moon
+         */
+        function buildStage1EarthSystem() {
+            earthGroup = new THREE.Group();
+            earthGroup.position.copy(POS_EARTH);
+            scene.add(earthGroup);
+
+            // Custom Procedural Planet Shader (Oceans, Continents, Mountain Relief, City Lights on Night Side)
+            const earthGeo = new THREE.SphereGeometry(7.2, 96, 96);
+            const earthMat = new THREE.ShaderMaterial({
+                uniforms: {
+                    uSunDir: { value: new THREE.Vector3(0.75, 0.38, 0.55).normalize() },
+                    uTime: { value: 0 }
+                },
+                vertexShader: `
+                    varying vec3 vNormalWorld;
+                    varying vec3 vPosLocal;
+                    varying vec3 vViewPosition;
+                    void main() {
+                        vPosLocal = position;
+                        vNormalWorld = normalize(mat3(modelMatrix) * normal);
+                        vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
+                        vViewPosition = -mvPos.xyz;
+                        gl_Position = projectionMatrix * mvPos;
+                    }
+                `,
+                fragmentShader: `
+                    uniform vec3 uSunDir;
+                    varying vec3 vNormalWorld;
+                    varying vec3 vPosLocal;
+                    varying vec3 vViewPosition;
+
+                    // 3D Fractional Brownian Motion for realistic continents
+                    float hash(vec3 p) {
+                        p = fract(p * 0.3183099 + 0.1);
+                        p *= 17.0;
+                        return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
+                    }
+                    float noise(vec3 x) {
+                        vec3 i = floor(x);
+                        vec3 f = fract(x);
+                        f = f * f * (3.0 - 2.0 * f);
+                        return mix(
+                            mix(mix(hash(i + vec3(0,0,0)), hash(i + vec3(1,0,0)), f.x),
+                                mix(hash(i + vec3(0,1,0)), hash(i + vec3(1,1,0)), f.x), f.y),
+                            mix(mix(hash(i + vec3(0,0,1)), hash(i + vec3(1,0,1)), f.x),
+                                mix(hash(i + vec3(0,1,1)), hash(i + vec3(1,1,1)), f.x), f.y),
+                            f.z
+                        );
+                    }
+                    float fbm(vec3 p) {
+                        float v = 0.0;
+                        float a = 0.5;
+                        for (int i = 0; i < 6; i++) {
+                            v += a * noise(p);
+                            p *= 2.06;
+                            a *= 0.5;
+                        }
+                        return v;
+                    }
+
+                    void main() {
+                        vec3 n = normalize(vNormalWorld);
+                        vec3 p = normalize(vPosLocal) * 2.65;
+                        float h = fbm(p + vec3(1.2, -0.4, 0.8));
+                        float detail = fbm(p * 4.5);
+
+                        // Polar ice caps
+                        float lat = abs(normalize(vPosLocal).y);
+                        float iceMask = smoothstep(0.76, 0.88, lat + (h - 0.5) * 0.18);
+
+                        // Ocean vs Land threshold
+                        float landMask = smoothstep(0.49, 0.52, h);
+
+                        // Deep & coastal ocean colors
+                        vec3 deepOcean = vec3(0.015, 0.09, 0.28);
+                        vec3 shallowSea = vec3(0.03, 0.28, 0.52);
+                        vec3 oceanCol = mix(deepOcean, shallowSea, smoothstep(0.38, 0.495, h));
+
+                        // Lush forests, plains & desert highlands
+                        vec3 forestCol = vec3(0.06, 0.26, 0.11);
+                        vec3 desertCol = vec3(0.46, 0.37, 0.22);
+                        vec3 mountainCol = vec3(0.36, 0.34, 0.32);
+                        float aridity = smoothstep(0.35, 0.72, detail);
+                        vec3 landCol = mix(forestCol, desertCol, aridity * 0.65);
+                        landCol = mix(landCol, mountainCol, smoothstep(0.62, 0.76, h));
+
+                        vec3 surfaceCol = mix(oceanCol, landCol, landMask);
+                        surfaceCol = mix(surfaceCol, vec3(0.92, 0.96, 1.0), iceMask);
+
+                        // Day/Night terminator & specular sun glint on oceans
+                        float sunDot = dot(n, uSunDir);
+                        float dayLight = smoothstep(-0.12, 0.25, sunDot);
+
+                        vec3 viewDir = normalize(vViewPosition);
+                        vec3 halfVec = normalize(uSunDir + viewDir);
+                        float spec = pow(max(dot(n, halfVec), 0.0), 48.0) * (1.0 - landMask) * (1.0 - iceMask) * dayLight;
+
+                        // Golden city lights on night-side coastlines
+                        float nightMask = smoothstep(0.08, -0.25, sunDot);
+                        float coastal = smoothstep(0.49, 0.53, h) * (1.0 - smoothstep(0.53, 0.60, h));
+                        float citySparkle = smoothstep(0.62, 0.78, noise(p * 26.0)) * coastal * nightMask;
+                        vec3 cityGlow = vec3(1.0, 0.72, 0.28) * citySparkle * 1.4;
+
+                        // Atmospheric Rayleigh Fresnel blue rim
+                        float fresnel = pow(1.0 - max(dot(n, viewDir), 0.0), 3.4);
+                        vec3 atmosRim = vec3(0.18, 0.58, 1.0) * fresnel * (0.35 + 0.65 * max(sunDot + 0.3, 0.0));
+
+                        vec3 finalCol = surfaceCol * (0.04 + 0.96 * dayLight) + vec3(0.95, 0.92, 0.85) * spec * 0.65 + cityGlow + atmosRim;
+                        gl_FragColor = vec4(finalCol, 1.0);
+                    }
+                `
+            });
+
+            earthMesh = new THREE.Mesh(earthGeo, earthMat);
+            earthMesh.rotation.z = 0.41; // 23.5 deg axial tilt
+            earthGroup.add(earthMesh);
+
+            // Swirling Semi-Transparent Cloud Layer
+            const cloudGeo = new THREE.SphereGeometry(7.32, 72, 72);
+            const cloudMat = new THREE.ShaderMaterial({
+                uniforms: {
+                    uSunDir: { value: new THREE.Vector3(0.75, 0.38, 0.55).normalize() },
+                    uTime: { value: 0 }
+                },
+                vertexShader: `
+                    varying vec3 vNormalWorld;
+                    varying vec3 vPosLocal;
+                    void main() {
+                        vPosLocal = position;
+                        vNormalWorld = normalize(mat3(modelMatrix) * normal);
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    uniform vec3 uSunDir;
+                    uniform float uTime;
+                    varying vec3 vNormalWorld;
+                    varying vec3 vPosLocal;
+
+                    float hash(vec3 p) {
+                        p = fract(p * 0.3183099 + 0.1);
+                        p *= 17.0;
+                        return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
+                    }
+                    float noise(vec3 x) {
+                        vec3 i = floor(x);
+                        vec3 f = fract(x);
+                        f = f * f * (3.0 - 2.0 * f);
+                        return mix(
+                            mix(mix(hash(i + vec3(0,0,0)), hash(i + vec3(1,0,0)), f.x),
+                                mix(hash(i + vec3(0,1,0)), hash(i + vec3(1,1,0)), f.x), f.y),
+                            mix(mix(hash(i + vec3(0,0,1)), hash(i + vec3(1,0,1)), f.x),
+                                mix(hash(i + vec3(0,1,1)), hash(i + vec3(1,1,1)), f.x), f.y),
+                            f.z
+                        );
+                    }
+                    float fbm(vec3 p) {
+                        float v = 0.0;
+                        float a = 0.5;
+                        for (int i = 0; i < 5; i++) {
+                            v += a * noise(p);
+                            p *= 2.1;
+                            a *= 0.5;
+                        }
+                        return v;
+                    }
+
+                    void main() {
+                        vec3 p = normalize(vPosLocal) * 3.4;
+                        p.x += uTime * 0.015;
+                        float c = fbm(p + vec3(fbm(p * 1.5) * 0.65));
+                        float alpha = smoothstep(0.52, 0.78, c) * 0.78;
+                        float sunDot = smoothstep(-0.15, 0.3, dot(normalize(vNormalWorld), uSunDir));
+                        vec3 col = vec3(0.96, 0.98, 1.0) * (0.06 + 0.94 * sunDot);
+                        gl_FragColor = vec4(col, alpha);
+                    }
+                `,
+                transparent: true,
+                depthWrite: false
+            });
+            earthClouds = new THREE.Mesh(cloudGeo, cloudMat);
+            earthGroup.add(earthClouds);
+
+            // Outer Atmospheric Halo Shell
+            const haloGeo = new THREE.SphereGeometry(7.72, 64, 64);
+            const haloMat = new THREE.MeshBasicMaterial({
+                color: 0x38bdf8,
+                transparent: true,
+                opacity: 0.14,
+                side: THREE.BackSide,
+                blending: THREE.AdditiveBlending
+            });
+            earthGroup.add(new THREE.Mesh(haloGeo, haloMat));
+
+            // Orbiting Moon
+            const moonGeo = new THREE.SphereGeometry(1.65, 48, 48);
+            const moonMat = new THREE.MeshStandardMaterial({
+                color: 0x94a3b8,
+                roughness: 0.92,
+                metalness: 0.05
+            });
+            moonMesh = new THREE.Mesh(moonGeo, moonMat);
+            moonMesh.position.set(17.5, 4.2, -9.5);
+            earthGroup.add(moonMesh);
+        }
+
+        /**
+         * STAGES 2 & 4: Volumetric Spiral Galaxies (Milky Way & Andromeda M31)
+         */
+        function buildGalaxies() {
+            // Milky Way (Stage 2 background)
+            milkyWayGalaxy = createSpiralGalaxy({
+                position: POS_MILKY_WAY,
+                rotation: new THREE.Euler(0.78, 0.25, -0.35),
+                radius: 36,
+                branches: 4,
+                spin: 0.14,
+                coreColor: 0xfef3c7,
+                innerColor: 0x38bdf8,
+                outerColor: 0x1d4ed8,
+                count: 20000
+            });
+            scene.add(milkyWayGalaxy);
+
+            // Andromeda Galaxy M31 (Stage 4 majestic spiral destination)
+            andromedaGalaxy = createSpiralGalaxy({
+                position: POS_ANDROMEDA,
+                rotation: new THREE.Euler(0.62, -0.35, 0.42),
+                radius: 48,
+                branches: 5,
+                spin: -0.12,
+                coreColor: 0xffedd5,
+                innerColor: 0xe879f9,
+                outerColor: 0x6d28d9,
+                count: 26000
+            });
+            scene.add(andromedaGalaxy);
+        }
+
+        function createSpiralGalaxy(opts) {
+            const group = new THREE.Group();
+            group.position.copy(opts.position);
+            group.rotation.copy(opts.rotation);
+
+            const positions = new Float32Array(opts.count * 3);
+            const colors = new Float32Array(opts.count * 3);
+
+            const cCore = new THREE.Color(opts.coreColor);
+            const cInner = new THREE.Color(opts.innerColor);
+            const cOuter = new THREE.Color(opts.outerColor);
+
+            for (let i = 0; i < opts.count; i++) {
+                const r = Math.pow(Math.random(), 1.6) * opts.radius;
+                const branchAngle = ((i % opts.branches) / opts.branches) * Math.PI * 2;
+                const spinAngle = r * opts.spin;
+                const scatter = Math.pow(Math.random(), 2.2) * (Math.random() < 0.5 ? -1 : 1) * (0.28 + r / opts.radius);
+
+                const angle = branchAngle + spinAngle + scatter;
+                const spreadY = (1.0 - r / (opts.radius * 1.05)) * 3.2 + 0.35;
+
+                positions[i * 3]     = Math.cos(angle) * r + (Math.random() - 0.5) * 1.4;
+                positions[i * 3 + 1] = (Math.random() - 0.5) * spreadY * Math.pow(Math.random(), 2);
+                positions[i * 3 + 2] = Math.sin(angle) * r + (Math.random() - 0.5) * 1.4;
+
+                const t = r / opts.radius;
+                const col = cCore.clone();
+                if (t < 0.25) col.lerp(cInner, t / 0.25);
+                else col.lerpColors(cInner, cOuter, (t - 0.25) / 0.75);
+
+                colors[i * 3]     = col.r;
+                colors[i * 3 + 1] = col.g;
+                colors[i * 3 + 2] = col.b;
+            }
+
+            const geo = new THREE.BufferGeometry();
+            geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const mat = new THREE.PointsMaterial({
+                size: 0.42,
+                map: createGlowTexture(),
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.9,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+
+            group.add(new THREE.Points(geo, mat));
+
+            // Bright Galactic Nucleus Bulge
+            const coreGeo = new THREE.SphereGeometry(3.8, 32, 32);
+            const coreMat = new THREE.MeshBasicMaterial({
+                color: opts.coreColor,
+                transparent: true,
+                opacity: 0.55,
+                blending: THREE.AdditiveBlending
+            });
+            group.add(new THREE.Mesh(coreGeo, coreMat));
+
+            return group;
+        }
+
+        /**
+         * STAGE 3: Traversable Morris-Thorne Wormhole with Einstein Gravitational Lensing Portals
+         * and Curved Spacetime Throat Tube
+         */
+        function buildStage3TraversableWormhole() {
+            wormholeGroup = new THREE.Group();
+            scene.add(wormholeGroup);
+
+            // Curved Spine matching the Stage 3 section of flightCurve
+            const throatCurve = new THREE.CatmullRomCurve3([
+                new THREE.Vector3(0.0, 4.0, -185.0),
+                new THREE.Vector3(-3.2, 1.2, -228.0),
+                new THREE.Vector3(3.2, -1.8, -272.0),
+                new THREE.Vector3(0.0, -4.0, -315.0)
+            ]);
+
+            const tubularSegments = 128;
+            const radialSegments = 56;
+            const frames = throatCurve.computeFrenetFrames(tubularSegments, false);
+
+            const geo = new THREE.BufferGeometry();
+            const verts = [];
+            const uvs = [];
+            const indices = [];
+
+            for (let i = 0; i <= tubularSegments; i++) {
+                const u = i / tubularSegments;
+                const pt = throatCurve.getPointAt(u);
+                const N = frames.normals[i];
+                const B = frames.binormals[i];
+
+                // Hourglass flare at both mouths (u=0 and u=1), traversable radius 4.2 at waist
+                const d = (u - 0.5) * 2.0;
+                const radius = 4.2 + Math.pow(Math.abs(d), 2.5) * 5.8;
+
+                for (let j = 0; j <= radialSegments; j++) {
+                    const v = j / radialSegments;
+                    const theta = v * Math.PI * 2;
+                    const cos = -Math.cos(theta);
+                    const sin = Math.sin(theta);
+
+                    verts.push(
+                        pt.x + radius * (cos * N.x + sin * B.x),
+                        pt.y + radius * (cos * N.y + sin * B.y),
+                        pt.z + radius * (cos * N.z + sin * B.z)
+                    );
+                    uvs.push(u, v);
+                }
+            }
+
+            for (let j = 1; j <= tubularSegments; j++) {
+                for (let i = 1; i <= radialSegments; i++) {
+                    const a = (radialSegments + 1) * (j - 1) + (i - 1);
+                    const b = (radialSegments + 1) * j + (i - 1);
+                    const c = (radialSegments + 1) * j + i;
+                    const d = (radialSegments + 1) * (j - 1) + i;
+                    indices.push(a, b, d, b, c, d);
+                }
+            }
+
+            geo.setIndex(indices);
+            geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+            geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+
+            // Custom GLSL Relativistic Hyperspace Tunnel Shader
+            wormholeTunnelMat = new THREE.ShaderMaterial({
+                uniforms: {
+                    uTime: { value: 0 }
+                },
+                vertexShader: `
+                    varying vec2 vUv;
+                    void main() {
+                        vUv = uv;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    uniform float uTime;
+                    varying vec2 vUv;
+                    void main() {
+                        float streak1 = sin(vUv.y * 42.0 + sin(vUv.x * 16.0 - uTime * 5.0) * 2.0);
+                        float streak2 = cos(vUv.x * 50.0 - uTime * 7.5);
+                        float pulse = smoothstep(0.55, 1.0, streak1 * 0.55 + streak2 * 0.45);
+
+                        vec3 colIn  = vec3(0.15, 0.78, 1.0);
+                        vec3 colMid = vec3(1.0, 0.72, 0.22);
+                        vec3 colOut = vec3(0.88, 0.35, 1.0);
+
+                        vec3 base = mix(colIn, colMid, smoothstep(0.0, 0.5, vUv.x));
+                        base = mix(base, colOut, smoothstep(0.5, 1.0, vUv.x));
+
+                        float edgeFade = sin(vUv.x * 3.14159265);
+                        float alpha = (0.18 + pulse * 0.42) * pow(edgeFade, 0.35);
+
+                        gl_FragColor = vec4(base * (0.85 + pulse * 1.5) + vec3(1.0) * pulse * 0.3, alpha);
+                    }
+                `,
+                transparent: true,
+                side: THREE.DoubleSide,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+
+            wormholeGroup.add(new THREE.Mesh(geo, wormholeTunnelMat));
+
+            // Geodesic Spacetime Grid Wireframe
+            const wireMat = new THREE.MeshBasicMaterial({
+                color: 0x38bdf8,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.16,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+            wormholeGroup.add(new THREE.Mesh(geo, wireMat));
+
+            // Exotic-Matter Stabilization Rings
+            [0.15, 0.32, 0.50, 0.68, 0.85].forEach((u, idx) => {
+                const pt = throatCurve.getPointAt(u);
+                const tan = throatCurve.getTangentAt(u).normalize();
+                const d = (u - 0.5) * 2.0;
+                const r = 4.35 + Math.pow(Math.abs(d), 2.5) * 5.8;
+
+                const ringGeo = new THREE.TorusGeometry(r, idx === 2 ? 0.12 : 0.07, 16, 80);
+                const ringMat = new THREE.MeshBasicMaterial({
+                    color: idx === 2 ? 0xfef08a : 0xf59e0b,
+                    transparent: true,
+                    opacity: 0.82,
+                    blending: THREE.AdditiveBlending
+                });
+                const ring = new THREE.Mesh(ringGeo, ringMat);
+                ring.position.copy(pt);
+                ring.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), tan);
+                wormholeGroup.add(ring);
+                exoticRings.push(ring);
+            });
+
+            // Relativistic Einstein Gravitational Lensing Portals (Entrance & Exit)
+            entranceLensMat = createEinsteinPortal(POS_WORMHOLE_IN, 0x38bdf8, 0xfbbf24);
+            exitLensMat     = createEinsteinPortal(POS_WORMHOLE_OUT, 0xe879f9, 0x38bdf8);
+        }
+
+        function createEinsteinPortal(pos, c1Hex, c2Hex) {
+            const geo = new THREE.PlaneGeometry(24, 24, 1, 1);
+            const mat = new THREE.ShaderMaterial({
+                uniforms: {
+                    uTime: { value: 0 },
+                    uCol1: { value: new THREE.Color(c1Hex) },
+                    uCol2: { value: new THREE.Color(c2Hex) }
+                },
+                vertexShader: `
+                    varying vec2 vUv;
+                    void main() {
+                        vUv = uv * 2.0 - 1.0;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    uniform float uTime;
+                    uniform vec3 uCol1;
+                    uniform vec3 uCol2;
+                    varying vec2 vUv;
+                    void main() {
+                        float r = length(vUv);
+                        float ang = atan(vUv.y, vUv.x);
+
+                        // Sharp Einstein ring distortion halo
+                        float ring1 = exp(-abs(r - 0.58) * 18.0);
+                        float ring2 = exp(-abs(r - 0.72) * 26.0) * (0.5 + 0.5 * sin(ang * 4.0 + uTime * 2.5));
+                        float swirl = sin(ang * 8.0 - r * 14.0 + uTime * 3.0) * 0.5 + 0.5;
+
+                        // Clear central aperture so ship visibly flies into the throat
+                        float holeMask = smoothstep(0.32, 0.52, r) * smoothstep(0.98, 0.65, r);
+
+                        vec3 col = mix(uCol1, uCol2, swirl) + vec3(1.0, 0.97, 0.9) * ring1 * 1.2;
+                        float alpha = ring1 * 0.9 + ring2 * 0.5 + swirl * holeMask * 0.28;
+                        if (r > 0.98) discard;
+
+                        gl_FragColor = vec4(col, clamp(alpha, 0.0, 0.95));
+                    }
+                `,
+                transparent: true,
+                side: THREE.DoubleSide,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.copy(pos);
+            wormholeGroup.add(mesh);
+            return mat;
+        }
+
+        /**
+         * STAGE 5: Earth-Like Habitable Exoplanet ("Kepler-M31b") in Andromeda
+         * Sapphire oceans, emerald/ochre continents, swirling clouds, turquoise limb & dual moons
+         */
+        function buildStage5HabitableExoplanet() {
+            exoplanetGroup = new THREE.Group();
+            exoplanetGroup.position.copy(POS_EXOPLANET);
+            scene.add(exoplanetGroup);
+
+            const geo = new THREE.SphereGeometry(8.2, 96, 96);
+            const mat = new THREE.ShaderMaterial({
+                uniforms: {
+                    uSunDir: { value: new THREE.Vector3(0.75, 0.42, 0.5).normalize() }
+                },
+                vertexShader: `
+                    varying vec3 vNormalWorld;
+                    varying vec3 vPosLocal;
+                    varying vec3 vViewPosition;
+                    void main() {
+                        vPosLocal = position;
+                        vNormalWorld = normalize(mat3(modelMatrix) * normal);
+                        vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
+                        vViewPosition = -mvPos.xyz;
+                        gl_Position = projectionMatrix * mvPos;
+                    }
+                `,
+                fragmentShader: `
+                    uniform vec3 uSunDir;
+                    varying vec3 vNormalWorld;
+                    varying vec3 vPosLocal;
+                    varying vec3 vViewPosition;
+
+                    float hash(vec3 p) {
+                        p = fract(p * 0.3183099 + 0.1);
+                        p *= 17.0;
+                        return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
+                    }
+                    float noise(vec3 x) {
+                        vec3 i = floor(x);
+                        vec3 f = fract(x);
+                        f = f * f * (3.0 - 2.0 * f);
+                        return mix(
+                            mix(mix(hash(i + vec3(0,0,0)), hash(i + vec3(1,0,0)), f.x),
+                                mix(hash(i + vec3(0,1,0)), hash(i + vec3(1,1,0)), f.x), f.y),
+                            mix(mix(hash(i + vec3(0,0,1)), hash(i + vec3(1,0,1)), f.x),
+                                mix(hash(i + vec3(0,1,1)), hash(i + vec3(1,1,1)), f.x), f.y),
+                            f.z
+                        );
+                    }
+                    float fbm(vec3 p) {
+                        float v = 0.0;
+                        float a = 0.5;
+                        for (int i = 0; i < 6; i++) {
+                            v += a * noise(p);
+                            p *= 2.08;
+                            a *= 0.5;
+                        }
+                        return v;
+                    }
+
+                    void main() {
+                        vec3 n = normalize(vNormalWorld);
+                        vec3 p = normalize(vPosLocal) * 2.9;
+                        // Distinct continent seed offset from Earth
+                        float h = fbm(p + vec3(-3.4, 2.1, -1.7));
+                        float detail = fbm(p * 4.2);
+
+                        float lat = abs(normalize(vPosLocal).y);
+                        float iceMask = smoothstep(0.79, 0.90, lat + (h - 0.5) * 0.16);
+                        float landMask = smoothstep(0.47, 0.50, h);
+
+                        // Tropical turquoise reefs & deep sapphire oceans
+                        vec3 deepOcean = vec3(0.01, 0.11, 0.30);
+                        vec3 reefTeal  = vec3(0.04, 0.46, 0.58);
+                        vec3 oceanCol  = mix(deepOcean, reefTeal, smoothstep(0.39, 0.475, h));
+
+                        // Lush emerald & golden-ochre continents
+                        vec3 emeraldCol = vec3(0.05, 0.32, 0.14);
+                        vec3 ochreCol   = vec3(0.48, 0.38, 0.18);
+                        vec3 landCol    = mix(emeraldCol, ochreCol, smoothstep(0.4, 0.75, detail) * 0.55);
+
+                        vec3 surfaceCol = mix(oceanCol, landCol, landMask);
+                        surfaceCol = mix(surfaceCol, vec3(0.94, 0.98, 1.0), iceMask);
+
+                        float sunDot = dot(n, uSunDir);
+                        float dayLight = smoothstep(-0.12, 0.26, sunDot);
+
+                        vec3 viewDir = normalize(vViewPosition);
+                        vec3 halfVec = normalize(uSunDir + viewDir);
+                        float spec = pow(max(dot(n, halfVec), 0.0), 52.0) * (1.0 - landMask) * dayLight;
+
+                        // Turquoise-cyan oxygen-rich atmosphere rim
+                        float fresnel = pow(1.0 - max(dot(n, viewDir), 0.0), 3.2);
+                        vec3 atmosRim = vec3(0.14, 0.78, 0.95) * fresnel * (0.35 + 0.65 * max(sunDot + 0.3, 0.0));
+
+                        vec3 finalCol = surfaceCol * (0.04 + 0.96 * dayLight) + vec3(1.0, 0.95, 0.85) * spec * 0.7 + atmosRim;
+                        gl_FragColor = vec4(finalCol, 1.0);
+                    }
+                `
+            });
+
+            exoplanetMesh = new THREE.Mesh(geo, mat);
+            exoplanetMesh.rotation.z = -0.32;
+            exoplanetGroup.add(exoplanetMesh);
+
+            // Exoplanet Cloud Layer
+            const cloudGeo = new THREE.SphereGeometry(8.34, 72, 72);
+            const cloudMat = earthClouds.material.clone();
+            exoClouds = new THREE.Mesh(cloudGeo, cloudMat);
+            exoplanetGroup.add(exoClouds);
+
+            // Outer Turquoise Atmospheric Halo
+            const haloGeo = new THREE.SphereGeometry(8.75, 64, 64);
+            const haloMat = new THREE.MeshBasicMaterial({
+                color: 0x22d3ee,
+                transparent: true,
+                opacity: 0.16,
+                side: THREE.BackSide,
+                blending: THREE.AdditiveBlending
+            });
+            exoplanetGroup.add(new THREE.Mesh(haloGeo, haloMat));
+
+            // Dual Moons Orbiting the Habitable Exoplanet
+            const m1Geo = new THREE.SphereGeometry(1.15, 36, 36);
+            const m1Mat = new THREE.MeshStandardMaterial({ color: 0xcbd5e1, roughness: 0.88 });
+            exoMoon1 = new THREE.Mesh(m1Geo, m1Mat);
+            exoMoon1.position.set(-16.5, 4.5, 8.0);
+            exoplanetGroup.add(exoMoon1);
+
+            const m2Geo = new THREE.SphereGeometry(0.65, 32, 32);
+            const m2Mat = new THREE.MeshStandardMaterial({ color: 0xfde68a, roughness: 0.85 });
+            exoMoon2 = new THREE.Mesh(m2Geo, m2Mat);
+            exoMoon2.position.set(14.0, -3.5, -11.0);
+            exoplanetGroup.add(exoMoon2);
+
+            // Host Star Sun Glare Sprite in the background of Stage 5
+            const sunSpriteMat = new THREE.SpriteMaterial({
+                map: createGlowTexture('rgba(255,252,240,1)', 'rgba(253,224,71,0.45)'),
+                transparent: true,
+                blending: THREE.AdditiveBlending
+            });
+            hostStarGlow = new THREE.Sprite(sunSpriteMat);
+            hostStarGlow.position.set(42, 24, 35);
+            hostStarGlow.scale.set(28, 28, 1);
+            exoplanetGroup.add(hostStarGlow);
+        }
+
+        /**
+         * HYPERREALISTIC MULTI-PART INTERSTELLAR SPACESHIP ("ISV AETHER-IX")
+         * Oriented along +Z forward so `spaceship.lookAt(nextPoint)` aligns perfectly!
+         */
+        function buildHyperrealisticSpaceship() {
+            spaceship = new THREE.Group();
+
+            // Procedural Hull Panel Bump & Roughness Map
+            const hullBumpTex = createHullPanelTexture();
+
+            const hullWhiteMat = new THREE.MeshStandardMaterial({
+                color: 0xe2e8f0,
+                metalness: 0.82,
+                roughness: 0.24,
+                bumpMap: hullBumpTex,
+                bumpScale: 0.025
+            });
+
+            const darkArmorMat = new THREE.MeshStandardMaterial({
+                color: 0x1e293b,
+                metalness: 0.88,
+                roughness: 0.32,
+                bumpMap: hullBumpTex,
+                bumpScale: 0.02
+            });
+
+            const goldFoilMat = new THREE.MeshStandardMaterial({
+                color: 0xf59e0b,
+                metalness: 0.92,
+                roughness: 0.18
+            });
+
+            const cockpitGlassMat = new THREE.MeshStandardMaterial({
+                color: 0x38bdf8,
+                emissive: 0x0ea5e9,
+                emissiveIntensity: 1.4,
+                metalness: 0.95,
+                roughness: 0.08
+            });
+
+            // 1. Main Tapered Aerodynamic Fuselage Spine
+            const mainHullGeo = new THREE.CylinderGeometry(0.26, 0.56, 3.6, 24);
+            mainHullGeo.rotateX(Math.PI / 2);
+            const mainHull = new THREE.Mesh(mainHullGeo, hullWhiteMat);
+            spaceship.add(mainHull);
+
+            // Dorsal & Ventral Armored Spine Ridges
+            const spineGeo = new THREE.BoxGeometry(0.32, 0.72, 2.8);
+            const spineMesh = new THREE.Mesh(spineGeo, darkArmorMat);
+            spineMesh.position.set(0, 0.05, -0.2);
+            spaceship.add(spineMesh);
+
+            // 2. Forward Nose Cone & Illuminated Command Bridge Module
+            const noseGeo = new THREE.ConeGeometry(0.26, 1.15, 24);
+            noseGeo.rotateX(Math.PI / 2);
+            const noseMesh = new THREE.Mesh(noseGeo, hullWhiteMat);
+            noseMesh.position.set(0, 0, 2.35);
+            spaceship.add(noseMesh);
+
+            // Raised Command Bridge & Glowing Panoramic Cockpit Windows
+            const bridgeGeo = new THREE.BoxGeometry(0.34, 0.24, 0.85);
+            const bridgeMesh = new THREE.Mesh(bridgeGeo, darkArmorMat);
+            bridgeMesh.position.set(0, 0.26, 1.35);
+            spaceship.add(bridgeMesh);
+
+            const visorGeo = new THREE.BoxGeometry(0.36, 0.10, 0.38);
+            const visorMesh = new THREE.Mesh(visorGeo, cockpitGlassMat);
+            visorMesh.position.set(0, 0.29, 1.62);
+            spaceship.add(visorMesh);
+
+            // 3. Forward Navigational Deflector Dish (Glowing Cyan/Gold Field Emitter)
+            const dishGeo = new THREE.TorusGeometry(0.22, 0.035, 12, 32);
+            const dishMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+            deflectorMesh = new THREE.Mesh(dishGeo, dishMat);
+            deflectorMesh.position.set(0, -0.18, 1.88);
+            spaceship.add(deflectorMesh);
+
+            // 4. Rotating Centrifuge Habitat Ring (Mid-ship Artificial Gravity Section)
+            centrifugeRing = new THREE.Group();
+            centrifugeRing.position.set(0, 0, 0.25);
+
+            const habTorusGeo = new THREE.TorusGeometry(0.76, 0.085, 16, 48);
+            const habTorus = new THREE.Mesh(habTorusGeo, hullWhiteMat);
+            centrifugeRing.add(habTorus);
+
+            // Habitat Ring Window Strip
+            const habWinGeo = new THREE.TorusGeometry(0.76, 0.09, 12, 48);
+            const habWinMat = new THREE.MeshBasicMaterial({ color: 0xbae6fd, wireframe: true, transparent: true, opacity: 0.45 });
+            centrifugeRing.add(new THREE.Mesh(habWinGeo, habWinMat));
+
+            // 4 Structural Spokes connecting Centrifuge Ring to Central Hull
+            for (let s = 0; s < 4; s++) {
+                const spokeGeo = new THREE.CylinderGeometry(0.03, 0.03, 1.48, 8);
+                const spoke = new THREE.Mesh(spokeGeo, darkArmorMat);
+                spoke.rotation.z = (s * Math.PI) / 2;
+                centrifugeRing.add(spoke);
+            }
+            spaceship.add(centrifugeRing);
+
+            // 5. Sweeping Delta Wings & Vertical Stabilizer Fins
+            const wingShape = new THREE.Shape();
+            wingShape.moveTo(0, 0);
+            wingShape.lineTo(1.75, -1.25);
+            wingShape.lineTo(1.75, -1.75);
+            wingShape.lineTo(0, -1.45);
+            wingShape.closePath();
+
+            const extrudeSettings = { depth: 0.05, bevelEnabled: true, bevelThickness: 0.015, bevelSize: 0.015, bevelSegments: 2 };
+            const wingGeo = new THREE.ExtrudeGeometry(wingShape, extrudeSettings);
+            wingGeo.rotateX(Math.PI / 2);
+
+            const leftWing = new THREE.Mesh(wingGeo, darkArmorMat);
+            leftWing.position.set(0.28, 0, -0.15);
+            spaceship.add(leftWing);
+
+            const rightWing = new THREE.Mesh(wingGeo, darkArmorMat);
+            rightWing.scale.x = -1;
+            rightWing.position.set(-0.28, 0, -0.15);
+            spaceship.add(rightWing);
+
+            // Twin Angled Vertical Tail Stabilizers
+            const finGeo = new THREE.BoxGeometry(0.05, 0.78, 0.85);
+            const leftFin = new THREE.Mesh(finGeo, hullWhiteMat);
+            leftFin.position.set(0.42, 0.45, -1.35);
+            leftFin.rotation.z = -0.28;
+            spaceship.add(leftFin);
+
+            const rightFin = new THREE.Mesh(finGeo, hullWhiteMat);
+            rightFin.position.set(-0.42, 0.45, -1.35);
+            rightFin.rotation.z = 0.28;
+            spaceship.add(rightFin);
+
+            // 6. Twin Outrigger Magnetoplasmadynamic Fusion Engine Nacelles
+            [-1.35, 1.35].forEach((xOffset, idx) => {
+                const nacelleGroup = new THREE.Group();
+                nacelleGroup.position.set(xOffset, -0.04, -1.15);
+
+                // Nacelle Casing
+                const nacBodyGeo = new THREE.CylinderGeometry(0.22, 0.25, 2.25, 24);
+                nacBodyGeo.rotateX(Math.PI / 2);
+                nacelleGroup.add(new THREE.Mesh(nacBodyGeo, hullWhiteMat));
+
+                // Gold Thermal Radiator Collar
+                const collarGeo = new THREE.CylinderGeometry(0.255, 0.255, 0.35, 24);
+                collarGeo.rotateX(Math.PI / 2);
+                const collar = new THREE.Mesh(collarGeo, goldFoilMat);
+                collar.position.z = -0.35;
+                nacelleGroup.add(collar);
+
+                // Glowing Cyan Plasma Exhaust Nozzle Core
+                const nozzleGeo = new THREE.CylinderGeometry(0.19, 0.14, 0.25, 24);
+                nozzleGeo.rotateX(Math.PI / 2);
+                const nozzleMat = new THREE.MeshBasicMaterial({ color: 0x7dd3fc });
+                const nozzle = new THREE.Mesh(nozzleGeo, nozzleMat);
+                nozzle.position.z = -1.15;
+                nacelleGroup.add(nozzle);
+
+                // Volumetric Ion Thruster Plume Cone
+                const plumeGeo = new THREE.ConeGeometry(0.24, 2.4, 24, 1, true);
+                plumeGeo.rotateX(-Math.PI / 2);
+                const plumeMat = new THREE.MeshBasicMaterial({
+                    color: 0x38bdf8,
+                    transparent: true,
+                    opacity: 0.78,
+                    side: THREE.DoubleSide,
+                    blending: THREE.AdditiveBlending,
+                    depthWrite: false
+                });
+                const plume = new THREE.Mesh(plumeGeo, plumeMat);
+                plume.position.z = -2.35;
+                nacelleGroup.add(plume);
+
+                if (idx === 0) leftPlume = plume;
+                else rightPlume = plume;
+
+                spaceship.add(nacelleGroup);
+            });
+
+            // 7. Wingtip Navigation Strobe Lights (Port Red, Starboard Green, Dorsal White)
+            const portLight = new THREE.Mesh(new THREE.SphereGeometry(0.055, 8, 8), new THREE.MeshBasicMaterial({ color: 0xff2a55 }));
+            portLight.position.set(1.98, 0, -1.65);
+            spaceship.add(portLight);
+
+            const stbdLight = new THREE.Mesh(new THREE.SphereGeometry(0.055, 8, 8), new THREE.MeshBasicMaterial({ color: 0x10b981 }));
+            stbdLight.position.set(-1.98, 0, -1.65);
+            spaceship.add(stbdLight);
+
+            const beaconLight = new THREE.Mesh(new THREE.SphereGeometry(0.055, 8, 8), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+            beaconLight.position.set(0, 0.44, 0.85);
+            spaceship.add(beaconLight);
+            navStrobes.push(portLight, stbdLight, beaconLight);
+
+            // Engine Point Light illuminating nearby planetary clouds & wormhole walls
+            leftLight = new THREE.PointLight(0x38bdf8, 3.8, 18);
+            leftLight.position.set(0, 0.2, -2.5);
+            spaceship.add(leftLight);
+
+            spaceship.scale.setScalar(0.85);
+            scene.add(spaceship);
+        }
+
+        /**
+         * Generates a procedural metallic panel grid texture for spaceship hull bump mapping
+         */
+        function createHullPanelTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#808080';
+            ctx.fillRect(0, 0, 256, 256);
+
+            ctx.strokeStyle = '#303030';
+            ctx.lineWidth = 2;
+            for (let x = 0; x < 256; x += 32) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, 256);
+                ctx.stroke();
+            }
+            for (let y = 0; y < 256; y += 32) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(256, y);
+                ctx.stroke();
+            }
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+            tex.repeat.set(3, 3);
+            return tex;
+        }
+
+        /**
+         * Dynamic Ion Plasma Particle Trail behind the twin engine nacelles
+         */
+        function buildEngineExhaustParticles() {
+            const count = 240;
+            const positions = new Float32Array(count * 3);
+            for (let i = 0; i < count; i++) {
+                positions[i * 3] = 0;
+                positions[i * 3 + 1] = 0;
+                positions[i * 3 + 2] = 0;
+                exhaustVelocities.push({
+                    life: Math.random(),
+                    nacelle: i % 2 === 0 ? -1.15 : 1.15,
+                    offsetX: (Math.random() - 0.5) * 0.14,
+                    offsetY: (Math.random() - 0.5) * 0.14
+                });
+            }
+
+            exhaustGeo = new THREE.BufferGeometry();
+            exhaustGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+            const mat = new THREE.PointsMaterial({
+                size: 0.34,
+                color: 0x7dd3fc,
+                map: createGlowTexture(),
+                transparent: true,
+                opacity: 0.75,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+
+            exhaustParticles = new THREE.Points(exhaustGeo, mat);
+            exhaustParticles.frustumCulled = false;
+            scene.add(exhaustParticles);
+        }
+
+        function updateExhaustParticles(dt, shipPos, shipQuat) {
+            const posAttr = exhaustGeo.attributes.position;
+            const backward = new THREE.Vector3(0, 0, -1).applyQuaternion(shipQuat);
+            const right = new THREE.Vector3(1, 0, 0).applyQuaternion(shipQuat);
+            const up = new THREE.Vector3(0, 1, 0).applyQuaternion(shipQuat);
+
+            for (let i = 0; i < exhaustVelocities.length; i++) {
+                const p = exhaustVelocities[i];
+                p.life += dt * (2.2 + state.speed * 0.8);
+                if (p.life >= 1.0) {
+                    p.life = 0.0;
+                }
+
+                const distBehind = 2.0 + p.life * 6.5;
+                const spread = 1.0 + p.life * 1.8;
+
+                const wx = shipPos.x + backward.x * distBehind + right.x * (p.nacelle + p.offsetX * spread) + up.x * (p.offsetY * spread);
+                const wy = shipPos.y + backward.y * distBehind + right.y * (p.nacelle + p.offsetX * spread) + up.y * (p.offsetY * spread);
+                const wz = shipPos.z + backward.z * distBehind + right.z * (p.nacelle + p.offsetX * spread) + up.z * (p.offsetY * spread);
+
+                posAttr.setXYZ(i, wx, wy, wz);
+            }
+            posAttr.needsUpdate = true;
+        }
+
+        /**
+         * Updates HUD Stage Card, Stage Pills & Live Intergalactic Telemetry
+         */
+        function updateTelemetryAndStageUI(u) {
+            // Determine active stage index (0..4)
+            let stageIdx = 0;
+            for (let i = 0; i < STAGES.length; i++) {
+                if (u >= STAGES[i].range[0] && u <= STAGES[i].range[1]) {
+                    stageIdx = i;
+                    break;
+                }
+            }
+
+            if (stageIdx !== state.currentStageIdx) {
+                state.currentStageIdx = stageIdx;
+                const st = STAGES[stageIdx];
+                document.getElementById('stage-kicker').textContent = st.kicker;
+                document.getElementById('stage-title').textContent = st.title;
+                document.getElementById('stage-desc').textContent = st.desc;
+                document.getElementById('tel-sector').textContent = st.sector;
+                document.getElementById('tel-metric').textContent = st.metric;
+
+                const statusEl = document.getElementById('status-pill');
+                statusEl.textContent = st.status;
+                statusEl.className = `text-[10px] font-semibold px-2.5 py-0.5 rounded-full border mono ${st.statusClass}`;
+
+                document.querySelectorAll('.stage-pill').forEach((btn, idx) => {
+                    btn.classList.toggle('active', idx === stageIdx);
+                });
+            }
+
+            // Live Distance & Velocity Calculation
+            const distEl = document.getElementById('tel-distance');
+            const velEl = document.getElementById('tel-velocity');
+
+            if (u < 0.20) {
+                const km = Math.round(420 + (u / 0.20) * 384000);
+                distEl.textContent = `${km.toLocaleString()} km`;
+                velEl.textContent = `${(11.2 + (u / 0.20) * 48.0).toFixed(1)} km/s`;
+            } else if (u < 0.42) {
+                const ly = (((u - 0.20) / 0.22) * 26000).toFixed(0);
+                distEl.textContent = `${Number(ly).toLocaleString()} ly`;
+                velEl.textContent = `0.72 c (Cruising)`;
+            } else if (u < 0.66) {
+                const mly = (0.026 + ((u - 0.42) / 0.24) * 2.48).toFixed(3);
+                distEl.textContent = `${mly} M ly (Folded)`;
+                velEl.textContent = `Relativistic Throat`;
+            } else if (u < 0.84) {
+                const mly = (2.506 + ((u - 0.66) / 0.18) * 0.031).toFixed(3);
+                distEl.textContent = `${mly} M ly`;
+                velEl.textContent = `0.68 c (Decelerating)`;
+            } else {
+                distEl.textContent = `2,537,000 ly (M31)`;
+                velEl.textContent = `7.8 km/s (Capture)`;
+            }
+
+            // Update Scrubber & Percentage
+            if (!state.manualScrubbing) {
+                document.getElementById('timeline-scrubber').value = Math.round(u * 1000);
+            }
+            document.getElementById('progress-pct').textContent = `${Math.round(u * 100)}%`;
+        }
+
+        /**
+         * Main 4K Animation Loop
+         */
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const dt = Math.min(clock.getDelta(), 0.05);
+            const elapsed = clock.getElapsedTime();
+
+            // 1. Advance Mission Timeline Progress
+            if (state.playing && !state.manualScrubbing) {
+                // Slightly faster progression through deep space, smooth cinematic pace near planets
+                state.progress += dt * 0.026 * state.speed;
+                if (state.progress >= 1.0) {
+                    state.progress = 0.0;
+                }
+            }
+
+            const u = THREE.MathUtils.clamp(state.progress, 0.0, 0.9995);
+            updateTelemetryAndStageUI(u);
+
+            // 2. Position & Orient Hyperrealistic Spaceship along Flight Spline
+            const shipPos = flightCurve.getPointAt(u);
+            const shipTan = flightCurve.getTangentAt(u).normalize();
+            spaceship.position.copy(shipPos);
+
+            // Subtle aerodynamic banking roll during turns
+            const nextTan = flightCurve.getTangentAt(Math.min(u + 0.015, 0.9995)).normalize();
+            const turnCross = new THREE.Vector3().crossVectors(shipTan, nextTan);
+            const bankAngle = THREE.MathUtils.clamp(turnCross.y * 14.0, -0.45, 0.45);
+
+            const lookTarget = shipPos.clone().add(shipTan);
+            spaceship.lookAt(lookTarget);
+            spaceship.rotateZ(bankAngle);
+
+            // Animate Ship Sub-Components (Centrifuge Ring, Thruster Plumes, Navigation Strobes)
+            centrifugeRing.rotation.z = elapsed * 1.35;
+            const pulse = 0.85 + Math.sin(elapsed * 32.0) * 0.25;
+            leftPlume.scale.set(1, 1, pulse);
+            rightPlume.scale.set(1, 1, pulse);
+
+            const strobeOn = Math.sin(elapsed * 7.0) > 0.72;
+            navStrobes[2].visible = strobeOn;
+
+            updateExhaustParticles(dt, shipPos, spaceship.quaternion);
+
+            // 3. Animate Planets, Galaxies & Wormhole Shaders
+            if (earthMesh) earthMesh.rotation.y += dt * 0.06;
+            if (earthClouds) {
+                earthClouds.rotation.y += dt * 0.085;
+                earthClouds.material.uniforms.uTime.value = elapsed;
+            }
+            if (moonMesh) {
+                const mAng = elapsed * 0.12;
+                moonMesh.position.set(Math.cos(mAng) * 19.5, 4.2, Math.sin(mAng) * 19.5);
+            }
+
+            if (milkyWayGalaxy) milkyWayGalaxy.rotation.y += dt * 0.025;
+            if (andromedaGalaxy) andromedaGalaxy.rotation.y -= dt * 0.022;
+
+            if (wormholeTunnelMat) wormholeTunnelMat.uniforms.uTime.value = elapsed;
+            if (entranceLensMat) entranceLensMat.uniforms.uTime.value = elapsed;
+            if (exitLensMat) exitLensMat.uniforms.uTime.value = elapsed;
+            exoticRings.forEach((ring, idx) => {
+                ring.rotation.z = elapsed * (idx % 2 === 0 ? 1.1 : -1.1);
+            });
+
+            if (exoplanetMesh) exoplanetMesh.rotation.y += dt * 0.055;
+            if (exoClouds) {
+                exoClouds.rotation.y += dt * 0.075;
+                exoClouds.material.uniforms.uTime.value = elapsed;
+            }
+            if (exoMoon1) {
+                const a1 = elapsed * 0.16;
+                exoMoon1.position.set(Math.cos(a1) * 18.0, 4.5, Math.sin(a1) * 18.0);
+            }
+            if (exoMoon2) {
+                const a2 = -elapsed * 0.24 + 1.4;
+                exoMoon2.position.set(Math.cos(a2) * 14.5, -3.5, Math.sin(a2) * 14.5);
+            }
+
+            // 4. Camera Choreography ('chase' | 'cockpit' | 'orbit')
+            if (state.cameraMode === 'chase') {
+                controls.enabled = false;
+
+                // Dynamic framing per stage so Earth, Wormhole & Exoplanet look awe-inspiring
+                let backDist = 6.2;
+                let upOffset = 1.65;
+                let sideOffset = 1.85;
+
+                if (u < 0.20) {
+                    // Stage 1: Frame both the ship and Earth behind/below it
+                    backDist = 6.8;
+                    upOffset = 1.9;
+                    sideOffset = 2.4;
+                } else if (u >= 0.42 && u <= 0.66) {
+                    // Stage 3: Tighter dramatic chase through the glowing wormhole throat
+                    backDist = 5.2;
+                    upOffset = 1.25;
+                    sideOffset = 0.6;
+                } else if (u >= 0.84) {
+                    // Stage 5: Sweep around ship & habitable Andromeda exoplanet
+                    backDist = 7.4;
+                    upOffset = 2.1;
+                    sideOffset = 2.8;
+                }
+
+                const rightVec = new THREE.Vector3(1, 0, 0).applyQuaternion(spaceship.quaternion);
+                const upVec = new THREE.Vector3(0, 1, 0).applyQuaternion(spaceship.quaternion);
+                const desiredCam = shipPos.clone()
+                    .addScaledVector(shipTan, -backDist)
+                    .addScaledVector(upVec, upOffset)
+                    .addScaledVector(rightVec, sideOffset);
+
+                const lookAhead = shipPos.clone().addScaledVector(shipTan, 7.5);
+                camera.position.lerp(desiredCam, 0.12);
+                camera.lookAt(lookAhead);
+
+                // Relativistic FOV stretch inside the wormhole throat!
+                const inThroat = (u > 0.43 && u < 0.65) ? Math.sin(((u - 0.43) / 0.22) * Math.PI) : 0;
+                const targetFov = 46 + inThroat * 24;
+                if (Math.abs(camera.fov - targetFov) > 0.08) {
+                    camera.fov = THREE.MathUtils.lerp(camera.fov, targetFov, 0.1);
+                    camera.updateProjectionMatrix();
+                }
+
+            } else if (state.cameraMode === 'cockpit') {
+                controls.enabled = false;
+                // Over-the-bridge hull camera looking forward over the nose & rotating centrifuge ring
+                const upVec = new THREE.Vector3(0, 1, 0).applyQuaternion(spaceship.quaternion);
+                const bridgeCam = shipPos.clone()
+                    .addScaledVector(shipTan, 0.95)
+                    .addScaledVector(upVec, 0.68);
+                const lookAhead = shipPos.clone().addScaledVector(shipTan, 18.0);
+
+                camera.position.lerp(bridgeCam, 0.25);
+                camera.lookAt(lookAhead);
+
+                const inThroat = (u > 0.43 && u < 0.65) ? Math.sin(((u - 0.43) / 0.22) * Math.PI) : 0;
+                const targetFov = 54 + inThroat * 26;
+                if (Math.abs(camera.fov - targetFov) > 0.08) {
+                    camera.fov = THREE.MathUtils.lerp(camera.fov, targetFov, 0.12);
+                    camera.updateProjectionMatrix();
+                }
+
+            } else {
+                // Free Orbit Mode centered on the Spaceship
+                controls.enabled = true;
+                controls.target.lerp(shipPos, 0.15);
+                if (Math.abs(camera.fov - 46) > 0.08) {
+                    camera.fov = THREE.MathUtils.lerp(camera.fov, 46, 0.1);
+                    camera.updateProjectionMatrix();
+                }
+                controls.update();
+            }
+
+            // 5. Render 4K Frame with Bloom Post-Processing
+            composer.render();
+        }
+
+        /**
+         * UI Control Bindings
+         */
+        function bindUI() {
+            // Stage Jump Pills
+            document.querySelectorAll('.stage-pill').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const idx = parseInt(btn.getAttribute('data-stage'), 10);
+                    state.progress = STAGES[idx].range[0] + 0.01;
+                    state.playing = true;
+                    updatePlayPauseUI();
+                    if (state.cameraMode === 'orbit') {
+                        // Snap orbit camera close to the newly jumped stage
+                        const sp = flightCurve.getPointAt(state.progress);
+                        camera.position.copy(sp).add(new THREE.Vector3(6, 4, 10));
+                        controls.target.copy(sp);
+                    }
+                });
+            });
+
+            // Camera Mode Buttons
+            const btnChase = document.getElementById('cam-chase');
+            const btnCockpit = document.getElementById('cam-cockpit');
+            const btnOrbit = document.getElementById('cam-orbit');
+
+            function setCamMode(mode, activeBtn) {
+                state.cameraMode = mode;
+                [btnChase, btnCockpit, btnOrbit].forEach(b => b.classList.remove('active'));
+                activeBtn.classList.add('active');
+                if (mode === 'orbit') {
+                    const sp = flightCurve.getPointAt(state.progress);
+                    camera.position.copy(sp).add(new THREE.Vector3(5.5, 3.2, 8.5));
+                    controls.target.copy(sp);
+                }
+            }
+
+            btnChase.addEventListener('click', () => setCamMode('chase', btnChase));
+            btnCockpit.addEventListener('click', () => setCamMode('cockpit', btnCockpit));
+            btnOrbit.addEventListener('click', () => setCamMode('orbit', btnOrbit));
+
+            // Play / Pause & Restart
+            document.getElementById('play-pause-btn').addEventListener('click', () => {
+                state.playing = !state.playing;
+                updatePlayPauseUI();
+            });
+
+            document.getElementById('restart-btn').addEventListener('click', () => {
+                state.progress = 0.0;
+                state.playing = true;
+                updatePlayPauseUI();
+            });
+
+            // Timeline Scrubber
+            const scrubber = document.getElementById('timeline-scrubber');
+            scrubber.addEventListener('mousedown', () => { state.manualScrubbing = true; });
+            scrubber.addEventListener('touchstart', () => { state.manualScrubbing = true; }, { passive: true });
+            scrubber.addEventListener('input', (e) => {
+                state.progress = parseInt(e.target.value, 10) / 1000;
+            });
+            window.addEventListener('mouseup', () => { state.manualScrubbing = false; });
+            window.addEventListener('touchend', () => { state.manualScrubbing = false; });
+
+            // Speed Selector
+            document.getElementById('speed-select').addEventListener('change', (e) => {
+                state.speed = parseFloat(e.target.value);
+            });
+
+            // 4K Quality Toggle
+            document.getElementById('quality-toggle').addEventListener('click', () => {
+                state.is4K = !state.is4K;
+                updatePixelRatio();
+                document.getElementById('quality-toggle').textContent = state.is4K ? '4K Mode: ON' : '4K Mode: 1080p';
+                document.getElementById('res-badge').textContent = state.is4K ? '4K ULTRA DPI' : 'STANDARD HD';
+            });
+
+            // Hide / Show HUD
+            document.getElementById('toggle-hud-btn').addEventListener('click', () => {
+                state.hudVisible = !state.hudVisible;
+                const hud = document.getElementById('hud-wrapper');
+                hud.style.opacity = state.hudVisible ? '1' : '0';
+                Array.from(hud.querySelectorAll('.pointer-events-auto')).forEach(el => {
+                    el.style.pointerEvents = state.hudVisible ? 'auto' : 'none';
+                });
+                document.getElementById('hud-btn-label').textContent = state.hudVisible ? 'Hide HUD' : 'Show HUD';
+            });
+        }
+
+        function updatePlayPauseUI() {
+            document.getElementById('play-pause-icon').textContent = state.playing ? '❚❚' : '▶';
+            document.getElementById('play-pause-text').textContent = state.playing ? 'Pause' : 'Resume';
+        }
+
+        function updatePixelRatio() {
+            const dpr = state.is4K ? Math.min(window.devicePixelRatio || 2, 2.5) : 1.0;
+            renderer.setPixelRatio(dpr);
+            if (composer) composer.setPixelRatio(dpr);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // Launch 4K Simulation
+        init();
+    </script>
+</body>
+</html>
