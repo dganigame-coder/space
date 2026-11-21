@@ -1,0 +1,1263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intergalactic Traversable Wormhole: Morris-Thorne Bridge (4K WebGL)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Import Map for Three.js r164 & JSM Addons -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/"
+        }
+    }
+    </script>
+
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #02040a;
+            font-family: 'Inter', sans-serif;
+            color: #e6f4ff;
+            user-select: none;
+        }
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+        .glass-panel {
+            background: rgba(5, 11, 24, 0.72);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(56, 189, 248, 0.22);
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.75), inset 0 0 24px rgba(56, 189, 248, 0.05);
+        }
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* Range Sliders */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 5px;
+            cursor: pointer;
+            background: rgba(56, 189, 248, 0.18);
+            border-radius: 999px;
+            border: 1px solid rgba(56, 189, 248, 0.28);
+        }
+        input[type=range]::-webkit-slider-thumb {
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #38bdf8;
+            box-shadow: 0 0 12px #38bdf8, 0 0 24px rgba(56, 189, 248, 0.7);
+            cursor: pointer;
+            -webkit-appearance: none;
+            margin-top: -6.5px;
+            transition: transform 0.15s ease;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.18);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, rgba(14, 165, 233, 0.35), rgba(245, 158, 11, 0.35));
+            border: 1px solid rgba(56, 189, 248, 0.5);
+            box-shadow: 0 0 24px rgba(14, 165, 233, 0.22);
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, rgba(14, 165, 233, 0.52), rgba(245, 158, 11, 0.52));
+            box-shadow: 0 0 32px rgba(56, 189, 248, 0.45);
+            transform: translateY(-1px);
+        }
+        .btn-primary:active {
+            transform: translateY(1px);
+        }
+        .cam-pill.active {
+            background: rgba(56, 189, 248, 0.26);
+            border-color: rgba(56, 189, 248, 0.65);
+            color: #ffffff;
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.25);
+        }
+        /* 3D Projected Callout Badges */
+        .callout-tag {
+            position: absolute;
+            transform: translate(-50%, -100%);
+            pointer-events: none;
+            transition: opacity 0.25s ease;
+        }
+        /* Custom Toggle Switch */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #38bdf8;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: rgba(14, 165, 233, 0.55);
+        }
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(56, 189, 248, 0.3);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- WebGL Canvas Container -->
+    <div id="canvas-container" class="fixed inset-0 z-0"></div>
+
+    <!-- 3D Space Callout Labels Layer -->
+    <div id="callouts-layer" class="fixed inset-0 z-10 pointer-events-none overflow-hidden">
+        <div id="label-galaxy-a" class="callout-tag">
+            <div class="glass-panel rounded-xl px-3 py-1.5 border-cyan-400/50 text-left">
+                <div class="text-[10px] font-bold tracking-widest uppercase text-cyan-300 mono">Galaxy A • Origin</div>
+                <div class="text-xs font-semibold text-white">Milky Way Spiral</div>
+            </div>
+            <div class="w-px h-4 bg-gradient-to-b from-cyan-400 to-transparent mx-auto"></div>
+        </div>
+
+        <div id="label-throat" class="callout-tag">
+            <div class="glass-panel rounded-xl px-3 py-1.5 border-amber-400/50 text-center">
+                <div class="text-[10px] font-bold tracking-widest uppercase text-amber-300 mono">Morris-Thorne Throat</div>
+                <div class="text-xs font-semibold text-white">Exotic Matter Stabilization</div>
+            </div>
+            <div class="w-px h-4 bg-gradient-to-b from-amber-400 to-transparent mx-auto"></div>
+        </div>
+
+        <div id="label-galaxy-b" class="callout-tag">
+            <div class="glass-panel rounded-xl px-3 py-1.5 border-fuchsia-400/50 text-left">
+                <div class="text-[10px] font-bold tracking-widest uppercase text-fuchsia-300 mono">Galaxy B • Destination</div>
+                <div class="text-xs font-semibold text-white">Andromeda (M31) Spiral</div>
+            </div>
+            <div class="w-px h-4 bg-gradient-to-b from-fuchsia-400 to-transparent mx-auto"></div>
+        </div>
+
+        <div id="label-normal-route" class="callout-tag">
+            <div class="px-2.5 py-1 rounded-lg bg-slate-950/80 border border-slate-500/40 text-[10px] text-slate-300 mono">
+                Normal Flat-Space Route: ~2.5 Million Light-Years
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Navigation & Camera Controls -->
+    <div class="fixed top-4 left-4 right-4 z-30 flex flex-wrap items-center justify-between gap-3 pointer-events-none">
+        <!-- Title Badge -->
+        <div class="glass-panel rounded-2xl px-4 py-2.5 flex items-center gap-3 pointer-events-auto">
+            <div class="w-2.5 h-2.5 rounded-full bg-sky-400 animate-ping"></div>
+            <div>
+                <div class="flex items-center gap-2">
+                    <span class="text-[10px] font-semibold tracking-widest uppercase text-sky-300 mono">Relativistic Spacetime Bridge</span>
+                    <span id="res-badge" class="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/20 border border-sky-400/40 text-sky-200 mono">4K ULTRA DPI</span>
+                </div>
+                <h1 class="text-sm sm:text-base font-bold tracking-tight text-white">Intergalactic Traversable Wormhole</h1>
+            </div>
+        </div>
+
+        <!-- Camera Mode Switcher & Hide HUD -->
+        <div class="flex flex-wrap items-center gap-2 pointer-events-auto">
+            <div class="glass-panel rounded-2xl p-1 flex items-center gap-1">
+                <button id="cam-overview" class="cam-pill active px-3 py-1.5 rounded-xl text-xs font-medium text-sky-100 border border-transparent hover:bg-sky-400/20 transition cursor-pointer">
+                    Overview Orbit
+                </button>
+                <button id="cam-ride" class="cam-pill px-3 py-1.5 rounded-xl text-xs font-medium text-amber-200 border border-transparent hover:bg-amber-400/20 transition flex items-center gap-1.5 cursor-pointer">
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                    Ride the Starship
+                </button>
+                <button id="cam-throat" class="cam-pill px-3 py-1.5 rounded-xl text-xs font-medium text-sky-100 border border-transparent hover:bg-sky-400/20 transition cursor-pointer">
+                    Throat Cross-Section
+                </button>
+            </div>
+
+            <button id="toggle-hud-btn" class="glass-panel rounded-2xl px-3.5 py-2 text-xs font-semibold text-sky-200 hover:text-white hover:border-sky-300/60 transition flex items-center gap-2 cursor-pointer">
+                <svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                </svg>
+                <span id="hud-btn-label">Hide HUD</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Main HUD Panels -->
+    <div id="hud-wrapper" class="fixed inset-0 z-20 pointer-events-none flex flex-col justify-between p-4 pt-20 transition-opacity duration-300">
+        <div class="flex flex-col lg:flex-row justify-between items-start gap-4 w-full h-full">
+
+            <!-- Left Panel: Relativistic Spacetime Physics Explanation & Telemetry -->
+            <div class="glass-panel rounded-2xl p-4 sm:p-5 max-w-md pointer-events-auto max-h-[42vh] lg:max-h-[78vh] overflow-y-auto">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-[11px] font-semibold uppercase tracking-wider text-sky-400 mono">Einstein-Rosen / Morris-Thorne</span>
+                    <span id="transit-phase-badge" class="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 mono">ORBITING GALAXY A</span>
+                </div>
+
+                <p class="text-xs sm:text-[13px] leading-relaxed text-slate-200/90 mb-3">
+                    Unlike a quantum potential energy well, a <strong class="text-sky-300 font-semibold">traversable wormhole</strong> folds spacetime itself—creating a curved <strong class="text-amber-300 font-semibold">relativistic throat</strong> that directly links two distant galaxies. Negative-energy <span class="text-amber-200 font-medium">exotic matter filaments</span> brace the throat against gravitational collapse so a starship can cross millions of light-years in moments.
+                </p>
+
+                <!-- Live Relativistic Telemetry -->
+                <div class="grid grid-cols-2 gap-2 mb-3 p-2.5 rounded-xl bg-black/40 border border-sky-500/20 mono text-[11px]">
+                    <div>
+                        <div class="text-slate-400 text-[10px]">NORMAL SPACE SPAN</div>
+                        <div class="text-slate-200 font-semibold text-xs">2,537,000 ly</div>
+                    </div>
+                    <div>
+                        <div class="text-slate-400 text-[10px]">THROAT SHORTCUT</div>
+                        <div id="telemetry-throat-len" class="text-amber-300 font-semibold text-xs">14.2 Light-Seconds</div>
+                    </div>
+                    <div>
+                        <div class="text-slate-400 text-[10px]">SHIP LOCATION</div>
+                        <div id="telemetry-location" class="text-cyan-300 font-semibold text-xs">Milky Way Mouth</div>
+                    </div>
+                    <div>
+                        <div class="text-slate-400 text-[10px]">EXOTIC TENSION</div>
+                        <div id="telemetry-tension" class="text-emerald-300 font-semibold text-xs">-1.42 × 10³⁸ N/m²</div>
+                    </div>
+                </div>
+
+                <!-- Color Legend -->
+                <div class="border-t border-sky-500/20 pt-2.5 flex flex-wrap gap-3 text-[11px] text-slate-300">
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee]"></span>
+                        <span>Galaxy A (Origin)</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-[0_0_8px_#fbbf24]"></span>
+                        <span>Exotic Matter Rings</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-fuchsia-400 shadow-[0_0_8px_#e879f9]"></span>
+                        <span>Galaxy B (Destination)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right / Bottom-Right Interactive Transit Controls -->
+            <div class="glass-panel rounded-2xl p-4 sm:p-5 w-full lg:w-88 max-w-md pointer-events-auto self-end mt-auto">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                        Wormhole &amp; Transit Controls
+                    </span>
+                    <button id="quality-toggle" class="text-[10px] px-2.5 py-1 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 border border-sky-400/40 text-sky-200 font-semibold mono transition cursor-pointer">
+                        4K Mode: ON
+                    </button>
+                </div>
+
+                <!-- Control 1: Exotic Matter Throat Stability -->
+                <div class="mb-3.5">
+                    <div class="flex justify-between text-xs mb-1">
+                        <label for="throat-slider" class="text-slate-200 font-medium">Exotic Matter Throat Stability</label>
+                        <span id="throat-val" class="mono text-amber-300 font-semibold">100% (Wide)</span>
+                    </div>
+                    <input id="throat-slider" type="range" min="25" max="150" value="100">
+                    <div class="flex justify-between text-[10px] text-slate-400 mt-0.5 mono">
+                        <span>Pinched (Narrow)</span>
+                        <span>Expanded Bridge</span>
+                    </div>
+                </div>
+
+                <!-- Control 2: Starship Transit Speed -->
+                <div class="mb-3.5">
+                    <div class="flex justify-between text-xs mb-1">
+                        <label for="speed-slider" class="text-slate-200 font-medium">Starship Transit Speed</label>
+                        <span id="speed-val" class="mono text-sky-300 font-semibold">1.0× Relativistic</span>
+                    </div>
+                    <input id="speed-slider" type="range" min="20" max="250" value="100">
+                </div>
+
+                <!-- Control 3: Normal-Space Distance Comparison Toggle -->
+                <div class="flex items-center justify-between py-2 px-3 mb-3.5 rounded-xl bg-slate-950/55 border border-sky-500/20">
+                    <span class="text-xs text-slate-200">Normal-Space Distance Arc</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input id="toggle-normal-route" type="checkbox" checked class="sr-only peer">
+                        <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-sky-500"></div>
+                    </label>
+                </div>
+
+                <!-- Action Button: Launch / Replay Intergalactic Transit -->
+                <button id="launch-btn" class="btn-primary w-full py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold tracking-wide text-white flex items-center justify-center gap-2 cursor-pointer">
+                    <svg class="w-4 h-4 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path>
+                    </svg>
+                    <span id="launch-btn-text">Launch / Replay Intergalactic Transit</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+        /**
+         * HYPERREALISTIC 4K WEBGL INTERGALACTIC TRAVERSABLE WORMHOLE
+         * - Origin Galaxy (Milky Way: Cyan-Gold Spiral)
+         * - Destination Galaxy (Andromeda: Violet-Magenta & Ember Spiral)
+         * - Curved Morris-Thorne Spacetime Bridge + Exotic Matter Stabilization Rings
+         * - Custom GLSL Relativistic Gravitational Lensing / Einstein Ring Shaders
+         * - Interactive Starship Transit & First-Person Tunnel Ride Camera
+         */
+
+        let scene, camera, renderer, composer, bloomPass, controls;
+        let galaxyA, galaxyB, wormholeGroup, wormholeMesh, wormholeWireframe;
+        let exoticRings = [], lensingShaderMaterials = [];
+        let starshipGroup, thrusterPlume, thrusterLight, transitCurve, normalRouteLine;
+        let deepStarfield;
+        const clock = new THREE.Clock();
+
+        // Key Spatial Coordinates
+        const GALAXY_A_POS = new THREE.Vector3(-19, 8.5, -4);
+        const GALAXY_B_POS = new THREE.Vector3(19, -8.5, 4);
+        const MOUTH_A_POS = new THREE.Vector3(-14.2, 6.2, -2.5);
+        const MOUTH_B_POS = new THREE.Vector3(14.2, -6.2, 2.5);
+
+        // Simulation State
+        const state = {
+            throatRadiusScale: 1.0,
+            transitSpeed: 1.0,
+            transitProgress: 0.0,     // 0.0 = Galaxy A, 0.5 = Throat Core, 1.0 = Galaxy B
+            isTransiting: true,
+            showNormalRoute: true,
+            cameraMode: 'overview',   // 'overview' | 'ride' | 'throat'
+            is4K: true,
+            hudVisible: true,
+            targetCamPos: new THREE.Vector3(0, 12, 38),
+            targetLookAt: new THREE.Vector3(0, 0, 0),
+            lerpingCam: false
+        };
+
+        // Wormhole Spine Curve (Smooth S-curved relativistic bridge between Mouth A and Mouth B)
+        const bridgeSpineCurve = new THREE.CatmullRomCurve3([
+            new THREE.Vector3(-15.5, 6.8, -2.8),
+            new THREE.Vector3(-9.5, 4.2, -5.2),
+            new THREE.Vector3(0.0, 0.0, 0.0),
+            new THREE.Vector3(9.5, -4.2, 5.2),
+            new THREE.Vector3(15.5, -6.8, 2.8)
+        ]);
+
+        // Full Starship Flight Trajectory (Starts orbiting Galaxy A -> enters Mouth A -> traverses Throat -> exits Mouth B -> arrives Galaxy B)
+        const fullFlightCurve = new THREE.CatmullRomCurve3([
+            new THREE.Vector3(-23.0, 11.2, 1.5),
+            new THREE.Vector3(-19.2, 8.8, -1.8),
+            new THREE.Vector3(-15.5, 6.8, -2.8),
+            new THREE.Vector3(-9.5, 4.2, -5.2),
+            new THREE.Vector3(0.0, 0.0, 0.0),
+            new THREE.Vector3(9.5, -4.2, 5.2),
+            new THREE.Vector3(15.5, -6.8, 2.8),
+            new THREE.Vector3(19.2, -8.8, 1.8),
+            new THREE.Vector3(23.0, -11.2, -1.5)
+        ]);
+
+        function init() {
+            const container = document.getElementById('canvas-container');
+
+            // 1. Scene & Deep Intergalactic Void
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x02040a);
+            scene.fog = new THREE.FogExp2(0x02040a, 0.0085);
+
+            // 2. Perspective Camera
+            camera = new THREE.PerspectiveCamera(46, window.innerWidth / window.innerHeight, 0.1, 300);
+            camera.position.copy(state.targetCamPos);
+
+            // 3. High-DPI 4K WebGLRenderer with ACESFilmicToneMapping
+            renderer = new THREE.WebGLRenderer({
+                antialias: true,
+                powerPreference: 'high-performance',
+                stencil: false
+            });
+            updatePixelRatio();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.15;
+            container.appendChild(renderer.domElement);
+
+            // 4. OrbitControls
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.minDistance = 4;
+            controls.maxDistance = 85;
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = 0.32;
+            controls.addEventListener('start', () => {
+                if (state.cameraMode !== 'ride') {
+                    state.lerpingCam = false;
+                }
+            });
+
+            // 5. Post-Processing Bloom Pipeline
+            const renderPass = new RenderPass(scene, camera);
+            bloomPass = new UnrealBloomPass(
+                new THREE.Vector2(window.innerWidth, window.innerHeight),
+                1.25, // strength
+                0.65, // radius
+                0.24  // threshold
+            );
+            composer = new EffectComposer(renderer);
+            composer.addPass(renderPass);
+            composer.addPass(bloomPass);
+
+            // 6. Scene Lighting
+            const ambientLight = new THREE.AmbientLight(0x1e293b, 1.4);
+            scene.add(ambientLight);
+
+            const cyanPoint = new THREE.PointLight(0x38bdf8, 3.2, 45);
+            cyanPoint.position.copy(GALAXY_A_POS);
+            scene.add(cyanPoint);
+
+            const magentaPoint = new THREE.PointLight(0xe879f9, 3.2, 45);
+            magentaPoint.position.copy(GALAXY_B_POS);
+            scene.add(magentaPoint);
+
+            const throatPoint = new THREE.PointLight(0xfbbf24, 2.8, 32);
+            throatPoint.position.set(0, 0, 0);
+            scene.add(throatPoint);
+
+            // 7. Build All 3D Space Objects
+            buildDeepBackgroundStarfield();
+
+            // Galaxy A: Origin Milky Way (Cyan, Sapphire & Warm Gold Core)
+            galaxyA = createSpiralGalaxy({
+                position: GALAXY_A_POS,
+                rotation: new THREE.Euler(0.65, 0.35, -0.45),
+                radius: 9.2,
+                branches: 4,
+                spin: 1.35,
+                coreColor: 0xfff3c4,
+                innerArmColor: 0x38bdf8,
+                outerArmColor: 0x0284c7,
+                starCount: 16000
+            });
+            scene.add(galaxyA);
+
+            // Galaxy B: Destination Andromeda (Violet-Magenta, Rose & Ember Core)
+            galaxyB = createSpiralGalaxy({
+                position: GALAXY_B_POS,
+                rotation: new THREE.Euler(-0.55, -0.4, 0.5),
+                radius: 10.2,
+                branches: 5,
+                spin: -1.25,
+                coreColor: 0xffedd5,
+                innerArmColor: 0xe879f9,
+                outerArmColor: 0x9333ea,
+                starCount: 18000
+            });
+            scene.add(galaxyB);
+
+            // Traversable Morris-Thorne Wormhole Bridge + Relativistic Lensing Mouths
+            buildTraversableWormhole();
+
+            // Normal Flat-Space Distance Comparison Arc
+            buildNormalSpaceComparisonArc();
+
+            // Interstellar Starship with Ion Thruster Plume
+            buildInterstellarStarship();
+
+            // 8. UI & Window Events
+            bindUI();
+            window.addEventListener('resize', onWindowResize);
+
+            // Launch Animation Loop
+            animate();
+        }
+
+        /**
+         * Procedurally creates a crisp glowing star sprite texture (no external image URLs)
+         */
+        function createStarTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64;
+            canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+            grad.addColorStop(0.0, 'rgba(255, 255, 255, 1.0)');
+            grad.addColorStop(0.2, 'rgba(235, 248, 255, 0.85)');
+            grad.addColorStop(0.55, 'rgba(120, 200, 255, 0.22)');
+            grad.addColorStop(1.0, 'rgba(0, 0, 0, 0.0)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 64, 64);
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        /**
+         * Builds a deep multi-spectral starfield & distant background galaxies
+         */
+        function buildDeepBackgroundStarfield() {
+            const count = 7500;
+            const positions = new Float32Array(count * 3);
+            const colors = new Float32Array(count * 3);
+
+            const palette = [
+                new THREE.Color(0xffffff),
+                new THREE.Color(0xbae6fd),
+                new THREE.Color(0xfde68a),
+                new THREE.Color(0xf5d0fe)
+            ];
+
+            for (let i = 0; i < count; i++) {
+                const r = 65 + Math.random() * 140;
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+
+                positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+                positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+                positions[i * 3 + 2] = r * Math.cos(phi);
+
+                const col = palette[Math.floor(Math.random() * palette.length)];
+                const brightness = 0.4 + Math.random() * 0.6;
+                colors[i * 3] = col.r * brightness;
+                colors[i * 3 + 1] = col.g * brightness;
+                colors[i * 3 + 2] = col.b * brightness;
+            }
+
+            const geo = new THREE.BufferGeometry();
+            geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const mat = new THREE.PointsMaterial({
+                size: 0.48,
+                map: createStarTexture(),
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.85,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+
+            deepStarfield = new THREE.Points(geo, mat);
+            scene.add(deepStarfield);
+        }
+
+        /**
+         * Generates a volumetric 3D Spiral Galaxy with glowing bulge, spiral arms & star clusters
+         */
+        function createSpiralGalaxy(opts) {
+            const group = new THREE.Group();
+            group.position.copy(opts.position);
+            group.rotation.copy(opts.rotation);
+
+            const count = opts.starCount;
+            const positions = new Float32Array(count * 3);
+            const colors = new Float32Array(count * 3);
+
+            const cCore = new THREE.Color(opts.coreColor);
+            const cInner = new THREE.Color(opts.innerArmColor);
+            const cOuter = new THREE.Color(opts.outerArmColor);
+
+            for (let i = 0; i < count; i++) {
+                // Power distribution concentrates stars toward the bright galactic nucleus
+                const radius = Math.pow(Math.random(), 1.65) * opts.radius;
+                const branchAngle = ((i % opts.branches) / opts.branches) * Math.PI * 2;
+                const spinAngle = radius * opts.spin;
+
+                // Spiral arm scatter
+                const scatter = Math.pow(Math.random(), 2.4) * (randomSign() * 1.15) * (0.35 + radius / opts.radius);
+                const randomX = Math.pow(Math.random(), 3) * randomSign() * 0.65;
+                const randomY = Math.pow(Math.random(), 3.2) * randomSign() * (1.25 * (1 - radius / (opts.radius * 1.1)) + 0.15);
+                const randomZ = Math.pow(Math.random(), 3) * randomSign() * 0.65;
+
+                const angle = branchAngle + spinAngle + scatter;
+                positions[i * 3] = Math.cos(angle) * radius + randomX;
+                positions[i * 3 + 1] = randomY;
+                positions[i * 3 + 2] = Math.sin(angle) * radius + randomZ;
+
+                // Color interpolation from bright core -> inner arm -> outer halo
+                const mixedColor = cCore.clone();
+                const t = radius / opts.radius;
+                if (t < 0.25) {
+                    mixedColor.lerp(cInner, t / 0.25);
+                } else {
+                    mixedColor.lerpColors(cInner, cOuter, (t - 0.25) / 0.75);
+                }
+
+                colors[i * 3] = mixedColor.r;
+                colors[i * 3 + 1] = mixedColor.g;
+                colors[i * 3 + 2] = mixedColor.b;
+            }
+
+            const geo = new THREE.BufferGeometry();
+            geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const mat = new THREE.PointsMaterial({
+                size: 0.22,
+                map: createStarTexture(),
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.9,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+
+            const points = new THREE.Points(geo, mat);
+            group.add(points);
+
+            // Luminous Galactic Nucleus Core Glow
+            const coreGeo = new THREE.SphereGeometry(1.15, 24, 24);
+            const coreMat = new THREE.MeshBasicMaterial({
+                color: opts.coreColor,
+                transparent: true,
+                opacity: 0.65,
+                blending: THREE.AdditiveBlending
+            });
+            group.add(new THREE.Mesh(coreGeo, coreMat));
+
+            return group;
+        }
+
+        function randomSign() {
+            return Math.random() < 0.5 ? -1 : 1;
+        }
+
+        /**
+         * Builds the Traversable Morris-Thorne Wormhole:
+         * - Custom hourglass/catenoid radius profile along the curved 3D spine
+         * - Geodesic spacetime lattice wireframe + luminous energy plasma shell
+         * - Exotic-matter negative-energy stabilization rings bracing the throat
+         * - Custom GLSL Relativistic Gravitational Lensing & Einstein Ring discs at both mouths
+         */
+        function buildTraversableWormhole() {
+            wormholeGroup = new THREE.Group();
+            scene.add(wormholeGroup);
+
+            const tubularSegments = 120;
+            const radialSegments = 56;
+            const frames = bridgeSpineCurve.computeFrenetFrames(tubularSegments, false);
+
+            const geometry = new THREE.BufferGeometry();
+            const vertices = [];
+            const uvs = [];
+            const colors = [];
+            const indices = [];
+
+            const colMouthA = new THREE.Color(0x38bdf8); // Cyan-Blue (Galaxy A entrance)
+            const colThroat = new THREE.Color(0xfbbf24); // Golden-Amber Exotic Matter Throat
+            const colMouthB = new THREE.Color(0xe879f9); // Violet-Magenta (Galaxy B exit)
+
+            for (let i = 0; i <= tubularSegments; i++) {
+                const u = i / tubularSegments; // 0 = Mouth A, 0.5 = Throat Waist, 1.0 = Mouth B
+                const pos = bridgeSpineCurve.getPointAt(u);
+                const N = frames.normals[i];
+                const B = frames.binormals[i];
+
+                // Catenoid / Hourglass radius function:
+                // Flares wide at both galaxy mouths (u=0 and u=1), narrows smoothly at throat waist (u=0.5)
+                const distFromWaist = (u - 0.5) * 2.0; // -1 to +1
+                const flare = Math.pow(Math.abs(distFromWaist), 2.35) * 3.1;
+                const waistRadius = 1.35 * state.throatRadiusScale;
+                const radius = waistRadius + flare;
+
+                // Vertex color blend across the spacetime bridge
+                const segColor = new THREE.Color();
+                if (u < 0.5) {
+                    segColor.lerpColors(colMouthA, colThroat, Math.pow(u * 2.0, 0.85));
+                } else {
+                    segColor.lerpColors(colThroat, colMouthB, Math.pow((u - 0.5) * 2.0, 0.85));
+                }
+
+                for (let j = 0; j <= radialSegments; j++) {
+                    const v = j / radialSegments;
+                    const theta = v * Math.PI * 2;
+                    const sin = Math.sin(theta);
+                    const cos = -Math.cos(theta);
+
+                    const vx = pos.x + radius * (cos * N.x + sin * B.x);
+                    const vy = pos.y + radius * (cos * N.y + sin * B.y);
+                    const vz = pos.z + radius * (cos * N.z + sin * B.z);
+
+                    vertices.push(vx, vy, vz);
+                    uvs.push(u, v);
+                    colors.push(segColor.r, segColor.g, segColor.b);
+                }
+            }
+
+            for (let j = 1; j <= tubularSegments; j++) {
+                for (let i = 1; i <= radialSegments; i++) {
+                    const a = (radialSegments + 1) * (j - 1) + (i - 1);
+                    const b = (radialSegments + 1) * j + (i - 1);
+                    const c = (radialSegments + 1) * j + i;
+                    const d = (radialSegments + 1) * (j - 1) + i;
+                    indices.push(a, b, d);
+                    indices.push(b, c, d);
+                }
+            }
+
+            geometry.setIndex(indices);
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+            geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+            geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+            geometry.computeVertexNormals();
+            geometry.userData = { tubularSegments, radialSegments, frames };
+
+            // Custom GLSL Relativistic Tunnel Energy Shader
+            const tunnelShaderMat = new THREE.ShaderMaterial({
+                uniforms: {
+                    uTime: { value: 0 },
+                    uColorA: { value: new THREE.Color(0x0ea5e9) },
+                    uColorThroat: { value: new THREE.Color(0xf59e0b) },
+                    uColorB: { value: new THREE.Color(0xd946ef) }
+                },
+                vertexShader: `
+                    varying vec2 vUv;
+                    varying vec3 vNormal;
+                    varying vec3 vViewPosition;
+                    void main() {
+                        vUv = uv;
+                        vNormal = normalize(normalMatrix * normal);
+                        vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+                        vViewPosition = -mvPosition.xyz;
+                        gl_Position = projectionMatrix * mvPosition;
+                    }
+                `,
+                fragmentShader: `
+                    uniform float uTime;
+                    uniform vec3 uColorA;
+                    uniform vec3 uColorThroat;
+                    uniform vec3 uColorB;
+                    varying vec2 vUv;
+                    varying vec3 vNormal;
+                    varying vec3 vViewPosition;
+
+                    void main() {
+                        // Flowing relativistic spacetime ripples along u (mouth-to-mouth) and v (circumference)
+                        float stream1 = sin(vUv.x * 36.0 - uTime * 3.8 + sin(vUv.y * 12.0) * 1.5);
+                        float stream2 = cos(vUv.y * 24.0 + uTime * 1.6);
+                        float gridPulse = smoothstep(0.65, 1.0, stream1 * 0.6 + stream2 * 0.4);
+
+                        // Color transition from Galaxy A -> Golden Throat -> Galaxy B
+                        vec3 baseCol = mix(uColorA, uColorThroat, smoothstep(0.0, 0.5, vUv.x));
+                        baseCol = mix(baseCol, uColorB, smoothstep(0.5, 1.0, vUv.x));
+
+                        // Fresnel edge glow for hyperrealistic depth
+                        vec3 viewDir = normalize(vViewPosition);
+                        float fresnel = pow(1.0 - abs(dot(normalize(vNormal), viewDir)), 1.8);
+
+                        // Fade smoothly at outer mouth rims so it blends into galaxies
+                        float edgeFade = sin(vUv.x * 3.14159265);
+                        float alpha = (0.16 + gridPulse * 0.34 + fresnel * 0.35) * pow(edgeFade, 0.45);
+
+                        vec3 finalColor = baseCol * (0.8 + gridPulse * 1.4) + vec3(1.0, 0.96, 0.88) * gridPulse * 0.35;
+                        gl_FragColor = vec4(finalColor, alpha);
+                    }
+                `,
+                transparent: true,
+                side: THREE.DoubleSide,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+            lensingShaderMaterials.push(tunnelShaderMat);
+
+            wormholeMesh = new THREE.Mesh(geometry, tunnelShaderMat);
+            wormholeGroup.add(wormholeMesh);
+
+            // Geodesic Spacetime Coordinate Wireframe Overlay
+            const wireMat = new THREE.MeshBasicMaterial({
+                vertexColors: true,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.24,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+            wormholeWireframe = new THREE.Mesh(geometry, wireMat);
+            wormholeGroup.add(wormholeWireframe);
+
+            // Exotic-Matter Negative-Energy Stabilization Rings along the Throat
+            const ringPositionsU = [0.28, 0.39, 0.50, 0.61, 0.72];
+            ringPositionsU.forEach((u, idx) => {
+                const pt = bridgeSpineCurve.getPointAt(u);
+                const tangent = bridgeSpineCurve.getTangentAt(u).normalize();
+
+                const distFromWaist = (u - 0.5) * 2.0;
+                const r = (1.35 * state.throatRadiusScale) + Math.pow(Math.abs(distFromWaist), 2.35) * 3.1 + 0.14;
+
+                const torusGeo = new THREE.TorusGeometry(r, idx === 2 ? 0.065 : 0.04, 16, 72);
+                const torusMat = new THREE.MeshBasicMaterial({
+                    color: idx === 2 ? 0xfef08a : 0xf59e0b,
+                    transparent: true,
+                    opacity: idx === 2 ? 0.92 : 0.68,
+                    blending: THREE.AdditiveBlending
+                });
+                const torus = new THREE.Mesh(torusGeo, torusMat);
+                torus.position.copy(pt);
+                torus.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), tangent);
+                wormholeGroup.add(torus);
+
+                exoticRings.push({ mesh: torus, u, isCore: idx === 2 });
+            });
+
+            // Relativistic Einstein Gravitational Lensing Rings at Both Wormhole Mouths
+            createEinsteinLensingPortal(0.03, 0x38bdf8, 0xfef08a); // Entrance Mouth A
+            createEinsteinLensingPortal(0.97, 0xe879f9, 0x38bdf8); // Exit Mouth B
+        }
+
+        /**
+         * Custom GLSL Gravitational Lensing & Einstein Ring Shader around each Wormhole Mouth
+         */
+        function createEinsteinLensingPortal(uPos, primaryHex, secondaryHex) {
+            const pt = bridgeSpineCurve.getPointAt(uPos);
+            const tangent = bridgeSpineCurve.getTangentAt(uPos).normalize();
+
+            const portalGeo = new THREE.PlaneGeometry(11.5, 11.5, 1, 1);
+            const portalMat = new THREE.ShaderMaterial({
+                uniforms: {
+                    uTime: { value: 0 },
+                    uPrimary: { value: new THREE.Color(primaryHex) },
+                    uSecondary: { value: new THREE.Color(secondaryHex) }
+                },
+                vertexShader: `
+                    varying vec2 vUv;
+                    void main() {
+                        vUv = uv * 2.0 - 1.0;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    uniform float uTime;
+                    uniform vec3 uPrimary;
+                    uniform vec3 uSecondary;
+                    varying vec2 vUv;
+
+                    void main() {
+                        float r = length(vUv);
+                        float angle = atan(vUv.y, vUv.x);
+
+                        // Sharp Einstein ring distortion band around r = 0.56
+                        float ringDist = abs(r - 0.56);
+                        float einsteinRing = exp(-ringDist * 18.0);
+                        float secondaryArc = exp(-abs(r - 0.68) * 26.0) * (0.5 + 0.5 * sin(angle * 3.0 + uTime * 2.2));
+
+                        // Relativistic swirling accretion streaks
+                        float swirl = sin(angle * 6.0 - r * 14.0 + uTime * 2.6) * 0.5 + 0.5;
+                        float radialMask = smoothstep(1.0, 0.35, r) * smoothstep(0.18, 0.45, r);
+
+                        vec3 col = mix(uPrimary, uSecondary, swirl);
+                        col += vec3(1.0, 0.98, 0.92) * einsteinRing * 1.15;
+
+                        float alpha = (einsteinRing * 0.85 + secondaryArc * 0.45 + swirl * radialMask * 0.22);
+                        if (r > 0.98) discard;
+
+                        gl_FragColor = vec4(col, clamp(alpha, 0.0, 0.95));
+                    }
+                `,
+                transparent: true,
+                side: THREE.DoubleSide,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+
+            lensingShaderMaterials.push(portalMat);
+
+            const portalMesh = new THREE.Mesh(portalGeo, portalMat);
+            portalMesh.position.copy(pt);
+            portalMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), tangent);
+            wormholeGroup.add(portalMesh);
+        }
+
+        /**
+         * Updates Wormhole Throat Geometry dynamically when Exotic Matter Stability slider changes
+         */
+        function updateWormholeThroatRadius() {
+            const geom = wormholeMesh.geometry;
+            const posAttr = geom.attributes.position;
+            const { tubularSegments, radialSegments, frames } = geom.userData;
+
+            let ptr = 0;
+            for (let i = 0; i <= tubularSegments; i++) {
+                const u = i / tubularSegments;
+                const pos = bridgeSpineCurve.getPointAt(u);
+                const N = frames.normals[i];
+                const B = frames.binormals[i];
+
+                const distFromWaist = (u - 0.5) * 2.0;
+                const flare = Math.pow(Math.abs(distFromWaist), 2.35) * 3.1;
+                const waistRadius = 1.35 * state.throatRadiusScale;
+                const radius = waistRadius + flare;
+
+                for (let j = 0; j <= radialSegments; j++) {
+                    const v = j / radialSegments;
+                    const theta = v * Math.PI * 2;
+                    const sin = Math.sin(theta);
+                    const cos = -Math.cos(theta);
+
+                    posAttr.setXYZ(
+                        ptr++,
+                        pos.x + radius * (cos * N.x + sin * B.x),
+                        pos.y + radius * (cos * N.y + sin * B.y),
+                        pos.z + radius * (cos * N.z + sin * B.z)
+                    );
+                }
+            }
+            posAttr.needsUpdate = true;
+
+            // Resize Exotic Matter Stabilization Rings to match new throat radius
+            exoticRings.forEach((item) => {
+                const distFromWaist = (item.u - 0.5) * 2.0;
+                const targetR = (1.35 * state.throatRadiusScale) + Math.pow(Math.abs(distFromWaist), 2.35) * 3.1 + 0.14;
+                const baseR = 1.35 + Math.pow(Math.abs(distFromWaist), 2.35) * 3.1 + 0.14;
+                item.mesh.scale.setScalar(targetR / baseR);
+            });
+        }
+
+        /**
+         * Builds the sweeping dashed arc illustrating the 2.5 Million Light-Year normal flat-space path
+         */
+        function buildNormalSpaceComparisonArc() {
+            const normalArcCurve = new THREE.CatmullRomCurve3([
+                GALAXY_A_POS.clone(),
+                new THREE.Vector3(-12, 22, -16),
+                new THREE.Vector3(6, 23, -14),
+                GALAXY_B_POS.clone()
+            ]);
+
+            const pts = normalArcCurve.getPoints(120);
+            const geo = new THREE.BufferGeometry().setFromPoints(pts);
+            const mat = new THREE.LineDashedMaterial({
+                color: 0x64748b,
+                dashSize: 0.9,
+                gapSize: 0.65,
+                transparent: true,
+                opacity: 0.55
+            });
+
+            normalRouteLine = new THREE.Line(geo, mat);
+            normalRouteLine.computeLineDistances();
+            scene.add(normalRouteLine);
+        }
+
+        /**
+         * Builds a sleek metallic & emissive Interstellar Probe / Starship with glowing ion thrusters
+         */
+        function buildInterstellarStarship() {
+            starshipGroup = new THREE.Group();
+
+            // Main Fuselage (Sleek metallic titanium needle)
+            const hullGeo = new THREE.ConeGeometry(0.24, 1.35, 16);
+            hullGeo.rotateX(Math.PI / 2); // Align nose along +Z
+            const hullMat = new THREE.MeshStandardMaterial({
+                color: 0xf8fafc,
+                metalness: 0.85,
+                roughness: 0.2,
+                emissive: 0x0ea5e9,
+                emissiveIntensity: 0.25
+            });
+            const hullMesh = new THREE.Mesh(hullGeo, hullMat);
+            starshipGroup.add(hullMesh);
+
+            // Alcubierre / Relativistic Field Ring around Starship
+            const ringGeo = new THREE.TorusGeometry(0.36, 0.03, 12, 36);
+            const ringMat = new THREE.MeshBasicMaterial({
+                color: 0x38bdf8
+            });
+            const fieldRing = new THREE.Mesh(ringGeo, ringMat);
+            fieldRing.position.z = -0.15;
+            starshipGroup.add(fieldRing);
+
+            // Glowing Ion Thruster Plume at Rear (-Z)
+            const plumeGeo = new THREE.ConeGeometry(0.18, 1.1, 16);
+            plumeGeo.rotateX(-Math.PI / 2);
+            const plumeMat = new THREE.MeshBasicMaterial({
+                color: 0x7dd3fc,
+                transparent: true,
+                opacity: 0.85,
+                blending: THREE.AdditiveBlending
+            });
+            thrusterPlume = new THREE.Mesh(plumeGeo, plumeMat);
+            thrusterPlume.position.z = -1.15;
+            starshipGroup.add(thrusterPlume);
+
+            // Ship Point Light illuminating inner wormhole walls as it passes through!
+            thrusterLight = new THREE.PointLight(0x38bdf8, 4.5, 14);
+            thrusterLight.position.set(0, 0, 0.3);
+            starshipGroup.add(thrusterLight);
+
+            scene.add(starshipGroup);
+        }
+
+        /**
+         * Projects 3D world coordinates to 2D screen badges so the user clearly sees all anatomical parts
+         */
+        function update3DCalloutLabels() {
+            const labelsLayer = document.getElementById('callouts-layer');
+            if (!state.hudVisible || state.cameraMode === 'ride') {
+                labelsLayer.style.opacity = '0';
+                return;
+            }
+            labelsLayer.style.opacity = '1';
+
+            projectLabelToScreen('label-galaxy-a', new THREE.Vector3(-19, 12.2, -4));
+            projectLabelToScreen('label-throat', new THREE.Vector3(0, 2.5, 0));
+            projectLabelToScreen('label-galaxy-b', new THREE.Vector3(19, -4.5, 4));
+
+            const normalLabelEl = document.getElementById('label-normal-route');
+            if (state.showNormalRoute) {
+                normalLabelEl.style.display = 'block';
+                projectLabelToScreen('label-normal-route', new THREE.Vector3(-2, 22.8, -15));
+            } else {
+                normalLabelEl.style.display = 'none';
+            }
+        }
+
+        function projectLabelToScreen(elementId, worldPos) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+
+            const projected = worldPos.clone().project(camera);
+            // Hide if behind camera
+            if (projected.z > 1.0) {
+                el.style.opacity = '0';
+                return;
+            }
+
+            const x = (projected.x * 0.5 + 0.5) * window.innerWidth;
+            const y = (-projected.y * 0.5 + 0.5) * window.innerHeight;
+
+            el.style.left = `${x}px`;
+            el.style.top = `${y}px`;
+            el.style.opacity = '0.95';
+        }
+
+        /**
+         * Main 4K Animation Loop
+         */
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const dt = Math.min(clock.getDelta(), 0.05);
+            const elapsed = clock.getElapsedTime();
+
+            // 1. Rotate Spiral Galaxies & Background Starfield
+            if (galaxyA) galaxyA.rotation.y += dt * 0.08;
+            if (galaxyB) galaxyB.rotation.y -= dt * 0.07;
+            if (deepStarfield) deepStarfield.rotation.y = elapsed * 0.008;
+
+            // 2. Update Custom GLSL Relativistic Shaders
+            lensingShaderMaterials.forEach((mat) => {
+                mat.uniforms.uTime.value = elapsed;
+            });
+
+            // 3. Pulse & Spin Exotic Matter Stabilization Rings
+            exoticRings.forEach((item, idx) => {
+                item.mesh.rotation.z = elapsed * (idx % 2 === 0 ? 1.1 : -1.1);
+                if (item.isCore) {
+                    item.mesh.material.opacity = 0.78 + Math.sin(elapsed * 4.5) * 0.18;
+                }
+            });
+
+            // 4. Advance Interstellar Starship along the Wormhole Shortcut
+            if (state.isTransiting) {
+                // Accelerate slightly inside the relativistic throat core (u around 0.5)
+                const throatBoost = 1.0 + Math.exp(-Math.pow((state.transitProgress - 0.5) * 5.0, 2.0)) * 0.85;
+                state.transitProgress += dt * 0.095 * state.transitSpeed * throatBoost;
+
+                if (state.transitProgress >= 1.0) {
+                    state.transitProgress = 0.0; // Loop seamless intergalactic transit
+                }
+            }
+
+            const shipPos = fullFlightCurve.getPointAt(state.transitProgress);
+            const shipTangent = fullFlightCurve.getTangentAt(state.transitProgress).normalize();
+            starshipGroup.position.copy(shipPos);
+            starshipGroup.lookAt(shipPos.clone().add(shipTangent));
+
+            // Dynamic Ion Thruster Plume Flicker
+            const plumeScale = 0.85 + Math.sin(elapsed * 28.0) * 0.25;
+            thrusterPlume.scale.set(1, 1, plumeScale);
+
+            // Update Live Telemetry Readouts
+            updateTransitTelemetry();
+
+            // 5. Camera Handling (Overview / Ride Starship First-Person / Throat Cross-Section)
+            if (state.cameraMode === 'ride') {
+                controls.enabled = false;
+                // Position camera just behind and slightly above the starship looking forward through the tunnel
+                const camOffset = shipTangent.clone().multiplyScalar(-2.4).add(new THREE.Vector3(0, 0.55, 0));
+                const desiredCamPos = shipPos.clone().add(camOffset);
+                const lookTarget = fullFlightCurve.getPointAt(Math.min(state.transitProgress + 0.08, 0.999));
+
+                camera.position.lerp(desiredCamPos, 0.18);
+                camera.lookAt(lookTarget);
+
+                // Relativistic FOV stretch inside the wormhole throat!
+                const inThroatFactor = Math.exp(-Math.pow((state.transitProgress - 0.5) * 4.2, 2.0));
+                const targetFov = 52 + inThroatFactor * 26;
+                if (Math.abs(camera.fov - targetFov) > 0.1) {
+                    camera.fov = THREE.MathUtils.lerp(camera.fov, targetFov, 0.12);
+                    camera.updateProjectionMatrix();
+                }
+            } else {
+                controls.enabled = true;
+                if (Math.abs(camera.fov - 46) > 0.1) {
+                    camera.fov = THREE.MathUtils.lerp(camera.fov, 46, 0.1);
+                    camera.updateProjectionMatrix();
+                }
+
+                if (state.lerpingCam) {
+                    camera.position.lerp(state.targetCamPos, 0.06);
+                    controls.target.lerp(state.targetLookAt, 0.06);
+                    if (camera.position.distanceTo(state.targetCamPos) < 0.1) {
+                        state.lerpingCam = false;
+                    }
+                }
+                controls.update();
+            }
+
+            // 6. Update 3D Callout Badges & Render 4K Frame
+            update3DCalloutLabels();
+            composer.render();
+        }
+
+        function updateTransitTelemetry() {
+            const locEl = document.getElementById('telemetry-location');
+            const badgeEl = document.getElementById('transit-phase-badge');
+            const u = state.transitProgress;
+
+            if (u < 0.22) {
+                locEl.textContent = 'Galaxy A (Milky Way)';
+                locEl.className = 'text-cyan-300 font-semibold text-xs';
+                badgeEl.textContent = 'ENTERING MOUTH A';
+                badgeEl.className = 'text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 mono';
+            } else if (u < 0.78) {
+                locEl.textContent = 'Einstein-Rosen Throat';
+                locEl.className = 'text-amber-300 font-semibold text-xs';
+                badgeEl.textContent = 'RELATIVISTIC TRANSIT';
+                badgeEl.className = 'text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/40 mono';
+            } else {
+                locEl.textContent = 'Galaxy B (Andromeda)';
+                locEl.className = 'text-fuchsia-300 font-semibold text-xs';
+                badgeEl.textContent = 'ARRIVED GALAXY B';
+                badgeEl.className = 'text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-400/40 mono';
+            }
+        }
+
+        /**
+         * UI Event Listeners
+         */
+        function bindUI() {
+            // Camera Mode Buttons
+            const btnOverview = document.getElementById('cam-overview');
+            const btnRide = document.getElementById('cam-ride');
+            const btnThroat = document.getElementById('cam-throat');
+
+            function setActivePill(activeBtn) {
+                [btnOverview, btnRide, btnThroat].forEach(b => b.classList.remove('active'));
+                activeBtn.classList.add('active');
+            }
+
+            btnOverview.addEventListener('click', () => {
+                state.cameraMode = 'overview';
+                state.targetCamPos.set(0, 12, 38);
+                state.targetLookAt.set(0, 0, 0);
+                state.lerpingCam = true;
+                controls.autoRotate = true;
+                setActivePill(btnOverview);
+            });
+
+            btnRide.addEventListener('click', () => {
+                state.cameraMode = 'ride';
+                state.isTransiting = true;
+                setActivePill(btnRide);
+            });
+
+            btnThroat.addEventListener('click', () => {
+                state.cameraMode = 'throat';
+                state.targetCamPos.set(5.5, 4.5, 11.5);
+                state.targetLookAt.set(0, 0, 0);
+                state.lerpingCam = true;
+                controls.autoRotate = false;
+                setActivePill(btnThroat);
+            });
+
+            // Exotic Matter Throat Stability Slider
+            const throatSlider = document.getElementById('throat-slider');
+            const throatVal = document.getElementById('throat-val');
+            const tensionEl = document.getElementById('telemetry-tension');
+
+            throatSlider.addEventListener('input', (e) => {
+                const pct = parseInt(e.target.value, 10);
+                state.throatRadiusScale = pct / 100;
+                const label = pct < 60 ? 'Narrow' : pct > 115 ? 'Expanded' : 'Wide';
+                throatVal.textContent = `${pct}% (${label})`;
+                tensionEl.textContent = `-${(1.42 * state.throatRadiusScale).toFixed(2)} × 10³⁸ N/m²`;
+                updateWormholeThroatRadius();
+            });
+
+            // Transit Speed Slider
+            const speedSlider = document.getElementById('speed-slider');
+            const speedVal = document.getElementById('speed-val');
+            speedSlider.addEventListener('input', (e) => {
+                const val = parseInt(e.target.value, 10) / 100;
+                state.transitSpeed = val;
+                speedVal.textContent = `${val.toFixed(1)}× Relativistic`;
+            });
+
+            // Normal-Space Distance Arc Toggle
+            const normalToggle = document.getElementById('toggle-normal-route');
+            normalToggle.addEventListener('change', (e) => {
+                state.showNormalRoute = e.target.checked;
+                if (normalRouteLine) {
+                    normalRouteLine.visible = state.showNormalRoute;
+                }
+            });
+
+            // Launch / Replay Transit Button
+            document.getElementById('launch-btn').addEventListener('click', () => {
+                state.transitProgress = 0.0;
+                state.isTransiting = true;
+            });
+
+            // 4K Quality Toggle
+            document.getElementById('quality-toggle').addEventListener('click', () => {
+                state.is4K = !state.is4K;
+                updatePixelRatio();
+                document.getElementById('quality-toggle').textContent = state.is4K ? '4K Mode: ON' : '4K Mode: 1080p';
+                document.getElementById('res-badge').textContent = state.is4K ? '4K ULTRA DPI' : 'STANDARD HD';
+            });
+
+            // Hide / Show HUD Toggle
+            document.getElementById('toggle-hud-btn').addEventListener('click', () => {
+                state.hudVisible = !state.hudVisible;
+                const hud = document.getElementById('hud-wrapper');
+                hud.style.opacity = state.hudVisible ? '1' : '0';
+                Array.from(hud.querySelectorAll('.pointer-events-auto')).forEach(el => {
+                    el.style.pointerEvents = state.hudVisible ? 'auto' : 'none';
+                });
+                document.getElementById('hud-btn-label').textContent = state.hudVisible ? 'Hide HUD' : 'Show HUD';
+            });
+        }
+
+        function updatePixelRatio() {
+            const dpr = state.is4K ? Math.min(window.devicePixelRatio || 2, 2.5) : 1.0;
+            renderer.setPixelRatio(dpr);
+            if (composer) composer.setPixelRatio(dpr);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // Start Visualization
+        init();
+    </script>
+</body>
+</html>
