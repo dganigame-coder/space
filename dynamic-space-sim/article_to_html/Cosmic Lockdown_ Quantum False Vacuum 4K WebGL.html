@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cosmic Lockdown: False Vacuum & Quantum Decoherence (4K WebGL)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Three.js r128 & Post-Processing Dependencies -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #020a10;
+            font-family: 'Inter', sans-serif;
+            color: #e2f8ff;
+            user-select: none;
+        }
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+        .glass-panel {
+            background: rgba(4, 18, 28, 0.68);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid rgba(0, 245, 255, 0.22);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.65), inset 0 0 20px rgba(0, 245, 255, 0.05);
+        }
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* Custom Range Slider */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 5px;
+            cursor: pointer;
+            background: rgba(0, 245, 255, 0.18);
+            border-radius: 999px;
+            border: 1px solid rgba(0, 245, 255, 0.25);
+        }
+        input[type=range]::-webkit-slider-thumb {
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #00f5ff;
+            box-shadow: 0 0 12px #00f5ff, 0 0 24px rgba(0, 245, 255, 0.6);
+            cursor: pointer;
+            -webkit-appearance: none;
+            margin-top: -6.5px;
+            transition: transform 0.15s ease;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.18);
+        }
+        .cyan-glow-text {
+            text-shadow: 0 0 18px rgba(0, 245, 255, 0.45);
+        }
+        .btn-quantum {
+            background: linear-gradient(135deg, rgba(0, 245, 255, 0.2), rgba(10, 189, 227, 0.35));
+            border: 1px solid rgba(0, 245, 255, 0.45);
+            box-shadow: 0 0 20px rgba(0, 245, 255, 0.15);
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .btn-quantum:hover {
+            background: linear-gradient(135deg, rgba(0, 245, 255, 0.35), rgba(10, 189, 227, 0.55));
+            box-shadow: 0 0 28px rgba(0, 245, 255, 0.4);
+            transform: translateY(-1px);
+        }
+        .btn-quantum:active {
+            transform: translateY(1px);
+        }
+        /* Custom scrollbar for small screens */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 245, 255, 0.3);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- WebGL Canvas Container -->
+    <div id="canvas-container" class="fixed inset-0 z-0"></div>
+
+    <!-- Top Floating Header & Toggle -->
+    <div class="fixed top-4 left-4 right-4 z-20 flex flex-wrap items-center justify-between gap-3 pointer-events-none">
+        <div class="glass-panel rounded-2xl px-4 py-2.5 flex items-center gap-3 pointer-events-auto">
+            <div class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping"></div>
+            <div>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-semibold tracking-widest uppercase text-cyan-300 mono">JCAP 2026 Cosmology Model</span>
+                    <span id="res-badge" class="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-400/40 text-cyan-200 mono">4K ULTRA DPI</span>
+                </div>
+                <h1 class="text-sm sm:text-base font-bold tracking-tight text-white cyan-glow-text">Quantum Decoherence &amp; False Vacuum Stability</h1>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2 pointer-events-auto">
+            <!-- Camera Preset Pills -->
+            <div class="hidden md:flex glass-panel rounded-2xl p-1 gap-1">
+                <button onclick="setCameraPreset('overview')" class="cam-btn px-3 py-1.5 rounded-xl text-xs font-medium text-cyan-100 hover:bg-cyan-400/20 transition">Overview</button>
+                <button onclick="setCameraPreset('throat')" class="cam-btn px-3 py-1.5 rounded-xl text-xs font-medium text-cyan-100 hover:bg-cyan-400/20 transition">Funnel Throat</button>
+                <button onclick="setCameraPreset('slice')" class="cam-btn px-3 py-1.5 rounded-xl text-xs font-medium text-cyan-100 hover:bg-cyan-400/20 transition">Potential Profile</button>
+            </div>
+
+            <!-- HUD Visibility Toggle -->
+            <button id="toggle-hud-btn" onclick="toggleHUD()" class="glass-panel rounded-2xl px-3.5 py-2 text-xs font-semibold text-cyan-200 hover:text-white hover:border-cyan-300/60 transition flex items-center gap-2">
+                <svg id="eye-icon" class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                </svg>
+                <span id="hud-btn-label">Hide HUD</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Interactive HUD Container -->
+    <div id="hud-wrapper" class="fixed inset-0 z-10 pointer-events-none flex flex-col justify-between p-4 pt-20 sm:pt-22">
+        
+        <!-- Top-Left / Middle-Left Scientific Context & Article Links -->
+        <div class="flex flex-col lg:flex-row justify-between items-start gap-4 w-full h-full">
+            
+            <!-- Left Panel: Study Summary & Hyperlinks -->
+            <div class="glass-panel rounded-2xl p-4 sm:p-5 max-w-md pointer-events-auto max-h-[42vh] lg:max-h-[78vh] overflow-y-auto">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-[11px] font-semibold uppercase tracking-wider text-cyan-400 mono">Cosmic Lockdown Mechanism</span>
+                    <span id="state-indicator" class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 mono">LOCKED / STABLE</span>
+                </div>
+                
+                <p class="text-xs sm:text-[13px] leading-relaxed text-slate-200/90 mb-3">
+                    Our universe's Higgs field may rest in a metastable <strong class="text-cyan-300 font-semibold">False Vacuum</strong> pocket (upper glowing basin), separated by an energy ridge from the catastrophic <strong class="text-teal-300 font-semibold">True Vacuum</strong> abyss below. During rapid early cosmic expansion, environmental <strong class="text-white font-semibold">decoherence</strong> acts like continuous quantum measurement (<span class="italic">Quantum Zeno Effect</span>), suppressing tunneling and locking the cosmos safely in place.
+                </p>
+
+                <!-- Telemetry Readout -->
+                <div class="grid grid-cols-2 gap-2 mb-4 p-2.5 rounded-xl bg-black/35 border border-cyan-500/15 mono text-[11px]">
+                    <div>
+                        <div class="text-slate-400 text-[10px]">TUNNELING PROBABILITY</div>
+                        <div id="telemetry-prob" class="text-cyan-300 font-semibold text-xs">10⁻¹⁴² % (SUPPRESSED)</div>
+                    </div>
+                    <div>
+                        <div class="text-slate-400 text-[10px]">ZENO DECOHERENCE</div>
+                        <div id="telemetry-zeno" class="text-emerald-300 font-semibold text-xs">HIGH LOCKDOWN</div>
+                    </div>
+                </div>
+
+                <!-- Research & Reference Hyperlinks -->
+                <div class="border-t border-cyan-500/20 pt-3">
+                    <div class="text-[10px] font-semibold uppercase tracking-widest text-cyan-400/90 mb-2 mono">Referenced Study &amp; Reading</div>
+                    <div class="flex flex-col gap-1.5 text-xs">
+                        <a href="https://doi.org/10.1088/1475-7516/2026/09/125" target="_blank" rel="noopener noreferrer" 
+                           class="group flex items-center justify-between px-3 py-2 rounded-xl bg-cyan-950/50 hover:bg-cyan-900/60 border border-cyan-500/25 hover:border-cyan-400/60 transition">
+                            <div>
+                                <div class="font-semibold text-cyan-200 group-hover:text-white transition">Journal of Cosmology &amp; Astroparticle Physics</div>
+                                <div class="text-[10px] text-cyan-400/80 mono">DOI: 10.1088/1475-7516/2026/09/125</div>
+                            </div>
+                            <span class="text-cyan-400 group-hover:translate-x-0.5 transition-transform">↗</span>
+                        </a>
+
+                        <a href="https://www.scientificamerican.com/article/quantum-simulation-shows-how-universe-destroying-bubbles-could-grow/" target="_blank" rel="noopener noreferrer" 
+                           class="group flex items-center justify-between px-3 py-1.5 rounded-xl bg-slate-900/50 hover:bg-cyan-950/50 border border-white/10 hover:border-cyan-400/40 transition">
+                            <span class="text-slate-200 group-hover:text-cyan-200">Scientific American: Universe-Destroying Bubbles</span>
+                            <span class="text-cyan-400 text-xs">↗</span>
+                        </a>
+
+                        <a href="https://physicsworld.com/a/the-quantum-zeno-effect-how-the-measurement-problem-went-from-philosophers-paradox-to-physicists-toolbox/" target="_blank" rel="noopener noreferrer" 
+                           class="group flex items-center justify-between px-3 py-1.5 rounded-xl bg-slate-900/50 hover:bg-cyan-950/50 border border-white/10 hover:border-cyan-400/40 transition">
+                            <span class="text-slate-200 group-hover:text-cyan-200">Physics World: The Quantum Zeno Effect</span>
+                            <span class="text-cyan-400 text-xs">↗</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right / Bottom-Right Physics Simulation Controls -->
+            <div class="glass-panel rounded-2xl p-4 sm:p-5 w-full lg:w-88 max-w-md pointer-events-auto self-end mt-auto">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+                        Quantum Field Parameters
+                    </span>
+                    <button id="quality-toggle" onclick="toggleRenderQuality()" class="text-[10px] px-2.5 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 text-cyan-200 font-semibold mono transition">
+                        4K Mode: ON
+                    </button>
+                </div>
+
+                <!-- Control 1: Decoherence / Cosmic Lockdown -->
+                <div class="mb-4">
+                    <div class="flex justify-between text-xs mb-1.5">
+                        <label for="decoherence-slider" class="text-slate-200 font-medium">Decoherence ("Cosmic Lockdown")</label>
+                        <span id="decoherence-val" class="mono text-cyan-300 font-semibold">88%</span>
+                    </div>
+                    <input id="decoherence-slider" type="range" min="0" max="100" value="88">
+                    <div class="flex justify-between text-[10px] text-slate-400 mt-1 mono">
+                        <span>0% (Unprotected)</span>
+                        <span>100% (Zeno Lock)</span>
+                    </div>
+                </div>
+
+                <!-- Control 2: Field Mass / Potential Well Depth -->
+                <div class="mb-4">
+                    <div class="flex justify-between text-xs mb-1.5">
+                        <label for="mass-slider" class="text-slate-200 font-medium">Higgs Field Mass / Well Depth</label>
+                        <span id="mass-val" class="mono text-cyan-300 font-semibold">1.25 H₀</span>
+                    </div>
+                    <input id="mass-slider" type="range" min="40" max="180" value="125">
+                </div>
+
+                <!-- Action Button: Trigger Quantum Tunneling Wavepacket -->
+                <button id="tunnel-btn" onclick="triggerTunnelingAttempt()" class="btn-quantum w-full py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold tracking-wide text-white flex items-center justify-center gap-2 cursor-pointer">
+                    <svg class="w-4 h-4 text-cyan-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                    <span>Trigger Quantum Tunneling Wave</span>
+                </button>
+
+                <!-- Dynamic Simulation Feedback Toast -->
+                <div id="sim-status-msg" class="mt-2.5 text-[11px] text-center text-cyan-200/90 bg-cyan-950/60 border border-cyan-500/20 rounded-xl py-1.5 px-3 mono">
+                    Zeno cage active: False vacuum stabilized.
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        /**
+         * HYPERREALISTIC 4K WEBGL VISUALIZATION:
+         * Quantum Decoherence, False Vacuum Metastability & Cosmic Lockdown
+         * Inspired by glowing radial polar spacetime & potential energy funnel lattice.
+         */
+
+        let scene, camera, renderer, composer, bloomPass, controls;
+        let funnelMesh, funnelNodes, innerGlowCore, falseVacuumOrb, zenoCageGroup;
+        let bokehParticles, throatSpirals = [], wavePulses = [];
+        let clock = new THREE.Clock();
+
+        // Physics Simulation State
+        const simState = {
+            decoherence: 0.88,      // 0.0 to 1.0 (Cosmic Lockdown strength)
+            fieldMass: 1.25,        // Well depth / barrier steepness multiplier
+            is4K: true,             // High-DPI 4K scaling toggle
+            hudVisible: true,
+            orbAngle: 0.65,
+            orbRadius: 9.2,         // Resting radius in the False Vacuum metastable pocket
+            decayActive: false,
+            decayProgress: 0,
+            cameraTargetPos: new THREE.Vector3(0, 14.5, 22.5),
+            cameraLookAt: new THREE.Vector3(0, -3.5, 0),
+            lerpingCamera: false
+        };
+
+        // Funnel Geometry Configuration
+        const RADIAL_SEGMENTS = 96;   // Angular resolution for ultra-smooth 4K curves
+        const RING_SEGMENTS = 72;     // Concentric rings from throat to outer rim
+        const MAX_RADIUS = 24.0;
+        const MIN_RADIUS = 0.55;
+
+        /**
+         * Computes the 3D Quantum Potential Energy Surface Y(r):
+         * - Deep central hyperbolic throat (True Vacuum abyss, r -> 0)
+         * - Quantum energy barrier ridge around r ≈ 6.2
+         * - Shallow upper metastable basin ("False Vacuum" pocket around r ≈ 9.2)
+         * - Smooth outer asymptotic cosmic horizon (r -> 24)
+         */
+        function getPotentialHeight(r, massScale = simState.fieldMass) {
+            // Deep hyperbolic funnel throat matching the reference image
+            const throatDepth = -18.5 * massScale / (Math.pow(r * 0.58, 1.35) + 0.38);
+            
+            // Quantum barrier peak at r = 6.3
+            const barrierDist = (r - 6.3) / 1.45;
+            const barrierPeak = 2.35 * massScale * Math.exp(-barrierDist * barrierDist);
+
+            // False Vacuum metastable dip at r = 9.3
+            const pocketDist = (r - 9.3) / 1.85;
+            const falseVacuumDip = -1.65 * massScale * Math.exp(-pocketDist * pocketDist);
+
+            // Gentle upward flare at outer rim
+            const outerRim = Math.pow(r / MAX_RADIUS, 2.2) * 3.8;
+
+            return throatDepth + barrierPeak + falseVacuumDip + outerRim + 2.5;
+        }
+
+        function init() {
+            const container = document.getElementById('canvas-container');
+
+            // 1. Scene & Deep Cosmic Teal Atmospheric Depth
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x020c14);
+            scene.fog = new THREE.FogExp2(0x03131f, 0.023);
+
+            // 2. Perspective Camera (Shallow DOF aesthetic framing)
+            camera = new THREE.PerspectiveCamera(44, window.innerWidth / window.innerHeight, 0.1, 150);
+            camera.position.copy(simState.cameraTargetPos);
+
+            // 3. WebGLRenderer with 4K High-DPI & ACES Filmic Tone Mapping
+            renderer = new THREE.WebGLRenderer({
+                antialias: true,
+                powerPreference: "high-performance",
+                stencil: false
+            });
+            updatePixelRatio();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.18;
+            container.appendChild(renderer.domElement);
+
+            // 4. OrbitControls with silky damping
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.target.copy(simState.cameraLookAt);
+            controls.minDistance = 6;
+            controls.maxDistance = 48;
+            controls.maxPolarAngle = Math.PI * 0.85;
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = 0.45;
+
+            // Cancel preset lerp if user manually grabs camera
+            controls.addEventListener('start', () => {
+                simState.lerpingCamera = false;
+            });
+
+            // 5. Post-Processing Pipeline (UnrealBloomPass for luminous cyan/white throat glow)
+            const renderScene = new THREE.RenderPass(scene, camera);
+            bloomPass = new THREE.UnrealBloomPass(
+                new THREE.Vector2(window.innerWidth, window.innerHeight),
+                1.35,  // Bloom strength
+                0.68,  // Bloom radius
+                0.22   // Luminance threshold
+            );
+
+            composer = new THREE.EffectComposer(renderer);
+            composer.addPass(renderScene);
+            composer.addPass(bloomPass);
+
+            // 6. Build 3D Quantum Lattice, Nodes, False Vacuum Orb & Bokeh Field
+            buildQuantumPotentialWell();
+            buildThroatSingularityGlow();
+            buildFalseVacuumAndZenoLock();
+            buildDepthOfFieldBokeh();
+
+            // 7. Bind UI Listeners & Window Resize
+            bindUIControls();
+            window.addEventListener('resize', onWindowResize, false);
+
+            // Start 4K Animation Loop
+            animate();
+        }
+
+        /**
+         * Builds the radial wireframe grid + glowing vertex nodes matching the reference image
+         */
+        function buildQuantumPotentialWell() {
+            const totalVerts = (RING_SEGMENTS + 1) * (RADIAL_SEGMENTS + 1);
+            const positions = new Float32Array(totalVerts * 3);
+            const baseRadii = new Float32Array(totalVerts);
+            const angles = new Float32Array(totalVerts);
+            const colors = new Float32Array(totalVerts * 3);
+
+            const lineIndices = [];
+            const colorDeep = new THREE.Color(0xffffff);   // Intense white-cyan at throat core
+            const colorMid = new THREE.Color(0x00f5ff);    // Electric cyan
+            const colorOuter = new THREE.Color(0x096b88);  // Deep cosmic teal at periphery
+
+            let ptr = 0;
+            for (let i = 0; i <= RING_SEGMENTS; i++) {
+                // Non-linear radial distribution: denser rings near the funnel throat!
+                const t = i / RING_SEGMENTS;
+                const r = MIN_RADIUS + (MAX_RADIUS - MIN_RADIUS) * Math.pow(t, 1.48);
+                const y = getPotentialHeight(r);
+
+                for (let j = 0; j <= RADIAL_SEGMENTS; j++) {
+                    const theta = (j / RADIAL_SEGMENTS) * Math.PI * 2;
+                    const x = r * Math.cos(theta);
+                    const z = r * Math.sin(theta);
+
+                    positions[ptr * 3] = x;
+                    positions[ptr * 3 + 1] = y;
+                    positions[ptr * 3 + 2] = z;
+
+                    baseRadii[ptr] = r;
+                    angles[ptr] = theta;
+
+                    // Gradient color intensity peaking in the throat & barrier ridge
+                    const c = new THREE.Color();
+                    if (t < 0.22) {
+                        c.lerpColors(colorDeep, colorMid, t / 0.22);
+                    } else {
+                        c.lerpColors(colorMid, colorOuter, (t - 0.22) / 0.78);
+                    }
+                    colors[ptr * 3] = c.r;
+                    colors[ptr * 3 + 1] = c.g;
+                    colors[ptr * 3 + 2] = c.b;
+
+                    // Connect concentric ring & radial spoke segments
+                    if (i < RING_SEGMENTS && j < RADIAL_SEGMENTS) {
+                        const a = i * (RADIAL_SEGMENTS + 1) + j;
+                        const b = a + 1;
+                        const cIdx = (i + 1) * (RADIAL_SEGMENTS + 1) + j;
+
+                        // Concentric ring edge
+                        lineIndices.push(a, b);
+                        // Radial meridian edge
+                        lineIndices.push(a, cIdx);
+                    }
+                    ptr++;
+                }
+            }
+
+            // Wireframe Lattice Mesh
+            const lineGeo = new THREE.BufferGeometry();
+            lineGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            lineGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+            lineGeo.setIndex(lineIndices);
+            lineGeo.userData = { baseRadii, angles };
+
+            const lineMat = new THREE.LineBasicMaterial({
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.42,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+
+            funnelMesh = new THREE.LineSegments(lineGeo, lineMat);
+            scene.add(funnelMesh);
+
+            // Luminous Vertex Nodes at every lattice intersection
+            const nodeGeo = new THREE.BufferGeometry();
+            nodeGeo.setAttribute('position', lineGeo.attributes.position);
+            nodeGeo.setAttribute('color', lineGeo.attributes.color);
+
+            // Generate crisp radial glow sprite texture procedurally (no external URLs)
+            const spriteTex = createGlowSpriteTexture();
+
+            const nodeMat = new THREE.PointsMaterial({
+                size: 0.28,
+                map: spriteTex,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.92,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+
+            funnelNodes = new THREE.Points(nodeGeo, nodeMat);
+            scene.add(funnelNodes);
+        }
+
+        /**
+         * Creates an intense luminous volumetric core inside the narrow funnel throat
+         */
+        function buildThroatSingularityGlow() {
+            innerGlowCore = new THREE.Group();
+
+            // Vertical luminous plasma column in the True Vacuum throat
+            const cylGeo = new THREE.CylinderGeometry(0.42, 0.14, 18, 32, 1, true);
+            const cylMat = new THREE.MeshBasicMaterial({
+                color: 0x66fbff,
+                transparent: true,
+                opacity: 0.28,
+                side: THREE.DoubleSide,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+            const cylinder = new THREE.Mesh(cylGeo, cylMat);
+            cylinder.position.y = -11.5;
+            innerGlowCore.add(cylinder);
+
+            // Spiral energy streams descending into the True Vacuum throat
+            for (let s = 0; s < 3; s++) {
+                const curvePts = [];
+                const turns = 3.5;
+                const steps = 80;
+                for (let k = 0; k <= steps; k++) {
+                    const frac = k / steps;
+                    const r = 0.25 + Math.pow(frac, 1.8) * 4.8;
+                    const angle = frac * Math.PI * 2 * turns + (s * Math.PI * 2) / 3;
+                    const y = getPotentialHeight(r) + 0.08;
+                    curvePts.push(new THREE.Vector3(r * Math.cos(angle), y, r * Math.sin(angle)));
+                }
+                const curve = new THREE.CatmullRomCurve3(curvePts);
+                const tubeGeo = new THREE.TubeGeometry(curve, 72, 0.035, 8, false);
+                const tubeMat = new THREE.MeshBasicMaterial({
+                    color: 0x99ffff,
+                    transparent: true,
+                    opacity: 0.55,
+                    blending: THREE.AdditiveBlending
+                });
+                const spiralMesh = new THREE.Mesh(tubeGeo, tubeMat);
+                innerGlowCore.add(spiralMesh);
+                throatSpirals.push(spiralMesh);
+            }
+
+            scene.add(innerGlowCore);
+        }
+
+        /**
+         * Builds the False Vacuum Quantum State Orb resting in the upper metastable pocket,
+         * plus the shimmering "Cosmic Lockdown" Zeno Decoherence Shield surrounding it.
+         */
+        function buildFalseVacuumAndZenoLock() {
+            // 1. False Vacuum Metastable Universe Orb
+            const orbGeo = new THREE.SphereGeometry(0.55, 36, 36);
+            const orbMat = new THREE.MeshBasicMaterial({
+                color: 0xffffff
+            });
+            falseVacuumOrb = new THREE.Mesh(orbGeo, orbMat);
+
+            // Outer glowing halo around the False Vacuum orb
+            const haloGeo = new THREE.SphereGeometry(0.95, 32, 32);
+            const haloMat = new THREE.MeshBasicMaterial({
+                color: 0x00f5ff,
+                transparent: true,
+                opacity: 0.35,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+            falseVacuumOrb.add(new THREE.Mesh(haloGeo, haloMat));
+            scene.add(falseVacuumOrb);
+
+            // 2. Cosmic Lockdown / Quantum Zeno Decoherence Cage
+            zenoCageGroup = new THREE.Group();
+
+            // Geodesic wireframe containment field
+            const cageGeo = new THREE.IcosahedronGeometry(1.45, 2);
+            const cageWire = new THREE.WireframeGeometry(cageGeo);
+            const cageMat = new THREE.LineBasicMaterial({
+                color: 0x00ffcc,
+                transparent: true,
+                opacity: 0.55,
+                blending: THREE.AdditiveBlending
+            });
+            const cageLines = new THREE.LineSegments(cageWire, cageMat);
+            zenoCageGroup.add(cageLines);
+
+            // Orbital Zeno measurement rings
+            for (let r = 0; r < 2; r++) {
+                const ringGeo = new THREE.RingGeometry(1.65 + r * 0.25, 1.72 + r * 0.25, 64);
+                const ringMat = new THREE.MeshBasicMaterial({
+                    color: 0x38bdf8,
+                    side: THREE.DoubleSide,
+                    transparent: true,
+                    opacity: 0.45,
+                    blending: THREE.AdditiveBlending
+                });
+                const ring = new THREE.Mesh(ringGeo, ringMat);
+                ring.rotation.x = r === 0 ? Math.PI / 2.4 : -Math.PI / 3;
+                zenoCageGroup.add(ring);
+            }
+
+            scene.add(zenoCageGroup);
+        }
+
+        /**
+         * Builds soft out-of-focus foreground & background bokeh particles
+         * to replicate the shallow depth-of-field photography feel of the reference image.
+         */
+        function buildDepthOfFieldBokeh() {
+            const count = 420;
+            const positions = new Float32Array(count * 3);
+            const colors = new Float32Array(count * 3);
+
+            const c1 = new THREE.Color(0x00f5ff);
+            const c2 = new THREE.Color(0x0d9488);
+
+            for (let i = 0; i < count; i++) {
+                const r = 4 + Math.random() * 28;
+                const theta = Math.random() * Math.PI * 2;
+                const y = (Math.random() - 0.55) * 24;
+
+                positions[i * 3] = r * Math.cos(theta);
+                positions[i * 3 + 1] = y;
+                positions[i * 3 + 2] = r * Math.sin(theta);
+
+                const mixColor = c1.clone().lerp(c2, Math.random());
+                colors[i * 3] = mixColor.r;
+                colors[i * 3 + 1] = mixColor.g;
+                colors[i * 3 + 2] = mixColor.b;
+            }
+
+            const geo = new THREE.BufferGeometry();
+            geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const mat = new THREE.PointsMaterial({
+                size: 0.65,
+                map: createSoftBokehTexture(),
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.35,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+
+            bokehParticles = new THREE.Points(geo, mat);
+            scene.add(bokehParticles);
+        }
+
+        /**
+         * Procedurally creates a crisp glowing node texture
+         */
+        function createGlowSpriteTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64;
+            canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+            grad.addColorStop(0.0, 'rgba(255, 255, 255, 1.0)');
+            grad.addColorStop(0.25, 'rgba(140, 250, 255, 0.9)');
+            grad.addColorStop(0.6, 'rgba(0, 220, 255, 0.25)');
+            grad.addColorStop(1.0, 'rgba(0, 220, 255, 0.0)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 64, 64);
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        /**
+         * Procedurally creates a soft bokeh disc texture for depth-of-field ambiance
+         */
+        function createSoftBokehTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64;
+            canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            const grad = ctx.createRadialGradient(32, 32, 4, 32, 32, 30);
+            grad.addColorStop(0.0, 'rgba(180, 255, 255, 0.45)');
+            grad.addColorStop(0.75, 'rgba(0, 210, 240, 0.32)');
+            grad.addColorStop(0.92, 'rgba(0, 245, 255, 0.5)');
+            grad.addColorStop(1.0, 'rgba(0, 245, 255, 0.0)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 64, 64);
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        /**
+         * Fires a Quantum Tunneling Wavepacket from the False Vacuum pocket toward the barrier
+         */
+        function triggerTunnelingAttempt() {
+            if (simState.decayActive) return;
+
+            const statusEl = document.getElementById('sim-status-msg');
+            const isLocked = simState.decoherence >= 0.45;
+
+            // Spawn luminous wavepacket ring on the surface
+            const pulseGeo = new THREE.RingGeometry(0.3, 0.65, 48);
+            const pulseMat = new THREE.MeshBasicMaterial({
+                color: isLocked ? 0x00ffcc : 0xff4d6d,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.95,
+                blending: THREE.AdditiveBlending
+            });
+            const pulse = new THREE.Mesh(pulseGeo, pulseMat);
+            pulse.rotation.x = -Math.PI / 2;
+            pulse.position.copy(falseVacuumOrb.position);
+            scene.add(pulse);
+
+            wavePulses.push({
+                mesh: pulse,
+                age: 0,
+                maxAge: 1.8,
+                blocked: isLocked
+            });
+
+            if (isLocked) {
+                // Cosmic Lockdown suppresses tunneling!
+                statusEl.textContent = "TUNNELING SUPPRESSED: Zeno decoherence locked state!";
+                statusEl.className = "mt-2.5 text-[11px] text-center text-emerald-300 bg-emerald-950/60 border border-emerald-400/40 rounded-xl py-1.5 px-3 mono";
+            } else {
+                // Low decoherence allows barrier penetration & True Vacuum bubble decay!
+                simState.decayActive = true;
+                simState.decayProgress = 0;
+                statusEl.textContent = "BARRIER BREACHED: Nucleating True Vacuum bubble...";
+                statusEl.className = "mt-2.5 text-[11px] text-center text-rose-300 bg-rose-950/70 border border-rose-400/50 rounded-xl py-1.5 px-3 mono";
+            }
+        }
+
+        /**
+         * Updates the 3D potential well vertices dynamically with quantum fluctuations & tunneling ripples
+         */
+        function animatePotentialLattice(elapsed) {
+            const posAttr = funnelMesh.geometry.attributes.position;
+            const { baseRadii, angles } = funnelMesh.geometry.userData;
+            const count = posAttr.count;
+
+            // Quantum fluctuation amplitude decreases as Decoherence ("Cosmic Lockdown") increases
+            const quantumJitter = (1.15 - simState.decoherence * 0.85) * 0.14;
+
+            for (let i = 0; i < count; i++) {
+                const r = baseRadii[i];
+                const theta = angles[i];
+
+                // Base potential energy surface height
+                let y = getPotentialHeight(r, simState.fieldMass);
+
+                // Traveling radial quantum waves & harmonic zero-point ripples
+                const ripple = Math.sin(r * 1.4 - elapsed * 2.4) * Math.cos(theta * 4.0 + elapsed * 0.8) * quantumJitter;
+                
+                // Extra shockwave if True Vacuum decay is active
+                let decayWave = 0;
+                if (simState.decayActive) {
+                    const waveFront = 9.3 - simState.decayProgress * 9.0;
+                    const dist = Math.abs(r - waveFront);
+                    if (dist < 2.2) {
+                        decayWave = Math.sin((1 - dist / 2.2) * Math.PI) * 0.85;
+                    }
+                }
+
+                posAttr.setY(i, y + ripple + decayWave);
+            }
+
+            posAttr.needsUpdate = true;
+        }
+
+        /**
+         * Main 60/120fps 4K Render Loop
+         */
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const dt = Math.min(clock.getDelta(), 0.05);
+            const elapsed = clock.getElapsedTime();
+
+            // 1. Update Potential Well & Quantum Fluctuations
+            animatePotentialLattice(elapsed);
+
+            // 2. Rotate Throat Energy Spirals
+            throatSpirals.forEach((spiral, idx) => {
+                spiral.rotation.y = elapsed * (0.65 + idx * 0.2);
+            });
+
+            // 3. Update False Vacuum Orb & Cosmic Lockdown Zeno Cage
+            if (!simState.decayActive) {
+                // Orbit gently inside the upper False Vacuum metastable pocket (r ≈ 9.3)
+                simState.orbAngle += dt * 0.35;
+                const wobble = (1.0 - simState.decoherence) * Math.sin(elapsed * 5.0) * 0.42;
+                simState.orbRadius = 9.3 + wobble;
+            } else {
+                // Tunneling through barrier at r=6.3 and plunging down True Vacuum throat!
+                simState.decayProgress += dt * 0.55;
+                simState.orbAngle += dt * (1.2 + simState.decayProgress * 4.0);
+                simState.orbRadius = THREE.MathUtils.lerp(9.3, 0.35, Math.min(simState.decayProgress, 1.0));
+
+                // Expand bloom intensity dramatically during vacuum decay
+                bloomPass.strength = 1.35 + Math.sin(Math.min(simState.decayProgress, 1.0) * Math.PI) * 1.6;
+
+                if (simState.decayProgress >= 1.35) {
+                    // Reset simulation back to False Vacuum state after cascade
+                    simState.decayActive = false;
+                    simState.decayProgress = 0;
+                    simState.orbRadius = 9.3;
+                    bloomPass.strength = 1.35;
+                    const statusEl = document.getElementById('sim-status-msg');
+                    statusEl.textContent = "Simulation reset: False vacuum re-initialized.";
+                    statusEl.className = "mt-2.5 text-[11px] text-center text-cyan-200/90 bg-cyan-950/60 border border-cyan-500/20 rounded-xl py-1.5 px-3 mono";
+                }
+            }
+
+            const orbX = simState.orbRadius * Math.cos(simState.orbAngle);
+            const orbZ = simState.orbRadius * Math.sin(simState.orbAngle);
+            const orbY = getPotentialHeight(simState.orbRadius, simState.fieldMass) + 0.65;
+
+            falseVacuumOrb.position.set(orbX, orbY, orbZ);
+            zenoCageGroup.position.copy(falseVacuumOrb.position);
+
+            // Zeno Cage visibility & rotation scales with Decoherence ("Cosmic Lockdown")
+            zenoCageGroup.visible = !simState.decayActive && simState.decoherence > 0.05;
+            zenoCageGroup.rotation.y = -elapsed * 0.9;
+            zenoCageGroup.rotation.z = elapsed * 0.5;
+            const cageScale = 0.75 + simState.decoherence * 0.45;
+            zenoCageGroup.scale.setScalar(cageScale);
+            zenoCageGroup.children[0].material.opacity = simState.decoherence * 0.72;
+
+            // 4. Animate Wavepacket Pulses
+            for (let i = wavePulses.length - 1; i >= 0; i--) {
+                const p = wavePulses[i];
+                p.age += dt;
+                const progress = p.age / p.maxAge;
+                if (progress >= 1.0) {
+                    scene.remove(p.mesh);
+                    p.mesh.geometry.dispose();
+                    p.mesh.material.dispose();
+                    wavePulses.splice(i, 1);
+                } else {
+                    const scale = 1.0 + progress * (p.blocked ? 2.4 : 6.5);
+                    p.mesh.scale.setScalar(scale);
+                    p.mesh.material.opacity = (1.0 - progress) * 0.9;
+                }
+            }
+
+            // 5. Gentle Bokeh Parallax Drift
+            if (bokehParticles) {
+                bokehParticles.rotation.y = elapsed * 0.03;
+            }
+
+            // 6. Smooth Camera Preset Transitions
+            if (simState.lerpingCamera) {
+                camera.position.lerp(simState.cameraTargetPos, 0.05);
+                controls.target.lerp(simState.cameraLookAt, 0.05);
+                if (camera.position.distanceTo(simState.cameraTargetPos) < 0.08) {
+                    simState.lerpingCamera = false;
+                }
+            }
+
+            controls.update();
+            composer.render();
+        }
+
+        /**
+         * UI Control Bindings & Real-time Physics Telemetry
+         */
+        function bindUIControls() {
+            const decSlider = document.getElementById('decoherence-slider');
+            const decVal = document.getElementById('decoherence-val');
+            const massSlider = document.getElementById('mass-slider');
+            const massVal = document.getElementById('mass-val');
+
+            decSlider.addEventListener('input', (e) => {
+                const val = parseInt(e.target.value, 10);
+                simState.decoherence = val / 100;
+                decVal.textContent = `${val}%`;
+                updateTelemetryUI();
+            });
+
+            massSlider.addEventListener('input', (e) => {
+                const val = parseInt(e.target.value, 10) / 100;
+                simState.fieldMass = val;
+                massVal.textContent = `${val.toFixed(2)} H₀`;
+                updateTelemetryUI();
+            });
+
+            updateTelemetryUI();
+        }
+
+        function updateTelemetryUI() {
+            const probEl = document.getElementById('telemetry-prob');
+            const zenoEl = document.getElementById('telemetry-zeno');
+            const stateBadge = document.getElementById('state-indicator');
+
+            if (simState.decoherence >= 0.7) {
+                probEl.textContent = "10⁻¹⁴² % (SUPPRESSED)";
+                probEl.className = "text-cyan-300 font-semibold text-xs";
+                zenoEl.textContent = "COSMIC LOCKDOWN";
+                zenoEl.className = "text-emerald-300 font-semibold text-xs";
+                stateBadge.textContent = "LOCKED / STABLE";
+                stateBadge.className = "text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 mono";
+            } else if (simState.decoherence >= 0.45) {
+                probEl.textContent = "10⁻⁴⁸ % (CURBED)";
+                probEl.className = "text-amber-300 font-semibold text-xs";
+                zenoEl.textContent = "MODERATE ZENO";
+                zenoEl.className = "text-amber-300 font-semibold text-xs";
+                stateBadge.textContent = "METASTABLE";
+                stateBadge.className = "text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/40 mono";
+            } else {
+                probEl.textContent = "CRITICAL (UNSTABLE)";
+                probEl.className = "text-rose-400 font-semibold text-xs";
+                zenoEl.textContent = "DECOHERENCE LOW";
+                zenoEl.className = "text-rose-400 font-semibold text-xs";
+                stateBadge.textContent = "DECAY VULNERABLE";
+                stateBadge.className = "text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-400/40 mono";
+            }
+        }
+
+        function setCameraPreset(preset) {
+            simState.lerpingCamera = true;
+            if (preset === 'overview') {
+                simState.cameraTargetPos.set(0, 14.5, 22.5);
+                simState.cameraLookAt.set(0, -3.5, 0);
+            } else if (preset === 'throat') {
+                simState.cameraTargetPos.set(0, 8.5, 8.2);
+                simState.cameraLookAt.set(0, -6.5, 0);
+            } else if (preset === 'slice') {
+                simState.cameraTargetPos.set(22.0, 2.5, 0.1);
+                simState.cameraLookAt.set(0, -4.5, 0);
+            }
+        }
+
+        function updatePixelRatio() {
+            const targetDPR = simState.is4K ? Math.min(window.devicePixelRatio || 2, 2.5) : 1.0;
+            renderer.setPixelRatio(targetDPR);
+            if (composer) {
+                composer.setPixelRatio(targetDPR);
+            }
+        }
+
+        function toggleRenderQuality() {
+            simState.is4K = !simState.is4K;
+            updatePixelRatio();
+            const btn = document.getElementById('quality-toggle');
+            const badge = document.getElementById('res-badge');
+            btn.textContent = simState.is4K ? "4K Mode: ON" : "4K Mode: 1080p";
+            badge.textContent = simState.is4K ? "4K ULTRA DPI" : "STANDARD HD";
+        }
+
+        function toggleHUD() {
+            simState.hudVisible = !simState.hudVisible;
+            const hud = document.getElementById('hud-wrapper');
+            const label = document.getElementById('hud-btn-label');
+            hud.style.opacity = simState.hudVisible ? '1' : '0';
+            hud.style.pointerEvents = 'none';
+            // Toggle children pointer events
+            Array.from(hud.querySelectorAll('.pointer-events-auto')).forEach(el => {
+                el.style.pointerEvents = simState.hudVisible ? 'auto' : 'none';
+            });
+            label.textContent = simState.hudVisible ? 'Hide HUD' : 'Show HUD';
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // Initialize WebGL visualization on window load
+        window.onload = init;
+    </script>
+</body>
+</html>
