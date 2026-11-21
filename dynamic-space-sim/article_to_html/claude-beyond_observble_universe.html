@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#02040b">
+<title>Beyond the Observable Universe — Hyperreal Visualizer</title>
+<style>
+:root{color-scheme:dark;--cy:#83eaff}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:#02040b;color:#eef7ff;font-family:Inter,system-ui,Segoe UI,Arial,sans-serif}
+body{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+#scene{position:fixed;inset:0;width:100%;height:100%;display:block}
+.top{position:fixed;z-index:3;top:env(safe-area-inset-top,0px);left:0;right:0;padding:16px 20px;pointer-events:none}
+.eyebrow{color:var(--cy);letter-spacing:.24em;font-size:10px;font-weight:700;text-transform:uppercase}
+h1{margin:6px 0 0;font-size:clamp(20px,3.4vw,38px);line-height:1.05;font-weight:650;letter-spacing:-.03em;text-shadow:0 2px 20px #000}
+.panel{position:fixed;z-index:3;left:16px;bottom:16px;width:min(430px,calc(100vw - 32px));max-height:52vh;overflow:auto;padding:16px 18px;border:1px solid #9ddcff35;border-radius:16px;background:linear-gradient(145deg,#071321ec,#050914e6);box-shadow:0 18px 60px #0009;backdrop-filter:blur(16px)}
+.panel h2{margin:0 0 6px;font-size:16px}
+.panel p{margin:0;color:#b8c9dc;font-size:12px;line-height:1.55}
+.tag{margin-top:10px;color:var(--cy);font-size:10px;letter-spacing:.1em;text-transform:uppercase}
+.facts{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}
+.facts span{border:1px solid #8bdfff44;border-radius:99px;padding:3px 9px;font-size:10px;color:#c9f5ff}
+.src{margin:12px 0 0;padding:10px 0 0;border-top:1px solid #8bbbdc30;list-style:none;font-size:11px;line-height:1.5}
+.src li{margin:0 0 5px}
+.src a{color:#8beaff;text-decoration:none;border-bottom:1px solid #8beaff55}
+.src small{color:#7f93ad;display:block}
+.controls{position:fixed;z-index:4;right:16px;bottom:16px;width:min(300px,calc(100vw - 32px));display:grid;grid-template-columns:1fr 1fr;gap:6px}
+button{border:1px solid #8bbbdc44;color:#dceeff;background:#071321d9;border-radius:10px;padding:10px;font-size:11px;font-weight:600;text-align:left;cursor:pointer;backdrop-filter:blur(12px)}
+button:hover{border-color:#8beaff}
+button.active{color:#03101a;background:linear-gradient(110deg,#8beaff,#b6d8ff)}
+.toolbar{position:fixed;z-index:4;right:16px;top:calc(env(safe-area-inset-top,0px) + 84px);display:flex;gap:6px}
+.toolbar button{text-align:center;padding:7px 10px}
+.foot{position:fixed;z-index:2;right:18px;bottom:calc(var(--ch,170px) + 22px);color:#7f93ad;font-size:9px;text-align:right;pointer-events:none}
+@media(max-width:700px){
+.panel{left:8px;right:8px;width:auto;bottom:168px;max-height:36vh;padding:12px 14px}
+.controls{left:8px;right:8px;bottom:8px;width:auto;grid-template-columns:repeat(3,1fr);gap:5px}
+button{text-align:center;padding:9px 5px;font-size:10px}
+.toolbar{right:8px;top:calc(env(safe-area-inset-top,0px) + 92px)}
+.foot{display:none}}
+</style>
+</head>
+<body>
+<canvas id="scene"></canvas>
+<header class="top"><div class="eyebrow">A journey beyond the horizon</div><h1>What lies beyond the universe?</h1></header>
+<div class="toolbar"><button id="autoBtn">AUTO ORBIT: ON</button><button id="resetBtn">RESET</button></div>
+<section class="panel"><h2 id="t"></h2><p id="d"></p><div class="tag" id="m"></div><div class="facts" id="f"></div><ul class="src" id="s"></ul></section>
+<nav class="controls">
+<button class="active" data-s="0">01 · More space</button><button data-s="1">02 · Closed</button><button data-s="2">03 · 3-torus</button>
+<button data-s="3">04 · Multiverse</button><button data-s="4">05 · Quantum</button><button data-s="5">06 · Horizon</button>
+</nav>
+<div class="foot">DRAG ROTATE · SCROLL / PINCH ZOOM · CONCEPTUAL MODELS, NOT OBSERVATIONS</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/shaders/CopyShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/postprocessing/RenderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/postprocessing/MaskPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+<script>
+const INFO=[
+{t:'01 · Beyond the horizon',d:'The observable universe is a sphere set by how far light has had time to travel. Space almost certainly continues past it: the glowing shell is a horizon, not a wall. Here, galaxies trace the cosmic web of filaments and voids that structure surveys reveal.',m:'Most conservative expectation',
+f:['Radius ≈ 46.5 billion ly','Diameter ≈ 93 billion ly','Future limit ≈ 62 billion ly'],
+s:[['What is the observable universe?','Britannica','https://www.britannica.com/topic/observable-universe'],['How large is the observable universe?','NOVA / PBS','https://www.pbs.org/wgbh/nova/article/how-large-is-the-observable-universe'],['Observable universe','Wikipedia','https://en.wikipedia.org/wiki/Observable_universe']]},
+{t:'02 · A finite, edgeless cosmos',d:'Space could be curved back on itself, like the 2D surface of a sphere: finite area, no edge. A light ray (the moving spark) would eventually return to its start. Measurements say any curvature is tiny, so this is a teaching model, not a literal ball.',m:'Possible geometry · observations favor flat',
+f:['Ω = 1.02 ± 0.02 (WMAP)','Flat to ~0.4% margin'],
+s:[['Will the universe expand forever? (geometry)','NASA WMAP','https://map.gsfc.nasa.gov/universe/uni_shape.html'],['What shape is the universe?','Discover Magazine','https://www.discovermagazine.com/what-shape-is-the-universe-42230'],['The shape of the universe','NASA Imagine','https://imagine.gsfc.nasa.gov/observatories/satellite/wmap/shape.html']]},
+{t:'03 · The cosmic loop (3-torus)',d:'A flat universe can still be finite if space wraps around. The bright cube is one repeating cell; fainter copies show how a straight ray (cyan) would meet the same galaxies again. Searches in the microwave background have not confirmed any wrap-around.',m:'Possible topology · unconfirmed',
+f:['18 flat topologies allowed','Planck data: no detection','Size > observable universe'],
+s:[['The Status of Cosmic Topology after Planck Data','arXiv · Luminet','https://arxiv.org/abs/1601.03884'],['Betti Functionals as Probes for Cosmic Topology','Universe (2024)','https://doi.org/10.3390/universe10050190'],['Universe originating from an empty Planck-size torus','Phys. Rev. D (2026)','https://doi.org/10.1103/x381-qbm1']]},
+{t:'04 · Bubble universes',d:'In eternal inflation, space keeps expanding and pockets stop inflating, each becoming a bubble. The bright one at the center stands for us. Bubbles may differ in physical constants, but none has ever been detected, and critics question whether the idea is testable.',m:'Highly speculative',
+f:['No bubble detected','Possible CMB collision spot'],
+s:[['Is our universe just one of many?','Space.com','https://www.space.com/31465-is-our-universe-just-one-of-many-in-a-multiverse.html'],['The Case for Parallel Universes','Scientific American','https://www.scientificamerican.com/article/multiverse-the-case-for-parallel-universe'],['Why the Multiverse May Be the Most Dangerous Idea in Physics','Scientific American','https://www.scientificamerican.com/article/why-the-multiverse-may-be-the-most-dangerous-idea-in-physics/']]},
+{t:'05 · Quantum spacetime',d:'At the Planck scale, spacetime may not be smooth. Loop quantum gravity pictures discrete geometry (the network of nodes and links) fluctuating like a foam. This is a schematic: no experiment has yet probed these scales.',m:'Frontier of theoretical physics',
+f:['Planck length ≈ 1.6×10⁻³⁵ m','Untested directly'],
+s:[['Loop Quantum Gravity (review)','arXiv · Rovelli','https://arxiv.org/abs/gr-qc/9710008'],['Quantum Gravity Phenomenology White Paper','arXiv (2023)','https://arxiv.org/abs/2312.00409']]},
+{t:'06 · Is there a boundary?',d:'No observation supports a physical edge. What we see ends at a cosmological horizon: distant galaxies are redshifted and fade into the microwave background (the mottled shell). The outer ring is the ~62 billion ly limit of what we will ever see.',m:'Speculative question',
+f:['Galaxies redshift with distance','Beyond ~16 billion ly: unreachable'],
+s:[['Does the universe have an edge?','BBC Sky at Night','https://www.skyatnightmagazine.com/space-science/does-universe-have-edge'],['Farewell to a small universe','Astronomy','https://www.astronomy.com/science/farewell-to-a-small-universe/'],['Observable universe','Wikipedia','https://en.wikipedia.org/wiki/Observable_universe']]}
+];
+
+const canvas=document.getElementById('scene');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:false,powerPreference:'high-performance'});
+const PR=Math.min(devicePixelRatio||1,1.75);
+renderer.setPixelRatio(PR);renderer.setSize(innerWidth,innerHeight);renderer.outputEncoding=THREE.sRGBEncoding;
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x010206);
+const camera=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,.1,2000);
+const controls=new THREE.OrbitControls(camera,canvas);
+controls.enableDamping=true;controls.dampingFactor=.05;controls.minDistance=4;controls.maxDistance=90;controls.autoRotate=true;controls.autoRotateSpeed=.25;
+const composer=new THREE.EffectComposer(renderer);
+composer.addPass(new THREE.RenderPass(scene,camera));
+const bloom=new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),.85,.65,.15);
+composer.addPass(bloom);
+const world=new THREE.Group();scene.add(world);
+const clock=new THREE.Clock();
+let anim=[],cur=0,tr=1,goal=22,auto=true;
+
+const C=h=>new THREE.Color(h),rnd=Math.random,gs=()=>rnd()+rnd()+rnd()-1.5;
+function mk(){const c=document.createElement('canvas');c.width=c.height=64;const g=c.getContext('2d');const r=g.createRadialGradient(32,32,0,32,32,32);
+r.addColorStop(0,'rgba(255,255,255,1)');r.addColorStop(.18,'rgba(255,255,255,.65)');r.addColorStop(.45,'rgba(255,255,255,.14)');r.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=r;g.fillRect(0,0,64,64);return new THREE.CanvasTexture(c)}
+const SP=mk();
+const starCol=()=>{const r=rnd();return r<.06?C(0x9bb8ff):r<.2?C(0xdfe8ff):r<.45?C(0xfff1d6):r<.75?C(0xffc98f):C(0xff9a6b)};
+function pts(p,c,size,op=.9,parent=world){const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(p,3));g.setAttribute('color',new THREE.BufferAttribute(c,3));
+const o=new THREE.Points(g,new THREE.PointsMaterial({size,map:SP,vertexColors:true,transparent:true,opacity:op,blending:THREE.AdditiveBlending,depthWrite:false}));parent.add(o);return o}
+function stars(n,R,size){const p=new Float32Array(n*3),c=new Float32Array(n*3);
+for(let i=0;i<n;i++){const r=R*(.3+.7*rnd()),u=rnd()*6.283,z=rnd()*2-1,q=Math.sqrt(1-z*z),k=Math.pow(rnd(),2.2)*.9+.1,col=starCol().multiplyScalar(k);
+p.set([r*q*Math.cos(u),r*z,r*q*Math.sin(u)],i*3);c.set([col.r,col.g,col.b],i*3)}return pts(p,c,size,.95)}
+function galaxy(pos,s=1,tint,tk=0,parent=world){
+const g=new THREE.Group();g.position.copy(pos);g.scale.setScalar(s);g.rotation.set(rnd()*6,rnd()*6,rnd()*6);
+const ell=rnd()<.2,n=ell?450:800,p=new Float32Array(n*3),c=new Float32Array(n*3);
+for(let i=0;i<n;i++){let x,y,z,col;
+if(ell||i<n*.22){const r=Math.pow(rnd(),2)*(ell?2.2:.7),u=rnd()*6.283,v=Math.acos(2*rnd()-1);x=r*Math.sin(v)*Math.cos(u);y=r*Math.cos(v)*(ell?.7:.55);z=r*Math.sin(v)*Math.sin(u);col=C(0xffd9a0).multiplyScalar(.5+rnd()*.5)}
+else{const r=.3+Math.pow(rnd(),.8)*2.4,a=(i%2)*Math.PI+Math.log(r/.3+1)*2.6+(rnd()-.5)*.55/(r*.6+.4);x=Math.cos(a)*r;z=Math.sin(a)*r;y=(rnd()-.5)*.12/(r*.5+.5);
+col=rnd()<.06?C(0xff7ab0):C(0x9cc4ff).lerp(C(0xffe2b8),Math.max(0,1-r/1.8)*.7).multiplyScalar(.35+rnd()*.6)}
+if(tint)col.lerp(tint,tk);p.set([x,y,z],i*3);c.set([col.r,col.g,col.b],i*3)}
+pts(p,c,.2*s,.9,g);
+const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:SP,color:tint?tint:0xffe0b0,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:.8}));sp.scale.setScalar(1.7);g.add(sp);
+parent.add(g);return g}
+const FV='varying vec3 vN,vV;void main(){vec4 m=modelViewMatrix*vec4(position,1.);vN=normalMatrix*normal;vV=-m.xyz;gl_Position=projectionMatrix*m;}';
+const FF='uniform vec3 c;uniform float k,pw;varying vec3 vN,vV;void main(){float f=pow(1.-abs(dot(normalize(vN),normalize(vV))),pw);gl_FragColor=vec4(c,f*k);}';
+function fres(r,col,k=1.1,pw=2.5,pos){const m=new THREE.Mesh(new THREE.SphereGeometry(r,64,48),new THREE.ShaderMaterial({uniforms:{c:{value:C(col)},k:{value:k},pw:{value:pw}},vertexShader:FV,fragmentShader:FF,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}));
+if(pos)m.position.copy(pos);world.add(m);return m}
+const NZ='float h(vec3 p){p=fract(p*.3183099+.1);p*=17.;return fract(p.x*p.y*p.z*(p.x+p.y+p.z));}float n(vec3 x){vec3 i=floor(x),f=fract(x);f=f*f*(3.-2.*f);return mix(mix(mix(h(i),h(i+vec3(1,0,0)),f.x),mix(h(i+vec3(0,1,0)),h(i+vec3(1,1,0)),f.x),f.y),mix(mix(h(i+vec3(0,0,1)),h(i+vec3(1,0,1)),f.x),mix(h(i+vec3(0,1,1)),h(i+vec3(1,1,1)),f.x),f.y),f.z);}';
+function cmb(r,op){const m=new THREE.Mesh(new THREE.SphereGeometry(r,96,64),new THREE.ShaderMaterial({uniforms:{o:{value:op}},
+vertexShader:'varying vec3 d;void main(){d=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+fragmentShader:'varying vec3 d;uniform float o;'+NZ+'void main(){float k=n(d*6.)*.5+n(d*13.)*.3+n(d*27.)*.2;vec3 c=mix(vec3(.04,.12,.6),vec3(.95,.3,.08),smoothstep(.32,.68,k));gl_FragColor=vec4(c,o);}',
+transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.BackSide}));world.add(m);return m}
+function ring(r,col,op,rx=0,ry=0,parent=world){const a=[];for(let i=0;i<=256;i++){const t=i/256*6.283;a.push(new THREE.Vector3(Math.cos(t)*r,Math.sin(t)*r,0))}
+const l=new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(a),new THREE.LineBasicMaterial({color:col,transparent:true,opacity:op,blending:THREE.AdditiveBlending}));l.rotation.set(rx,ry,0);parent.add(l);return l}
+function glow(col,s,parent=world){const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:SP,color:col,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));sp.scale.setScalar(s);parent.add(sp);return sp}
+
+function clearWorld(){anim=[];while(world.children.length){const o=world.children.pop();o.traverse(x=>{x.geometry&&x.geometry.dispose();if(x.material){(Array.isArray(x.material)?x.material:[x.material]).forEach(m=>m.dispose())}})}}
+
+function web(R0,N,P,galN,maxR){
+const nd=[];for(let i=0;i<N;i++){const r=R0*Math.cbrt(rnd()),u=rnd()*6.283,z=rnd()*2-1,q=Math.sqrt(1-z*z);nd.push(new THREE.Vector3(r*q*Math.cos(u),r*z*.7,r*q*Math.sin(u)))}
+const E=[];nd.forEach((a,i)=>{nd.map((b,j)=>[a.distanceTo(b),j]).filter(x=>x[1]!==i).sort((x,y)=>x[0]-y[0]).slice(0,3).forEach(x=>E.push([i,x[1]]))});
+const p=new Float32Array(P*3),c=new Float32Array(P*3),per=Math.floor(P*.8/E.length);let k=0;
+const put=(v,b)=>{if(k>=P)return;const col=starCol().lerp(C(0x7aa8ff),.45).multiplyScalar(b);p.set([v.x,v.y,v.z],k*3);c.set([col.r,col.g,col.b],k*3);k++};
+E.forEach(([i,j])=>{const a=nd[i],b=nd[j],mid=a.clone().add(b).multiplyScalar(.5).add(new THREE.Vector3(gs(),gs(),gs()).multiplyScalar(2.5));
+for(let s=0;s<per;s++){const t=rnd(),v=a.clone().multiplyScalar((1-t)*(1-t)).add(mid.clone().multiplyScalar(2*t*(1-t))).add(b.clone().multiplyScalar(t*t));const w=.45;v.add(new THREE.Vector3(gs()*w,gs()*w,gs()*w));put(v,.2+rnd()*.5)}});
+nd.forEach(a=>{for(let s=0;s<P*.2/N;s++){put(a.clone().add(new THREE.Vector3(gs(),gs(),gs()).multiplyScalar(2.2)),.35+rnd()*.6)}});
+pts(p,c,.16,.85);
+for(let i=0;i<galN;i++){const [a,b]=E[Math.floor(rnd()*E.length)],v=nd[a].clone().lerp(nd[b],rnd()).add(new THREE.Vector3(gs(),gs(),gs()).multiplyScalar(.8));
+if(v.length()<maxR)galaxy(v,.2+rnd()*.38)}}
+
+function b0(){stars(7000,500,.8);web(44,48,18000,46,45);fres(22,0x4aa8ff,1.1,2.2);ring(22,0x7fd8ff,.35,Math.PI/2.2,.2);goal=20}
+function b1(){stars(4500,300,.7);fres(10,0x2a9eff,1.3,2.6);
+const w=new THREE.Mesh(new THREE.SphereGeometry(10.05,36,24),new THREE.MeshBasicMaterial({color:0x7bdfff,wireframe:true,transparent:true,opacity:.1,blending:THREE.AdditiveBlending,depthWrite:false}));world.add(w);
+for(let i=0;i<34;i++){const u=rnd()*6.283,v=Math.acos(2*rnd()-1);galaxy(new THREE.Vector3(10*Math.sin(v)*Math.cos(u),10*Math.cos(v),10*Math.sin(v)*Math.sin(u)),.14+rnd()*.2)}
+const g=new THREE.Group();g.rotation.set(.55,.3,0);world.add(g);ring(10.4,0x69dfff,.6,0,0,g);const sp=glow(0xffffff,1.6,g);anim.push(t=>{const a=t*.6;sp.position.set(Math.cos(a)*10.4,Math.sin(a)*10.4,0)});goal=24}
+function b2(){stars(3500,300,.6);const L=9,base=new THREE.Group();
+for(let i=0;i<20;i++)galaxy(new THREE.Vector3((rnd()-.5)*L*.9,(rnd()-.5)*L*.9,(rnd()-.5)*L*.9),.2+rnd()*.28,undefined,0,base);
+const eg=new THREE.EdgesGeometry(new THREE.BoxGeometry(L,L,L));
+for(let x=-1;x<=1;x++)for(let y=-1;y<=1;y++)for(let z=-1;z<=1;z++){const mid=!x&&!y&&!z;
+const gr=mid?base:base.clone(true);gr.position.set(x*L,y*L,z*L);
+if(!mid)gr.traverse(o=>{if(o.material){o.material=o.material.clone();o.material.opacity*=.3}});world.add(gr);
+const e=new THREE.LineSegments(eg,new THREE.LineBasicMaterial({color:0x6ce8ff,transparent:true,opacity:mid?.8:.09,blending:THREE.AdditiveBlending}));e.position.copy(gr.position);world.add(e)}
+const ray=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-L*1.5,.4,.3),new THREE.Vector3(L*1.5,.4,.3)]),new THREE.LineBasicMaterial({color:0x8af4ff,transparent:true,opacity:.7,blending:THREE.AdditiveBlending}));world.add(ray);
+const sp=glow(0xffffff,1.4);anim.push(t=>{sp.position.set(((t*.9)%3-1.5)*L,.4,.3)});goal=34}
+function b3(){stars(3500,420,.55);
+const cols=[0x267bff,0xb54dff,0x35d8c8,0xff9d57,0x8c9dff,0xf35caa,0xa8e65c],B=[];
+for(let i=0;i<14;i++){const ours=i===0,r=ours?4.4:1.6+rnd()*3.6,u=rnd()*6.283,z=rnd()*2-1,q=Math.sqrt(1-z*z),d=ours?0:11+rnd()*20;
+const pos=new THREE.Vector3(d*q*Math.cos(u),d*z*.6,d*q*Math.sin(u));
+const f=fres(r,ours?0xffd37a:cols[i%7],ours?1.7:1.3,2,pos);B.push([f,r,rnd()*6]);
+for(let j=0;j<(ours?10:4);j++)galaxy(pos.clone().add(new THREE.Vector3(gs(),gs(),gs()).multiplyScalar(r*.9)),ours?.2:.11)}
+const p=new Float32Array(2400*3),c=new Float32Array(2400*3);for(let i=0;i<2400;i++){p.set([gs()*60,gs()*34,gs()*60],i*3);const k=C(0x6a3cff).multiplyScalar(.25+rnd()*.3);c.set([k.r,k.g,k.b],i*3)}pts(p,c,.5,.25);
+anim.push(t=>B.forEach(([f,r,s])=>f.scale.setScalar(1+.025*Math.sin(t*.8+s))));goal=36}
+const QV='uniform float t,pr;attribute float s;varying float v;varying vec3 c;void main(){vec3 p=position+.2*vec3(sin(t*2.+s*40.),cos(t*2.6+s*70.),sin(t*1.9+s*90.));vec4 m=modelViewMatrix*vec4(p,1.);gl_Position=projectionMatrix*m;gl_PointSize=(4.+9.*fract(s*13.+t*.35))*(20./-m.z)*pr;v=.35+.65*fract(s*31.+t*.5);c=mix(vec3(.2,.75,1.),vec3(.7,.45,1.),fract(s*7.));}';
+const QF='varying float v;varying vec3 c;void main(){float d=length(gl_PointCoord-.5)*2.;float a=smoothstep(1.,0.,d);gl_FragColor=vec4(c*v,a*a*v);}';
+function b4(){stars(2500,200,.45);const N=7000,p=new Float32Array(N*3),s=new Float32Array(N);
+for(let i=0;i<N;i++){p.set([gs()*13,gs()*8,gs()*12],i*3);s[i]=rnd()}
+const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(p,3));g.setAttribute('s',new THREE.BufferAttribute(s,1));
+const m=new THREE.ShaderMaterial({uniforms:{t:{value:0},pr:{value:PR}},vertexShader:QV,fragmentShader:QF,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false});world.add(new THREE.Points(g,m));
+const L=[];for(let i=0;i<260;i++)for(let j=i+1;j<260;j++){const dx=p[i*3]-p[j*3],dy=p[i*3+1]-p[j*3+1],dz=p[i*3+2]-p[j*3+2];if(dx*dx+dy*dy+dz*dz<9)L.push(new THREE.Vector3(p[i*3],p[i*3+1],p[i*3+2]),new THREE.Vector3(p[j*3],p[j*3+1],p[j*3+2]))}
+world.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(L),new THREE.LineBasicMaterial({color:0x4bbdff,transparent:true,opacity:.22,blending:THREE.AdditiveBlending})));
+anim.push(t=>{m.uniforms.t.value=t});goal=20}
+function b5(){stars(3500,300,.5);cmb(22,.5);fres(22,0x4aa8ff,1.1,2.2);fres(29.3,0x7a5cff,.7,3);
+for(let i=0;i<46;i++){const r=5+rnd()*16,u=rnd()*6.283,z=rnd()*2-1,q=Math.sqrt(1-z*z),k=(r-5)/16;
+galaxy(new THREE.Vector3(r*q*Math.cos(u),r*z*.8,r*q*Math.sin(u)),.38-k*.22,C(0xff3a1a),k*.85)}goal=19}
+const B=[b0,b1,b2,b3,b4,b5];
+function setScene(i){cur=i;clearWorld();B[i]();const o=INFO[i];
+document.getElementById('t').textContent=o.t;document.getElementById('d').textContent=o.d;document.getElementById('m').textContent=o.m;
+document.getElementById('f').innerHTML=o.f.map(x=>'<span>'+x+'</span>').join('');
+document.getElementById('s').innerHTML=o.s.map(x=>'<li><a href="'+x[2]+'" target="_blank" rel="noopener noreferrer">'+x[0]+'</a><small>'+x[1]+'</small></li>').join('');
+document.querySelectorAll('[data-s]').forEach(b=>b.classList.toggle('active',+b.dataset.s===i));
+camera.position.set(0,.18,1).setLength(goal*2.4);controls.target.set(0,0,0);controls.update();tr=0}
+document.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>setScene(+b.dataset.s));
+document.getElementById('autoBtn').onclick=e=>{auto=!auto;controls.autoRotate=auto;e.target.textContent='AUTO ORBIT: '+(auto?'ON':'OFF')};
+document.getElementById('resetBtn').onclick=()=>{camera.position.set(0,.18,1).setLength(goal);controls.target.set(0,0,0);controls.update()};
+function fitPanel(){document.documentElement.style.setProperty('--ch',document.querySelector('.controls').offsetHeight+'px')}
+setScene(0);fitPanel();
+function loop(){requestAnimationFrame(loop);const t=clock.getElapsedTime();anim.forEach(f=>f(t));
+if(tr<1){tr=Math.min(1,tr+.014);const e=1-Math.pow(1-tr,3);camera.position.setLength(goal*(2.4-1.4*e))}
+world.rotation.y+=.00008;controls.update();composer.render()}
+loop();
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);fitPanel()});
+</script>
+</body>
+</html>
