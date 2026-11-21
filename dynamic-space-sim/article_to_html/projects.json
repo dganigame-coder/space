@@ -85,11 +85,6 @@
     "path": "dynamic-space-sim/article_to_html/gpt-space.html"
   },
   {
-    "title": "Temporary Page",
-    "relativePath": "tmp.html",
-    "path": "dynamic-space-sim/article_to_html/tmp.html"
-  },
-  {
     "title": "X-Ray Burst",
     "relativePath": "xray-burst-gemini.html",
     "path": "dynamic-space-sim/article_to_html/xray-burst-gemini.html"
@@ -98,15 +93,5 @@
     "title": "Deep Space AI",
     "relativePath": "deep-space-ai.html",
     "path": "dynamic-space-sim/deep-space-ai.html"
-  },
-  {
-    "title": "Pollinations Test",
-    "relativePath": "pollinations-test.html",
-    "path": "dynamic-space-sim/pollinations-test.html"
-  },
-  {
-    "title": "Dynamic Space Temporary Page",
-    "relativePath": "tmp.html",
-    "path": "dynamic-space-sim/tmp.html"
   }
 ]
