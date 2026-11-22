@@ -5,9 +5,10 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { shared, makeStarfield, makeSkySphere, makeShip } from './objects.js';
-import { buildChapters } from './chapters.js';
-import { Sound } from './audio.js';
+import { shared, makeStarfield, makeSkySphere, makeShip } from './objects.js?v3';
+import { buildChapters } from './chapters.js?v3';
+import { Sound } from './audio.js?v3';
+import { createFlight } from './flight.js?v3';
 
 const $ = (s) => document.querySelector(s);
 const KM_AU = 1.495978707e8, KM_LY = 9.4607e12, C_KMS = 299792.458;
@@ -240,7 +241,7 @@ function activate(i) {
   if (sky) sky.visible = !d.noSkyTex && c.sky > 0;
   user.yaw = user.pitch = 0; user.zoom = 1;
   updateChapterHUD(c);
-  sound.chapter(i);
+  sound.chapter(i, CH.length);
 }
 
 // ---------------- HUD ----------------
@@ -349,7 +350,7 @@ function buildTimeline() {
     const s = document.createElement('button');
     s.className = 'tl-seg'; s.style.flex = c.dur; s.setAttribute('aria-label', `Chapter ${i + 1}: ${c.title}`);
     s.innerHTML = `<span class="tl-tip"><b>${String(i + 1).padStart(2, '0')}</b> ${c.title}</span>`;
-    s.addEventListener('click', (e) => { e.stopPropagation(); seek(c.start + 0.01); });
+    s.addEventListener('click', (e) => { e.stopPropagation(); if (flight.on) flyToChapter(i); else seek(c.start + 0.01); });
     hud.segs.appendChild(s);
   });
 }
@@ -363,19 +364,31 @@ const ICON = {
   play: '<svg viewBox="0 0 24 24" width="18" height="18"><path d="M7 4.5v15l13-7.5z" fill="currentColor"/></svg>',
   pause: '<svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 4h4v16H6zM14 4h4v16h-4z" fill="currentColor"/></svg>',
 };
-$('#btn-play').addEventListener('click', () => { if (ended) { seek(0); } setPlaying(!playing); });
-$('#btn-prev').addEventListener('click', () => { const i = chapterAt(T); seek(T - CH[i].start > 2 || i === 0 ? CH[i].start + 0.01 : CH[i - 1].start + 0.01); });
-$('#btn-next').addEventListener('click', () => { const i = chapterAt(T); if (i < CH.length - 1) seek(CH[i + 1].start + 0.01); });
+$('#btn-play').addEventListener('click', () => { if (flight.on) { toggleFlight(false); return; } if (ended) { seek(0); } setPlaying(!playing); });
+$('#btn-prev').addEventListener('click', () => { if (flight.on) { const i = chapterAt(T); flyToChapter(Math.max(0, i - 1)); return; } const i = chapterAt(T); seek(T - CH[i].start > 2 || i === 0 ? CH[i].start + 0.01 : CH[i - 1].start + 0.01); });
+$('#btn-next').addEventListener('click', () => { if (flight.on) { const i = chapterAt(T); flyToChapter(Math.min(CH.length - 1, i + 1)); return; } const i = chapterAt(T); if (i < CH.length - 1) seek(CH[i + 1].start + 0.01); });
 $('#speed').addEventListener('change', (e) => { speed = parseFloat(e.target.value); });
 $('#quality').addEventListener('change', (e) => { quality = e.target.value; dynScale = 1; applySize(); });
 $('#btn-hud').addEventListener('click', toggleHud);
 $('#btn-cine').addEventListener('click', () => document.body.classList.toggle('cine'));
 $('#btn-labels').addEventListener('click', () => { labelsOn = !labelsOn; $('#btn-labels').classList.toggle('off', !labelsOn); });
 $('#btn-sound').addEventListener('click', () => { const on = sound.toggle(); $('#btn-sound').classList.toggle('off', !on); });
-$('#tl-bar').addEventListener('click', (e) => { const r = $('#tl-bar').getBoundingClientRect(); seek((e.clientX - r.left) / r.width * TOTAL); });
+$('#tl-bar').addEventListener('click', (e) => { if (flight.on) return; const r = $('#tl-bar').getBoundingClientRect(); seek((e.clientX - r.left) / r.width * TOTAL); });
 function toggleHud() { hudOn = !hudOn; document.body.classList.toggle('nohud', !hudOn); }
 addEventListener('keydown', (e) => {
   if (e.target.tagName === 'SELECT') return;
+  if (!document.body.classList.contains('started')) return;
+  if (e.key === 'f' || e.key === 'F') { toggleFlight(); return; }
+  if (e.key === 'm' || e.key === 'M' || (e.code === 'Tab' && flight.on)) { e.preventDefault(); toggleNav(); return; }
+  if (e.code === 'Escape' && $('#nav').classList.contains('show')) { toggleNav(false); return; }
+  if (flight.on) {
+    if (e.key === 'g' || e.key === 'G') toggleFlight(false);
+    else if (e.key === 'v' || e.key === 'V') flight.toggleAssist();
+    else if (e.key === 'n' || e.key === 'N') $('#btn-next').click();
+    else if (e.key === 'h' || e.key === 'H') toggleHud();
+    else if (e.key === 'c' || e.key === 'C') document.body.classList.toggle('cine');
+    return;
+  }
   if (e.code === 'Space') { e.preventDefault(); $('#btn-play').click(); }
   else if (e.code === 'ArrowRight') $('#btn-next').click();
   else if (e.code === 'ArrowLeft') $('#btn-prev').click();
@@ -393,6 +406,54 @@ canvas.addEventListener('pointermove', (e) => {
 canvas.addEventListener('pointerup', () => { user.dragging = false; });
 canvas.addEventListener('wheel', (e) => { e.preventDefault(); user.zoom = THREE.MathUtils.clamp(user.zoom * Math.exp(e.deltaY * 0.001), 0.4, 4); user.idle = 0; }, { passive: false });
 canvas.addEventListener('dblclick', () => { user.yaw = user.pitch = 0; user.zoom = 1; });
+
+// ---------------- Flight mode ----------------
+const flight = createFlight({ ship, camera, frame, user, $ });
+let flightWasPlaying = false;
+function toggleFlight(on = !flight.on) {
+  if (!CH || on === flight.on) return;
+  const i = chapterAt(T), c = CH[i];
+  if (on) {
+    flightWasPlaying = playing; setPlaying(false);
+    flight.enter(c, built[i], easeU(c, T - c.start));
+    $('#btn-fly').textContent = 'Autopilot';
+  } else {
+    flight.exit();
+    // resume the cinematic from the closest point on this chapter's route
+    const u = Math.min(flight.S.uEq, 0.985);
+    T = c.start + Math.pow(u, 1 / (c.ease || 1)) * c.dur; speedSmooth = 0;
+    $('#btn-fly').textContent = 'Take the controls';
+    setPlaying(true);
+  }
+}
+function flyToChapter(j, label) {
+  const c = CH[j];
+  T = c.start + 0.02;
+  activate(j);
+  flight.warpTo(c, built[j], label || null);
+}
+$('#btn-fly').addEventListener('click', () => toggleFlight());
+$('#btn-auto').addEventListener('click', () => toggleFlight(false));
+$('#btn-nav').addEventListener('click', () => toggleNav(true));
+$('#btn-map').addEventListener('click', () => toggleNav(true));
+$('#nav-close').addEventListener('click', () => toggleNav(false));
+$('#nav').addEventListener('click', (e) => { if (e.target.id === 'nav') toggleNav(false); });
+function toggleNav(show = !$('#nav').classList.contains('show')) { $('#nav').classList.toggle('show', show); if (show) flight.S.keys = {}; }
+function buildNav() {
+  const list = $('#nav-list'); list.innerHTML = '';
+  CH.forEach((c, j) => {
+    const box = document.createElement('div'); box.className = 'nav-ch';
+    const [a, b] = c.dist;
+    box.innerHTML = `<h3><b>${String(j + 1).padStart(2, '0')}</b>${c.title}${c.nasa ? '<span class="tag">NASA archive</span>' : ''}</h3><div class="d">${c.kicker} · ${fmtDist(b)}</div><div class="objs"></div>`;
+    const objs = box.querySelector('.objs');
+    const go = (l) => { toggleNav(false); if (!flight.on) toggleFlight(true); flyToChapter(j, l); };
+    const start = document.createElement('button'); start.textContent = 'Route start'; start.addEventListener('click', () => go(null)); objs.appendChild(start);
+    (built[j].labels || []).forEach(l => { const bt = document.createElement('button'); bt.textContent = l.name; bt.addEventListener('click', () => go(l)); objs.appendChild(bt); });
+    list.appendChild(box);
+  });
+}
+addEventListener('touchstart', () => document.body.classList.add('touch'), { once: true, passive: true });
+if (matchMedia('(pointer: coarse)').matches) document.body.classList.add('touch');
 
 // ---------------- Main loop ----------------
 let warpAmt = 0;
@@ -414,27 +475,36 @@ function frameLoop() {
     }
   }
   if (!CH) return;
-  const dt = playing ? dtR * speed : 0;
+  const flying = flight.on;
+  const dt = playing && !flying ? dtR * speed : 0;
   T += dt;
   if (T >= TOTAL) { T = TOTAL - 0.001; if (playing) { setPlaying(false); ended = true; $('#end').classList.add('show'); } }
   shared.time.value += dtR;
-  const i = chapterAt(T);
+  let i = chapterAt(T);
   activate(i);
-  const c = CH[i], d = built[i];
+  let c = CH[i], d = built[i];
+  if (flying) {
+    const dk0 = Math.exp(Math.log(Math.max(c.dist[0], 1e-3)) + (Math.log(c.dist[1]) - Math.log(Math.max(c.dist[0], 1e-3))) * flight.S.uEq);
+    flight.step(c, d, dtR, dk0);
+    // reaching the end of a chapter's route warps you to the next system
+    if (flight.S.uEq > 0.985 && i < CH.length - 1 && flight.S.dead <= 0) { flyToChapter(i + 1); flight.alert(`Warp: ${CH[i + 1].title}`, 'info', 2); }
+    else T = c.start + Math.min(Math.pow(flight.S.uEq, 1 / (c.ease || 1)), 0.999) * c.dur;
+    i = chapterAt(T); activate(i); c = CH[i]; d = built[i];
+  }
   const lt = T - c.start;
-  const u = easeU(c, lt);
+  const u = flying ? flight.S.uEq : easeU(c, lt);
   // warp
   const wOut = c.final ? 0 : THREE.MathUtils.smoothstep(lt, c.dur - 1.7, c.dur);
   const wIn = i > 0 ? 1 - THREE.MathUtils.smoothstep(lt, 0, 1.4) : 0;
-  warpAmt = Math.max(wOut, wIn);
+  warpAmt = flying ? flight.S.warp : Math.max(wOut, wIn);
   const flash = Math.pow(warpAmt, 8) * 0.9;
   finalPass.uniforms.warp.value = warpAmt;
   finalPass.uniforms.flash.value = flash;
   finalPass.uniforms.time.value = shared.time.value;
 
-  shipFrame(c, d, u);
   if (!user.dragging) { user.idle += dtR; if (user.idle > 3) { user.yaw *= 0.97; user.pitch *= 0.97; user.zoom += (1 - user.zoom) * 0.03; } }
-  placeCamera(c, d, u, dt);
+  if (flying) flight.apply(dtR);
+  else { shipFrame(c, d, u); placeCamera(c, d, u, dt); }
   if (window.__camOverride) window.__camOverride(camera);
   camera.updateMatrixWorld();
 
@@ -446,10 +516,10 @@ function frameLoop() {
   keyLight.color.copy(sun.color);
   keyLight.intensity = 3.2;
   // ship fx
-  const pl = d.plume ? d.plume(u) : { power: 1, len: 1 };
-  ship.userData.setPlume(pl.power * (1 + warpAmt * 1.5), pl.len * (1 + warpAmt * 2), !!pl.chem);
-  ship.userData.ringMat.emissiveIntensity = 1.2 + warpAmt * 10 + (c.index >= 8 ? 1.5 : 0);
-  ship.userData.finMat.emissiveIntensity = d.heat ? d.heat(frame.pos) * 3 : 0;
+  const pl = flying ? { power: flight.S.thrust, len: 1 } : d.plume ? d.plume(u) : { power: 1, len: 1 };
+  if (!flying) ship.userData.setPlume(pl.power * (1 + warpAmt * 1.5), pl.len * (1 + warpAmt * 2), !!pl.chem);
+  ship.userData.ringMat.emissiveIntensity = 1.2 + warpAmt * 10 + (c.index >= 8 ? 0.3 : 0);
+  if (!flying) ship.userData.finMat.emissiveIntensity = d.heat ? d.heat(frame.pos) * 3 : 0;
   ship.userData.tick(shared.time.value);
   // stars
   stars.material.uniforms.beta.value = Math.min(0.97, warpAmt * 0.97);
@@ -458,7 +528,7 @@ function frameLoop() {
   stars.material.uniforms.pxRatio.value = renderer.getPixelRatio();
   if (sky) sky.material.uniforms.bright.value = c.sky * (1 - warpAmt);
   shared.pxScale.value = renderer.domElement.height * camera.projectionMatrix.elements[5] * 0.5;
-  d.update && d.update(dt, camera);
+  d.update && d.update(flying ? dtR : dt, camera);
 
   // lens flare
   const fs = d.flareStar ? d.flareStar.getWorldPosition(new THREE.Vector3()) : (c.index <= 7 && c.index !== 2 ? d.sunPos : null);
@@ -487,12 +557,19 @@ function frameLoop() {
 
   // HUD
   setFact(c, u);
-  updateTelemetry(c, u, dt);
+  updateTelemetry(c, u, flying ? 0 : dt);
+  if (flying) {
+    const nominal = Math.abs(c.dist[1] - c.dist[0]) / c.dur; // km/s for the route
+    const kms = (flight.S.speedFrac || 0) * nominal;
+    const beta = kms / C_KMS;
+    flight.hud(beta < 0.01 ? `${nf(kms, 0)} km/s` : beta < 1000 ? `${nf(beta, 2)} c` : `${beta.toExponential(2).replace('e+', ' × 10^')} c`);
+    hud.speed.textContent = '';
+  }
   updateLabels(d, u);
   hud.fill.style.width = `${(T / TOTAL) * 100}%`;
   const mm = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
   hud.time.textContent = `${mm(T)} / ${mm(TOTAL)}`;
-  sound.update(warpAmt, pl.power, !!pl.chem, playing);
+  sound.update(warpAmt, pl.power, !!pl.chem, playing || flying);
 }
 
 // ---------------- Boot ----------------
@@ -520,6 +597,9 @@ loadTextures(p => { prog.style.width = `${Math.round(p * 70)}%`; }).then(async (
   try { await renderer.compileAsync(scene, camera); } catch (e) { renderer.compile(scene, camera); }
   built.forEach(d => d.group.visible = false);
   buildTimeline();
+  buildNav();
+  const mins = Math.round(TOTAL / 60);
+  $('#intro-meta').textContent = `A real-time WebGL voyage · ${CH.length} chapters · ~${mins} minutes`;
   curIdx = -1; activate(0);
   prog.style.width = '100%';
   status.textContent = 'Ready';
@@ -533,4 +613,4 @@ $('#btn-begin').addEventListener('click', () => {
   seek(0); setPlaying(true);
 });
 $('#btn-replay').addEventListener('click', () => { seek(0); setPlaying(true); });
-window.__voyage = { seek: (t) => seek(t), get T() { return T; }, setPlaying, get CH() { return CH; }, renderer, scene, camera, ship };
+window.__voyage = { seek: (t) => seek(t), get T() { return T; }, setPlaying, get CH() { return CH; }, renderer, scene, camera, ship, flight, toggleFlight, flyToChapter, built };

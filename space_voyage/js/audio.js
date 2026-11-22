@@ -36,13 +36,13 @@ export class Sound {
     this.pad.gain.setTargetAtTime(0.5, ctx.currentTime, 3);
   }
   toggle() { this.on = !this.on; if (this.master) this.master.gain.setTargetAtTime(this.on ? 0.9 : 0, this.ctx.currentTime, 0.2); return this.on; }
-  chapter(i) {
+  chapter(i, n = 16) {
     if (!this.ctx) return;
     const roots = [55, 55, 49, 51.9, 46.25, 43.65, 41.2, 38.9, 36.7, 41.2, 43.65, 32.7, 36.7, 34.65, 30.87, 27.5];
-    const r = roots[i % roots.length];
+    const r = roots[Math.min(roots.length - 1, Math.floor(i / n * roots.length))];
     const ratios = [1, 1.5, 2, 3];
     this.oscs.forEach((o, k) => o.frequency.setTargetAtTime(r * ratios[k], this.ctx.currentTime, 1.5));
-    this.padLP.frequency.setTargetAtTime(i > 10 ? 380 : 650, this.ctx.currentTime, 2);
+    this.padLP.frequency.setTargetAtTime(i / n > 0.62 ? 380 : 650, this.ctx.currentTime, 2);
   }
   update(warp, power, chem, playing) {
     if (!this.ctx) return;

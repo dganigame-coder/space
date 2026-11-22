@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { NOISE, BLACKBODY, RSI, LOGV_PARS, LOGV, LOGF_PARS, LOGF } from './shaders.js';
+import { NOISE, BLACKBODY, RSI, LOGV_PARS, LOGV, LOGF_PARS, LOGF } from './shaders.js?v3';
 
 export const shared = {
   pxScale: { value: 800 },
@@ -145,7 +145,7 @@ const PLANET_FRAG = LOGF_PARS + NOISE + `
   uniform int procType; uniform vec3 c1,c2,c3; uniform float seed; uniform float time;
   uniform vec3 rimColor; uniform float rimStr;
   uniform vec3 center; uniform vec3 ringN; uniform float ringIn, ringOut; uniform float radius;
-  uniform float ambient;
+  uniform float ambient; uniform vec3 glowCol;
   varying vec2 vUv; varying vec3 vN, vP, vObjN, vLobj;
   vec3 procSurface(vec3 n, vec3 Ls, out float spec, out vec3 emis){
     vec3 p=n*2.0+vec3(seed);
@@ -235,6 +235,7 @@ const PLANET_FRAG = LOGF_PARS + NOISE + `
     float rim=pow(1.0-max(dot(N,V),0.0),3.0);
     col+=rimColor*rim*rimStr*smoothstep(-0.35,0.6,NdL)*sunI;
     col+=emis;
+    if(glowCol.r+glowCol.g+glowCol.b>0.0){ float gn=fbm(normalize(vObjN)*3.0+vec3(seed,time*0.03,0.0)); col+=glowCol*(0.55+0.45*gn)*mix(1.0,0.55,clamp(NdL,0.0,1.0)); }
     gl_FragColor=vec4(col,1.0);
   }`;
 const PLANET_VERT = LOGV_PARS + `
@@ -296,7 +297,7 @@ export function makePlanet(o) {
     rimColor: { value: new THREE.Color(o.rim || '#000') }, rimStr: { value: o.rimStr ?? 0.0 },
     center: { value: new THREE.Vector3() }, ringN: { value: new THREE.Vector3(0, 1, 0) },
     ringIn: { value: o.ring ? o.ring.inner * R : 0 }, ringOut: { value: o.ring ? o.ring.outer * R : 0 }, radius: { value: R },
-    ambient: { value: o.ambient ?? 0.004 },
+    ambient: { value: o.ambient ?? 0.004 }, glowCol: { value: new THREE.Color(o.glow || '#000') },
   };
   const mat = new THREE.ShaderMaterial({ uniforms: u, vertexShader: PLANET_VERT, fragmentShader: PLANET_FRAG });
   const geo = new THREE.SphereGeometry(R, seg, seg / 2);
@@ -423,7 +424,7 @@ export function makeStar(o) {
   });
   const corona = new THREE.Mesh(new THREE.PlaneGeometry(2 * R * cu.k.value, 2 * R * cu.k.value), cm);
   grp.add(corona);
-  grp.userData = { R, color: bbColor(T), update: (cam) => { corona.quaternion.copy(cam.quaternion); } };
+  grp.userData = { R, temp: T, color: bbColor(T), update: (cam) => { corona.quaternion.copy(cam.quaternion); } };
   return grp;
 }
 
@@ -533,7 +534,7 @@ export function makeShip() {
   ship.add(plume);
 
   ship.userData = {
-    plumeU, ringMat, finMat, plume,
+    plumeU, ringMat, finMat, plume, hullMat,
     setPlume(power, len, chemical) {
       plumeU.power.value = power;
       plume.scale.set(1, 1, len);

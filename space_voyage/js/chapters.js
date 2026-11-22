@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import {
   makePlanet, makeStar, makeGlare, makeAsteroids, makePointCloud, makeGalaxy, makeNebula,
   makeBlackHole, makeCMB, makeShell, makeGalaxyField, makeCosmicWeb, bbColor, rng, gauss,
-} from './objects.js';
+} from './objects.js?v3';
+import { buildExoChapters } from './exo.js?v3';
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 const KM_AU = 1.495978707e8;
@@ -491,6 +492,7 @@ export function buildChapters(tex) {
           cam: [{ u: 0, off: [1.6, 0.6, 5.5], look: 0.5, fov: 50 }, { u: 0.35, off: [-1.6, 0.5, 5], look: 0.55 }, { u: 0.6, off: [2, 0.8, 5], look: 0.6 }, { u: 1, off: [1, 1.2, -6], look: 0.8 }],
           plume: () => ({ power: 0.7, len: 0.9 }),
           labels: [{ name: 'Sagittarius A*', sub: '4.3 million M☉', pos: () => V(0, 30, 0) }],
+          blackHole: { R: 12, name: 'Sagittarius A*' },
           update(dt, cam) { sstars.forEach(m => m.userData.update(cam)); },
           noStarfield: true,
         };
@@ -625,6 +627,13 @@ export function buildChapters(tex) {
       },
     },
   ];
+  // Insert NASA Exoplanet Archive systems in order of distance from Earth
+  const X = buildExoChapters();
+  const at = (title) => chapters.findIndex(c => c.title === title);
+  chapters.splice(at('Our Nearest Stars') + 1, 0, X.epsEri);
+  chapters.splice(at('Seven Worlds') + 1, 0, X.cnc, X.peg, X.hd189, X.toi700, X.k218, X.hr8799, X.k16, X.k186, X.kelt9);
+  chapters.splice(at('Stellar Nursery') + 1, 0, X.wasp12, X.k452, X.psr);
+  for (let i = at('Our Nearest Stars') + 1; i < chapters.length; i++) chapters[i].dist[0] = chapters[i - 1].dist[1];
   let t = 0;
   chapters.forEach((c, i) => { c.index = i; c.start = t; t += c.dur; });
   return { chapters, total: t };
