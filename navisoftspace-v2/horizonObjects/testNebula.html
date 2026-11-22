@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Nebula Visual Test</title>
+    <style>body { margin: 0; background: #000; color: #fff; font-family: sans-serif; }</style>
+</head>
+<body>
+    <div style="position:absolute; top:10px; left:10px;">
+        <h1>Nebula Sandbox</h1>
+        <p>Inspecting: All Nebulae</p>
+    </div>
+    
+    <script type="module">
+        import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
+        import { createNebula } from 'https://cdn.jsdelivr.net/gh/dganigame-coder/space@6e9f516/navisoftspace/horizonObjects/nebula.js';
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 20000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        camera.position.z = 10000;
+
+// Replace your existing testNebulae array with this:
+const testNebulae = [
+    // 1. Center: Pillars of Creation (The "Anchor")
+    { name: "Pillars of Creation", x: 0, y: 0, z: 0, count: 1200, spread: 4000, size: 800, colors: [0xff3300, 0x8800ff, 0x00ffff] },
+    
+    // 2. Top Right: Helix Nebula (The "Eye")
+    { name: "Helix Nebula", x: 6000, y: 3000, z: -2000, count: 600, spread: 2000, size: 600, colors: [0xff4400, 0x00aaff] },
+    
+    // 3. Bottom Right: Butterfly Nebula (The "Wings")
+    { name: "Butterfly Nebula", x: 5000, y: -3000, z: -1000, count: 700, spread: 2500, size: 700, colors: [0xff5500, 0xffffff, 0x8800ff] },
+    
+    // 4. Left Side: Orion/Carina Complex (The "Base")
+    { name: "Carina Complex", x: -6000, y: -1000, z: -3000, count: 1500, spread: 5000, size: 900, colors: [0xff9900, 0xff0088, 0x00ffff] }
+];
+
+        // Build them
+        testNebulae.forEach(config => createNebula(scene, config));
+
+        function animate() {
+            requestAnimationFrame(animate);
+            scene.rotation.y += 0.005; // Spin the whole scene to see the volume
+            renderer.render(scene, camera);
+        }
+        animate();
+    </script>
+</body>
+</html>
