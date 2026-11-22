@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>To the Edge — A Journey Across the Observable Universe</title>
+<meta name="description" content="A real-time WebGL voyage from Earth past every planet, the Sun, nearby exoplanets, a black hole and distant galaxies to the edge of the observable universe." />
+<link rel="preconnect" href="https://api.fontshare.com" />
+<link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@400,500,700,800&display=swap" rel="stylesheet" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="./style.css?v3" />
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<canvas id="gl" aria-label="Real-time 3D journey through the universe"></canvas>
+<div class="bars" aria-hidden="true"><i></i><i></i></div>
+
+<div id="labels" aria-hidden="true"></div>
+
+<div id="hud">
+  <header class="brand">
+    <span class="mark" aria-hidden="true"></span>
+    <span>To the Edge</span><em>Earth → Observable Universe</em>
+  </header>
+
+  <section id="chapter" class="in">
+    <div class="ch-idx mono">Chapter <span id="ch-idx">01 / 29</span></div>
+    <h1 id="ch-title">Liftoff</h1>
+    <p id="ch-kicker">Earth</p>
+  </section>
+
+  <aside id="telemetry" class="glass">
+    <div class="row"><span class="k">Distance from Earth</span><span class="v mono" id="t-dist">0 km</span></div>
+    <div class="row"><span class="k" id="t-light-lbl">Light-time from Earth</span><span class="v mono" id="t-light">0 s</span></div>
+    <div class="row" id="row-z" style="display:none"><span class="k">Redshift z</span><span class="v mono" id="t-z">0</span></div>
+    <div class="row"><span class="k">Effective speed</span><span class="v mono" id="t-speed">0 km/s</span></div>
+    <div class="row drive"><span class="k">Propulsion</span><span class="v" id="t-drive">—</span></div>
+    <div class="note">Time and distance are compressed for viewing. Telemetry shows true values.</div>
+  </aside>
+
+  <section id="factbox" class="glass">
+    <div class="fhead mono"><span>Science</span><span id="fact-n">1/3</span></div>
+    <p id="fact"></p>
+  </section>
+
+
+  <aside id="flight" class="glass" aria-live="polite">
+    <div class="fh mono"><span>Flight instruments</span><button id="f-assist" class="mini">Assist on</button></div>
+    <div class="row"><span class="k">Speed</span><span class="v mono" id="f-speed">0</span></div>
+    <div class="bar"><i id="f-thr"></i></div>
+    <div class="row"><span class="k">Nearest body</span><span class="v mono" id="f-near">—</span></div>
+    <div class="row"><span class="k">Gravity pull</span><span class="v mono" id="f-grav">0</span></div>
+    <div class="row"><span class="k">Hull temperature</span><span class="v mono" id="f-temp">0 K</span></div>
+    <div class="bar"><i id="f-temp-bar"></i></div>
+    <div class="row"><span class="k">Tidal stress</span><span class="v mono" id="f-tidal">—</span></div>
+    <div class="row"><span class="k">Radiation</span><span class="v mono" id="f-rad">—</span></div>
+    <div class="row"><span class="k">Clock rate vs Earth</span><span class="v mono" id="f-dil">1.000000</span></div>
+    <div class="row"><span class="k">Hull integrity</span><span class="v mono" id="f-int">100%</span></div>
+    <div class="bar"><i id="f-int-bar"></i></div>
+    <div class="keys mono">W thrust · S/Space brake · A D ← → yaw · ↑ ↓ pitch · Q E roll · Shift boost · M map · G autopilot</div>
+  </aside>
+
+  <div id="flybar">
+    <button id="btn-nav" class="tb">Star map</button>
+    <button id="btn-auto" class="tb accent">Autopilot</button>
+  </div>
+  <div id="alert" role="status"></div>
+
+  <div id="touch" aria-hidden="true">
+    <div id="joy"><div id="joy-knob"></div><span>Steer</span></div>
+    <div id="tbtns">
+      <button id="tb-boost" class="tbtn sm">Boost</button>
+      <button id="tb-brake" class="tbtn">Brake</button>
+      <button id="tb-thrust" class="tbtn main">Thrust</button>
+    </div>
+  </div>
+
+  <footer id="controls">
+    <div class="btns">
+      <button id="btn-prev" class="ib" aria-label="Previous chapter"><svg viewBox="0 0 24 24" width="16" height="16"><path d="M6 5h2v14H6zM20 5v14L9 12z" fill="currentColor"/></svg></button>
+      <button id="btn-play" class="ib play" aria-label="Play"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M7 4.5v15l13-7.5z" fill="currentColor"/></svg></button>
+      <button id="btn-next" class="ib" aria-label="Next chapter"><svg viewBox="0 0 24 24" width="16" height="16"><path d="M16 5h2v14h-2zM4 5v14l11-7z" fill="currentColor"/></svg></button>
+      <span id="tl-time" class="mono">0:00 / 0:00</span>
+    </div>
+    <div id="tl-bar">
+      <div id="tl-fill"></div>
+      <div id="tl-segs"></div>
+    </div>
+    <div class="opts">
+      <label class="sel"><span>Speed</span>
+        <select id="speed"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="1.5">1.5×</option><option value="2">2×</option></select>
+      </label>
+      <label class="sel"><span>Render</span>
+        <select id="quality"><option value="auto" selected>Auto</option><option value="1080">1080p</option><option value="1440">1440p</option><option value="2160">4K UHD</option></select>
+      </label>
+      <span id="res" class="mono res">—</span>
+      <button id="btn-fly" class="tb accent" aria-label="Take the controls (F)">Take the controls</button>
+      <button id="btn-map" class="tb" aria-label="Star map (M)">Map</button>
+      <button id="btn-labels" class="tb" aria-label="Toggle labels">Labels</button>
+      <button id="btn-cine" class="tb" aria-label="Toggle cinema bars">Cinema</button>
+      <button id="btn-sound" class="tb" aria-label="Toggle sound">Sound</button>
+      <button id="btn-hud" class="tb" aria-label="Hide interface (H)">Hide UI</button>
+    </div>
+  </footer>
+</div>
+<div id="fx-heat" aria-hidden="true"></div><div id="fx-frost" aria-hidden="true"></div>
+<div id="nav" role="dialog" aria-modal="true" aria-label="Star map">
+  <div class="nav-inner glass">
+    <div class="nav-head"><div><div class="kick mono">Navigation computer</div><h2>Star map</h2></div><button id="nav-close" class="tb">Close</button></div>
+    <p class="nav-sub">Choose any world, star or galaxy. The warp drive drops you beside it and you keep the controls. Exoplanet data comes from the <a href="https://exoplanetarchive.ipac.caltech.edu/" target="_blank" rel="noopener">NASA Exoplanet Archive</a>.</p>
+    <div id="nav-list"></div>
+  </div>
+</div>
+<button id="show-hud" onclick="document.body.classList.remove('nohud')" aria-label="Show interface">Show UI</button>
+
+<div id="intro">
+  <div class="intro-inner">
+    <div class="kick mono"><span id="intro-meta">A real-time WebGL voyage · 29 chapters · ~12 minutes</span></div>
+    <h1 class="display">To the Edge<br/><span>of the Observable Universe</span></h1>
+    <p class="lede">Lift off from Earth. Dive past the Sun, through Saturn’s rings and out beyond the heliopause. Then on through 13 real exoplanet systems from NASA’s Exoplanet Archive, from the lava world 55 Cancri e to Kepler-16’s two suns and the pulsar planets. After that come the Orion Nebula and Sagittarius A*, and the last leg crosses the cosmic web to the light of the Big Bang, 46.5 billion light-years away. Take the controls at any moment and fly it yourself: gravity, heat, cold, tides and radiation all act on your ship.</p>
+    <div class="load"><div class="load-track"><div id="load-bar"></div></div><span id="load-status" class="mono">Loading planetary maps…</span></div>
+    <button id="btn-begin" disabled>Begin the journey</button>
+    <div class="hint mono">Drag to look around · Scroll to zoom · Space pause · ← → chapters · F take the controls · M star map · H hide UI</div>
+  </div>
+</div>
+
+<div id="end">
+  <div class="end-inner">
+    <div class="kick mono">46.5 billion light-years · 13.8 billion years ago</div>
+    <h2 class="display">You have reached the edge of what can be seen.</h2>
+    <p>Nothing stands at the horizon. The universe goes on, but its light has not had time to reach us yet. Every observer, everywhere, sits at the centre of their own observable universe.</p>
+    <button id="btn-replay">Fly again</button>
+    <div class="credits mono">Planet maps: <a href="https://www.solarsystemscope.com/textures/" target="_blank" rel="noopener">Solar System Scope</a> (CC BY 4.0) · Earth maps: <a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> / NASA Blue Marble · Exoplanet parameters: <a href="https://exoplanetarchive.ipac.caltech.edu/" target="_blank" rel="noopener">NASA Exoplanet Archive</a> (pscomppars)</div>
+  </div>
+</div>
+
+<script type="module" src="./js/main.js?v3"></script>
+</body>
+</html>
