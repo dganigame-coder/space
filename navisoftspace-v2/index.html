@@ -419,7 +419,7 @@
         "unrealbloompass": "https://unpkg.com/three@0.160.0/examples/jsm/postprocessing/UnrealBloomPass.js",
         "tone":"https://cdn.skypack.dev/tone@14.8.49",
         "instructions": "https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/instructions.js",
-        "engine": "https://cdn.jsdelivr.net/gh/dganigame-coder/space@ec6cc7f/navisoftspace/engine.js",
+        "engine": "./engine.js",
         "audio":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@ffd756d/navisoftspace/audio.js",
         "pilot": "https://cdn.jsdelivr.net/gh/dganigame-coder/space@25daaf/navisoftspace/pilot.js",
         "save": "https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/save.js",
@@ -427,7 +427,7 @@
         "universe":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@36eec1e/navisoftspace/horizonObjects/universe.js",
         "mars":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@9e33d64/navisoftspace/planets/mars.js",
         "jupiter":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@e7735dd/navisoftspace/planets/jupiter.js",
-        "earth": "https://cdn.jsdelivr.net/gh/dganigame-coder/space@b148479/navisoftspace/planets/earth.js",
+        "earth": "./planets/optimizedEarth.js",
         "moon": "https://cdn.jsdelivr.net/gh/dganigame-coder/space@adab28e/navisoftspace/planets/moon.js",
         "sun": "https://cdn.jsdelivr.net/gh/dganigame-coder/space@d53e161/navisoftspace/planets/sun.js",
         "venus":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@1714419/navisoftspace/planets/venus.js",
@@ -437,20 +437,20 @@
         "saturn":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@9b7bbe5/navisoftspace/planets/saturn.js",
         "titan":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@f12e242/navisoftspace/planets/titan.js",
         "pluto":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@1611a65/navisoftspace/planets/pluto.js",
-        "asteroidbelt":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@30a7bf2/navisoftspace/horizonObjects/asteroidbelt.js",
+        "asteroidbelt": "./horizonObjects/asteroidbelt.js",
         "interstellarAnomaly":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@6216f25/navisoftspace/horizonObjects/interstellarAnomaly.js",
-        "blackhole":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@dca7beb/navisoftspace/horizonObjects/blackhole.js",
-        "wormhole":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@3adde3b/navisoftspace/horizonObjects/wormhole.js",
+        "blackhole": "./horizonObjects/blackhole.js",
+        "wormhole": "./horizonObjects/wormhole.js",
         "voyager":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@761806a/navisoftspace/horizonObjects/voyager.js",
         "heliopause":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@136f992/navisoftspace/horizonObjects/heliopause.js",
         "star":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@fcb5d06/navisoftspace/horizonObjects/star.js",
         "starsystem":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@b5e091a/navisoftspace/horizonObjects/starsystem.js",
-        "exoplanet":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@fd692ae/navisoftspace/horizonObjects/exoplanet.js",
+        "exoplanet": "./horizonObjects/exoplanet.js",
         "exoplanetsystem":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@8bee183/navisoftspace/horizonObjects/exoplanetsystem.js",
-        "nebula":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@6e9f516/navisoftspace/horizonObjects/nebula.js",
-        "supernova":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@db288b8/navisoftspace/horizonObjects/supernova.js",
-        "quasar":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@4477840/navisoftspace/horizonObjects/quasar.js",
-        "pulsar":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@0273a7b/navisoftspace/horizonObjects/pulsar.js",
+        "nebula": "./horizonObjects/nebula.js",
+        "supernova": "./horizonObjects/supernova.js",
+        "quasar": "./horizonObjects/quasar.js",
+        "pulsar": "./horizonObjects/pulsar.js",
         "protoplanetaryDisk":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@7fe727e/navisoftspace/horizonObjects/protoplanetaryDisk.js"
         }
     }
@@ -2805,8 +2805,13 @@ engine.scene.add(engine.camera);
         // Global variable (declared outside the animation loop)
         let currentNearestObject = null;
 
-        function frame() {                        
+        let lastFrameTime = 0;
+
+    function frame() {                        
             requestAnimationFrame(frame);
+            const nowFrame = performance.now();
+            const frameDeltaTime = lastFrameTime ? Math.min((nowFrame - lastFrameTime) / 1000, 0.05) : 1 / 60;
+            lastFrameTime = nowFrame;
             /******************************************/
             // ==========================================
             // 🌌 HUD NEAREST TARGET PASS
@@ -2913,7 +2918,7 @@ engine.scene.add(engine.camera);
             
                 // Safety wrapper around the update call
                 try {
-                    if (b.onUpdate) b.onUpdate();
+                    if (b.onUpdate) b.onUpdate(frameDeltaTime);
                 } catch (err) {
                     console.error(`💥 [Update Error] "${b.name || 'Unnamed'}" failed inside its onUpdate function:`, err);
                 }
@@ -3489,6 +3494,12 @@ if (k218) {
     if (pulsarB1919?.userData?.update) pulsarB1919.userData.update(timePulsar);
     if (crabPulsar?.userData?.update) crabPulsar.userData.update(timePulsar);
     if (quasarX1?.userData?.update) quasarX1.userData.update(timePulsar);
+
+    // Optimized asteroid-belt orbital motion
+    if (mainBelt?.userData?.update) mainBelt.userData.update(frameDeltaTime, timePulsar);
+    if (kuiperBelt?.userData?.update) kuiperBelt.userData.update(frameDeltaTime, timePulsar);
+    if (oortCloud?.userData?.update) oortCloud.userData.update(frameDeltaTime, timePulsar);
+    if (sharedBelt?.userData?.update) sharedBelt.userData.update(frameDeltaTime, timePulsar);
     
           
 /*
