@@ -3,7 +3,7 @@ import { EffectComposer } from 'effectcomposer';
 import { RenderPass } from 'renderpass';
 import { UnrealBloomPass } from 'unrealbloompass';
 import { createStars } from 'stars';
-import { PerformanceManager } from './performance.js';
+import { PerformanceManager } from 'https://cdn.jsdelivr.net/gh/dganigame-coder/space@main/navisoftspace-v2/performance.js';
 
 export async function bootSystems() {
   try {
