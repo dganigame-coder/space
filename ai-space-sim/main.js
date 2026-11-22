@@ -1,1402 +1,342 @@
 import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { CONFIG } from './config.js';
+import { Engine } from './core/Engine.js';
+import { CameraDirector } from './core/CameraDirector.js';
+import { storage } from './core/storage.js';
+import { hashString, rng } from './core/utils.js';
+import { Skybox } from './world/Skybox.js';
+import { World } from './world/World.js';
+import { PRESETS, findPreset } from './world/catalog.js';
+import { AIRouter } from './ai/AIRouter.js';
+import { TextureService } from './ai/TextureService.js';
+import { AmbientSynth } from './audio/AmbientSynth.js';
+import { Voice } from './audio/Voice.js';
+import { UI } from './ui/UI.js';
 
-// --- GLOBALS ---
-let scene, camera, renderer, starField, starMaterial;
-let geminiKey = localStorage.getItem('gemini_api_key') || '';
-let groqKey = localStorage.getItem('groq_api_key') || '';
-let dynamicModelQueue = ['gemini-2.5-flash']; // Safe default fallback until discovered
+const DESTINATIONS = [
+  ['Solar System', 'solar system'], ['Earth', 'earth'], ['Mars', 'mars'], ['Jupiter', 'jupiter'], ['Saturn', 'saturn'],
+  ['Milky Way', 'milky way'], ['Andromeda', 'andromeda'], ['Orion Nebula', 'orion nebula'], ['Black Hole', 'black hole'], ['Asteroid Belt', 'asteroid belt'],
+];
 
-const GROQ_CHAT_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const GROQ_SPEECH_URL = 'https://api.groq.com/openai/v1/audio/speech';
-const GROQ_FAST_MODEL = 'llama-3.3-70b-versatile';
-const GROQ_TTS_MODEL = 'canopylabs/orpheus-v1-english';
-const GEMINI_LONG_TTS_MODEL = 'gemini-3.8-flash-tts';
-const GEMINI_LITE_TTS_MODEL = 'gemini-3.8-flash-lite-tts';
+const ui = new UI();
+const keys = { gemini: () => storage.get('gemini_api_key'), groq: () => storage.get('groq_api_key') };
+let locale = storage.get('locale', 'en-US');
+ui.setLocale(locale);
 
-let systemGroup;
-let controls;
-let activeAnimatedMeshes = [];
-let textureLoader = new THREE.TextureLoader();
-
-// Control & Request Globals
-let currentCommandAbort = null;
-let commandSequence = 0;
-
-// Audio System Globals
-let audioCtx, osc1, osc2, filterNode, lfoNode, lfoGain;
-let audioInitialized = false;
-let isListening = false;
-
-// Multi-Language State Globals
-let currentLang = 'en-US';
-
-// --- INITIALIZATION ---
-async function init() {
-  setupSecurity();
-  setupLanguageListener();
-  initThreeJS();
-  setupControls();
-  animate();
-
-  if (geminiKey) {
-    await discoverGeminiModels();
-  }
-
-  const bootOverlay = document.getElementById('boot-overlay');
-  if (bootOverlay) {
-    bootOverlay.style.transition = 'opacity 500ms ease';
-    bootOverlay.style.opacity = '0';
-    setTimeout(() => bootOverlay.remove(), 500);
-  }
+let engine;
+try {
+  engine = new Engine(document.getElementById('viewport'));
+} catch (err) {
+  ui.setBoot('WebGL2 is not available on this device. Enable hardware acceleration or try a recent Chrome, Edge, Firefox or Safari.');
+  throw err;
 }
 
-// --- LANGUAGE LISTENER SETUP ---
-function setupLanguageListener() {
-  const langSelect = document.getElementById('lang-select');
-  if (langSelect) {
-    langSelect.addEventListener('change', (e) => {
-      currentLang = e.target.value;
-      
-      // Automatic RTL layout switching for Hebrew, Arabic, Persian, Urdu, etc.
-      const isRTL = ['he-IL', 'ar-SA', 'fa-IR', 'ur-PK', 'ps-AF', 'sd-PK'].includes(currentLang);
-      document.body.dir = isRTL ? 'rtl' : 'ltr';
-      
-      console.log(`[LANGUAGE SYSTEM] Active Locale switched to: ${currentLang} (RTL: ${isRTL})`);
-    });
+const director = new CameraDirector(engine);
+new Skybox(engine);
+const router = new AIRouter(keys);
+const textures = new TextureService(engine.renderer);
+const synth = new AmbientSynth();
+const voice = new Voice({ getLocale: () => locale, keys, synth });
+
+const state = { world: null, removeUpdater: null, config: null, abort: null, selected: null, aiTextures: false, busy: false };
+
+// ---------- World lifecycle ----------
+// Offline world synthesis: reads intent from keywords so requests still resolve without AI.
+const KEYWORDS = [
+  ['lava', /lava|volcan|molten|magma|hell|inferno|io-like/],
+  ['ice', /\bice|icy|frozen|snow|glacier|cryo/],
+  ['desert', /desert|sand|dune|arid|dust|rust/],
+  ['cloudy', /cloud|venus|toxic|acid|haze|smog/],
+  ['terran', /ocean|water|earth-like|earthlike|habitable|garden|jungle|forest|terra|blue/],
+  ['gas_giant', /gas giant|gas|jovian|giant|hot jupiter/],
+  ['barren', /moon|rock|barren|crater|dead|airless/],
+  ['nebula', /nebula|gas cloud|stellar nursery/],
+  ['spiral_galaxy', /galaxy|spiral/],
+  ['black_hole', /black hole|singularity|quasar/],
+];
+const STAR_TEMPS = [[/red dwarf|m-type|m dwarf/, 3200, '#ff7a4a', 'Red dwarf'], [/orange|k-type/, 4500, '#ffb36b', 'Orange dwarf'], [/blue|o-type|b-type|giant star/, 15000, '#9db8ff', 'Blue giant'], [/white dwarf/, 9000, '#e6eeff', 'White dwarf'], [/binary|star|sun|orbit/, 5800, '#fff2d8', 'Host star']];
+
+function proceduralFallback(text) {
+  const q = text.toLowerCase();
+  const r = rng(hashString(q));
+  const hit = KEYWORDS.find(([, re]) => re.test(q));
+  const pool = ['terran', 'desert', 'ice', 'lava', 'barren', 'cloudy', 'gas_giant'];
+  const kind = hit ? hit[0] : pool[Math.floor(r() * pool.length)];
+  const words = text.replace(/[^\p{L}\p{N}\s'-]/gu, ' ').split(/\s+/).filter(Boolean);
+  const title = words.slice(0, 7).join(' ').replace(/^\p{L}/u, (c) => c.toUpperCase()) || 'Uncharted world';
+  const designation = `AIWE-${(hashString(q) % 9000) + 1000}${'bcd'[Math.floor(r() * 3)]}`;
+  const audioParams = { baseFreq: 40 + r() * 40, filterCutoff: 250 + r() * 500, lfoRate: 0.5 + r() };
+  const lore = 'Offline synthesis: no AI ephemeris was reachable, so the engine generated a physically plausible body from your description. Connect a Gemini key for catalog-accurate results.';
+
+  if (['nebula', 'spiral_galaxy', 'black_hole'].includes(kind)) {
+    return { sectorTitle: title, lore, audioParams, objects: [{ name: designation, bodyType: kind, radius: kind === 'black_hole' ? 6 : 50 }] };
   }
+  const star = STAR_TEMPS.find(([re]) => re.test(q));
+  const moonCount = Math.min(4, +(q.match(/(\d+|two|three|four)\s+moons?/)?.[1]?.replace('two', '2').replace('three', '3').replace('four', '4') || (/moon/.test(q) ? 1 : 0)));
+  const planet = { name: designation, bodyType: kind, radius: 4, hasRings: /ring/.test(q) || (kind === 'gas_giant' && r() > 0.6), hasClouds: kind === 'terran' || kind === 'cloudy', prompt: text };
+  const objects = [];
+  if (star) {
+    objects.push({ name: `${star[3]} ${designation.slice(0, -1)}`, bodyType: 'star', radius: star[1] < 4000 ? 3 : 5, temperatureK: star[1], color: star[2] });
+    Object.assign(planet, { radius: 1.6, distance: 26 });
+  }
+  objects.push(planet);
+  for (let i = 0; i < moonCount; i++) {
+    objects.push({ name: `${designation} ${['I', 'II', 'III', 'IV'][i]}`, bodyType: r() > 0.5 ? 'ice' : 'barren', radius: planet.radius * (0.12 + r() * 0.12), distance: planet.radius * (3 + i * 1.8), parent: designation });
+  }
+  return { sectorTitle: title, lore, audioParams, objects, ...(star ? {} : { sun: [900, 200, 500] }) };
 }
 
-// --- DYNAMIC MODEL DISCOVERY & WATERFALL BUILDER ---
-async function discoverGeminiModels() {
-  try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${geminiKey}`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    
-    const data = await res.json();
-    if (data && data.models) {
-      const validModels = data.models
-        .filter(m => 
-          m.supportedGenerationMethods?.includes('generateContent') &&
-          !m.name.includes('tts') &&
-          !m.name.includes('embedding') &&
-          !m.name.includes('transcribe') &&
-          !m.name.includes('image') &&
-          !m.name.includes('gemma')
-        )
-        .map(m => ({
-          id: m.name.replace('models/', ''),
-          versionString: m.version || '',
-          description: m.description || ''
-        }));
+function loadWorld(config, { source = 'Preset', warp = 1 } = {}) {
+  textures.cancelAll();
+  state.removeUpdater?.();
+  state.world?.dispose();
+  selectBody(null);
 
-      validModels.sort((a, b) => {
-        const getVer = (str) => {
-          const match = str.match(/(\d+(\.\d+)?)/);
-          return match ? parseFloat(match[0]) : 0;
-        };
+  const world = new World(engine, config);
+  world.setOrbitsVisible(document.getElementById('t-orbits').checked);
+  state.world = world;
+  state.config = config;
+  state.removeUpdater = engine.addUpdater((t, dt) => world.update(t, dt));
 
-        const vA = getVer(a.id);
-        const vB = getVer(b.id);
-        if (vA !== vB) return vB - vA;
+  const b = world.bounds();
+  director.stopFollow();
+  director.frameSphere(b.center, framingRadius(world, b), { warp, duration: warp ? 3.2 : 0.01, direction: framingDirection(world) });
 
-        const getDateVal = (str) => {
-          const match = str.match(/(\d{2})-(\d{4})/);
-          if (match) return parseInt(match[2]) * 100 + parseInt(match[1]);
-          return 0;
-        };
+  ui.setSector({ title: config.sectorTitle, lore: config.lore, source, config });
+  synth.apply(config.audioParams);
+  if (state.aiTextures) requestTextures(world);
+  return world;
+}
 
-        const dateA = getDateVal(a.versionString);
-        const dateB = getDateVal(b.versionString);
-        if (dateA !== dateB) return dateB - dateA;
+// Single-planet scenes frame the hero body; systems frame everything.
+function framingRadius(world, b) {
+  const hero = world.bodies[0];
+  const isPlanetary = hero && !world.star && ['planet', 'gas_giant', 'asteroid', 'comet'].includes(hero.kind);
+  if (!isPlanetary) return b.radius;
+  return hero.radius * (hero.spec.rings ? 2.0 : 1.12);
+}
 
-        const aFlash = a.id.includes('flash') ? 1 : 0;
-        const bFlash = b.id.includes('flash') ? 1 : 0;
-        return bFlash - aFlash;
+// Three-quarter lighting: place the camera ~65 degrees around from the sun so the terminator shows.
+function framingDirection(world) {
+  if (world.star) return null;
+  const s = world.sunPos.clone().setY(0).normalize();
+  const dir = s.applyAxisAngle(new THREE.Vector3(0, 1, 0), -1.15);
+  dir.y = 0.28;
+  return dir.normalize();
+}
+
+function requestTextures(world) {
+  const eligible = world.bodies.filter((b) => ['planet', 'gas_giant', 'asteroid'].includes(b.kind)).slice(0, 6);
+  for (const body of eligible) {
+    textures.request(TextureService.surfacePrompt(body.spec))
+      .then((tex) => { if (state.world === world && tex) body.setTexture(tex); })
+      .catch(() => {
+        if (state.textureWarned) return;
+        state.textureWarned = true;
+        ui.toast('AI texture service unavailable — keeping procedural surfaces', 4200);
       });
-
-      if (validModels.length > 0) {
-        dynamicModelQueue = validModels.map(m => m.id);
-        speakNarration("Astrometric navigation telemetry online. Subspace ephemeris calibration complete.");
-      }
-    }
-  } catch (err) {
-    console.warn("Could not fetch dynamic model list, using default fallback queue.", err);
   }
 }
 
-function setupSecurity() {
-  const tokenInput = document.getElementById('hf-token-input');
-  const groqInput = document.getElementById('groq-token-input');
-  const tokenBtn = document.getElementById('save-token-btn');
-  const status = document.getElementById('token-status');
-
-  if (geminiKey && tokenInput) {
-    tokenInput.value = geminiKey;
-  }
-  if (groqKey && groqInput) {
-    groqInput.value = groqKey;
-  }
-
-  const refreshStatusText = () => {
-    if (!status) return;
-    if (geminiKey && groqKey) {
-      status.innerText = "Groq Cockpit + Gemini Science + Pollinations Visuals active.";
-      status.style.color = "#4ade80";
-    } else if (geminiKey) {
-      status.innerText = "Gemini API Key active (Add Groq key for fast cockpit callouts).";
-      status.style.color = "#4ade80";
-    } else if (groqKey) {
-      status.innerText = "Groq Cockpit active (Add Gemini key for full science & long narration).";
-      status.style.color = "#38bdf8";
-    } else {
-      status.innerText = "Running via Pollinations & local fallbacks (Add API keys for full split).";
-      status.style.color = "#fbbf24";
-    }
-  };
-
-  refreshStatusText();
-
-  if (tokenBtn) {
-    tokenBtn.addEventListener('click', async () => {
-      const nextGemini = tokenInput ? tokenInput.value.trim() : geminiKey;
-      const nextGroq = groqInput ? groqInput.value.trim() : groqKey;
-
-      if (nextGemini) {
-        localStorage.setItem('gemini_api_key', nextGemini);
-        geminiKey = nextGemini;
-      } else if (tokenInput) {
-        localStorage.removeItem('gemini_api_key');
-        geminiKey = '';
-      }
-
-      if (nextGroq) {
-        localStorage.setItem('groq_api_key', nextGroq);
-        groqKey = nextGroq;
-      } else if (groqInput) {
-        localStorage.removeItem('groq_api_key');
-        groqKey = '';
-      }
-
-      refreshStatusText();
-      if (geminiKey) {
-        await discoverGeminiModels();
-      }
-    });
-  }
-}
-
-// --- THREE.JS INITIALIZATION ---
-function initThreeJS() {
-  const container = document.getElementById('viewport') || document.body;
-  scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x02040a);
-  scene.fog = new THREE.FogExp2(0x02040a, 0.0012);
-
-  camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 25000);
-  camera.position.set(0, 5, 15);
-
-  renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
-  renderer.setSize(container.clientWidth, container.clientHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-
-  renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.3;
-
-  renderer.domElement.style.display = 'block';
-  renderer.domElement.style.width = '100%';
-  renderer.domElement.style.height = '100%';
-  renderer.domElement.style.touchAction = 'none';
-  container.appendChild(renderer.domElement);
-
-  systemGroup = new THREE.Group();
-  scene.add(systemGroup);
-
-  const dirLight = new THREE.DirectionalLight(0xffffff, 3.2);
-  dirLight.position.set(25, 18, 22);
-  scene.add(dirLight);
-
-  const ambientLight = new THREE.AmbientLight(0x384868, 0.9);
-  scene.add(ambientLight);
-
-  createEnhancedStarfield();
-  createInitialPlanet();
-
-  window.addEventListener('resize', () => {
-    camera.aspect = container.clientWidth / container.clientHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(container.clientWidth, container.clientHeight);
-  });
-}
-
-function createInitialPlanet() {
-  const geo = new THREE.SphereGeometry(2.0, 64, 48);
-  const planetMaterial = new THREE.MeshStandardMaterial({ 
-    color: 0x197da8, 
-    roughness: 0.45, 
-    metalness: 0.05
-  });
-  const planet = new THREE.Mesh(geo, planetMaterial);
-  planet.name = 'Starter World';
-  systemGroup.add(planet);
-
-  addAtmosphereShell(planet, 2.08, new THREE.Color(0x38bdf8), 0.55);
-
-  activeAnimatedMeshes.push({
-    mesh: planet,
-    type: 'spin',
-    speed: 0.15,
-    distance: 0
-  });
-}
-
-function createEnhancedStarfield() {
-  const count = 6000;
-  const positions = new Float32Array(count * 3);
-  const sizes = new Float32Array(count);
-  const phases = new Float32Array(count);
-
-  for (let i = 0; i < count; i++) {
-    const z = Math.random() * 2 - 1;
-    const theta = Math.random() * Math.PI * 2;
-    const radial = Math.sqrt(Math.max(0, 1 - z * z));
-    const radius = 300 + Math.random() * 500;
-    positions[i * 3] = radial * Math.cos(theta) * radius;
-    positions[i * 3 + 1] = z * radius;
-    positions[i * 3 + 2] = radial * Math.sin(theta) * radius;
-    sizes[i] = 1.0 + Math.random() * 2.0;
-    phases[i] = Math.random() * Math.PI * 2;
-  }
-
-  const starGeo = new THREE.BufferGeometry();
-  starGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-  starGeo.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1));
-  starGeo.setAttribute('aPhase', new THREE.BufferAttribute(phases, 1));
-
-  starMaterial = new THREE.ShaderMaterial({
-    transparent: true,
-    depthWrite: false,
-    blending: THREE.AdditiveBlending,
-    uniforms: { uTime: { value: 0 } },
-    vertexShader: `
-      attribute float aSize;
-      attribute float aPhase;
-      uniform float uTime;
-      varying float vAlpha;
-      void main() {
-        vec4 viewPosition = modelViewMatrix * vec4(position, 1.0);
-        gl_Position = projectionMatrix * viewPosition;
-        gl_PointSize = clamp(aSize * (240.0 / max(1.0, -viewPosition.z)), 1.0, 3.5);
-        vAlpha = 0.6 + 0.4 * sin(uTime * (0.8 + aPhase * 0.1) + aPhase);
-      }
-    `,
-    fragmentShader: `
-      varying float vAlpha;
-      void main() {
-        float dist = distance(gl_PointCoord, vec2(0.5));
-        if (dist > 0.5) discard;
-        float mask = 1.0 - smoothstep(0.1, 0.5, dist);
-        gl_FragColor = vec4(vec3(0.8, 0.9, 1.0), mask * vAlpha);
-      }
-    `
-  });
-
-  starField = new THREE.Points(starGeo, starMaterial);
-  starField.frustumCulled = false;
-  scene.add(starField);
-}
-
-function addAtmosphereShell(parent, radius, color, opacity = 0.5) {
-  const shell = new THREE.Mesh(
-    new THREE.SphereGeometry(radius, 48, 32),
-    new THREE.ShaderMaterial({
-      uniforms: {
-        uGlowColor: { value: color.clone() },
-        uOpacity: { value: opacity }
-      },
-      vertexShader: `
-        varying vec3 vNormal;
-        varying vec3 vViewDir;
-        void main() {
-          vec4 viewPosition = modelViewMatrix * vec4(position, 1.0);
-          vNormal = normalize(normalMatrix * normal);
-          vViewDir = normalize(-viewPosition.xyz);
-          gl_Position = projectionMatrix * viewPosition;
-        }
-      `,
-      fragmentShader: `
-        uniform vec3 uGlowColor;
-        uniform float uOpacity;
-        varying vec3 vNormal;
-        varying vec3 vViewDir;
-        void main() {
-          float facing = max(dot(normalize(vNormal), normalize(vViewDir)), 0.0);
-          float rim = pow(1.0 - facing, 2.5);
-          gl_FragColor = vec4(uGlowColor, rim * uOpacity);
-        }
-      `,
-      side: THREE.BackSide,
-      transparent: true,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending
-    })
-  );
-  shell.name = 'AtmosphereGlow';
-  parent.add(shell);
-  return shell;
-}
-
-// --- PROCEDURAL SPIRAL GALAXY PARTICLE GENERATOR ---
-function createSpiralGalaxyPoints(baseColorHex) {
-  const particleCount = 12000;
-  const geometry = new THREE.BufferGeometry();
-  const positions = new Float32Array(particleCount * 3);
-  const colors = new Float32Array(particleCount * 3);
-
-  const baseColor = new THREE.Color(baseColorHex || 0x38bdf8);
-  const coreColor = new THREE.Color(0xffffff);
-  const arms = 2;
-  const radius = 12.0;
-
-  for (let i = 0; i < particleCount; i++) {
-    const r = Math.pow(Math.random(), 1.5) * radius;
-    const armAngle = ((i % arms) / arms) * Math.PI * 2;
-    const spiralAngle = r * 0.75;
-    const scatter = (Math.random() - 0.5) * 1.2 * (r / radius + 0.2);
-
-    const theta = armAngle + spiralAngle + scatter;
-
-    const x = Math.cos(theta) * r;
-    const z = Math.sin(theta) * r;
-    const y = (Math.random() - 0.5) * 0.8 * (radius - r) * 0.2;
-
-    positions[i * 3] = x;
-    positions[i * 3 + 1] = y;
-    positions[i * 3 + 2] = z;
-
-    const mixedColor = coreColor.clone().lerp(baseColor, r / radius);
-    colors[i * 3] = mixedColor.r;
-    colors[i * 3 + 1] = mixedColor.g;
-    colors[i * 3 + 2] = mixedColor.b;
-  }
-
-  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-
-  const material = new THREE.PointsMaterial({
-    size: 0.12,
-    vertexColors: true,
-    transparent: true,
-    opacity: 0.85,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false
-  });
-
-  const galaxyPoints = new THREE.Points(geometry, material);
-  galaxyPoints.frustumCulled = false;
-  return galaxyPoints;
-}
-
-// --- LOGARITHMIC SPIRAL TEXTURE MASKING SHADER ---
-function createTexturedSpiralShader(texture, baseColorHex) {
-  return new THREE.ShaderMaterial({
-    uniforms: {
-      uTexture: { value: texture },
-      uTime: { value: 0 },
-      uBaseColor: { value: new THREE.Color(baseColorHex || 0x38bdf8) }
-    },
-    vertexShader: `
-      varying vec2 vUv;
-      void main() {
-        vUv = uv;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }
-    `,
-    fragmentShader: `
-      uniform sampler2D uTexture;
-      uniform float uTime;
-      uniform vec3 uBaseColor;
-      varying vec2 vUv;
-
-      void main() {
-        vec2 centeredUv = vUv * 2.0 - 1.0;
-        float r = length(centeredUv);
-        float theta = atan(centeredUv.y, centeredUv.x);
-        
-        float spiralArms = 2.0;
-        float tightness = 1.5;
-        float spiralUV_X = r * 0.5 + 0.5;
-        float spiralUV_Y = mod(theta * (spiralArms / 6.28318) - (r * tightness) + (uTime * 0.05), 1.0);
-        
-        vec4 texColor = texture2D(uTexture, vec2(spiralUV_X, spiralUV_Y));
-        float alphaMask = smoothstep(1.0, 0.2, r);
-        
-        vec3 finalColor = mix(uBaseColor, texColor.rgb * 1.5, 0.7);
-        gl_FragColor = vec4(finalColor, texColor.a * alphaMask * 0.9);
-      }
-    `,
-    transparent: true,
-    side: THREE.DoubleSide,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false
-  });
-}
-
-// --- PROCEDURAL VERTEX DISPLACER (Organic Irregularity) ---
-function perturbGeometry(geometry, intensity = 0.12) {
-  const positionAttribute = geometry.attributes.position;
-  const vertex = new THREE.Vector3();
-  
-  for (let i = 0; i < positionAttribute.count; i++) {
-    vertex.fromBufferAttribute(positionAttribute, i);
-    const length = vertex.length();
-    
-    const noise = (
-      Math.sin(vertex.x * 2.5) * Math.cos(vertex.y * 2.5) * Math.sin(vertex.z * 2.5) +
-      0.5 * Math.sin(vertex.x * 6.0) * Math.cos(vertex.z * 6.0)
-    );
-    
-    vertex.normalize().multiplyScalar(length + noise * intensity);
-    positionAttribute.setXYZ(i, vertex.x, vertex.y, vertex.z);
-  }
-  
-  positionAttribute.needsUpdate = true;
-  geometry.computeVertexNormals();
-}
-
-// --- MCGS v1.0 GEOMETRY FACTORY ---
-function createDynamicGeometry(type, args) {
-  const p = args || [];
-  const geomType = type ? type.toLowerCase() : 'sphere';
-
-  let geom;
-  switch (geomType) {
-    case 'torus':
-    case 'accretion_disk':
-      geom = new THREE.TorusGeometry(p[0] || 3.2, p[1] || 0.3, p[2] || 64, p[3] || 128);
-      break;
-    case 'disk':
-    case 'ring':
-    case 'planetary_ring':
-      geom = new THREE.RingGeometry(p[0] || 2.4, p[1] || 4.8, p[2] || 128);
-      break;
-    case 'icosahedron':
-    case 'asteroid':
-    case 'comet':
-    case 'irregular_body':
-      geom = new THREE.IcosahedronGeometry(p[0] || 2.0, p[1] || 4);
-      perturbGeometry(geom, 0.15);
-      break;
-    case 'ellipsoid':
-    case 'stretched_planet':
-      geom = new THREE.SphereGeometry(p[0] || 2.0, 64, 48);
-      geom.scale(1.2, 0.85, 1.0);
-      break;
-    case 'sphere':
-    default:
-      geom = new THREE.SphereGeometry(p[0] || 2.0, 64, 48);
-      break;
-  }
-  return geom;
-}
-
-// --- NEXT-GEN PROCEDURAL PLASMA & FLUID TURBULENCE SHADER ---
-function createPlasmaShaderMaterial(baseColorHex) {
-  return new THREE.ShaderMaterial({
-    uniforms: {
-      uTime: { value: 0 },
-      uBaseColor: { value: new THREE.Color(baseColorHex || 0x38bdf8) }
-    },
-    vertexShader: `
-      uniform float uTime;
-      varying vec3 vNormal;
-      varying vec3 vPosition;
-
-      float noise(vec3 p) {
-        return sin(p.x * 4.0 + uTime) * cos(p.y * 4.0 + uTime) * sin(p.z * 4.0 + uTime);
-      }
-
-      void main() {
-        vNormal = normal;
-        vPosition = position;
-        vec3 displaced = position + normal * (noise(position * 0.5) * 0.35);
-        vec4 mvPosition = modelViewMatrix * vec4(displaced, 1.0);
-        gl_Position = projectionMatrix * mvPosition;
-      }
-    `,
-    fragmentShader: `
-      uniform float uTime;
-      uniform vec3 uBaseColor;
-      varying vec3 vNormal;
-      varying vec3 vPosition;
-
-      void main() {
-        float intensity = 0.6 + 0.4 * sin(vPosition.y * 0.8 + uTime * 2.0);
-        vec3 finalColor = uBaseColor * intensity + vec3(0.2, 0.05, 0.4) * cos(uTime);
-        gl_FragColor = vec4(finalColor, 0.82);
-      }
-    `,
-    transparent: true,
-    side: THREE.DoubleSide,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false
-  });
-}
-
-// --- AUDIO SYSTEM (Refined Warm Ambient Space Pad) ---
-function initWebAudio() {
-  if (audioInitialized) return;
-  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  
-  osc1 = audioCtx.createOscillator(); 
-  osc2 = audioCtx.createOscillator();
-  osc1.type = 'sine'; 
-  osc2.type = 'triangle';
-  osc2.detune.value = 6;
-
-  filterNode = audioCtx.createBiquadFilter();
-  filterNode.type = 'lowpass'; 
-  filterNode.frequency.value = 240;
-
-  lfoNode = audioCtx.createOscillator(); 
-  lfoGain = audioCtx.createGain();
-  lfoNode.frequency.value = 0.35;
-  lfoGain.gain.value = 70;
-  
-  lfoNode.connect(lfoGain); 
-  lfoGain.connect(filterNode.frequency);
-
-  const masterGain = audioCtx.createGain(); 
-  masterGain.gain.value = 0.08;
-
-  osc1.connect(filterNode); 
-  osc2.connect(filterNode);
-  filterNode.connect(masterGain); 
-  masterGain.connect(audioCtx.destination);
-
-  osc1.start(); 
-  osc2.start(); 
-  lfoNode.start();
-  audioInitialized = true;
-}
-
-function updateAudioSynth(params) {
-  if (!audioInitialized || !params) return;
-  if (audioCtx.state === 'suspended') audioCtx.resume();
-  const now = audioCtx.currentTime;
-  if (params.baseFreq) osc1.frequency.exponentialRampToValueAtTime(params.baseFreq, now + 1.5);
-  if (params.baseFreq) osc2.frequency.exponentialRampToValueAtTime(params.baseFreq * 1.5, now + 1.5);
-  if (params.filterCutoff) filterNode.frequency.exponentialRampToValueAtTime(params.filterCutoff, now + 1.5);
-  if (params.lfoRate) lfoNode.frequency.linearRampToValueAtTime(params.lfoRate, now + 1.5);
-}
-
-let lastSpokenText = '';
-function speakText(text, force = false) {
-  if (!('speechSynthesis' in window)) return;
-  if (!force && text === lastSpokenText) return;
-  lastSpokenText = text;
-  
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = currentLang;
-
-  const voices = window.speechSynthesis.getVoices();
-  const matchedVoice = voices.find(v => 
-    v.lang === currentLang || 
-    v.lang.startsWith(currentLang.split('-')[0])
-  );
-
-  if (matchedVoice) {
-    utterance.voice = matchedVoice;
-  }
-
-  utterance.pitch = 0.85; 
-  utterance.rate = 1.0;
-  window.speechSynthesis.speak(utterance);
-}
-
-if ('speechSynthesis' in window) {
-  window.speechSynthesis.onvoiceschanged = () => {
-    window.speechSynthesis.getVoices();
-  };
-}
-
-// --- GROQ COCKPIT PARSER & ORPHEUS SHORT CALLOUTS ---
-async function parseFastCockpitWithGroq(commandText, signal) {
-  if (!groqKey) return null;
-
-  try {
-    const res = await fetch(GROQ_CHAT_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${groqKey}`
-      },
-      body: JSON.stringify({
-        model: GROQ_FAST_MODEL,
-        response_format: { type: 'json_object' },
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a fast starship flight computer. Return JSON only: {"callout": "short <= 150 char English callout, optional tag like [authoritatively]", "cameraPosition": [x,y,z], "cameraTarget": [x,y,z]}.'
-          },
-          { role: 'user', content: commandText }
-        ]
-      }),
-      signal
-    });
-
-    if (!res.ok) return null;
-    const data = await res.json();
-    const content = data?.choices?.[0]?.message?.content;
-    return content ? JSON.parse(content) : null;
-  } catch (err) {
-    if (err.name !== 'AbortError') {
-      console.warn('[GROQ COCKPIT] Fast parse skipped:', err.message);
-    }
-    return null;
-  }
-}
-
-async function speakGroqCallout(text) {
-  const trimmed = (text || '').slice(0, 180);
-  const isEnglish = currentLang.toLowerCase().startsWith('en');
-
-  if (!groqKey || !isEnglish || !trimmed) {
-    speakText(trimmed, true);
-    return;
-  }
-
-  try {
-    const res = await fetch(GROQ_SPEECH_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${groqKey}`
-      },
-      body: JSON.stringify({
-        model: GROQ_TTS_MODEL,
-        voice: 'troy',
-        input: trimmed,
-        response_format: 'wav'
-      })
-    });
-
-    if (!res.ok) throw new Error(`Groq TTS HTTP ${res.status}`);
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const audio = new Audio(url);
-    audio.onended = () => URL.revokeObjectURL(url);
-    await audio.play();
-  } catch (err) {
-    console.warn('[TTS ROUTER] Groq Orpheus fallback to browser speech:', err.message);
-    speakText(trimmed.replace(/^\[[^\]]+\]\s*/, ''), true);
-  }
-}
-
-// --- GEMINI LONG / MULTILINGUAL NARRATION ROUTER ---
-async function speakNarration(text, force = false) {
+// ---------- Command pipeline ----------
+async function processCommand(raw) {
+  const text = (raw || '').trim();
   if (!text) return;
-  const isEnglish = currentLang.toLowerCase().startsWith('en');
-
-  // Short English messages use Groq Orpheus for crisp, low-latency callouts
-  if (isEnglish && text.length <= 180) {
-    return speakGroqCallout(text);
-  }
-
-  // Long or non-English narration uses Gemini TTS when available, with browser speech fallback
-  if (!geminiKey) {
-    speakText(text, force);
-    return;
-  }
-
-  try {
-    const ttsModel = text.length > 500 ? GEMINI_LONG_TTS_MODEL : GEMINI_LITE_TTS_MODEL;
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${ttsModel}:generateContent?key=${geminiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text }] }],
-          generationConfig: {
-            responseModalities: ['AUDIO']
-          }
-        })
-      }
-    );
-
-    if (!res.ok) throw new Error(`Gemini TTS HTTP ${res.status}`);
-    const data = await res.json();
-    const inlineAudio = data?.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData;
-
-    if (!inlineAudio?.data) {
-      speakText(text, force);
-      return;
-    }
-
-    const mimeType = inlineAudio.mimeType || 'audio/wav';
-    const audio = new Audio(`data:${mimeType};base64,${inlineAudio.data}`);
-    await audio.play();
-  } catch (err) {
-    console.warn('[TTS ROUTER] Gemini TTS fallback to browser speech:', err.message);
-    speakText(text, force);
-  }
-}
-
-// --- PROCESS COMMAND WITH GROQ REFLEX + GEMINI SCIENCE + POLLINATIONS TEXTURES ---
-async function processCommand(commandText) {
-  const requestId = ++commandSequence;
-  if (currentCommandAbort) currentCommandAbort.abort();
-  const controller = new AbortController();
-  currentCommandAbort = controller;
-
-  const transcriptEl = document.getElementById('transcript');
-  const hudStatusEl = document.getElementById('hud-nav-status');
-  const titleEl = document.getElementById('sector-title');
-  const loreEl = document.getElementById('sector-lore');
-  const liveCodeEl = document.getElementById('live-code') || document.querySelector('.sidebar pre') || document.querySelector('#sidebar pre') || document.getElementById('code-preview');
-
-  if (transcriptEl) transcriptEl.innerText = `"${commandText}"`;
-
-  if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: ASTROMETRIC_SCAN';
-  speakGroqCallout(`[authoritatively] Locking vector for ${commandText}.`);
-
-  console.log(`%c[ASTROMETRIC LIFECYCLE] 🚀 STAGE 1: INPUT TO COCKPIT & SCIENCE COMPUTERS`, `color: #38bdf8; font-weight: bold;`);
-  console.log(`👉 User Nav Command: "${commandText}"`);
-
-  // Kick off Groq fast cockpit reflex in parallel with Gemini ephemeris generation
-  const groqFastPromise = parseFastCockpitWithGroq(commandText, controller.signal);
-  const aiPromptPayload = buildPromptText(commandText);
-
-  let worldConfig = null;
-
-  if (hudStatusEl) hudStatusEl.innerText = 'EPHEMERIS: CALCULATING...';
-
-  const fastCockpit = await groqFastPromise;
-  if (requestId !== commandSequence) return;
-  if (fastCockpit?.callout) {
-    speakGroqCallout(fastCockpit.callout);
-  }
-
-  if (geminiKey && dynamicModelQueue.length > 0) {
-    for (let i = 0; i < dynamicModelQueue.length; i++) {
-      if (requestId !== commandSequence) return;
-      const timeoutController = new AbortController();
-      const timeoutId = setTimeout(() => timeoutController.abort(), 12000);
-
-      try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${dynamicModelQueue[i]}:generateContent?key=${geminiKey}`;
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: aiPromptPayload }] }],
-            generationConfig: { responseMimeType: "application/json" }
-          }),
-          signal: timeoutController.signal
-        });
-
-        clearTimeout(timeoutId);
-
-        if (res.status === 429 || res.status === 503) {
-          continue; 
-        }
-
-        if (res.ok) {
-          const data = await res.json();
-          let rawJson = data.candidates[0].content.parts[0].text;
-          rawJson = rawJson.replace(/```json/gi, '').replace(/```/g, '').trim();
-          if (rawJson.includes('{')) {
-            rawJson = rawJson.substring(rawJson.indexOf('{'), rawJson.lastIndexOf('}') + 1);
-          }
-          worldConfig = JSON.parse(rawJson);
-          break; 
-        }
-      } catch (err) {
-        clearTimeout(timeoutId);
-      }
-    }
-  }
-
-  if (!worldConfig && requestId === commandSequence) {
-    try {
-      const pController = new AbortController();
-      const pTimeoutId = setTimeout(() => pController.abort(), 10000);
-      const pRes = await fetch('https://text.pollinations.ai/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [{ role: 'user', content: aiPromptPayload }],
-          jsonMode: true
-        }),
-        signal: pController.signal
-      });
-      clearTimeout(pTimeoutId);
-
-      if (pRes.ok) {
-        const pText = await pRes.text();
-        let cleanJson = pText.trim();
-        if (cleanJson.includes('{')) {
-          cleanJson = cleanJson.substring(cleanJson.indexOf('{'), cleanJson.lastIndexOf('}') + 1);
-        }
-        worldConfig = JSON.parse(cleanJson);
-      }
-    } catch (e) {}
-  }
-
-  if (!worldConfig && requestId === commandSequence) {
-    console.warn(`[ASTROMETRIC LIFECYCLE] ⚠ AI generation failed or timed out. Falling back to pure procedural math generator.`);
-    worldConfig = generateFallbackWorld(commandText);
-  }
-
-  if (requestId !== commandSequence) return;
-
-  console.log(`%c[ASTROMETRIC LIFECYCLE] 🤖 STAGE 2: OUTPUT FROM SCIENCE NAVIGATION COMPUTER`, `color: #4ade80; font-weight: bold;`);
-  console.log(`📦 Parsed Sector Ephemeris Object (JSON Output):`, worldConfig);
-
-  if (titleEl && worldConfig.sectorTitle) titleEl.innerText = worldConfig.sectorTitle;
-  if (loreEl && worldConfig.lore) loreEl.innerText = worldConfig.lore;
-  if (worldConfig.audioParams) updateAudioSynth(worldConfig.audioParams);
-
-  if (liveCodeEl) {
-    liveCodeEl.innerText = JSON.stringify(worldConfig, null, 2);
-  }
-
-  if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: MAPPING SECTOR';
-  speakNarration(worldConfig.speechResponse || "Sector coordinates acquired. Materializing structural objects.", true);
-
-  await applyWorldConfig(worldConfig, hudStatusEl);
-}
-
-// --- ONBOARD ASTROMETRIC NAVIGATION & EPHEMERAL COMPUTER PROMPT ---
-function buildPromptText(commandText) {
-  return `
-You are a precise, scientifically accurate astronomical ephemeris generator.
-User Navigation Command: "${commandText}"
-Target Language Locale Code: "${currentLang}"
-
-STRICT SCIENTIFIC FACTUALITY & GEOMETRIC VARIETY RULES:
-1. STRICT ASTRONOMICAL ACCURACY: Rely strictly on real-world astronomical facts (NASA/IAU databases). NEVER invent fake catalog numbers, fictional sci-fi protocols, or non-existent exoplanet designations for real solar system objects.
-2. REAL-WORLD CLASSIFICATION: Correctly classify target bodies. Pluto is a "Dwarf Planet in the Kuiper Belt", NOT an exoplanet.
-3. MULTI-OBJECT BREAKDOWN & GEOMETRY: For star systems, planetary systems with moons, asteroid belts, or diffuse regions like the Oort Cloud, you MUST generate a comprehensive list of multiple objects in the "objects" array (e.g., scattering multiple individual bodies or fragments across different positions) rather than compressing the entire phenomenon into a single sphere. Choose appropriate geometryType values: "sphere" for large equilibrium bodies, "icosahedron" or "asteroid" for irregular rocky/icy bodies, "ellipsoid" for stretched objects, and "ring" strictly for scientifically verified ringed systems.
-4. NATURAL LANGUAGE COLOR DESCRIPTIONS: You MUST supply both "color" (valid Hex code for WebGL materials) AND "colorDescription" (natural language color palette phrase for texture synthesis, e.g. "deep sapphire blue oceans, turquoise shallow seas, and swirling white cloud bands" for Earth, or "rich saturated rusty red-orange iron oxide dust and dark basaltic rock" for Mars).
-5. ACCURATE LORE & TELEMETRY: In "sectorTitle" and "lore", provide strictly factual scientific details regarding atmosphere, composition, distance, and known moons.
-6. MULTILINGUAL OUTPUT: Respond with all text telemetry fields ("sectorTitle", "lore", and "speechResponse") written natively in the language specified by locale code "${currentLang}".
-7. ENGLISH TEXTURE PROMPTS: Keep the internal "prompt" and "colorDescription" fields detailed and written in English for texture synthesis.
-
-Return ONLY valid raw JSON matching this structure:
-{
-  "sectorTitle": "Factual Celestial Name & Classification (In target language)",
-  "lore": "Scientifically accurate astronomical description (In target language)",
-  "speechResponse": "Concise factual arrival telemetry statement (In target language)",
-  "cameraPosition": [0, 25, 50],
-  "cameraTarget": [0, 0, 0],
-  "objects": [
-    {
-      "name": "Factual Object Name",
-      "geometryType": "sphere",
-      "geometryArgs": [2.0, 64, 48],
-      "position": [0, 0, 0],
-      "rotation": [0, 0, 0],
-      "distance": 12.0,
-      "orbitalSpeed": 0.02,
-      "color": "#197da8",
-      "colorDescription": "vibrant natural language color palette description in English",
-      "emissive": false,
-      "emissiveColor": "#ffaa00",
-      "emissiveIntensity": 0,
-      "roughness": 0.45,
-      "metalness": 0.08,
-      "prompt": "Detailed surface topography prompt in English for texture synthesis",
-      "animationType": "orbit",
-      "animationSpeed": 0.02
-    }
-  ],
-  "audioParams": { "baseFreq": 60.0, "filterCutoff": 400.0, "lfoRate": 1.0 }
-}
-`;
-}
-
-// --- BULLETPROOF AWS TEXTURE LOADER WITH UPSTREAM ERROR CATCHING ---
-async function loadCustomAITextureWithThrottle(promptText, maxRetries = 3, initialDelay = 3000) {
-
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    let blobUrl = null;
-    try {
-      console.log(`[AWS TEXTURE ENGINE] Requesting texture for prompt: "${promptText}" (Attempt ${attempt + 1})`);
-      
-      const response = await fetch(CONFIG.AWS_IMAGE_URL_API, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: promptText,
-          negative_prompt: "3d sphere, globe, framed picture, black borders, white borders, centered planet, outer space, stars, studio lighting, heavy shadows, vignette, 3d rendering, perspective, egg shape, white background, gray background, glowing border, desaturated, monochrome, grayscale",
-          width: 1024,
-          height: 512
-        })
-      });
-
-      if (!response.ok) {
-        const errorBody = await response.text();
-        console.error(`[AWS TEXTURE ENGINE] Upstream provider error (${response.status}):`, errorBody);
-        if (response.status === 402 || response.status === 429 || response.status === 502) {
-          throw new Error(`PROVIDER_BUDGET_OR_RATE_LIMIT_${response.status}: ${errorBody}`);
-        }
-        throw new Error(`HTTP Error ${response.status}`);
-      }
-
-      const result = await response.json();
-      if (!result.success || !result.image) {
-        throw new Error("API returned unsuccessful generation result");
-      }
-
-      // Convert raw base64 safely into a Blob URL
-      const rawBase64 = result.image.includes('base64,') ? result.image.split('base64,')[1] : result.image;
-      const byteCharacters = atob(rawBase64);
-      const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-      }
-      const byteArray = new Uint8Array(byteNumbers);
-      const blob = new Blob([byteArray], { type: 'image/jpeg' });
-      blobUrl = URL.createObjectURL(blob);
-
-      const texture = await textureLoader.loadAsync(blobUrl);
-      URL.revokeObjectURL(blobUrl);
-      
-      texture.colorSpace = THREE.SRGBColorSpace;
-      texture.needsUpdate = true;
-      
-      console.log(`[AWS TEXTURE ENGINE] ✔ Texture successfully loaded and applied for: "${promptText}"`);
-      return texture;
-
-    } catch (err) {
-      if (blobUrl) URL.revokeObjectURL(blobUrl);
-      
-      if (err.message.includes('PROVIDER_BUDGET_OR_RATE_LIMIT')) {
-        console.error(`[AWS TEXTURE ENGINE] ✖ Aborting retries: Upstream account budget or quota limit reached.`);
-        throw err;
-      }
-
-      if (attempt === maxRetries) {
-        console.error(`[AWS TEXTURE ENGINE] ✖ All retries failed for prompt: "${promptText}". Reason:`, err.message);
-        throw err;
-      }
-
-      const multiplier = err.message.includes('RATE_LIMIT') ? 3.0 : (attempt + 1);
-      const waitTime = initialDelay * multiplier;
-      console.warn(`[AWS TEXTURE ENGINE] Attempt ${attempt + 1} failed (${err.message}). Retrying in ${waitTime / 1000}s...`);
-      await new Promise(resolve => setTimeout(resolve, waitTime));
-    }
-  }
-}
-
-// --- PURE ALGORITHMIC PROCEDURAL FALLBACK (NO MOCKUPS) ---
-function generateFallbackWorld(input) {
-  const sanitized = input.trim() || "Unknown Sector";
-  const shortTitle = sanitized.length > 25 ? sanitized.substring(0, 25) + "..." : sanitized;
-  const query = sanitized.toLowerCase();
-
-  let hash = 0;
-  for (let i = 0; i < sanitized.length; i++) {
-    hash = sanitized.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const colorHex = (hash & 0x00FFFFFF).toString(16).toUpperCase();
-  const dynamicColor = "#" + "00000".substring(0, 6 - colorHex.length) + colorHex;
-
-  const isGalaxy = query.includes('galaxy') || query.includes('milky way') || query.includes('andromeda') || query.includes('nebula');
-
-  return {
-    sectorTitle: `Sector: ${shortTitle.toUpperCase()}`,
-    lore: `Astrometric sensors locked onto autonomous procedural coordinates for: "${sanitized}". Real-time environmental and topological parameters calculated via local algorithmic telemetry.`,
-    speechResponse: `Warp vector locked for ${shortTitle}. Procedural telemetry active.`,
-    cameraPosition: [14, 6, 22],
-    cameraTarget: [0, 0, 0],
-    objects: [{
-      name: shortTitle,
-      geometryType: isGalaxy ? 'spiral_galaxy' : 'sphere',
-      geometryArgs: [2.0, 64, 48],
-      position: [0, 0, 0],
-      distance: 0,
-      color: dynamicColor,
-      colorDescription: "vibrant procedural blue and turquoise mineral bands",
-      emissive: false,
-      roughness: 0.4,
-      metalness: 0.1,
-      prompt: `flat equirectangular surface texture map of ${sanitized}, continuous uninterrupted panoramic landscape, wide-angle surface view, seamless horizontal wrapping edges, edge-to-edge organic distribution, absolute zero grid lines, zero square panels, zero tile dividers, zero borders, zero vignettes, zero globes`,
-      animationType: 'spin',
-      animationSpeed: 0.15
-    }],
-    audioParams: { baseFreq: 50.0 + (Math.abs(hash) % 45), filterCutoff: 420.0, lfoRate: 1.2 }
-  };
-}
-
-// --- ASYNC SEQUENTIAL MATERIALIZATION PIPELINE (HIGH-FIDELITY PBR TEXTURE MAPPING) ---
-async function applyWorldConfig(config, hudStatusEl) {
-  while (systemGroup.children.length > 0) {
-    const obj = systemGroup.children[0];
-    obj.traverse(child => {
-      if (child.geometry) child.geometry.dispose();
-      if (child.material) {
-        if (Array.isArray(child.material)) child.material.forEach(m => m.dispose());
-        else child.material.dispose();
-      }
-    });
-    systemGroup.remove(obj);
-  }
-
-  activeAnimatedMeshes = [];
-
-  if (config.cameraPosition && config.cameraTarget) {
-    let [cx, cy, cz] = config.cameraPosition;
-    const [tx, ty, tz] = config.cameraTarget;
-
-    const container = document.getElementById('viewport') || document.body;
-    const aspect = container.clientWidth / container.clientHeight;
-    if (aspect < 1) {
-      const portraitMultiplier = 1.35 / aspect; 
-      cx *= portraitMultiplier;
-      cy *= portraitMultiplier;
-      cz *= portraitMultiplier;
-    }
-
-    camera.position.set(cx, cy, cz);
-    if (controls) {
-      controls.target.set(tx, ty, tz);
-      controls.update(); 
-    } else {
-      camera.lookAt(tx, ty, tz);
-    }
-  }
-
-  const spaceObjects = config.objects || [config];
-  console.log(`[ASTROMETRIC NAVIGATION] 🌌 Initializing Sector: "${config.sectorTitle || 'Unknown Sector'}". Target Object Count: ${spaceObjects.length}`);
-
-  const resolvedAnims = [];
-
-  for (let index = 0; index < spaceObjects.length; index++) {
-    const objConfig = spaceObjects[index];
-    const nameLower = (objConfig.name || '').toLowerCase();
-    const promptLower = (objConfig.prompt || '').toLowerCase();
-    const geomLower = (objConfig.geometryType || '').toLowerCase();
-
-    const isSpiralGalaxy = geomLower === 'spiral_galaxy' || nameLower.includes('milky way') || nameLower.includes('galaxy') || nameLower.includes('andromeda');
-    const isFlatRing = geomLower === 'ring' || geomLower === 'disk' || geomLower === 'planetary_ring' || geomLower === 'accretion_disk';
-    const isGaseousPhenomenon = isSpiralGalaxy ||
-      ['jet', 'cone', 'shell', 'supernova_shell'].includes(geomLower) ||
-      nameLower.includes('nebula') || nameLower.includes('filament') || 
-      nameLower.includes('plasma cloud') || nameLower.includes('synchrotron') ||
-      promptLower.includes('nebula') || promptLower.includes('ionized gas cloud') || 
-      promptLower.includes('synchrotron radiation') || promptLower.includes('stellar remnant') ||
-      promptLower.includes('pillar') || promptLower.includes('cliff');
-
-    const stageText = `MAPPING: ${objConfig.name.toUpperCase()}`;
-    if (hudStatusEl) {
-      hudStatusEl.innerText = stageText;
-    }
-    speakNarration(`Materializing celestial component: ${objConfig.name}.`);
-
-    let mesh;
-    let finalMaterial;
-
-    if (isSpiralGalaxy) {
-      const galaxyGroup = new THREE.Group();
-      const pointsMesh = createSpiralGalaxyPoints(objConfig.color || '#38bdf8');
-      galaxyGroup.add(pointsMesh);
-
-      let loadedTexture = null;
-      if (objConfig.prompt) {
-        const galaxyPrompt = `${objConfig.prompt}, James Webb Space Telescope infrared photography style, hyperrealistic vibrant multi-chromatic iridescent gas plumes and dust lanes, deep space backdrop, 8k resolution`;
-        try {
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          loadedTexture = await loadCustomAITextureWithThrottle(galaxyPrompt, 3, 6000);
-        } catch (err) {
-          console.warn(`[ASTROMETRIC LIFECYCLE] ✖ Galaxy texture FAILED. Using pure particle fallback.`, err);
-        }
-      }
-
-      if (loadedTexture) {
-        loadedTexture.colorSpace = THREE.SRGBColorSpace;
-        loadedTexture.wrapS = THREE.RepeatWrapping;
-        loadedTexture.wrapT = THREE.RepeatWrapping;
-        loadedTexture.needsUpdate = true;
-
-        const planeGeo = new THREE.PlaneGeometry(24, 24, 64, 64);
-        const spiralMat = createTexturedSpiralShader(loadedTexture, objConfig.color || '#38bdf8');
-        const planeMesh = new THREE.Mesh(planeGeo, spiralMat);
-        planeMesh.rotation.x = -Math.PI / 2;
-        planeMesh.frustumCulled = false;
-        galaxyGroup.add(planeMesh);
-      }
-
-      mesh = galaxyGroup;
-      mesh.frustumCulled = false;
-      finalMaterial = null;
-    } else {
-      const geom = createDynamicGeometry(objConfig.geometryType, objConfig.geometryArgs);
-      const ghostMat = new THREE.MeshBasicMaterial({
-        color: 0x38bdf8,
-        wireframe: true,
-        transparent: true,
-        opacity: 0.35
-      });
-
-      mesh = new THREE.Mesh(geom, ghostMat);
-      
-      if (isFlatRing || isGaseousPhenomenon) {
-        mesh.frustumCulled = false;
-      }
-
-      if (isGaseousPhenomenon) {
-        finalMaterial = createPlasmaShaderMaterial(objConfig.color || '#38bdf8');
-      } else {
-        let loadedTexture = null;
-        if (objConfig.prompt) {
-          let specificPrompt = '';
-          if (isGaseousPhenomenon) {
-            specificPrompt = `${objConfig.prompt}, James Webb Space Telescope infrared photography style, hyperrealistic vibrant multi-chromatic iridescent gas plumes, deep space backdrop, 8k resolution`;
-          } else if (isFlatRing) {
-            specificPrompt = `Top-down circular planetary ring texture asset, concentric icy rings, perfectly seamless left-to-right wrapping edges, transparent gaps, flat 2D graphic, top-down view, zero background stars, zero perspective angle`;
-          } else {
-            // --- GRID-FREE UNIFIED EQUIRECTANGULAR SURFACE MAP ---
-            const colorPalette = objConfig.colorDescription || objConfig.prompt || 'vibrant abstract surface mineral bands and fluid chemical tones';
-            specificPrompt = `flat equirectangular surface texture map of ${colorPalette}, continuous uninterrupted panoramic landscape, wide-angle surface view, seamless horizontal wrapping edges, edge-to-edge organic distribution, absolute zero grid lines, zero square panels, zero tile dividers, zero borders, zero vignettes, zero globes`;
-          }
-
-          try {
-            await new Promise(resolve => setTimeout(resolve, 1200)); // Stagger delay prevents 504 gateway timeouts
-            loadedTexture = await loadCustomAITextureWithThrottle(specificPrompt, 3, 6000);
-            if (loadedTexture) {
-              loadedTexture.colorSpace = THREE.SRGBColorSpace;
-              
-              const maxAnisotropy = renderer.capabilities.getMaxAnisotropy();
-              loadedTexture.anisotropy = maxAnisotropy;
-
-              loadedTexture.wrapS = THREE.RepeatWrapping;
-              loadedTexture.wrapT = isFlatRing ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
-              
-              if (isFlatRing) {
-                loadedTexture.repeat.set(1, 1);
-              }
-              
-              loadedTexture.needsUpdate = true;
-            }
-          } catch (err) {
-            console.warn(`[ASTROMETRIC LIFECYCLE] ✖ Texture FAILED for [${objConfig.name}]. Falling back to PBR material.`, err);
-          }
-        }
-
-        // --- ROBUST PBR MATERIAL: USES TEXTURE MAP DIRECTLY WITH SCIENTIFIC FALLBACK COLOR ---
-        finalMaterial = new THREE.MeshStandardMaterial({
-          color: loadedTexture ? 0xffffff : new THREE.Color(objConfig.color || 0x38bdf8),
-          roughness: objConfig.roughness || 0.45,
-          metalness: objConfig.metalness || 0.08,
-          map: loadedTexture || null,
-          side: THREE.DoubleSide,
-          transparent: isFlatRing || (!loadedTexture && isFlatRing)
-        });
-      }
-
-      if (geomLower === 'sphere' && !objConfig.emissive && !isGaseousPhenomenon) {
-        addAtmosphereShell(mesh, (objConfig.geometryArgs?.[0] || 2.0) * 1.035, new THREE.Color(0x38bdf8), 0.25);
-      }
-    }
-
-    if (objConfig.position && Array.isArray(objConfig.position)) {
-      mesh.position.set(...objConfig.position);
-    }
-
-    if (objConfig.rotation && Array.isArray(objConfig.rotation)) {
-      mesh.rotation.set(...objConfig.rotation);
-    } else if (isFlatRing) {
-      mesh.rotation.set(Math.PI / 2.8, 0.2, 0.1); 
-    }
-
-    systemGroup.add(mesh);
-    if (!isSpiralGalaxy && mesh.material) {
-      mesh.material.dispose();
-      mesh.material = finalMaterial;
-    }
-
-    let derivedOrbitalSpeed = objConfig.orbitalSpeed || objConfig.animationSpeed || 0.15;
-    let derivedSpinSpeed = isFlatRing ? 0 : (objConfig.animationSpeed || 0.15);
-
-    if (objConfig.distance && objConfig.distance > 0) {
-      derivedOrbitalSpeed = 0.15 / Math.sqrt(objConfig.distance);
-      if (!isFlatRing) derivedSpinSpeed = derivedOrbitalSpeed * 2.5; 
-    }
-
-    resolvedAnims.push({
-      mesh: mesh,
-      type: isFlatRing ? 'orbit' : (objConfig.animationType || 'spin'),
-      speed: derivedSpinSpeed,
-      orbitalSpeed: derivedOrbitalSpeed,
-      distance: objConfig.distance || 0,
-      phaseOffset: Math.random() * Math.PI * 2,
-      isRing: isFlatRing
-    });
-  }
-
-  activeAnimatedMeshes.push(...resolvedAnims);
-
-  if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: SECURED_TARGET';
-  speakNarration("Sector materialization complete. All astrometric systems nominal.", true);
-}
-
-// --- SETUP CONTROLS ---
-function setupControls() {
-  controls = new OrbitControls(camera, renderer.domElement);
-  controls.enableDamping = true;
-  controls.dampingFactor = 0.05;
-  controls.enablePan = true;
-  controls.minDistance = 1.2;
-  controls.maxDistance = 10000;
-  controls.rotateSpeed = 0.6;
-  controls.zoomSpeed = 0.8;
-
-  const micBtn = document.getElementById('mic-btn');
-  const manualInput = document.getElementById('manual-input');
-  const sendBtn = document.getElementById('send-btn');
-  const mobileToggleBtn = document.getElementById('mobile-toggle-btn');
-  const sidebar = document.getElementById('sidebar');
-  const fullscreenBtn = document.getElementById('fullscreen-btn');
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-  if (micBtn) micBtn.disabled = false;
-  if (sendBtn) sendBtn.disabled = false;
-  if (manualInput) manualInput.disabled = false;
-
-  if (mobileToggleBtn && sidebar) {
-    mobileToggleBtn.addEventListener('click', () => {
-      sidebar.classList.toggle('mobile-open');
-      mobileToggleBtn.innerText = sidebar.classList.contains('mobile-open') ? '✕ Close' : '⚙️ Controls';
-      setTimeout(() => window.dispatchEvent(new Event('resize')), 300);
-    });
-  }
-
-  if (fullscreenBtn) {
-    fullscreenBtn.addEventListener('click', () => {
-      if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(err => console.warn(err));
-      } else {
-        if (document.exitFullscreen) document.exitFullscreen();
-      }
-    });
-  }
-
-  if (SpeechRecognition && micBtn) {
-    const recognition = new SpeechRecognition();
-
-    micBtn.addEventListener('click', () => {
-      initWebAudio();
-      if (isListening) { recognition.stop(); return; }
-      try {
-        recognition.lang = currentLang;
-        recognition.start();
-        isListening = true;
-        micBtn.classList.add('listening');
-      } catch (e) {}
-    });
-
-    recognition.onresult = (event) => {
-      isListening = false;
-      micBtn.classList.remove('listening');
-      processCommand(event.results[0][0].transcript);
-    };
-
-    recognition.onerror = () => { isListening = false; micBtn.classList.remove('listening'); };
-    recognition.onend = () => { isListening = false; micBtn.classList.remove('listening'); };
-  }
-
-  if (sendBtn && manualInput) {
-    sendBtn.addEventListener('click', () => {
-      if (manualInput.value.trim()) {
-        initWebAudio();
-        processCommand(manualInput.value.trim());
-        manualInput.value = '';
-      }
-    });
-
-    manualInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter' && manualInput.value.trim()) {
-        initWebAudio();
-        processCommand(manualInput.value.trim());
-        manualInput.value = '';
-      }
-    });
-  }
-}
-
-// --- ANIMATION HANDLERS (Fixed with safe clamped dt and rotateY) ---
-const animationHandlers = {
-  spin(anim, dt) {
-    if (anim.isRing) return; 
-    const safeDt = Math.min(dt, 0.033);
-    anim.mesh.rotateY(anim.speed * safeDt);
-  },
-  tumble(anim, dt) {
-    if (anim.isRing) return;
-    const safeDt = Math.min(dt, 0.033);
-    anim.mesh.rotateX(anim.speed * 0.4 * safeDt);
-    anim.mesh.rotateY(anim.speed * safeDt);
-    anim.mesh.rotateZ(anim.speed * 0.2 * safeDt);
-  },
-  pulse(anim, time) {
-    if (anim.isRing) return;
-    const scale = 1.0 + Math.sin(time * 2.0 * anim.speed) * 0.03;
-    anim.mesh.scale.set(scale, scale, scale);
-  },
-  orbit(anim, time, dt) {
-    if (anim.distance && anim.distance > 0) {
-      const effectiveSpeed = anim.orbitalSpeed || anim.speed;
-      const angle = time * effectiveSpeed + (anim.phaseOffset || 0);
-      anim.mesh.position.x = Math.cos(angle) * anim.distance;
-      anim.mesh.position.z = Math.sin(angle) * anim.distance;
-    }
-    if (!anim.isRing) {
-      const safeDt = Math.min(dt, 0.033);
-      anim.mesh.rotateY(anim.speed * safeDt);
-    }
-  }
-};
-
-// --- STABILIZED ANIMATION LOOP USING THREE.CLOCK ---
-const clock = new THREE.Clock();
-
-function animate() {
-  requestAnimationFrame(animate);
-  
-  const dt = clock.getDelta();
-  const t = clock.getElapsedTime();
-
-  if (starMaterial?.uniforms?.uTime) {
-    starMaterial.uniforms.uTime.value = t;
-  }
-  if (starField && camera) {
-    starField.position.copy(camera.position);
-    starField.rotation.y = t * 0.0005;
-  }
-
-  activeAnimatedMeshes.forEach((anim) => {
-    if (anim.mesh && anim.mesh.parent) {
-      if (anim.mesh.material?.uniforms?.uTime) {
-        anim.mesh.material.uniforms.uTime.value = t;
-      }
-      anim.mesh.traverse(child => {
-        if (child.material && child.material.uniforms && child.material.uniforms.uTime) {
-          child.material.uniforms.uTime.value = t;
-        }
-      });
-      const handler = animationHandlers[anim.type] || animationHandlers.spin;
-      handler(anim, t, dt);
-    }
+  state.abort?.abort();
+  const ctrl = (state.abort = new AbortController());
+  ui.setDrawer(false);
+  ui.log('user', text);
+  ui.setBusy(true);
+  ui.setNav('Plotting course');
+  synth.init();
+  synth.whoosh();
+  voice.stop();
+
+  // Fast cockpit callout runs in parallel with world generation.
+  router.cockpitCallout(text, ctrl.signal).then((r) => {
+    if (ctrl.signal.aborted || !r?.callout) return;
+    ui.log('ai', r.callout.replace(/^\[[^\]]+\]\s*/, ''));
+    voice.say(r.callout);
   });
 
-  if (controls) controls.update();
-  renderer.render(scene, camera);
+  const preset = findPreset(text);
+  let result = null;
+  // Exact catalog destinations resolve instantly; anything else goes to the AI ephemeris.
+  const exact = preset && text.toLowerCase().replace(/[^a-z ]/g, '').trim() === preset.key;
+  if (!exact) result = await router.generateWorld(text, locale, ctrl.signal, (s) => ui.setStatus(s));
+  if (ctrl.signal.aborted) return;
+
+  let config, source;
+  if (result) ({ config, source } = result);
+  else if (preset) { config = preset.preset; source = 'Catalog · NASA reference'; }
+  else { config = proceduralFallback(text); source = 'Offline synthesis'; }
+
+  try {
+    loadWorld(config, { source });
+    ui.setNav(`Arriving · ${config.sectorTitle || ''}`);
+    ui.setStatus(source);
+    const speech = config.speechResponse || `Arriving at ${config.sectorTitle}.`;
+    ui.log('ai', speech);
+    if (!keys.groq()) voice.say(speech);
+  } catch (err) {
+    console.error(err);
+    ui.log('sys', 'Navigation failed. Holding position.');
+  } finally {
+    ui.setBusy(false);
+  }
 }
 
-init();
+director.onArrive = () => { if (!state.busy) ui.setNav(state.config?.sectorTitle || 'Holding'); };
+
+// ---------- Picking ----------
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+const canvas = engine.renderer.domElement;
+let down = null;
+
+function pickAt(e) {
+  const r = canvas.getBoundingClientRect();
+  pointer.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+  raycaster.setFromCamera(pointer, engine.camera);
+  return state.world?.pick(raycaster) || null;
+}
+
+function selectBody(body) {
+  state.selected = body;
+  ui.showTarget(body);
+}
+
+function followBody(body) {
+  if (!body) return;
+  director.follow(body.root, body.kind === 'spiral_galaxy' ? body.radius * 0.6 : body.kind === 'black_hole' ? body.radius * 3 : body.radius);
+  ui.setNav(`Tracking · ${body.name}`);
+}
+
+canvas.addEventListener('pointerdown', (e) => { down = { x: e.clientX, y: e.clientY, t: performance.now() }; });
+canvas.addEventListener('pointerup', (e) => {
+  if (!down) return;
+  const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y);
+  if (moved < 6 && performance.now() - down.t < 400) {
+    const hit = pickAt(e);
+    if (hit) selectBody(hit);
+  }
+  down = null;
+});
+canvas.addEventListener('dblclick', (e) => {
+  const hit = pickAt(e);
+  if (hit) { selectBody(hit); followBody(hit); }
+});
+ui.el.targetFollow.addEventListener('click', () => followBody(state.selected));
+ui.el.targetClose.addEventListener('click', () => selectBody(null));
+ui.el.systemView.addEventListener('click', () => {
+  if (!state.world) return;
+  const b = state.world.bounds();
+  director.stopFollow();
+  director.frameSphere(b.center, b.radius, { duration: 2.4 });
+  ui.setNav(state.config?.sectorTitle || 'System view');
+});
+
+// ---------- Controls ----------
+ui.el.send.addEventListener('click', () => processCommand(ui.el.input.value).then(() => { ui.el.input.value = ''; }));
+ui.el.input.addEventListener('keydown', (e) => { if (e.key === 'Enter') ui.el.send.click(); });
+ui.renderChips(DESTINATIONS, (cmd) => processCommand(cmd));
+
+ui.el.lang.addEventListener('change', () => {
+  locale = ui.el.lang.value;
+  storage.set('locale', locale);
+  ui.setLocale(locale);
+  ui.toast(`Comms locale: ${locale}`);
+});
+
+let listening = false;
+ui.el.mic.addEventListener('click', () => {
+  synth.init();
+  if (!voice.recognitionSupported) { ui.toast('Voice input is not supported in this browser'); return; }
+  if (listening) { voice.stopListening(); return; }
+  voice.stop();
+  listening = voice.listen({
+    onInterim: (t) => { ui.el.input.value = t; },
+    onFinal: (t) => { ui.el.input.value = ''; processCommand(t); },
+    onEnd: () => { listening = false; ui.setListening(false); ui.setStatus('Systems nominal'); },
+  });
+  ui.setListening(listening);
+  if (listening) ui.setStatus(`Listening · ${locale}`);
+});
+
+ui.el.gemini.value = keys.gemini();
+ui.el.groq.value = keys.groq();
+async function connectKeys() {
+  const g = ui.el.gemini.value.trim();
+  const q = ui.el.groq.value.trim();
+  g ? storage.set('gemini_api_key', g) : storage.remove('gemini_api_key');
+  q ? storage.set('groq_api_key', q) : storage.remove('groq_api_key');
+  if (!g && !q) { ui.setTokenStatus(false, 'Keyless'); return; }
+  ui.setTokenStatus(false, 'Linking…');
+  const ok = g ? await router.discoverGeminiModels() : false;
+  ui.setTokenStatus(ok || !!q, ok ? `Linked · ${router.models[0]}` : q ? 'Groq only' : 'Key rejected');
+}
+ui.el.save.addEventListener('click', () => { synth.init(); connectKeys(); });
+
+const bindToggle = (id, fn) => document.getElementById(id).addEventListener('change', (e) => fn(e.target.checked));
+bindToggle('t-bloom', (v) => engine.setSetting('bloom', v));
+bindToggle('t-cinematic', (v) => engine.setSetting('cinematic', v));
+bindToggle('t-flare', (v) => engine.setSetting('flare', v));
+bindToggle('t-orbits', (v) => state.world?.setOrbitsVisible(v));
+bindToggle('t-autoorbit', (v) => { director.autoOrbit = v; });
+bindToggle('t-voice', (v) => { voice.enabled = v; if (!v) voice.stop(); });
+bindToggle('t-music', (v) => { synth.init(); synth.setMuted(!v); });
+bindToggle('t-aitex', (v) => { state.aiTextures = v; if (v && state.world) requestTextures(state.world); });
+
+const qParam = new URLSearchParams(location.search).get('quality');
+if (qParam) engine.setQuality(qParam);
+ui.el.quality.value = engine.qualityKey;
+ui.el.quality.addEventListener('change', () => {
+  engine.setQuality(ui.el.quality.value);
+  // Shader octave counts and particle budgets depend on quality: rebuild the scene in place.
+  if (state.config) loadWorld(state.config, { source: ui.el.source.textContent, warp: 0 });
+  ui.toast(`Quality: ${ui.el.quality.selectedOptions[0].text}`);
+});
+
+ui.el.capture.addEventListener('click', () => {
+  ui.el.capture.disabled = true;
+  ui.el.capture.textContent = 'Rendering…';
+  requestAnimationFrame(() => setTimeout(() => {
+    try {
+      const { url, width, height } = engine.capture(3840, 2160);
+      if (url) {
+        ui.el.captureLink.href = url;
+        ui.el.captureLink.textContent = `Download PNG (${width}×${height})`;
+        ui.el.captureLink.hidden = false;
+        ui.toast(`Captured ${width}×${height}`);
+      }
+    } catch (err) {
+      console.error(err);
+      ui.toast('Capture failed on this GPU');
+    } finally {
+      ui.el.capture.disabled = false;
+      ui.el.capture.textContent = 'Capture 4K still';
+    }
+  }, 30));
+});
+
+engine.onStats((e) => ui.setStats(e));
+
+// Ambient audio requires a user gesture.
+window.addEventListener('pointerdown', () => synth.init(), { once: true });
+window.addEventListener('keydown', () => synth.init(), { once: true });
+
+// ---------- Boot ----------
+ui.setBoot('Compiling shaders…');
+ui.setTokenStatus(!!(keys.gemini() || keys.groq()), keys.gemini() || keys.groq() ? 'Stored keys' : 'Keyless');
+if (keys.gemini()) router.discoverGeminiModels().then((ok) => ok && ui.setTokenStatus(true, `Linked · ${router.models[0]}`));
+
+const initial = PRESETS['solar system'];
+loadWorld(initial, { source: 'Catalog · NASA reference', warp: 0 });
+engine.camera.position.set(0, 70, 190);
+const b0 = state.world.bounds();
+director.frameSphere(b0.center, b0.radius * 0.55, { duration: 4.5, warp: 0.6 });
+ui.setNav('Sol system');
+ui.log('sys', 'Renderer online. Say or type a destination.');
+engine.start();
+requestAnimationFrame(() => setTimeout(() => ui.hideBoot(), 600));
+
+window.__aiwe = { engine, director, state, processCommand };
