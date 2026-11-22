@@ -1,0 +1,3517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>NaviSoft Space Simulator</title>
+<style>
+    /* Deep Space UI Theme */
+    body { 
+        margin: 0; 
+        background: #000; 
+        overflow: hidden; 
+        /* Prevents the browser from handling touch (scrolling/zooming) */
+        touch-action: none; 
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+        user-select: none; /* Prevents text highlighting while flying */
+        
+    }
+
+    #hud { 
+        position: fixed; top: 20px; left: 20px; color: #00ffff; z-index: 100; 
+        pointer-events: none; border-left: 2px solid #00ffff; padding-left: 15px;
+        background: rgba(0, 40, 40, 0.2); backdrop-filter: blur(5px);
+    }
+
+    /* Joystick Bases: These should be the "touch zones" */
+    .stick-base { 
+        position: fixed; bottom: 50px; width: 110px; height: 110px; 
+        border: 2px solid rgba(0, 255, 255, 0.2); border-radius: 50%; 
+        background: rgba(0, 255, 255, 0.05); 
+        z-index: 500; /* Higher than the 3D canvas */
+        touch-action: none; /* Critical for mobile */
+    }
+    
+    #left-stick { left: 40px; }
+    #right-stick { right: 40px; }
+
+    .knob { 
+        position: absolute; width: 40px; height: 40px; background: #00ffff; 
+        border-radius: 50%; top: 35px; left: 35px; box-shadow: 0 0 20px #00ffff; 
+        opacity: 0.8; 
+        transition: transform 0.1s ease-out;
+        pointer-events: none; /* The knob itself shouldn't block the base */
+    }
+
+    #surface-intel {
+        position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        background: rgba(0, 10, 20, 0.9); border: 1px solid #0ff; color: white;
+        padding: 20px; text-align: center; display: none; z-index: 600;
+    }
+
+    #overlay { 
+        position: fixed; inset: 0; background: radial-gradient(circle, #111, #000); 
+        z-index: 1000; display: flex; flex-direction: column; justify-content: center; 
+        align-items: center; cursor: pointer; color: white; 
+    }
+    
+    .btn-exit { margin-top: 15px; background: none; border: 1px solid #0ff; color: #0ff; padding: 5px 10px; cursor: pointer; }
+    
+    canvas {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+        touch-action: none;
+    }
+
+    #planet-hud {
+        position: fixed;
+        top: 20%;
+        left: 20px;
+        color: #00f2ff;
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 24px;
+        text-shadow: 0 0 10px #00f2ff;
+        pointer-events: none; /* So it doesn't block clicks */
+        display: none; /* Hidden by default */
+        z-index: 100;
+    }
+#autopilot-btn {
+    position: fixed;
+    bottom: 30px;      /* Distance from the bottom */
+    left: 50%;         /* Move to horizontal center */
+    transform: translateX(-50%); /* Center it perfectly */
+    
+    /* Creative "Cockpit" Aesthetic */
+    padding: 10px 30px;
+    background: linear-gradient(180deg, rgba(0, 40, 60, 0.9) 0%, rgba(0, 0, 0, 0.9) 100%);
+    color: #00ccff;
+    font-family: 'Orbitron', monospace; /* Modern sci-fi font if you have it */
+    font-size: 0.85em;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+
+    /* The "Bracket" Border Look */
+    border: 1px solid rgba(0, 204, 255, 0.3);
+    border-left: 4px solid #00ccff;
+    border-right: 4px solid #00ccff;
+    
+    /* Subtle Sci-Fi Details */
+    clip-path: polygon(10% 0, 90% 0, 100% 50%, 90% 100%, 10% 100%, 0 50%);
+    box-shadow: 0 0 15px rgba(0, 204, 255, 0.2);
+    
+    cursor: pointer;
+    transition: all 0.3s ease;
+    user-select: none;
+    z-index: 1000;
+}
+
+/* Add a pulsing effect when Autopilot is ACTIVE */
+#autopilot-btn.active {
+    border-left-color: #ffcc00;
+    border-right-color: #ffcc00;
+    color: #ffcc00;
+    box-shadow: 0 0 20px rgba(255, 204, 0, 0.4);
+    background: rgba(40, 30, 0, 0.9);
+}
+  #right-monitor{
+      position: absolute; 
+    right: 30px; 
+    top: 30%; 
+    width: 250px;
+    color: #00ffff; 
+    font-family: 'Courier New', monospace; 
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    pointer-events: none; /* So it doesn't block mouse clicks */
+    opacity: 0; 
+    transition: opacity 0.5s ease-in-out;
+  }
+
+    #distance-display {
+    color: #00ccff;
+    font-family: 'Courier New', Courier, monospace; /* Classic high-contrast mono */
+    font-size: 0.85em;
+    border-top: 1px solid rgba(0, 204, 255, 0.3); /* Transparent border for elegance */
+    margin-top: 8px;
+    padding-top: 8px;
+    letter-spacing: 1px;
+    text-shadow: 0 0 5px rgba(0, 204, 255, 0.6); /* HUD glow */
+}
+
+/* This makes the value pop and keeps the suffix (KM/LH) styled slightly differently */
+#km-container, #lh-container {
+    /*display: inline-block;*/
+    font-weight: bold;
+    color: #ffffff; /* Bright white for the actual numbers */
+}
+
+/* Add a suffix via CSS to keep your HTML clean */
+#km-val::after { content: " KM"; font-size: 0.8em; color: #00ccff; font-weight: normal; }
+#lh-val::after { content: " LIGHT HOURS"; font-size: 0.8em; color: #00ccff; font-weight: normal; }
+
+    /* Ensure the debug box exists and looks good */
+    #mobile-debug {
+        
+        display: none; /* Hidden by default */
+        
+        position: fixed;
+        bottom: 10px;
+        left: 10px;
+        width: 90%;
+        height: 30vh;
+        background: rgba(0, 0, 0, 0.85);
+        color: lime;
+        border: 1px solid lime;
+        padding: 10px;
+        overflow-y: auto;
+        font-family: monospace;
+        font-size: 11px;
+        z-index: 10000;
+        pointer-events: auto; /* Allows scrolling */
+        border-radius: 5px;
+    }
+
+    #debug-toggle {
+        display:none;
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        z-index: 10001;
+        background: rgba(34, 34, 34, 0.9);
+        color: lime;
+        border: 1px solid lime;
+        padding: 8px 12px;
+        cursor: pointer;
+        font-family: monospace;
+        border-radius: 4px;
+        font-weight: bold;
+    }
+       #nav-trigger {
+        z-index: 9999; /* Higher than everything else */
+        pointer-events: auto;
+        touch-action: manipulation; /* Crucial: Prevents double-tap delay */
+        -webkit-tap-highlight-color: transparent; /* Removes the ugly blue mobile selection box */
+    }
+
+/* 🌟 Massive Cyber-Scrollbar for Easy Mobile Grabbing */
+#button-container::-webkit-scrollbar {
+    width: 24px !important; /* Jacked up from 14px to 24px */
+    display: block !important;
+}
+
+/* The track background */
+#button-container::-webkit-scrollbar-track {
+    background: rgba(15, 15, 15, 0.9) !important;
+    border-left: 2px solid rgba(0, 255, 204, 0.2) !important;
+}
+
+/* The actual big draggable slider handle */
+#button-container::-webkit-scrollbar-thumb {
+    background: #00ffcc !important; 
+    border: 4px solid #1a1a1a !important; /* Thicker inset border gives it a tactile "button" look */
+    border-radius: 6px !important;
+}
+
+/* Brightens up when held down or dragged */
+#button-container::-webkit-scrollbar-thumb:active {
+    background: #00ffff !important;
+    box-shadow: 0 0 10px #00ffff;
+}
+</style>
+</head>
+<body>
+<div id="flight-deck-ui" style="position: absolute; top: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 10px;">
+    
+    <button id="nav-trigger" style="background: #000; color: #00ffcc; border: 1px solid #00ffcc; padding: 10px 15px; font-family: monospace; cursor: pointer; text-transform: uppercase;">
+        NAVIGATION HUB
+    </button>
+    <button id="help-btn" style="background: rgba(40, 25, 0, 0.8); color: #ffaa00; border: 1px solid #ffaa00; padding: 10px 15px; font-family: monospace; cursor: pointer; text-transform: uppercase; box-shadow: 0 0 8px rgba(255, 170, 0, 0.2);">
+        FLIGHT MANUAL
+    </button>
+    <button id="saveBtn" style="background: rgba(0, 255, 255, 0.1); color: #00ffff; border: 1px solid #00ffff; padding: 10px 15px; font-family: monospace; cursor: pointer; text-transform: uppercase;">
+        Log Position
+    </button>
+    <button id="resetBtn" style="background: rgba(255, 0, 0, 0.1); color: #ff4444; border: 1px solid #ff4444; padding: 10px 15px; font-family: monospace; cursor: pointer; text-transform: uppercase;">
+        Abort Mission
+    </button>
+</div>
+
+<div id="nav-modal" style="
+    display: none !important; 
+    position: fixed; 
+    top: 50%; left: 50%; transform: translate(-50%, -50%); 
+    z-index: 9999; 
+    background: rgba(0, 0, 0, 0.95); 
+    padding: 20px; 
+    border: 2px solid #00ffcc; 
+    width: 90%; 
+    max-width: 400px; 
+    height: 80vh; /* Fixed height for reliable scrolling */
+    box-shadow: 0 0 20px rgba(0, 255, 204, 0.3);
+    flex-direction: column; 
+    box-sizing: border-box; /* CRITICAL: keeps padding inside the height */
+    overflow: hidden; /* CRITICAL: forcefully stops anything from spilling out */
+">
+    <h3 style="color: #00ffcc; text-align: center; font-family: monospace; margin-top: 0; font-size: 20px; flex-shrink: 0;">
+        TRANSITION NAVIGATION HUB
+    </h3>
+    
+<div id="button-container" 
+     onpointerdown="event.stopPropagation()" 
+     onpointermove="event.stopPropagation()" 
+     onwheel="event.stopPropagation()" 
+     style="
+        display: flex; 
+        flex-direction: column; 
+        gap: 10px; 
+        overflow-y: auto; 
+        flex-grow: 1; 
+        min-height: 0; 
+        max-height: 60vh; 
+        padding-right: 28px; /* 🌟 Increased to keep buttons clear of the wide scrollbar */
+        margin-bottom: 15px; 
+        pointer-events: auto; 
+        touch-action: pan-y; 
+        -webkit-overflow-scrolling: touch; 
+        overscroll-behavior: contain; ">
+    </div>
+    <div style="flex-shrink: 0; padding-top: 15px; border-top: 1px solid #444;">
+        <button onclick="document.getElementById('nav-modal').style.display='none'" style="
+            width: 100%; padding: 14px; cursor: pointer; 
+            background: #1a1a1a; color: #ff4444; border: 1px solid #ff4444; 
+            font-weight: bold; font-size: 16px; border-radius: 4px;
+        ">
+            CLOSE
+        </button>
+    </div>
+</div>
+    
+
+    
+<div id="mobile-debug">
+    Debug Log Initialized...
+</div>
+    
+<script>
+    const debugBox = document.getElementById('mobile-debug');
+
+    function toggleDebug() {
+        const isHidden = debugBox.style.display === 'none' || debugBox.style.display === '';
+        debugBox.style.display = isHidden ? 'block' : 'none';
+    }
+
+    const btn = document.createElement('button');
+    btn.id = 'debug-toggle';
+    btn.innerText = '🛠️ LOGS';
+    btn.onclick = toggleDebug;
+    document.body.appendChild(btn);
+
+    window.addEventListener('keydown', (e) => {
+        if (e.key.toLowerCase() === 'l') toggleDebug();
+    });
+
+    function logToScreen(msg, isError = false) {
+        const line = document.createElement('div');
+        line.style.color = isError ? "#ff4444" : "#00ff00";
+        line.style.borderBottom = "1px solid #222";
+        line.style.padding = "2px 0";
+        line.innerText = `> ${msg}`;
+        debugBox.appendChild(line);
+        debugBox.scrollTop = debugBox.scrollHeight;
+    }
+
+    window.onerror = (msg, url, line) => logToScreen(`${msg} (Line: ${line})`, true);
+    window.onunhandledrejection = (event) => logToScreen(`Promise Error: ${event.reason}`, true);
+
+    const oldLog = console.log;
+    console.log = function(...args) {
+        const message = args.map(arg => 
+            typeof arg === 'object' ? JSON.stringify(arg) : arg
+        ).join(' ');
+        logToScreen(message);
+        //oldLog.apply(console, args);
+    };
+</script>
+
+<script type="module">
+    window.blockShipControls = false;
+    function setupCockpitButton(id, callback) {
+        const targetBtn = document.getElementById(id);
+        if (!targetBtn) return;
+
+        targetBtn.addEventListener('touchstart', (e) => {
+            window.blockShipControls = true; 
+            e.stopPropagation(); 
+            
+            if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                navigator.vibrate(12); 
+            }
+        }, { passive: true });
+
+        targetBtn.addEventListener('touchend', (e) => {
+            e.stopPropagation();
+            e.preventDefault(); 
+            if(SaveSystem) callback(targetBtn);
+            
+            setTimeout(() => {
+                window.blockShipControls = false; 
+            }, 120);
+        }, { passive: false });
+
+        targetBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if(SaveSystem) callback(targetBtn);
+        });
+    }
+
+    // Bind Log Position
+    setupCockpitButton('saveBtn', (buttonEl) => {
+        if (typeof engine !== 'undefined' && engine.camera) {
+            SaveSystem.save(engine.camera, velocity || 0); 
+        } else {
+            console.log("Cannot log position: Engine instance not ready yet.");
+        }
+        
+        buttonEl.innerText = "LOCKED";
+        buttonEl.style.color = "#00ff00";
+        buttonEl.style.borderColor = "#00ff00";
+        
+        setTimeout(() => {
+            buttonEl.innerText = "LOG POSITION";
+            buttonEl.style.color = "#00ffff";
+            buttonEl.style.borderColor = "#00ffff";
+        }, 2000);
+    });
+
+    // Bind Abort Mission
+    setupCockpitButton('resetBtn', () => {
+        SaveSystem.clear();
+    });
+</script>
+    <div id="hud">
+        <div style="font-size: 10px; opacity: 0.7;">[ SYSTEM STATUS: ONLINE ]</div>
+        <div id="spd-display">VELOCITY: 0.0 AU/s</div>
+        <div id="nearest-display">NEAREST: <span id="planet-name">NONE</span></div>
+        <div id="distance-display">
+            <span style="opacity: 0.7;">RANGE:</span> 
+            <div id="km-container"><span id="km-val">0</span></div>
+            <div id="lh-container"><span id="lh-val">0</span></div>
+        </div>
+        <div id="horizon-object-display" style="color: #ffaa00; height: 1.2em;"></div> 
+    </div>
+    <div id="right-monitor" ><div id="monitor-text" style="line-height: 1.6;"></div></div>
+     <div id="autopilot-btn">AUTOPILOT: <span id="ap-status">OFF</span></div>
+    <div id="left-stick" class="stick-base"><div class="knob" id="knob-l"></div></div>
+    <div id="right-stick" class="stick-base"><div class="knob" id="knob-r"></div></div>
+
+    <div id="overlay">
+        <h1 id="version-header" style="letter-spacing: 10px;"></h1>
+        <p style="color: #0ff; font-weight: 100;">DEPARTURE SEQUENCE READY</p>
+        <p style="font-size: 12px; opacity: 0.5;">[ TAP TO INITIATE IGNITION ]</p>
+    </div>
+    <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "renderpass": "https://unpkg.com/three@0.160.0/examples/jsm/postprocessing/RenderPass.js",
+        "effectcomposer": "https://unpkg.com/three@0.160.0/examples/jsm/postprocessing/EffectComposer.js",
+        "unrealbloompass": "https://unpkg.com/three@0.160.0/examples/jsm/postprocessing/UnrealBloomPass.js",
+        "tone":"https://cdn.skypack.dev/tone@14.8.49",
+        "instructions": "https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/instructions.js",
+        "engine": "https://cdn.jsdelivr.net/gh/dganigame-coder/space@ec6cc7f/navisoftspace/engine.js",
+        "audio":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@ffd756d/navisoftspace/audio.js",
+        "pilot": "https://cdn.jsdelivr.net/gh/dganigame-coder/space@25daaf/navisoftspace/pilot.js",
+        "save": "https://cdn.jsdelivr.net/gh/dganigame-coder/space/navisoftspace/save.js",
+        "stars":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@a1ed9c5/navisoftspace/horizonObjects/stars.js",
+        "universe":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@36eec1e/navisoftspace/horizonObjects/universe.js",
+        "mars":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@9e33d64/navisoftspace/planets/mars.js",
+        "jupiter":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@e7735dd/navisoftspace/planets/jupiter.js",
+        "earth": "https://cdn.jsdelivr.net/gh/dganigame-coder/space@b148479/navisoftspace/planets/earth.js",
+        "moon": "https://cdn.jsdelivr.net/gh/dganigame-coder/space@adab28e/navisoftspace/planets/moon.js",
+        "sun": "https://cdn.jsdelivr.net/gh/dganigame-coder/space@d53e161/navisoftspace/planets/sun.js",
+        "venus":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@1714419/navisoftspace/planets/venus.js",
+        "mercury":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@e65ef7f/navisoftspace/planets/mercury.js",
+        "uranus":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@e19b4c4/navisoftspace/planets/uranus.js",
+        "neptune":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@4fd99fd/navisoftspace/planets/neptune.js",
+        "saturn":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@9b7bbe5/navisoftspace/planets/saturn.js",
+        "titan":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@f12e242/navisoftspace/planets/titan.js",
+        "pluto":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@1611a65/navisoftspace/planets/pluto.js",
+        "asteroidbelt":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@30a7bf2/navisoftspace/horizonObjects/asteroidbelt.js",
+        "interstellarAnomaly":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@6216f25/navisoftspace/horizonObjects/interstellarAnomaly.js",
+        "blackhole":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@dca7beb/navisoftspace/horizonObjects/blackhole.js",
+        "wormhole":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@3adde3b/navisoftspace/horizonObjects/wormhole.js",
+        "voyager":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@761806a/navisoftspace/horizonObjects/voyager.js",
+        "heliopause":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@136f992/navisoftspace/horizonObjects/heliopause.js",
+        "star":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@fcb5d06/navisoftspace/horizonObjects/star.js",
+        "starsystem":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@b5e091a/navisoftspace/horizonObjects/starsystem.js",
+        "exoplanet":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@fd692ae/navisoftspace/horizonObjects/exoplanet.js",
+        "exoplanetsystem":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@8bee183/navisoftspace/horizonObjects/exoplanetsystem.js",
+        "nebula":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@6e9f516/navisoftspace/horizonObjects/nebula.js",
+        "supernova":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@db288b8/navisoftspace/horizonObjects/supernova.js",
+        "quasar":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@4477840/navisoftspace/horizonObjects/quasar.js",
+        "pulsar":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@0273a7b/navisoftspace/horizonObjects/pulsar.js",
+        "protoplanetaryDisk":"https://cdn.jsdelivr.net/gh/dganigame-coder/space@7fe727e/navisoftspace/horizonObjects/protoplanetaryDisk.js"
+        }
+    }
+ 
+ 
+    </script>
+    <script type="module"> 
+    import { initEngine , checkCollisions, bootSystems } from 'engine';
+    import { manualContent } from 'instructions';
+    //import { loadSoundLibrary } from 'audio'
+    import { initPilot, updateFlight , velocity } from 'pilot';
+    import { SaveSystem } from 'save';
+    import { createBelt } from 'asteroidbelt'; 
+    import { createBlackHole } from 'blackhole';
+    import { createWormhole, updateWormhole , triggerWormholeTransition } from 'wormhole';
+    import { createStars } from 'stars';
+    import { UniverseGenerator } from 'universe';
+    //import { createVoyager } from 'voyager';
+    import { fetchVoyagerLivePosition, createHighResVoyager, updateNavigationHUD } from 'voyager';
+    import { createHeliopause } from 'heliopause';
+    import { createStar } from 'star';
+    import { createStarSystem } from 'starsystem'; 
+    import { createExoplanet } from 'exoplanet';
+    import { createExoplanetSystem } from 'exoplanetsystem';    
+    import { createNebula } from 'nebula';
+    import { createSupernova } from 'supernova';
+    import * as THREE from 'three'
+    import { EffectComposer } from 'effectcomposer';
+    import { RenderPass } from 'renderpass';
+    import { UnrealBloomPass } from 'unrealbloompass';
+    import { createQuasar } from 'quasar';
+    import { createPulsar } from 'pulsar';
+    import { createProtoplanetaryDisk } from 'protoplanetaryDisk';
+    import { createInterstellarAnomaly } from 'interstellarAnomaly';
+    import { createSun } from 'sun';   
+    import { createEarth } from 'earth';
+    import { createMoon } from 'moon';
+    import { createMars } from 'mars';
+    import { createJupiter } from 'jupiter';
+    
+    // ADD THESE REMAINING PLANETS
+    import { createMercury } from 'mercury';
+    import { createVenus } from 'venus';
+    import { createSaturn } from 'saturn';
+    import { createTitan } from 'titan';
+    import { createUranus } from 'uranus';
+    import { createNeptune } from 'neptune';
+    import { createPluto } from 'pluto';
+  
+     let autoPilotActive = false; 
+    /* set file time */
+    // 1. Get the last modified date of the current HTML file
+    const modifiedDate = new Date(document.lastModified);
+    
+    // 2. Extract and pad the components to always be 2 digits (e.g., '9' becomes '09')
+    const day = String(modifiedDate.getDate()).padStart(2, '0');
+    const month = String(modifiedDate.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+    const year = String(modifiedDate.getFullYear()).slice(-2); // Get last 2 digits of year
+    const hours = String(modifiedDate.getHours()).padStart(2, '0');
+    const minutes = String(modifiedDate.getMinutes()).padStart(2, '0');
+    
+    // 3. Assemble the string to match your exact format
+    const versionString = `NAVISOFT-VER${day}${month}${year}${hours}${minutes}`;
+    
+    // 4. Inject it into the HTML
+    document.getElementById('version-header').innerText = versionString;
+    /* */
+
+    const enginePromise = initEngine();
+    // --- 1. INITIALIZE ALL BODIES ---
+    const sun = createSun();
+    const mercury = createMercury();
+    const venus = createVenus();
+    const earth = createEarth();
+    const moon = createMoon();
+    const mars = createMars();
+    const jupiter = createJupiter();
+    const saturn = createSaturn();
+    const titan = createTitan();
+    const uranus = createUranus();
+    const neptune = createNeptune();
+    const pluto = createPluto();
+    const starfield = createStars();       
+
+
+    // 1. Kick off the Engine loading immediately in the background
+    // This ensures the 3D scene is prepping while the user looks at the overlay
+    // 1. Ensure 3D is ready
+    const engine = await enginePromise;
+
+    // --- 1. CONFIGURATION & LOGIC ---
+    let destinations = [
+    // ==========================================
+    // LEVEL 1: SOL SYSTEM CORE & NEAR NEIGHBORHOOD
+    // ==========================================
+    { name: "Sol System (Earth)", x: 0, y: 0, z: 0 },
+    { name: "Heliopause", x: 0, y: 0, z: 18000000 },
+    { name: "Voyager Probe", x: 10000, y: 2000, z: 22505020 },
+    // ==========================================
+    // LEVEL 2: SOLAR BOUNDARIES & LOCAL STELLAR NEIGHBORHOOD
+    // ==========================================
+    { name: "Oort Cloud", x: 0, y: 0, z: 65000000 },
+    { name: "'Oumuamua", x: 20000000, y: 10000000, z: 20000000 },
+    { name: "Alpha Centauri Cluster Core", x: 50000000, y: 0, z: 50000000 },
+    { name: "Alpha Centauri A", x: 50000000, y: 0, z: 50000000 },
+    { name: "Alpha Centauri B", x: 50800000, y: 0, z: 50800000 },
+    { name: "Proxima Centauri", x: 55000000, y: 0, z: 55000000 },
+    { name: "Proxima Centauri b (Exoplanet)", x: 55015000, y: 0, z: 55015000 },
+    { name: "Orion Nursery", x: 20000000, y: 5000000, z: -70000000 },
+    { name: "OMC-2 Molecular Nebula (Cloud of Creation)", x: 25000000, y: 6000000, z: -72000000 },
+
+    // ==========================================
+    // LEVEL 3: DEEP SPACE / INTERSTELLAR SECTOR
+    // ==========================================
+    { name: "NGC 6302 Outflow", x: 60000000, y: 15000000, z: -95000000 },
+    { name: "Messier 16 / Carina", x: -120000000, y: -45000000, z: -60000000 },
+    { name: "Henize 2-428 / Toroidal Core Collapse", x: 95000000, y: -20000000, z: -110000000 },
+    { name: "IC 434 / Ghost Filament", x: -90000000, y: 90000000, z: 85000000 },
+    { name: "PSR B1509-58 / Magnetar", x: 45000000, y: -80000000, z: 140000000 },
+    { name: "Stellar Nursery Component", x: -80000000, y: 30000000, z: -150000000 },
+    { name: "Crab Pulsar/Nebula", x: -30000000, y: 10000000, z: 200000000 },
+    { name: "Phoenix-80M", x: -120000000, y: 25000000, z: -165000000 },
+    { name: "Molecular Void", x: -150000000, y: -20000000, z: -140000000 },
+    { name: "Tau Ceti System", x: 150000000, y: 10000000, z: 150000000 },
+    { name: "Distant Quasar X-1",x: 1500000000,  y: 400000000, z: -8000000000  },
+        
+    // ==========================================
+    // LEVEL 4: EXOPLANET SYSTEMS & SUBSTELLAR BODIES
+    // ==========================================
+    { name: "CD-35 2722", x: -199515000, y: 80000, z: 150000000 },
+    { name: "Supreme Exoplanet System", x: 10000000, y: 0, z: 250000000 },
+    { name: "LHS 1140 Star", x: 150000000, y: -40000, z: 220000000 },
+    { name: "LHS 1140 b (Ocean Super-Earth)", x: 150240000, y: -40000, z: 220000000 },
+    { name: "TRAPPIST-1 System", x: -50000000, y: 0, z: 300000000 },
+    { name: "Exoplanet K2-18b (Hycean Ocean World)", x: 180000000, y: 45000000, z: -320000000 },
+    { name: "Kepler-186 Star", x: 220000000, y: -15000000, z: 180000000 },
+    { name: "Kepler-186f (Habitable World)", x: 220018000, y: -15000000, z: 180018000 },
+
+    // ==========================================
+    // CASTOR SEXTUPLE SYSTEM
+    // ==========================================
+    { name: "Castor System", x: 4000, y: 0, z: -160000000 },
+    // ==========================================
+    // LEVEL 5: DEEP GALACTIC & EXTREME DEEP SPACE
+    // ==========================================
+    { name: "Andromeda Galaxy", x: 150000000, y: 80000000, z: -290000000 },
+    { name: "Vela Remnant", x: -300000000, y: -100000000, z: 250000000 },
+    { name: "Black Eye Galaxy", x: 200000000, y: 90000000, z: -400000000 },
+    { name: "Black Hole Singularity", x: 250000, y: 250000, z: 499900000 },
+    //{ name: "Quasar H1821+643 Core", x: 500000000, y: -100000000, z: -600000000 },
+    { name: "Pulsar PSR B1919+21", x: 1200000000,  y: -300000000,  z: -1800000000 },
+    // ==========================================
+    // 🌌 SEXTUPLE SYSTEM: TIC 168789840
+    // ==========================================
+    { name: "Exoplanet E-1 (Habitable World)", x: -299030000, y: 150000, z: -400000000 },
+    { name: "TIC 168789840 (multi stars squad)", x: -300000000, y: 150000, z: -400000000 },
+    { name: "Nu Sco (multi stars squad)", x: -450000000, y: 80000, z: -200000000 },
+    { name: "AR Cas (multi stars squad)", x: 250000000, y: -120000, z: -350000000 },
+
+    // ==========================================//
+    // LEVEL 6: EXOTIC GALAXIES & COSMOLOGICAL BOUNDARY WALLS
+    // ==========================================//
+    { name: "Rigel System (Blue Supergiant)", x: -500000000, y: 0, z: -300000000 },
+    { name: "R136a1 Hypergiant", x: -449900000, y: 80000, z: -200000000 },
+    { name: "Active Galactic Nucleus (SMBH)", x: 500000000, y: -100000000, z: -600000000 },
+    { name: "Blanet Prime", x: 501200000, y: -100000000, z: -598800000 },
+    { name: "Exoplanet GJ 504b", x: -380000000, y: 120000000, z: 520000000 },
+    { name: "Galaxy SDSS J110546 (Rapid-Growth Black Hole)", x: 450000000, y: -120000000, z: -550000000 },
+    { name: "Galaxy MoM-z14 (Cosmic Dawn)", x: 900000000, y: 450000000, z: -900000000 },
+    { name: "Black Hole Star (MoM-BH*-1)", x: 950000000, y: 45000000, z: -950000000 },
+    { name: "Cosmic Microwave Horizon", x: 0, y: 0, z: 2000000000 },
+
+    /*
+    // ==========================================
+    // LEVEL 7: INTERSTELLAR TRANSIT NETWORK (Wormholes)
+    // ==========================================
+    { name: "Wormhole: Sol System Boundary Exit", x: 5000, y: -2000, z: 20000000 },
+    { name: "Wormhole: Orion Nursery Gateway", x: 19000000, y: 4800000, z: -69000000 },
+    { name: "Wormhole: Centauri Cluster Junction", x: 49000000, y: 500000, z: 49000000 },
+    { name: "Wormhole: Carina Deep Space Drift", x: -119000000, y: -44000000, z: -59000000 },
+    { name: "Wormhole: Tau Ceti Core Pipeline", x: 149000000, y: 9500000, z: 149000000 },
+    { name: "Wormhole: Andromeda Intergalactic Bridge", x: 148000000, y: 79000000, z: -288000000 },
+    { name: "Wormhole: Black Eye Deep Rim", x: 198000000, y: 88000000, z: -398000000 },
+    { name: "Wormhole: The Deep Nebula Shortcut", x: -300000000, y: -95000000, z: 240000000 },
+    { name: "Wormhole: The Galactic Gate", x: 0, y: 0, z: 450000000 },
+    { name: "Wormhole: The Edge of Time Gate", x: 895000000, y: 450000000, z: -895000000 },
+    */
+];
+
+        
+                function jumpTo(dest) {
+                    const offset = 5000000;
+                
+                    // 1. Reset Joystick State (Prevents input locking on mobile)
+                    if (window.joystick) {
+                        window.joystick.velocity.set(0, 0);
+                        window.joystick.active = false;
+                    }
+                
+                    // 2. Perform Jump & Camera Positioning
+                    engine.camera.position.set(dest.x + offset, dest.y + offset, dest.z + offset);
+                    engine.camera.lookAt(dest.x, dest.y, dest.z);
+                
+                    // 3. Dynamic Far Plane Adjustment (Ensures the destination is visible)
+                    const distanceToTarget = Math.abs(dest.z) + offset + 10000000;
+                    if (engine.camera.far < distanceToTarget) {
+                        engine.camera.far = distanceToTarget;
+                        engine.camera.updateProjectionMatrix();
+                    }
+                
+                    // 4. Clear Modal & Reset Pointer Events
+                    const modal = document.getElementById('nav-modal');
+                    /*
+                    if (modal) {
+                        modal.style.display = 'none';
+                        modal.style.pointerEvents = 'none';
+                    }*/
+
+                    if (modal) {
+                        modal.style.display = 'none';
+                        modal.style.pointerEvents = 'auto'; // CRITICAL: Reset this so it works next time
+                    }
+                    
+                    // 5. Force Reactivation of Controls
+                    setTimeout(() => {
+                        if (window.joystick) {
+                            window.joystick.active = true;
+                        }
+                        console.log("Jump successful:", dest.name);
+                    }, 100);
+                }
+        
+            // --- 2. UI INITIALIZATION ---
+            function initNavHub() {
+                const container = document.getElementById('button-container');
+                const modal = document.getElementById('nav-modal');
+                const trigger = document.getElementById('nav-trigger');
+            
+                // 1. CLEAR PREVIOUS BUTTONS (Prevents duplicates if init is called twice)
+                container.innerHTML = '';
+            
+                // 2. TRIGGER LOGIC
+                // Use one single listener to open the modal
+                trigger.addEventListener('pointerdown', (e) => {
+                    e.stopPropagation();
+                    modal.style.display = 'flex';
+                    modal.style.pointerEvents = 'auto'; // Force interactivity
+                }, { passive: false });
+            
+                // 3. DESTINATION BUTTON LOGIC
+                destinations.forEach(dest => {
+                    const btn = document.createElement('button');
+                    btn.innerText = dest.name;
+                    
+                    // Mobile-friendly styling
+                    btn.style.cssText = "padding: 15px; margin: 5px 0; background: #1a1a1a; color: #00ffcc; border: 1px solid #00ffcc; width: 100%; display: block; font-size: 16px; touch-action: manipulation;";
+            
+                    btn.addEventListener('pointerdown', (e) => {
+                        e.stopPropagation();
+                        
+                        // Execute the jump logic
+                        jumpTo(dest);
+                        
+                        // Hide modal but ensure it remains interactive for next time
+                        modal.style.display = 'none';
+                        modal.style.pointerEvents = 'auto'; 
+                    }, { passive: false });
+            
+                    container.appendChild(btn);
+                });
+            }
+
+            // --- FLIGHT MANUAL UI ---
+            function initFlightManual() {
+                const helpButton = document.getElementById('help-btn');
+            
+                if (!helpButton) {
+                    console.warn('Flight Manual button was not found.');
+                    return;
+                }
+            
+                // Insert the manual HTML from instructions.js
+                document.body.insertAdjacentHTML('beforeend', manualContent);
+            
+                const helpModal = document.getElementById('help-modal');
+                const closeHelpButton = document.getElementById('close-help');
+            
+                if (!helpModal || !closeHelpButton) {
+                    console.warn('Flight Manual modal elements were not found.');
+                    return;
+                }
+            
+                // Open Manual
+                helpButton.addEventListener('pointerdown', (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    
+                    // Freeze ship controls
+                    window.blockShipControls = true;
+            
+                    helpModal.style.display = 'block';
+                    helpModal.style.position = 'fixed'; // Overrides absolute to ensure it stays centered
+                    helpModal.style.zIndex = '10000';
+                    helpModal.style.pointerEvents = 'auto';
+                });
+            
+                // Close Manual
+                closeHelpButton.addEventListener('pointerdown', (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+            
+                    helpModal.style.display = 'none';
+            
+                    // Tiny delay before unblocking controls so the user doesn't accidentally shoot/move when clicking close
+                    setTimeout(() => {
+                        window.blockShipControls = false;
+                    }, 120);
+                });
+            }
+            
+            initFlightManual();
+        
+            window.addEventListener('DOMContentLoaded', initNavHub);
+
+        //const universe = new UniverseGenerator(engine.scene);
+        //const cosmic = universe.cosmicBodies;
+        overlay.addEventListener('pointerdown', async () => {
+            // 1. IMMEDIATE VISUAL FEEDBACK
+            // Make the overlay non-interactive and invisible immediately
+            overlay.style.pointerEvents = 'none'; 
+            overlay.style.opacity = '0';
+            overlay.style.transition = 'opacity 0.5s ease'; // Smooth fade out
+        
+            try {
+                // 2. BOOT SYSTEMS
+                // We do this AFTER triggering the fade so the user feels the "Ignition"
+                await bootSystems(); 
+                
+                // 3. COMPLETE REMOVAL
+                // Remove from DOM after fade finishes so it doesn't eat performance
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                }, 500);
+        
+                console.log("Ignition Successful. Controls Active.");
+            } catch (e) {
+                // Fallback: If boot fails, we still want the user to see the game
+                overlay.style.display = 'none';
+                console.warn("Boot failed, but forcing overlay hide.", e);
+            }
+        }, { once: true });        
+
+        // 1. The Main Belt (Rocky/Inner System)
+        const mainBelt = createBelt(engine.scene, {
+            count: 3000, 
+            innerRadius: 15000, 
+            outerRadius: 30000, 
+            verticalScatter: 1000, 
+            color: 0x888888, 
+            size: {min: 15, max: 60},
+            type: 'asteroid_belt',
+            name: 'Main Asteroid Belt',
+            sound: 'ROCKY_DEBRIS' 
+        });
+
+    
+        // 2. The Kuiper Belt (Icy/Deep Space)
+        const kuiperBelt = createBelt(engine.scene, {
+            count: 8000, 
+            innerRadius: 2000000, 
+            outerRadius: 3500000, 
+            verticalScatter: 200000, 
+            color: 0xadd8e6, 
+            size: {min: 1200, max: 4500},
+            type: 'asteroid_belt',
+            name: 'Kuiper Belt',
+            sound: 'ICY_WHISPER'
+        });
+
+        // FIXED: Oort Cloud pushed far beyond the Kuiper Belt
+        const oortCloud = createBelt(engine.scene, {
+            count: 20000,
+            innerRadius: 50000000,   // 50 Million
+            outerRadius: 80000000,   // 80 Million
+            verticalScatter: 2000000, 
+            color: 0xffffff, 
+            size: {min: 12000, max: 35000},
+            type: 'asteroid_belt',
+            name: 'Oort Cloud',
+            sound: 'DEEP_SPACE_STATIC'
+              });
+
+        const oumuamua = createInterstellarAnomaly(engine.scene, {
+                x: 20000000,
+                y: 10000000,
+                z: 20000000,
+                name: "'Oumuamua / Interstellar Wanderer"
+            });
+
+        /*
+         // 150 AU = ~22,500,000 units
+        const voyager = createVoyager(engine.scene, {
+            x: 10000, 
+            y: 2000, 
+            z: 22505000,
+            color: 0xffd700,
+            name: "Voyager Probe"
+        });
+        */
+
+        const nasaCoords = await fetchVoyagerLivePosition();
+        let voyagerMesh = createHighResVoyager(engine.scene, nasaCoords);
+
+    
+        // 3. Find "Voyager Probe" in the destinations array and update its values
+        const voyagerDest = destinations.find(dest => dest.name === "Voyager Probe");
+        
+        if (voyagerDest) {
+            voyagerDest.x = nasaCoords.x;
+            voyagerDest.y = nasaCoords.y;
+            voyagerDest.z = nasaCoords.z;
+        }
+        // If Earth is positioned at x: 150000 (for example)
+        const earthDistance = 150000;
+        
+        // The Heliopause radius MUST be ~120x larger than Earth's orbit
+        const heliopauseRadius = earthDistance * 120; 
+        
+        const heliopause = createHeliopause(engine.scene, {
+            radius: heliopauseRadius, // <--- Massively increase this!
+            colorInner: 0x0044ff, 
+            colorOuter: 0xff1166, 
+            opacity: 0.8
+        });
+        /*
+        // 120 AU = ~18,000,000 units
+        const heliopause = createHeliopause(engine.scene, {
+            radius: 18000000,
+            color: 0x4400ff,
+            opacity: 0.1
+        });
+        */
+         const blackHole = createBlackHole(engine.scene, {
+            size: 25000, // Increase this! Make it 5x larger than your planets
+            x: 0, 
+            y: 0, 
+            z: 500000000 
+        });
+       
+
+        // --- 1. The Orion Nursery (Massive, Purple/Cyan) ---
+        const orionNebula = createNebula(engine.scene, {
+            x: 20000000, 
+            y: 5000000, 
+            z: -80000000,
+            count: 400,
+            spread: 8000000, 
+            size: 3000000,   
+            colors: [0x4400ff, 0x00ffff],
+            name: "Orion Nursery",
+            sound: 'NEBULA_HUM'
+        });
+
+        const remnant = createNebula(engine.scene, {
+            x: -300000000, // Increased to 300 Million
+             y: -100000000, // Increased to 100 Million
+             z: 250000000,  // Increased to 250 Million
+             count:600,
+            spread: 5000000, 
+             size: 1500000,   
+              name: "Vela Remnant",
+            colors: [0xff4500, 0xffd700],
+            name: "Vela Remnant",
+            sound: 'ELECTRO_STATIC'
+        });
+        // --- 3. Distant Andromeda Galaxy (Extremely Far, White/Blue) ---
+        const andromeda = createNebula(engine.scene, {
+            x: 150000000, 
+            y: 80000000, 
+            z: -300000000, // Deep Deep Space
+            count: 1000,
+            spread: 15000000, 
+            size: 800000,   
+            colors: [0xffffff, 0xaaaaff],
+            name: "Andromeda Galaxy",
+            sound: 'DEEP_SPACE_STATIC'
+        });
+
+
+        const galaxyCoords = { x: 200000000, y: 90000000, z: -400000000 };
+
+        // 1. THE CORE: Small, bright, and dense
+        const blackEyeCore = createNebula(engine.scene, {
+            ...galaxyCoords,
+            count: 3000,
+            spread: 3000000,      // Tight core
+            size: 200000,         // Small stars
+            colors: [0xffffff, 0xffe080], // Bright white to gold
+            name: "Black Eye Core",
+            sound: 'LOW_RUMBLE_GRAVITY',
+            renderOrder: 0
+        });
+        
+        // 2. THE DUST LANE: Wider, dark, and "wispy"
+        const blackEyeDust = createNebula(engine.scene, {
+            ...galaxyCoords,
+            count: 2000,
+            spread: 12000000,     // Wider spread creates the "Eye" ring
+            size: 800000,         // Larger "clumps" of dust
+            colors: [0x5d2e1b, 0x2b1509], // Dark reddish-browns
+            name: "Black Eye Dust",
+            sound: 'LOW_RUMBLE_GRAVITY',
+            renderOrder : 1
+        });
+        
+        const molecularCloud = createNebula(engine.scene, {
+            x: -150000000, y: -20000000, z: -150000000,
+            name: "Barnard 68 / Dark Molecular Void",
+            count: 5000,        // Very high count to fill the background
+            spread: 30000000,   // Spans a massive area
+            size: 200000,       // Smaller "specks" like the image
+            colors: [0xbbccff, 0x112244], // Pale blue and deep space black
+            
+        });
+
+        // ============================================================================
+        // ☄️ EXTRA GALACTIC DEEP-SPACE REMNANTS
+        // ============================================================================
+        
+        // 1. The Phoenix Filament Field (Massive shockwave boundary)
+        // 1. Initialize with the Remnant-Ready factory
+        const phoenixRemnant = createSupernova(engine.scene, {
+            // 🚀 NEW INDEPENDENT COORDINATES: Separated safely from Phoenix-80M
+            x: -120000000, 
+            y: 25000000, 
+            z: -190000000,
+            
+            count: 1200,        // Slightly denser for a better lingering remnant
+            spread: 12000000,  
+            size: 500000,       // Smaller individual grains for the static cloud
+            colors: [0xff4500, 0x00ffff],
+            name: "SNR G106.3+2.7 / The Phoenix Shroud",
+            type:"supernova"
+        });
+
+        
+        
+        // 2. The Rescaled Stellar Collapse Matrix (Now safely out in deep space)
+        const matrixCollapse = createSupernova(engine.scene, {
+            // 🌌 Pushed far out past your solar system plane!
+            x: 95000000,  
+            y: -20000000, 
+            z: -110000000, 
+            
+            // 🌟 Boosted scales so it holds up visually in deep space
+            size: 900000,       // Boosted from 400
+            spread: 3000000,    // Boosted from 6,000
+            count: 500,         // Boosted from 80 for dense, beautiful matrix clouds
+            
+            colors: [0xff3300, 0xffaa00, 0xff00ff], // Hot plasma matrix spectrum
+            name: "Henize 2-428 / Toroidal Core Collapse",
+            type:"supernova"
+        });
+        // ============================================================================
+        // 🌌 THE ANOMALOUS DEEP-SPACE CATALOGUE (Hyper-Realistic Configuration Matrix)
+        // ============================================================================
+        
+        // 1. The Rebranded Supernova Remnant (Formerly "Stellar Collapse Matrix")
+        // A highly realistic name representing a specific nebula catalog entry.
+        const ngc6302Remnant = createSupernova(engine.scene, {
+            x: 60000000,  
+            y: 15000000,  
+            z: -95000000, 
+            name: "NGC 6302 / Cygnus-X1 Outflow",
+            size: 800000,       
+            spread: 2500000,    
+            count: 600,         
+            colors: [0xff3300, 0xffaa00, 0xff00ff], // High-energy ionized gas spectrum
+            type:"supernova"
+        });
+        
+        // 2. NEW: A Massive High-Mass Star-Forming Hatchery
+        // Uses deep blues, violets, and hot whites representing newborn stellar nurseries.
+        const messier16Nursery = createSupernova(engine.scene, {
+            x: -120000000,  
+            y: -45000000,  
+            z: -60000000, 
+            name: "Messier 16 / Carina Molecular Ridge",
+            size: 1500000,       
+            spread: 4000000,    
+            count: 900,         
+            colors: [0x00ffff, 0x4b0082, 0xffffff] ,
+            type:"supernova"
+        });
+        
+        // 3. NEW: A Blinding Magnetar Hyperburst Core
+        // Uses ultra-compressed sizing but an extreme particle spread to simulate a magnetic shockwave.
+        const psrB1509Core = createSupernova(engine.scene, {
+            x: 45000000,  
+            y: -80000000,  
+            z: 140000000, 
+            name: "PSR B1509-58 / High-Energy Magnetar Core",
+            size: 50000,        // Tiny, ultra-dense energetic center core
+            spread: 3500000,    // Colossal radiating particle wind shockwave
+            count: 750,         
+            colors: [0xffffff, 0x00aeff, 0x7b00ff] ,
+            type:"supernova"
+        });
+        
+        // 🌌 4. NEW: An Ancient Cosmic Ghost Nebula
+        const ic434Grave = createSupernova(engine.scene, {
+            x: -90000000,  
+            y: 90000000,  
+            z: 85000000, 
+            name: "IC 434 / Keplerian Ghost Filament",
+            size: 600000,       
+            spread: 1800000,    
+            count: 450,         
+            colors: [0x00ff66, 0xd4af37, 0x228b22], // Emerald, Gold, Forest Green
+            type:"supernova"
+        });
+        
+        // 🎯 THE FIX: Safely force the material color shift
+        /*
+        if (ic434Grave) {
+            ic434Grave.name = "IC 434 / Keplerian Ghost Filament";
+                
+            ic434Grave.traverse((child) => {
+                // We check if it has a material (this applies to both Meshes and Sprites)
+                if (child.material) {
+                    
+                    // 1. If it's a standard material with a native color property:
+                    if (child.material.color) {
+                        child.material.color.setHex(0x00ff66); 
+                    }
+                    
+                    // 2. If it's our new 4K ShaderMaterial (uses 'baseColor' instead of 'uColor'):
+                    if (child.material.uniforms && child.material.uniforms.baseColor) {
+                        child.material.uniforms.baseColor.value.setHex(0x00ff66);
+                    }
+                }
+            });
+        }*/
+
+        
+        // 1. Create the surrounding Crab Nebula expansion cloud
+        const crabNebula = createSupernova(engine.scene, {
+            x: -30000000, 
+            y: 10000000, 
+            z: 200000000,
+            name: "Crab Nebula (M1)",
+            size: 50000,
+            spread: 1500000,
+            count: 1000,
+            colors: [0xffffff, 0x00ffff, 0xff00ff]
+        });
+        
+        // 2. Create the central rapidly spinning Crab Pulsar at the exact same coordinates
+        const crabPulsar = createPulsar(engine.scene, {
+            x: -30000000, 
+            y: 10000000, 
+            z: 200000000,
+            name: "PSR B0531+21 (Crab Pulsar)",
+            radius: 4000 // Ultra-compact core
+        });
+        
+        // Give the pulsar a steep magnetic inclination so its jets slice through the nebula cloud
+        crabPulsar.rotation.x = Math.PI * 0.35;
+        crabPulsar.rotation.z = Math.PI * 0.15;
+        
+        
+        /*
+        const wolfRayet = createSupernova(engine.scene, {
+            x: 80000000, y: -40000000, z: 50000000,
+            name: "WR 124 / Nebula M1-67",
+            size: 700000, 
+            spread: 2000000,
+            count: 400,
+            colors: [0x00ffcc, 0xff3300, 0xffff00] // Cyan, Red, and Yellow to match the image
+        });
+       */
+        // 🌌 Changed from createSupernova to createNebula
+        const wolfRayet = createNebula(engine.scene, {
+            x: 80000000, 
+            y: -40000000, 
+            z: 50000000,
+            name: "WR 124 / Nebula M1-67",
+            
+            // 📏 Scaled down to reasonable, dense cloud proportions:
+            size: 15000,       // Large enough to be majestic, small enough to show detail
+            spread: 120000,    // Creates a massive, beautiful stellar neighborhood
+            count: 250,        // Stacks 250 puffs smoothly
+            
+            colors: [0x00ffcc, 0xff3300, 0xffff00] // Cyan, Red, and Yellow
+        });
+        
+        // --- 0. Supreme Exoplanet System ---
+        // Create the Supreme Exoplanet System with properties passed directly in the config object
+        
+        //const exoSystem = createExoplanetSystem(engine.scene, {
+        const exoSystem = createExoplanet(engine.scene, {    
+            x: 10000000, 
+            y: 0, 
+            z: 250000000,
+            name: "Supreme Exoplanet System",
+            type: "exoplanet_system"
+        });
+        
+        // ============================================================================
+        // 🌌 NEIGHBOR SYSTEM: ALPHA CENTAURI TRIPLE STAR CLUSTER
+        // ============================================================================ 
+        const alphaCentauriX = 50000000;
+        const alphaCentauriZ = 50000000;
+        
+        // ☀️ 1. ALPHA CENTAURI A & B (Binary Star Pair)
+        const alphaCentauriAB = createStarSystem(engine.scene, {
+            name: "Alpha Centauri AB Binary System",
+            x: alphaCentauriX,
+            y: 0,
+            z: alphaCentauriZ,
+            systemRadius: 2000000,
+            stars: [
+                { 
+                    name: "Alpha Centauri A", 
+                    radius: 7000, 
+                    color: 0xfff4ea, // Bright G2V Yellow-White Sun-like Star
+                    orbitDistance: 0, 
+                    orbitSpeed: 0.001, 
+                    //textureMap: '/planets/texture/2k_sun.jpg', 
+                    lightIntensity: 4 
+                },
+                { 
+                    name: "Alpha Centauri B", 
+                    radius: 5800, 
+                    color: 0xffd2a1, // K1V Orange-Yellow Star
+                    orbitDistance: 800000, 
+                    orbitSpeed: 0.002, 
+                    //textureMap: '/planets/texture/2k_sun.jpg', 
+                    lightIntensity: 3 
+                }
+            ]
+        });
+       
+        // 🔴 2. PROXIMA CENTAURI (Distant Red Dwarf Star System)
+        const proximaSystem = createStarSystem(engine.scene, {
+            name: "Proxima Centauri System",
+            x: alphaCentauriX + 5000000, // 55,000,000
+            y: 0,
+            z: alphaCentauriZ + 5000000, // 55,000,000
+            systemRadius: 500000,
+            stars: [
+                { 
+                    name: "Proxima Centauri", 
+                    radius: 2200, 
+                    color: 0xff4400, // M5.5V Red Dwarf
+                    orbitDistance: 0, 
+                    orbitSpeed: 0.002, 
+                    //textureMap: '/planets/texture/2k_sun.jpg', 
+                    lightIntensity: 1 
+                }
+            ]
+        });
+         
+        // 🪐 3. PROXIMA CENTAURI b (Actual Habitable-Zone Exoplanet)
+        const proximaB = createExoplanet(engine.scene, {
+            x: alphaCentauriX + 5000000 + 15000,
+            y: 0,
+            z: alphaCentauriZ + 5000000 + 15000,
+            name: "Proxima Centauri b",
+            type: "exoplanet"
+        });
+        
+        // 🪨 4. CIRCUMSTELLAR DEBRIS RING
+        const sharedBelt = createBelt(engine.scene, {
+            x: alphaCentauriX,
+            z: alphaCentauriZ,
+            count: 2500,
+            innerRadius: 2800000,
+            outerRadius: 3200000,
+            verticalScatter: 50000,
+            color: 0x998877,
+            size: { min: 200, max: 1500 },
+            type: 'asteroid_belt',
+            name: 'Centauri Debris Ring',
+            sound: 'ROCKY_DEBRIS'
+        });
+
+       const colors = [0xff4500, 0x00ffff, 0xffaa00]; 
+        const positionVector = { x: -80000000, y: 30000000, z: -150000000 }; 
+        
+        const BornSystem = createProtoplanetaryDisk(engine.scene, {
+            x: positionVector.x, 
+            y: positionVector.y, 
+            z: positionVector.z,
+            colors: colors,
+            count: 70000,    // 🔥 Boosted configuration ensures dense arms AND background dust render together!
+            spread: 12000000,  
+            size: 700000,    
+            name: "Stellar Nursery Component"
+        });
+
+     // ==========================================
+    // 🛠️ THE CHANGES TO MAKE:
+    // ==========================================
+    
+    // 0. Update these base constants to the massive proportional interstellar scale
+    const tauOffsetX = 150000000; // 150 Million (Far beyond Oort Cloud at 65 Million)
+    const tauOffsetY = 10000000;  // 10 Million 
+    const tauOffsetZ = 150000000; // 150 Million
+    
+    // 1. THE STAR
+    const tauCetiStar = createSun({
+        position: { x: tauOffsetX, y: tauOffsetY, z: tauOffsetZ },
+        name: "Tau Ceti Prime",
+        radius: 3100 
+    });
+    
+    // 2. THE DEBRIS DISK
+    const tauCetiDisk = createNebula(engine.scene, {
+        x: tauOffsetX,
+        y: tauOffsetY,
+        z: tauOffsetZ,
+        count: 2000,
+        spread: 25000, 
+        size: 100,
+        colors: [0x5d2e1b, 0x4a3c31],
+        name: "Tau Ceti Debris Disk"
+    });
+
+       
+    // 3. THE EXOPLANETS 
+    // Pass the EXACT same system center coordinates (tauOffsetX, tauOffsetY, tauOffsetZ).
+    // Do NOT manually add +12000 or +28000 here! The planet function internally handles 
+    // putting the planet body at its orbit radius (e.g. planet.position.x = 15000) inside its group.
+    //const planetE = createExoplanetSystem(engine.scene, {
+   const planetE = createExoplanet(engine.scene, {
+        x: tauOffsetX, 
+        y: tauOffsetY,
+        z: tauOffsetZ,
+        name: "Tau Ceti e",
+        type: "exoplanet"
+    });
+    
+    //const planetF = createExoplanetSystem(engine.scene, {
+      const planetF = createExoplanet(engine.scene, {
+        x: tauOffsetX, 
+        y: tauOffsetY,
+        z: tauOffsetZ,
+        name: "Tau Ceti f",
+        type: "exoplanet"
+    });       
+    
+    
+     // 0. The Massive Cosmological Coordinates
+    const momX = 900000000;
+    const momY = 450000000;
+    const momZ = -900000000;
+    
+    // 1. REUSE CREATE-SUN: For the bright, hyper-dense galactic core
+    const momCore = createSun({
+        position: { x: momX, y: momY, z: momZ },
+        name: "Galaxy MoM-z14 Core",
+        radius: 5000 // Make it massive so it can be seen from far away!
+    });
+   
+    // 2. REUSE CREATE-NEBULA: For the gas cloud surrounding the early galaxy
+    const momGasCloud = createNebula(engine.scene, {
+        x: momX,
+        y: momY,
+        z: momZ,
+        count: 5000,       // High density of primitive stars
+        spread: 60000,     // A massive galactic radius expansion
+        size: 150,         // Large, intensely bright star-forming regions
+        colors: [0xff0000, 0x550000], // Deep, redshifted infrared-crimson tones
+        name: "MoM-z14 Primordial Dust"
+    });   
+
+    // 🌌 THE RECONFIGURED COSMIC HORIZON DATA MATRIX
+    const cmbDistance = 2000000000; // 2 Billion Units
+    
+    const cosmicHorizon = createNebula(engine.scene, {
+        x: 0, 
+        y: 0, 
+        z: 0, 
+        count: 30000,        // ⬆️ Massive density to fill the void smoothly
+        spread: cmbDistance, 
+        size: 3500,          // ⬆️ Giant point sizes let the textures bleed together like real cream
+        
+        // 🔮 THE HIGH-GLOW NEON VIOLET AND GOLDEN AMBER RADIATION PALETTE
+        colors: [
+            0xffaa00,        // Radiant Golden Amber (Leftover Big Bang Heat)
+            0xa020f0,        // Thick Creamy Violet
+            0x6a1b9a,        // Intense Velvet Plum
+            0x110022         // Midnight Void Indigo Back-layer
+        ],
+        name: "Cosmic Microwave Horizon"
+    });
+
+        
+   // 🌸 GJ 504b: Hyperrealistic Gas Giant Orbiting its G-Type Host Star
+    const gj504b = createExoplanetSystem(engine.scene, {
+        name: "Exoplanet GJ 504b",
+        
+        x: -380000000, 
+        y: 120000000, 
+        z: 520000000,
+    
+        // --- Host Star ---
+        starRadius: 120000,        
+        starColor: 0xffdd44,         
+        starOffset: 1500000, // Brought in slightly so it's easier to find
+        
+        // 🚀 THE LIGHTING FIX: 1e14 (100 trillion) is required to push light 1.5 million units in r160!
+        starLightIntensity: 1e14, 
+    
+        // --- Gas Giant Aesthetics & Texture ---
+        // 🚀 THE SCALE FIX: Boosted to 45,000 so it renders visibly on screen
+        planetRadius: 45000,          
+        planetColor: 0xe63956,       
+        
+        // Your NASA texture is safe to use!
+        textureMap: " https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/9e941bc7-b311-4974-8c78-3f86c64081bb/dg71ki4-a39b8498-c52a-4981-8884-aceb48b1fc63.png?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7InBhdGgiOiIvZi85ZTk0MWJjNy1iMzExLTQ5NzQtOGM3OC0zZjg2YzY0MDgxYmIvZGc3MWtpNC1hMzliODQ5OC1jNTJhLTQ5ODEtODg4NC1hY2ViNDhiMWZjNjMucG5nIn1dXSwiYXVkIjpbInVybjpzZXJ2aWNlOmZpbGUuZG93bmxvYWQiXX0.T5nbuvHCZ8rKjEKOZLpaEqdwxB47mLyvel75hyHXEVg",
+            //"https://eyes.nasa.gov/apps/exo/assets/image/exoplanet/GJ_504_b.jpg", 
+        
+        roughness: 0.35,            
+        metalness: 0.05,
+        hasClouds: false,         
+        
+        hasAtmosphere: true,
+        atmosColor: 0xff0066,       
+        atmosOpacity: 0.45,         
+
+        // --- Orbital Dynamics ---
+        orbitSpeed: 0.008,    // Active, clearly visible orbit
+        rotationSpeed: 0.002   // Smooth planetary spin
+
+        // --- Orbital Dynamics ---
+        //orbitSpeed: 0.0004,     // Slow, noticeable orbit around the star
+        //rotationSpeed: 0.002    // Smooth, gentle planetary surface spin
+
+    });
+       
+    // ==========================================
+    // 🌌 COMPONENT: OMC-2 Cloud of Creation (Orion Sword)
+    // ==========================================
+    const omcX = 25000000;   
+    const omcY = 6000000;
+    const omcZ = -72000000;
+    
+    // Named properly as a Nebula asset
+    const omc2Nebula = createNebula(engine.scene, {
+        x: omcX,
+        y: omcY,
+        z: omcZ,
+        count: 45000,         
+        spread: 8000000,      
+        size: 450000,         
+        colors: [
+            0x00ffff,        // Bright Cosmic Cyan
+            0x7cfc00,        // Organic Polycyclic Green
+            0xffaa00,        // Glowing Protostar Amber
+            0x3d2314,        // Dark Obscuring Dust Clumps
+            0x050010         // Deep Void Indigo
+        ],
+        name: "OMC-2 Stellar Nursery"
+    });
+    
+    // HUD Tracking Data Registry
+    omc2Nebula.userData = {
+        name: "OMC-2 Molecular Nebula",
+        type: "Stellar Nursery",
+        notes: "Dense dust filament tracking embryonic stars and polycyclic aromatic hydrocarbon emissions."
+    };
+    
+    /*
+    // ==========================================
+    // 🕳️ NEW OBJECT: SDSS J110546 Prototype Active Nucleus
+    // ==========================================
+    const sdsx = 450000000;
+    const sdsy = -120000000;
+    const sdsz = -550000000;
+    
+    // Component A: The Hyper-Accreting Light Core
+    const sdssBlackHoleCore = createNebula(engine.scene, {
+        x: sdsx,
+        y: sdsy,
+        z: sdsz,
+        count: 8000,
+        spread: 350000,       // Highly compressed, intense accretion disk boundary
+        size: 150000,
+        colors: [
+            0xffffff,        // Pure energetic white core
+            0xffaa00,        // Blazing acceleration amber
+            0x330066         // Highly distorted event horizon violet
+        ],
+        name: "SDSS J110546 Core"
+    });
+    
+    // Component B: The Relativistic Radio Jet (Concentrated Particle Beam)
+    const sdssRadioJet = createNebula(engine.scene, {
+        x: sdsx,
+        y: sdsy + 1500000,   // Projected upward on the Y-axis out of the pole
+        z: sdsz,
+        count: 12000,
+        spread: 80000,       // Tight, dense, highly collimated beam
+        size: 90000,
+        colors: [
+            0x00ffff,        // High-energy synchrotron cyan
+            0x0055ff         // Intense radio spectrum blue
+        ],
+        name: "SDSS J110546 Jet"
+    });
+    
+    // Stretch the jet vertically to make it look like a true particle stream
+    sdssRadioJet.scale.set(1, 15, 1); 
+    sdssRadioJet.updateMatrix();
+    
+    // Metadata registry for HUD diagnostics
+    sdssBlackHoleCore.userData = {
+        name: "SDSS J110546.07+145202.4",
+        type: "Rapid-Growth Lightweight SMBH",
+        notes: "Prototype galaxy showing 20-fold radio jet amplification. Mimics early universe conditions in nearby space."
+    };
+      */
+
+        // ==========================================
+    // 🕳️ NEW OBJECT: SDSS J110546 Prototype Active Nucleus
+    // ==========================================
+    const sdsx = 450000000;
+    const sdsy = -120000000;
+    const sdsz = -550000000;
+    
+    // Component A: The TRUE Black Hole Core (Using your new shader)
+    const sdssBlackHoleCore = createBlackHole(engine.scene, {
+        name: "SDSS J110546 Core",
+        size: 25000, 
+        x: sdsx,
+        y: sdsy,
+        z: sdsz
+    });
+    // Add to updatables so the shader spins
+    if (engine.updatables) engine.updatables.push(sdssBlackHoleCore);
+    
+    // Component B: The Relativistic Radio Jet (Keep this exactly as is!)
+    const sdssRadioJet = createNebula(engine.scene, {
+        x: sdsx,
+        y: sdsy + 150000,   // Notice I reduced this slightly so it connects to the disk better
+        z: sdsz,
+        count: 12000,
+        spread: 80000,       
+        size: 90000,
+        colors: [ 0x00ffff, 0x0055ff ],
+        name: "SDSS J110546 Jet"
+    });
+    sdssRadioJet.scale.set(1, 15, 1); 
+    sdssRadioJet.updateMatrix();
+
+
+        /*...................*/
+    const k218 = createExoplanetSystem(engine.scene, {
+        x: 180000000, y: 45000000, z: -320000000,
+        name: "K2-18b",
+        planetRadius: 300000,
+        planetColor: 0x0a2540,
+        atmosColor: 0x00e1ff,
+        starRadius: 100000,
+        starColor: 0xff3300,
+        starOffset: 1200000
+    });
+    
+    
+    // =========================================================
+    // 🔴 REAL SYSTEM: TRAPPIST-1 (Red Dwarf + 7 Terrestrial Worlds)
+    // =========================================================
+    const trappist1System = createExoplanetSystem(engine.scene, {
+        name: "TRAPPIST-1 System",
+        
+        // Universe World Coordinates
+        x: -50000000,
+        y: 0,
+        z: 300000000,
+    
+        // Central Star (Ultracool Red Dwarf)
+        starRadius: 35000,
+        starColor: 0xff3300,
+        starOffset: 150000,
+    
+        // Orbiting Exoplanets (Real planetary parameters scaled for 3D)
+        planets: [
+            {
+                name: "TRAPPIST-1b",
+                radius: 1100,
+                color: 0x8b6508,
+                orbitDistance: 120000,
+                orbitSpeed: 0.015,
+                rotationSpeed: 0.005,
+                hasClouds: false,
+                hasAtmosphere: true,
+                atmosColor: 0xffaa44,
+                atmosOpacity: 0.3
+            },
+            {
+                name: "TRAPPIST-1c",
+                radius: 1050,
+                color: 0xcd853f,
+                orbitDistance: 180000,
+                orbitSpeed: 0.011,
+                rotationSpeed: 0.004,
+                hasClouds: false,
+                hasAtmosphere: true,
+                atmosColor: 0xff7733
+            },
+            {
+                name: "TRAPPIST-1d",
+                radius: 850,
+                color: 0x4682b4,
+                orbitDistance: 250000,
+                orbitSpeed: 0.008,
+                rotationSpeed: 0.006,
+                hasClouds: true,
+                hasAtmosphere: true,
+                atmosColor: 0x87ceeb
+            },
+            {
+                name: "TRAPPIST-1e (Habitable Zone)",
+                radius: 950,
+                color: 0x2e8b57,
+                orbitDistance: 340000,
+                orbitSpeed: 0.006,
+                rotationSpeed: 0.008,
+                hasClouds: true,
+                hasAtmosphere: true,
+                atmosColor: 0x00ff7f
+            },
+            {
+                name: "TRAPPIST-1f (Ocean World)",
+                radius: 1000,
+                color: 0x1e90ff,
+                orbitDistance: 450000,
+                orbitSpeed: 0.004,
+                rotationSpeed: 0.007,
+                hasClouds: true,
+                hasAtmosphere: true,
+                atmosColor: 0x00bfff
+            },
+            {
+                name: "TRAPPIST-1g",
+                radius: 1150,
+                color: 0x4169e1,
+                orbitDistance: 600000,
+                orbitSpeed: 0.0025,
+                rotationSpeed: 0.005,
+                hasClouds: false,
+                hasAtmosphere: true,
+                atmosColor: 0x87cefa
+            },
+            {
+                name: "TRAPPIST-1h (Outer Ice World)",
+                radius: 750,
+                color: 0x708090,
+                orbitDistance: 800000,
+                orbitSpeed: 0.0015,
+                rotationSpeed: 0.003,
+                hasClouds: false,
+                hasAtmosphere: false
+            }
+        ]
+    });
+
+        /*
+    // =========================================================
+    // 🔴 LHS 1140 SYSTEM (Red Dwarf + LHS 1140 b Ocean Super-Earth)
+    // =========================================================
+    const lhs1140System = createExoplanetSystem(engine.scene, {
+        name: "LHS 1140 System",
+        
+        // System Position in World Space
+        x: 150000000,
+        y: -40000,
+        z: 220000000,
+    
+        // Central Host Star (M-Dwarf / Red Dwarf)
+        starRadius: 28000,
+        starColor: 0xff4411,
+        starOffset: 100000,
+    
+        // System Planets
+        planets: [
+            {
+                name: "LHS 1140 c",
+                radius: 800,
+                color: 0xaa7755,
+                orbitDistance: 90000,
+                orbitSpeed: 0.014,
+                rotationSpeed: 0.005,
+                hasClouds: false,
+                hasAtmosphere: false
+            },
+            {
+                name: "LHS 1140 b (Eyeball World)",
+                radius: 1700,
+                baseColor: 0xe0f6ff,      // Dominant icy shell color (white/cyan-ice)
+                oceanColor: 0x1d70b8,     // Central sub-stellar ocean ("iris") color
+                isTidallyLocked: true,    // Sub-stellar ocean must always face the host star
+                rotationSpeed: 0.0,       // Fixed relative to host star alignment
+                hasClouds: true,
+                hasAtmosphere: true,
+                atmosColor: 0x33ccff,     // Nitrogen-rich atmosphere halo
+                atmosOpacity: 0.4
+}
+        ]
+    });
+    */
+    // =========================================================
+    // 🔴 LHS 1140 SYSTEM (Red Dwarf + LHS 1140 b Ocean Super-Earth)
+    // =========================================================
+    const lhs1140System = createExoplanetSystem(engine.scene, {
+        name: "LHS 1140 System",
+        
+        // System Position in World Space
+        x: 150000000,
+        y: -40000,
+        z: 220000000,
+    
+        // Central Host Star (M-Dwarf / Red Dwarf)
+        starRadius: 28000,
+        starColor: 0xff4411,
+        starOffset: 100000,
+    
+        // System Planets
+        planets: [
+            {
+                name: "LHS 1140 c",
+                radius: 7600,             // Boosted 5x for visual gameplay
+                color: 0xaa7755,
+                orbitDistance: 90000,
+                orbitSpeed: 0.014,
+                rotationSpeed: 0.005,
+                hasClouds: false,
+                hasAtmosphere: false
+            },
+            {
+                name: "LHS 1140 b (Eyeball World)",
+                radius: 10250,            // Boosted 5x so the "eye" texture is clearly visible
+                baseColor: 0xe0f6ff,      
+                oceanColor: 0x1d70b8,     
+                isTidallyLocked: true,    
+                rotationSpeed: 0.0,       
+                hasClouds: true,
+                textureMap : "https://raw.githubusercontent.com/dganigame-coder/space/master/navisoftspace/planets/texture/lhs_1140.jpg",
+                hasAtmosphere: true,
+                atmosColor: 0x33ccff,     
+                atmosOpacity: 0.4
+            }
+        ]
+    });
+     // =========================================================
+    // 🪐 CD-35 2722 SYSTEM (Red Dwarf + Brown Dwarf + Gas-Giant Exomoon)
+    // =========================================================
+    const cd352722System = createExoplanetSystem(engine.scene, {
+        name: "CD-35 2722 System",
+        
+        // World Space Coordinates (approx. 73 ly away)
+        x: -200000000,
+        y: 80000,
+        z: 150000000,
+    
+        // Primary Host Star (Red Dwarf - ~0.4 M_Sun)
+        starRadius: 22000,
+        starColor: 0xff3300, 
+        starOffset: 120000,
+    
+                planets: [
+            {
+                name: "CD-35 2722 B (Brown Dwarf Host)",
+                radius: 3500,
+                color: 0x8b2200,
+                orbitDistance: 450000,
+                
+                // 🚀 Speed up the main orbit around the red dwarf
+                orbitSpeed: 0.03, 
+                rotationSpeed: 0.008,
+                hasClouds: true,
+                hasAtmosphere: true,
+                atmosColor: 0xff4500,
+                
+                moons: [
+                    {
+                        name: "CD-35 2722 B b (Exomoon Candidate)",
+                        radius: 1100,
+                        color: 0x4682b4,
+                        orbitDistance: 35000,
+                        
+                        // 🚀 Moon orbits faster than the brown dwarf host
+                        orbitSpeed: 0.08, 
+                        hasAtmosphere: true,
+                        atmosColor: 0x87ceeb
+                    }
+                ]
+            }
+        ]
+    });
+    
+    // =========================================================
+    // 🌌 SEXTUPLE STAR SYSTEM (TYC 7037-89-1 / TIC 168789840)
+    // =========================================================
+    const sextupleSystem = createStarSystem(engine.scene, {
+        name: "TIC 168789840 (Sextuple System)",
+    
+        // World Space Origin (Deep Space Location)
+        x: -300000000,
+        y: 150000,
+        z: -400000000,
+        systemRadius: 5000000,
+    
+        // Hierarchical Stars & Planets
+        stars: [
+            // -----------------------------------------------------
+            // BINARY PAIR A (Inner Quad Core - Pair 1)
+            // -----------------------------------------------------
+            {
+                name: "Star A1 (Primary F-Type)",
+                radius: 3200,
+                color: 0xaaccff, // ❄️ Crisp Blue-White (F-Class)
+                //textureMap: 'space/navisoftspace/planets/texture/2k_sun.jpg', // Base texture
+                orbitDistance: 150000,
+                orbitSpeed: 0.012,
+                companions: [
+                    {
+                        type: 'star',
+                        name: "Star A2 (M-Dwarf Companion)",
+                        radius: 1200,
+                        color: 0xff3300, // 🔴 Crimson Red Dwarf
+                       // textureMap: 'space/navisoftspace/planets/texture/2k_sun.jpg',
+                        orbitDistance: 12000,
+                        orbitSpeed: 0.045
+                    }
+                ]
+            },
+            // -----------------------------------------------------
+            // BINARY PAIR C (Inner Quad Core - Pair 2)
+            // -----------------------------------------------------
+            {
+                name: "Star C1 (Yellow Sun-like)",
+                radius: 3000,
+                color: 0xffcc00, // 🟡 Golden Sun (G-Class)
+                //textureMap: 'space/navisoftspace/planets/texture/2k_sun.jpg',
+                orbitDistance: 220000,
+                orbitSpeed: 0.009,
+                companions: [
+                    {
+                        type: 'star',
+                        name: "Star C2 (M-Dwarf Companion)",
+                        radius: 1000,
+                        color: 0xff2200, // 🔴 Deep Red Dwarf
+                        //textureMap: 'space/navisoftspace/planets/texture/2k_sun.jpg',
+                        orbitDistance: 10000,
+                        orbitSpeed: 0.050
+                    }
+                ]
+            },
+            // -----------------------------------------------------
+            // BINARY PAIR B (Outer Pair Hosting Exoplanet E-1)
+            // -----------------------------------------------------
+            {
+                name: "Star B1 (Primary Host Sun)",
+                radius: 3500,
+                color: 0xffe680, // ☀️ Warm Solar Amber
+                //textureMap: 'space/navisoftspace/planets/texture/2k_sun.jpg',
+                orbitDistance: 850000, 
+                orbitSpeed: 0.002,
+                companions: [
+                    {
+                        type: 'star',
+                        name: "Star B2 (Orange-Red Companion)",
+                        radius: 1500,
+                        color: 0xff6600, // 🟠 Vivid Orange Star
+                       // textureMap: 'space/navisoftspace/planets/texture/2k_sun.jpg',
+                        orbitDistance: 45000,
+                        orbitSpeed: 0.020
+                    },
+                    {
+                        type: 'planet', // 🌍 Crucial: Tells the engine to use the Exoplanet factory!
+                        name: "Exoplanet E-1 (Habitable Super-Earth)",
+                        radius: 1200, 
+                        // No textureMap provided here, so it falls back to your Earth defaults in exoplanet.js!
+                        color: 0x0088ff, // 💙 Rich Ocean Blue
+                        orbitDistance: 120000, 
+                        orbitSpeed: 0.006,
+                        hasClouds: true,
+                        hasAtmosphere: true,
+                        atmosColor: 0x00e1ff, 
+                        atmosOpacity: 0.6
+                    }
+                ]
+            }
+        ]
+    });
+    const castorSystem = createStarSystem(engine.scene, {
+        name: "Castor System",
+        x: 0,
+        y: 0,
+        z: -160000000, // Pushed deep into the cosmos to match deep space scale
+        systemRadius: 100000, // Defines the outer bounds
+        stars: [
+            // --- CASTOR A (Pair) ---
+            { 
+                name: "Castor Aa (Primary)", 
+                radius: 8000, 
+                color: 0xffffff, // Clean white tint for natural texture rendering
+                orbitDistance: 4000, 
+                orbitSpeed: 0.005, 
+                //textureMap: '/planets/texture/2k_sun.jpg', 
+                lightIntensity: 3 
+            },
+            { 
+                name: "Castor Ab (Red Dwarf)",
+                radius: 2500,
+                color: 0xff4400, 
+                orbitDistance: 12000,
+                orbitSpeed: 0.008, 
+                //textureMap: '/planets/texture/2k_sun.jpg', 
+                lightIntensity: 0 // Unlit red dwarf
+            },
+    
+            // --- CASTOR B (Pair) ---
+            { 
+                name: "Castor Ba (Secondary)",
+                radius: 7000, 
+                color: 0xffffff, 
+                orbitDistance: 25000,
+                orbitSpeed: 0.003, 
+                //textureMap: '/planets/texture/2k_sun.jpg', 
+                lightIntensity: 3 
+            },
+            { 
+                name: "Castor Bb (Red Dwarf)", 
+                radius: 2500,
+                color: 0xff4400, 
+                orbitDistance: 32000,
+                orbitSpeed: 0.004, 
+                //textureMap: '/planets/texture/2k_sun.jpg', 
+                lightIntensity: 0 // Unlit red dwarf
+            },
+    
+            // --- CASTOR C (Pair - Orbiting far away) ---
+            { 
+                name: "Castor Ca (Dwarf)", 
+                radius: 2500, 
+                color: 0xff4400, 
+                orbitDistance: 60000,
+                orbitSpeed: 0.001, 
+                //textureMap: '/planets/texture/2k_sun.jpg', 
+                lightIntensity: 0 // Unlit red dwarf
+            },
+            { 
+                name: "Castor Cb (Dwarf)", 
+                radius: 2500,
+                color: 0xff4400, 
+                orbitDistance: 65000, 
+                orbitSpeed: 0.0012, 
+                //textureMap: '/planets/texture/2k_sun.jpg', 
+                lightIntensity: 0 // Unlit red dwarf
+            }
+        ]
+    });
+    /*
+    // ============================================================================
+    // 🕳️⭐ EXOTIC: BLACK HOLE STAR (QUASI-STAR)
+    // ============================================================================
+    const blackHoleStarX = 950000000;
+    const blackHoleStarY = 45000000;
+    const blackHoleStarZ = -950000000; // Placed deep in the early universe (Cosmic Dawn)
+    
+    const quasiStarSystem = createStarSystem(engine.scene, {
+        name: "Black Hole Star (MoM-BH*-1)",
+        x: blackHoleStarX,
+        y: blackHoleStarY,
+        z: blackHoleStarZ,
+        systemRadius: 1000000,
+        stars: [
+            { 
+                name: "Event Horizon", 
+                radius: 150000, 
+                color: 0x000000, // Pitch black!
+                orbitDistance: 0, 
+                orbitSpeed: 0, 
+                lightIntensity: 0 // Emit no light from the center!
+            }
+        ]    });
+    
+    const quasiStarDisk = createBelt(engine.scene, {
+        x: blackHoleStarX, // Now it reads this!
+        y: blackHoleStarY, // Now it reads this!
+        z: blackHoleStarZ, // Now it reads this!
+        count: 3500,
+        innerRadius: 180000,
+        outerRadius: 350000,
+        verticalScatter: 15000,
+        color: 0xcc4411,
+        size: { min: 500, max: 2500 },
+        type: 'asteroid_belt',
+        name: 'Quasi-Star Accretion Field',
+        sound: 'ROCKY_DEBRIS'
+    });
+
+   */
+// ============================================================================
+    // 🕳️⭐ EXOTIC: QUASI-STAR (MoM-QS-1 Core & Envelope Composition)
+    // ============================================================================
+    const quasiX = 950000000;
+    const quasiY = 45000000;
+    const quasiZ = -950000000; // Deep in the early universe
+
+    // 1. THE CORE SINGULARITY (True Black Hole core using your new shader/physics)
+    const quasiBlackHoleCore = createBlackHole(engine.scene, {
+        name: "Quasi-Star Central Singularity",
+        size: 10000, // Scaled down relative to the 150k stellar envelope
+        x: quasiX,
+        y: quasiY,
+        z: quasiZ
+    });
+    /*
+    // Temporary test coordinates close to the camera
+    const quasiBlackHoleCore = createBlackHole(engine.scene, {
+        name: "Quasi-Star Central Singularity",
+        size: 10000,
+        x: 0,
+        y: 0,
+        z: -50000
+    });
+    */
+    if (engine.updatables) engine.updatables.push(quasiBlackHoleCore);
+
+    // 2. THE CORE ACCRETION DISK (Hot plasma trapped inside the star near the core)
+    const quasiCoreDisk = createBelt(engine.scene, {
+        x: quasiX, 
+        y: quasiY, 
+        z: quasiZ, 
+        count: 12000,
+        innerRadius: 12000, // Starts right outside the 10,000 unit singularity
+        outerRadius: 35000, // Stays well inside the 150,000 unit envelope
+        verticalScatter: 200,
+        color: 0xffdd88,     // Bright white-hot plasma
+        size: { min: 800, max: 2000 },
+        type: 'asteroid_belt',
+        name: 'Quasi-Star Core Accretion Disk'
+    });
+
+    // 3. THE GIANT PLASMA ENVELOPE (Semi-transparent X-Ray view shell)
+    const quasiStarSystem = createStarSystem(engine.scene, {
+        name: "Quasi-Star Envelope (MoM-QS-1)",
+        x: quasiX,
+        y: quasiY,
+        z: quasiZ,
+        systemRadius: 1000000,
+        stars: [
+            {
+                name: "Stellar Envelope Shell",
+                radius: 150000,  // Massive envelope surrounding the core
+                color: 0xff2200, // Deep primordial red
+                orbitDistance: 0,
+                orbitSpeed: 0,
+                lightIntensity: 4,
+                transparent: true,
+                opacity: 0.35    // Allows viewing the internal black hole core
+            }
+        ]
+    });
+
+    // 4. THE EXTERNAL STELLAR WIND (Outer gas cloud ejected into space)
+    const quasiOuterDebris = createBelt(engine.scene, {
+        x: quasiX, 
+        y: quasiY, 
+        z: quasiZ, 
+        count: 8000,
+        innerRadius: 160000, // Starts outside the red plasma envelope
+        outerRadius: 250000,
+        verticalScatter: 15000,
+        color: 0xcc4411,
+        size: { min: 500, max: 2500 },
+        type: 'asteroid_belt',
+        name: 'Quasi-Star Outer Wind'
+    });    
+        
+    /*
+    // ============================================================================
+    // 🕳️🪐 EXOTIC: BLANET SYSTEM (Active Galactic Nucleus)
+    // ============================================================================
+    const blanetSystemX = 500000000;
+    const blanetSystemY = -100000000;
+    const blanetSystemZ = -600000000; // Deep space coordinates
+    
+    // 1. THE BLACK HOLE CORE (Acts as the host "star")
+    const smbhCore = createStarSystem(engine.scene, {
+        name: "Active Galactic Nucleus (SMBH)",
+        x: blanetSystemX,
+        y: blanetSystemY,
+        z: blanetSystemZ,
+        systemRadius: 5000000, // Massive gravitational influence
+        stars: [
+            { 
+                name: "Event Horizon", 
+                radius: 25000, 
+                color: 0x000000, // Pure pitch-black singularity
+                orbitDistance: 0, 
+                orbitSpeed: 0.05, 
+                // The singularity is black, but we give it a high light intensity 
+                // to simulate the blinding radiation coming from the accretion disk
+                lightIntensity: 5 
+            }
+        ]
+    });
+    
+    // 2. THE GLOWING ACCRETION DISK (The birthplace of the Blanet)
+    const accretionDisk = createBelt(engine.scene, {
+        x: blanetSystemX, // 🎯 Binds to SMBH/Blanet X
+        y: blanetSystemY, // 🎯 Binds to SMBH/Blanet Y
+        z: blanetSystemZ, // 🎯 Binds to SMBH/Blanet Z
+        count: 8000,
+        innerRadius: 60000,
+        outerRadius: 400000,
+        verticalScatter: 2000,
+        color: 0xffaa33,
+        size: { min: 500, max: 3000 },
+        type: 'asteroid_belt',
+        name: 'Accretion Disk',
+        sound: 'ROCKY_DEBRIS'
+    });
+    
+    
+    // 3. THE BLANET (Massive Exoplanet orbiting safely outside the disk)
+    // Blanets are colossal (up to 3000x Earth), so it should look huge and scorched
+    const theoreticalBlanet = createExoplanet(engine.scene, {
+        x: blanetSystemX + 1200000, // Placed far out in the "safe zone"
+        y: blanetSystemY,
+        z: blanetSystemZ + 1200000, 
+        name: "Blanet Prime",
+        type: "exoplanet"
+    });
+    */
+
+// ============================================================================
+    // 🕳️🪐 EXOTIC: BLANET SYSTEM (Active Galactic Nucleus)
+    // ============================================================================
+    const blanetSystemX = 500000000;
+    const blanetSystemY = -100000000;
+    const blanetSystemZ = -600000000; 
+    
+    // 1. THE HOST: Supermassive Black Hole (Inner Plasma Disk)
+    const smbhCore = createBlackHole(engine.scene, {
+        name: "Active Galactic Nucleus (SMBH)",
+        size: 50000, 
+        x: blanetSystemX,
+        y: blanetSystemY,
+        z: blanetSystemZ
+    });
+    if (engine.updatables) engine.updatables.push(smbhCore);
+    
+    // 2. THE DEBRIS TORUS: Rocky Accretion Belt (Where the Blanet forms)
+    const accretionDisk = createBelt(engine.scene, {
+        x: blanetSystemX, 
+        y: blanetSystemY, 
+        z: blanetSystemZ, 
+        count: 8000,
+        // 🎯 Pushed outward so it wraps around the outside of the glowing plasma shader!
+        innerRadius: 350000, 
+        outerRadius: 800000, 
+        verticalScatter: 15000, // Made it a bit thicker for depth
+        color: 0xffaa33,
+        size: { min: 500, max: 3000 },
+        type: 'asteroid_belt',
+        name: 'Outer Rocky Accretion Torus',
+        sound: 'ROCKY_DEBRIS'
+    });
+    
+    // 3. THE BLANET (Massive Exoplanet orbiting safely outside the rocky debris)
+    const theoreticalBlanet = createExoplanet(engine.scene, {
+        x: blanetSystemX + 1200000, 
+        y: blanetSystemY,
+        z: blanetSystemZ + 1200000, 
+        name: "Blanet Prime",
+        type: "exoplanet"
+    });
+    
+    // ============================================================================
+    // 🪐 KEPLER-186 SYSTEM (First Earth-Sized Habitable-Zone Exoplanet)
+    // ============================================================================
+    const kepler186X = 220000000;
+    const kepler186Y = -15000000;
+    const kepler186Z = 180000000;
+    
+    // 🔴 1. Host Red Dwarf Star
+    const kepler186Star = createStarSystem(engine.scene, {
+        name: "Kepler-186 System",
+        x: kepler186X,
+        y: kepler186Y,
+        z: kepler186Z,
+        systemRadius: 300000,
+        stars: [
+            { 
+                name: "Kepler-186 (Red Dwarf)", 
+                radius: 3500, 
+                color: 0xff5522, // Cool red-orange M-dwarf star
+                orbitDistance: 0, 
+                orbitSpeed: 0.001, 
+                //textureMap: '/planets/texture/2k_sun.jpg', 
+                lightIntensity: 2 
+            }
+        ]
+    });
+    
+    // 🪐 2. Exoplanet Kepler-186f
+    const kepler186f = createExoplanet(engine.scene, {
+        x: kepler186X + 18000,
+        y: kepler186Y,
+        z: kepler186Z + 18000,
+        name: "Kepler-186f",
+        type: "exoplanet",
+        orbitSpeed: 0.008
+    });   
+
+    // Spawn Pulsar as its own independent stellar object
+    const pulsarB1919 = createPulsar(engine.scene, {
+        name: "Pulsar PSR B1919+21",
+        x: 1200000000,   // ~8 AU range (~1.2B km)
+        y: -300000000,
+        z: -1800000000,
+        radius: 5000
+    });
+    
+    // Now this static tilt works perfectly without being erased!
+    pulsarB1919.rotation.x = Math.PI * 0.2;
+    pulsarB1919.rotation.z = Math.PI * 0.1;
+
+   /*
+// Initialize and add it directly to the scene
+const quasarX1 = createQuasar(engine.scene, {
+    name: 'Distant Quasar X-1',
+    x: 0,
+    y: 0,
+    z: -80000000, // Push it deep into the background (millions of units away)
+    radius: 50000  // Scale it up so it's properly visible at that distance
+});
+*/
+
+        /*
+// 1. Scene, Camera, Renderer Setup
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 100, 50000000);
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.3;
+document.body.appendChild(renderer.domElement);
+
+// 2. Global Post-Processing (Adds Cinematic Glow)
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+
+const bloomPass = new UnrealBloomPass(
+    new THREE.Vector2(window.innerWidth, window.innerHeight), 
+    1.5,   // Strength
+    0.4,   // Radius
+    0.85   // Threshold
+);
+composer.addPass(bloomPass);
+*/
+// 3. Instantiate Quasar in Deep Space with Aim Direction
+        // Spawn the quasar deep in the cosmic background (e.g., billions of km away)
+const quasarX1 = createQuasar(engine.scene, {
+    x: 1500000000, 
+    y: 400000000, 
+    z: -8000000000, // Far out along the Z-axis
+    radius: 500000,   // Scale it up to match its massive distance
+    name: 'Distant Quasar X-1'
+});
+
+// 2. Pass the quasarX1 group directly as the "scene" container
+// This automatically nests the black hole right at the center [0,0,0] of the quasar group
+const quasarCoreBlackHole = createBlackHole(quasarX1, {
+    x: 0, 
+    y: 0, 
+    z: 0,
+    radius: 400000,        // Scaled to fit neatly inside the quasar
+    diskColor: 0xd0ffff,   // Matches the hot blue-white core glow
+    name: 'Quasar X-1 True Core'
+});
+     // Initialize the quasar at your custom coordinates
+//const quasar = createQuasar(scene, { x: 100000, y: 0, z: -200000 });
+  
+// Tilt the entire object (including the jets and spray direction) 
+quasarX1.rotation.x = Math.PI * 0.15; // Tilt forward/backward
+quasarX1.rotation.z = Math.PI * 0.25; // Tilt sideways
+
+    // =========================================================
+    // 🌌 SEPTUPLE STAR SYSTEM (NU SCORPII / ν Sco)
+    // Massive, hot, blue-white dominant binary-of-binaries
+    // Scale: 1 Solar Radius = 3000 units
+    // =========================================================
+    const nuScorpiiSystem = createStarSystem(engine.scene, {
+        name: "Nu Scorpii (Septuple System)",
+    
+        // World Space Origin (Deep Space Location)
+        x: -450000000,
+        y: 80000,
+        z: -200000000,
+        systemRadius: 6000000,
+    
+        // Hierarchical Stars
+        stars: [
+            // -----------------------------------------------------
+            // SUBSYSTEM AB (Inner Quad Core)
+            // -----------------------------------------------------
+            {
+                name: "Nu Sco Aa (Primary Subgiant)",
+                radius: 19500,    // ~6.5x Sun
+                color: 0xaaccff,  // ❄️ Crisp Blue-White
+                orbitDistance: 250000,
+                orbitSpeed: 0.005,
+                lightIntensity: 4,
+                companions: [
+                    {
+                        type: 'star',
+                        name: "Nu Sco Ab",
+                        radius: 6000,    // ~2.0x Sun
+                        color: 0xffffff, // ⚪ Pure White
+                        orbitDistance: 35000, // Tightly orbiting Aa
+                        orbitSpeed: 0.045
+                    },
+                    {
+                        type: 'star',
+                        name: "Nu Sco Ac",
+                        radius: 6300,    // ~2.1x Sun
+                        color: 0xffffff, // ⚪ Pure White
+                        orbitDistance: 85000, // Orbiting the Aa-Ab pair
+                        orbitSpeed: 0.020
+                    },
+                    {
+                        type: 'star',
+                        name: "Nu Sco B",
+                        radius: 7500,    // ~2.5x Sun
+                        color: 0xaaccff, // ❄️ Crisp Blue-White
+                        orbitDistance: 220000, // Wide orbit around the A-trio
+                        orbitSpeed: 0.008
+                    }
+                ]
+            },
+            // -----------------------------------------------------
+            // SUBSYSTEM CD (Outer Triple Core)
+            // -----------------------------------------------------
+            {
+                name: "Nu Sco C (Hot B-Type)",
+                radius: 7200,     // ~2.4x Sun
+                color: 0xaaccff,  // ❄️ Crisp Blue-White
+                orbitDistance: 950000, // Orbiting far from the AB system
+                orbitSpeed: 0.002,
+                lightIntensity: 3,
+                companions: [
+                    {
+                        type: 'star',
+                        name: "Nu Sco Da",
+                        radius: 5400,    // ~1.8x Sun
+                        color: 0xaaccff, // ❄️ Crisp Blue-White
+                        orbitDistance: 90000, // Orbiting C
+                        orbitSpeed: 0.015
+                    },
+                    {
+                        type: 'star',
+                        name: "Nu Sco Db (White Dwarf Companion)",
+                        radius: 4200,    // ~1.4x Sun
+                        color: 0xffffff, // ⚪ Pure White
+                        orbitDistance: 130000, // Orbiting Da
+                        orbitSpeed: 0.010
+                    }
+                ]
+            }
+        ]
+    });
+
+    // =========================================================
+    // 🌌 SEPTUPLE STAR SYSTEM (AR CASSIOPEIAE)
+    // Diverse sizes, multi-colored, highly nested
+    // Scale: 1 Solar Radius = 3000 units
+    // =========================================================
+    const arCassiopeiaeSystem = createStarSystem(engine.scene, {
+        name: "AR Cassiopeiae (Septuple System)",
+    
+        // World Space Origin (Deep Space Location)
+        x: 250000000,
+        y: -120000,
+        z: -350000000,
+        systemRadius: 5000000,
+    
+        // Hierarchical Stars
+        // Because AR Cas operates entirely around a single massive center, 
+        // we use one primary star and nest the rest as expansive companions!
+        stars: [
+            // -----------------------------------------------------
+            // PRIMARY CORE (Aa) & ITS ENTIRE SYSTEM
+            // -----------------------------------------------------
+            {
+                name: "AR Cas Aa (Primary Eclipsing Binary)",
+                radius: 15300,    // ~5.1x Sun
+                color: 0x99bbff,  // ❄️ Hot Blue-White
+                orbitDistance: 0, // Absolute center of this star system
+                orbitSpeed: 0,
+                lightIntensity: 4,
+                companions: [
+                    {
+                        type: 'star',
+                        name: "AR Cas Ab (Tightly Orbiting A-Type)",
+                        radius: 4800,    // ~1.6x Sun
+                        color: 0xffffff, // ⚪ White
+                        orbitDistance: 45000, 
+                        orbitSpeed: 0.050
+                    },
+                    {
+                        type: 'star',
+                        name: "AR Cas B (F-Type)",
+                        radius: 3900,    // ~1.3x Sun
+                        color: 0xfff4e6, // ✨ Yellow-White
+                        orbitDistance: 120000, 
+                        orbitSpeed: 0.025
+                    },
+                    {
+                        type: 'star',
+                        name: "AR Cas C (Hot B-Type)",
+                        radius: 7200,    // ~2.4x Sun
+                        color: 0x99bbff, // ❄️ Blue-White
+                        orbitDistance: 280000, 
+                        orbitSpeed: 0.012
+                    },
+                    {
+                        type: 'star',
+                        name: "AR Cas D (Cool K-Type)",
+                        radius: 3600,    // ~1.2x Sun
+                        color: 0xffb84d, // 🟠 Orange-Yellow
+                        orbitDistance: 480000, 
+                        orbitSpeed: 0.008
+                    },
+                    {
+                        type: 'star',
+                        name: "AR Cas F (Main Sequence F-Type)",
+                        radius: 3300,    // ~1.1x Sun
+                        color: 0xfff4e6, // ✨ Yellow-White
+                        orbitDistance: 700000, 
+                        orbitSpeed: 0.005
+                    },
+                    {
+                        type: 'star',
+                        name: "AR Cas G (Sun-like G-Type)",
+                        radius: 3000,    // ~1.0x Sun (Exactly our Sun's size)
+                        color: 0xffcc00, // 🟡 Golden Yellow
+                        orbitDistance: 950000, 
+                        orbitSpeed: 0.003
+                    }
+                ]
+            }
+        ]
+    });
+
+        // ============================================================================
+        // 🌟 EXOTIC: R136a1 (Most Massive & Luminous Known Wolf-Rayet Star)
+        // ============================================================================
+        const r136x = -600000000;
+        const r136y = 120000000;
+        const r136z = -400000000;
+
+        const r136a1System = createStarSystem(engine.scene, {
+            name: "R136a1 Hypergiant",
+            x: r136x,
+            y: r136y,
+            z: r136z,
+            systemRadius: 1000000,
+            stars: [
+                {
+                    name: "R136a1 Core",
+                    radius: 35000, // Accurate scale: ~35x Solar Radius
+                    color: 0x2266ff, // Deep saturated blue to force a brilliant blue glow
+                    orbitDistance: 0,
+                    orbitSpeed: 0,
+                    textureMap: "https://raw.githubusercontent.com/dganigame-coder/space/master/navisoftspace/planets/texture/blue_giant.jpg",
+                    lightIntensity: 20 // Blindingly bright, higher than Rigel
+                }
+            ]
+        });
+
+        // VIOLENT WOLF-RAYET STELLAR WIND (Extreme mass-loss shroud)
+        /*
+        const r136StellarWind = createBelt(engine.scene, {
+            x: r136x,
+            y: r136y, // Now perfectly aligned with the star
+            z: r136z,
+            count: 6000,
+            innerRadius: 45000,  // Starts safely just outside the 35,000 star radius
+            outerRadius: 180000, 
+            verticalScatter: 40000,
+            color: 0x33aaff,     // Ionized gas glow matching the star
+            size: { min: 400, max: 1800 },
+            type: 'asteroid_belt',
+            name: 'R136a1 Stellar Wind Outflow'
+        });     
+        */
+        // ============================================================================
+        // 🌌 NEIGHBOR SYSTEM: RIGEL (QUADRUPLE STAR SYSTEM)
+        // ============================================================================ 
+        const rigelX = -500000000;
+        const rigelY = 0;
+        const rigelZ = -300000000;
+    
+        const rigelSystem = createStarSystem(engine.scene, {
+            name: "Rigel System",
+            x: rigelX,
+            y: rigelY,
+            z: rigelZ,
+            systemRadius: 4000000,
+            stars: [
+                // 1. The Primary: Rigel A (Blue Supergiant)
+                { 
+                    name: "Rigel A", 
+                    radius: 79000,  
+                    color: 0x2266ff, 
+                    orbitDistance: 0, 
+                    orbitSpeed: 0.0001, 
+                    textureMap: "https://raw.githubusercontent.com/dganigame-coder/space/master/navisoftspace/planets/texture/blue_giant.jpg",
+                    lightIntensity: 15 
+                },
+                // 2. The Primary Companion: Rigel Ba
+                { 
+                    name: "Rigel Ba", 
+                    radius: 3000,  
+                    color: 0xbbddff, 
+                    orbitDistance: 1500000, 
+                    orbitSpeed: 0.002, 
+                    textureMap: "https://raw.githubusercontent.com/dganigame-coder/space/master/navisoftspace/planets/texture/blue_giant.jpg",
+                    lightIntensity: 2 
+                },
+                // 3. The Spectroscopic Twin: Rigel Bb
+                { 
+                    name: "Rigel Bb", 
+                    radius: 2500,  // Slightly smaller than Ba
+                    color: 0xbbddff, 
+                    orbitDistance: 1515000, // Orbiting incredibly close to Ba
+                    orbitSpeed: 0.002, // Matching Ba's speed so they travel together around Rigel A
+                    textureMap: "https://raw.githubusercontent.com/dganigame-coder/space/master/navisoftspace/planets/texture/blue_giant.jpg",
+                    lightIntensity: 1.5 
+                },
+                // 4. The Outer Companion: Rigel C
+                { 
+                    name: "Rigel C", 
+                    radius: 2500,  
+                    color: 0xaaccff, 
+                    orbitDistance: 1600000, // Spaced further out from the Ba/Bb pair
+                    orbitSpeed: 0.0018, // Slightly slower orbit because it is further from the center
+                    textureMap: "https://raw.githubusercontent.com/dganigame-coder/space/master/navisoftspace/planets/texture/blue_giant.jpg",
+                    lightIntensity: 1.5 
+                }
+            ]
+        });
+    // ============================================================================
+    // 🌀 WORMHOLE NETWORK CONFIGURATION & JUMP DESTINATIONS
+    // ============================================================================
+    const wormholeConfigs = [
+        { 
+            name: "Sol System Boundary Exit", 
+            x: 5000, y: -2000, z: 20000000, 
+            target: { name: "Centauri Cluster Junction", x: 49000000, y: 500000, z: 49000000 } 
+        },
+        { 
+            name: "Centauri Cluster Junction", 
+            x: 49000000, y: 500000, z: 49000000, 
+            target: { name: "Orion Nursery Gateway", x: 19000000, y: 4800000, z: -69000000 } 
+        },
+        { 
+            name: "Orion Nursery Gateway", 
+            x: 19000000, y: 4800000, z: -69000000, 
+            target: { name: "Carina Deep Space Drift", x: -119000000, y: -44000000, z: -59000000 } 
+        },
+        { 
+            name: "Carina Deep Space Drift", 
+            x: -119000000, y: -44000000, z: -59000000, 
+            target: { name: "Tau Ceti Core Pipeline", x: 149000000, y: 9500000, z: 149000000 } 
+        },
+        { 
+            name: "Tau Ceti Core Pipeline", 
+            x: 149000000, y: 9500000, z: 149000000, 
+            target: { name: "Andromeda Intergalactic Bridge", x: 148000000, y: 79000000, z: -288000000 } 
+        },
+        { 
+            name: "Andromeda Intergalactic Bridge", 
+            x: 148000000, y: 79000000, z: -288000000, 
+            target: { name: "Black Eye Deep Rim", x: 198000000, y: 88000000, z: -398000000 } 
+        },
+        { 
+            name: "Black Eye Deep Rim", 
+            x: 198000000, y: 88000000, z: -398000000, 
+            target: { name: "The Deep Nebula Shortcut", x: -300000000, y: -95000000, z: 240000000 } 
+        },
+        { 
+            name: "The Deep Nebula Shortcut", 
+            x: -300000000, y: -95000000, z: 240000000, 
+            target: { name: "The Galactic Gate", x: 0, y: 0, z: 450000000 } 
+        },
+        { 
+            name: "The Galactic Gate", 
+            x: 0, y: 0, z: 450000000, 
+            target: { name: "The Edge of Time Gate", x: 895000000, y: 450000000, z: -895000000 } 
+        },
+        { 
+            name: "The Edge of Time Gate", 
+            x: 895000000, y: 450000000, z: -895000000, 
+            target: { name: "Sol System Boundary Exit", x: 5000, y: -2000, z: 20000000 } 
+        }
+    ];
+    
+        // Array to hold initialized wormhole meshes in memory
+        const activeWormholesList = [];
+        
+        // Spawn all wormholes dynamically
+        wormholeConfigs.forEach(cfg => {
+            const wormhole = createWormhole(engine.scene, {
+                x: cfg.x,
+                y: cfg.y,
+                z: cfg.z,
+                name: cfg.name
+            });
+            
+            if (wormhole) {
+                wormhole.userData.targetDestination = cfg.target;
+                activeWormholesList.push(wormhole);
+            }
+        }); // 🎯 Clean closing bracket for the forEach loop
+            
+              engine.scene.add(starfield); 
+        /*
+    // 1. Generate the stars
+engine.stars = createStars();
+
+// 2. ADD TO CAMERA (Not the scene!)
+// This permanently glues the center of the star box to your camera lens
+engine.camera.add(engine.stars);
+
+// 3. ADD CAMERA TO SCENE
+// You must add the camera to the scene so everything attached to it renders
+engine.scene.add(engine.camera);
+*/
+            console.log("Audio systems initialized via User Gesture.");
+        
+            // --- 2. ADD EVERYTHING TO THE SCENE ---
+            engine.scene.add(sun, mercury, venus, earth, moon, mars, jupiter, saturn, titan, uranus, neptune, pluto);
+            
+            // --- 3. ADD EVERYTHING TO THE COLLISION ARRAY ---
+            // This is what allows you to land on them and see their HUD data
+            //const bodies = [sun, mercury, venus, earth, moon, mars, jupiter, saturn, titan, uranus, neptune , pluto];
+            const exoplanets = [exoSystem,alphaCentauriAB,proximaSystem,proximaB,
+                                planetE,planetF,gj504b,k218,trappist1System,
+                                lhs1140System,cd352722System,sextupleSystem,castorSystem,
+                                kepler186Star,kepler186f
+                               ];
+            const horizonObj = [mainBelt,kuiperBelt,oortCloud,orionNebula, 
+                                remnant, andromeda, blackEyeCore,blackEyeDust,molecularCloud, 
+                                sharedBelt,oumuamua, 
+                                //voyager,
+                                voyagerMesh.
+                                BornSystem,
+                                quasiStarSystem,
+                                //quasiStarDisk,
+                                //coreDisk, outerDebris,
+                                quasiCoreDisk, quasiOuterDebris,
+                                smbhCore,
+                                accretionDisk,
+                                theoreticalBlanet,
+                                tauCetiDisk,tauCetiStar,
+                                 momCore, momGasCloud,
+                                 cosmicHorizon,omc2Nebula, quasarX1,
+                                //r136StellarWind,
+                                r136a1System,
+                                rigelSystem,
+                                //,supernova,dynamicSupernova
+                               ];
+            const supernovas = [ngc6302Remnant ,messier16Nursery,  psrB1509Core ,ic434Grave,matrixCollapse,phoenixRemnant,
+                                wolfRayet
+                                ,crabNebula
+                               ];
+            const spaceholes=[blackHole,
+                              //wormholeJupiter, wormholeIota ,wormholeTheta, wormholeEta, 
+                              //wormholeZeta, wormholeEpsilon ,wormholeDelta ,wormholeGamma ,
+                             // wormholeBeta ,wormholeAlpha,
+                              sdssBlackHoleCore,
+                              quasarCoreBlackHole,
+                              quasiBlackHoleCore
+                             ];
+
+        
+           /*********************************
+            bodies.push(...[voyager] );
+            bodies.push(...horizonObj);
+            bodies.push(...spaceholes);
+            bodies.push(...supernovas);
+            bodies.push(...exoplanets);
+            //if(cosmic.length > 0)
+           //     bodies.push(...cosmic);
+    
+            // --- ADD THE HUD CLICK LOGIC HERE ---
+            const nearestLabel = document.getElementById('nearest-display');
+            nearestLabel.style.cursor = "pointer";
+    
+            nearestLabel.addEventListener('click', () => {
+            let closest = null;
+            let minDist = Infinity;
+        
+           bodies.forEach(b => {
+            const d = engine.camera.position.distanceTo(b.position);
+            if (d < minDist) { 
+                minDist = d; 
+                closest = b; 
+            }
+           });
+    
+           if (closest) {
+            // Point the ship directly at the nearest planet
+            engine.camera.lookAt(closest.position);
+            
+            // Peer Tip: If you want to stop the ship so you don't fly past it:
+            // velocity.set(0,0,0); 
+            
+            console.log("Locked on to " + closest.userData.name);
+        }
+        });
+        *************************************/
+        // --- 3. COMBINE ALL TARGETABLE BODIES ---
+        // Collect all bodies into one flat array and filter out null/undefined entries
+        
+        const rawBodies = [
+            sun, mercury, venus, earth, moon, mars, jupiter, saturn, titan, uranus, neptune, pluto, 
+            
+            //voyager,
+            voyagerMesh,
+            // Exoplanets
+            exoSystem, alphaCentauriAB, proximaSystem, proximaB, planetE, planetF, gj504b, k218, 
+            trappist1System, lhs1140System, cd352722System, sextupleSystem, castorSystem, kepler186Star, kepler186f,
+            arCassiopeiaeSystem,nuScorpiiSystem,
+            rigelSystem,r136a1System,
+
+            // Major Celestial Bodies (Excluding giant center-origin belts)
+            orionNebula, remnant, andromeda, blackEyeCore, blackEyeDust, molecularCloud, sharedBelt, 
+            oumuamua, BornSystem, quasiStarSystem, smbhCore, theoreticalBlanet, tauCetiStar, 
+            momCore, momGasCloud, cosmicHorizon, omc2Nebula,
+            //r136StellarWind,
+            
+            // Supernovas & Exotic Core Objects
+            ngc6302Remnant, messier16Nursery, psrB1509Core, ic434Grave, matrixCollapse, phoenixRemnant, 
+            wolfRayet, crabPulsar, crabNebula, blackHole, sdssBlackHoleCore,
+
+            //Pulsar
+            pulsarB1919,
+
+            //Quasar
+            quasarX1
+            //,
+            // Dynamically add all active wormholes from our network
+            //...activeWormholesList 
+        ];
+
+        let lastJumpTime = 0;
+        const JUMP_COOLDOWN_MS = 3000; // 3-second lockout buffer
+        // Safely filter out null/undefined objects and ensure they have a valid position
+        const bodies = rawBodies.filter(b => b && b.position && b.userData && b.userData.name);
+
+        // --- HUD CLICK LOCK-ON LOGIC ---
+        
+        const nearestLabel = document.getElementById('nearest-display');
+        nearestLabel.style.cursor = "pointer";
+        
+        nearestLabel.addEventListener('click', () => {
+            if (currentNearestObject) {
+                // Instantly point camera towards the currently tracked nearest target
+                engine.camera.lookAt(currentNearestObject.position);
+                
+                console.log(`🔒 Target Locked: ${currentNearestObject.userData.name}`);
+            } else {
+                console.warn("No valid target in range to lock onto.");
+            }
+        });
+        
+        // 3. Initialize Control Module
+        initPilot();
+
+        // === SETUP AUTOPILOT CONTROLS (ONE TIME ONLY - OUTSIDE FRAME LOOP) ===
+        const apBtn = document.getElementById('autopilot-btn');
+        const apStatusText = document.getElementById('ap-status');
+
+        function toggleAutoPilot() {
+            autoPilotActive = !autoPilotActive;
+            console.log("Auto-Pilot:", autoPilotActive ? "ON" : "OFF");
+
+            // Visual Feedback
+            if (apBtn) {
+                apBtn.style.backgroundColor = autoPilotActive ? "rgba(0, 204, 255, 0.3)" : "rgba(0, 0, 0, 0.7)";
+                apBtn.style.borderColor = autoPilotActive ? "#ffcc00" : "#00ccff";
+                apBtn.style.color = autoPilotActive ? "#ffcc00" : "#00ccff";
+            }
+            if (apStatusText) {
+                apStatusText.innerText = autoPilotActive ? "ENGAGED" : "OFF";
+            }
+        }
+
+        // Mobile Listener (pointerdown once)
+        if (apBtn) {
+            apBtn.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
+                toggleAutoPilot();
+            });
+        }
+
+        // Desktop Listener (P key once)
+        window.addEventListener('keydown', (e) => {
+            if (e.key.toLowerCase() === 'p') {
+                e.preventDefault();
+                toggleAutoPilot();
+            }
+        });
+
+        // Expose to engine loop
+        window.isAutoPilotOn = () => autoPilotActive;
+
+        // 1. Check for a saved flight
+        const savedFlight = SaveSystem.load(engine.camera);
+        
+        // 2. If a save exists, restore velocity/speed
+        if (savedFlight) {
+            engine.velocity = savedFlight.velocity || 0; 
+        }
+        
+        // 3. Setup Button Event Listeners (Module-safe way)
+        document.getElementById('saveBtn').addEventListener('click', () => {
+            SaveSystem.save(engine.camera, engine.velocity);
+            
+            // Feedback: briefly flash the button
+            document.getElementById('saveBtn').innerText = "COORDINATES LOCKED";
+            setTimeout(() => document.getElementById('saveBtn').innerText = "Log Position", 2000);
+        });
+        
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            SaveSystem.clear();
+        });
+        
+       const distanceElementKM = document.getElementById('km-val');
+       const distanceElementLH = document.getElementById('lh-val');
+       const horizonObjElement = document.getElementById('horizon-object-display');
+        // Global variable (declared outside the animation loop)
+        let currentNearestObject = null;
+
+        function frame() {                        
+            requestAnimationFrame(frame);
+            /******************************************/
+            // ==========================================
+            // 🌌 HUD NEAREST TARGET PASS
+            // ==========================================
+            let minDist = Infinity;
+            currentNearestObject = null;
+        
+            for (let i = 0; i < bodies.length; i++) {
+                    const b = bodies[i];
+                    const d = engine.camera.position.distanceTo(b.position);
+            
+                    if (d < minDist) {
+                        minDist = d;
+                        currentNearestObject = b;
+                    }
+
+                    // 🌀 Inside your main animate() loop pass over `bodies`:
+                    if (b.userData && b.userData.type === 'wormhole') {
+                        const now = Date.now();
+
+                        // Trigger condition: within radius + gate open + 3s cooldown elapsed
+                        if (d < b.userData.r && b.userData.isOpen && (now - lastJumpTime > JUMP_COOLDOWN_MS)) {
+                            const dest = b.userData.targetDestination;
+                    
+                            if (dest && dest.x !== undefined) {
+                                lastJumpTime = now;
+                    
+                                // 1. Calculate drop-off point outside target radius (2.5x radius offset)
+                                const exitOffset = (b.userData.r || 200000) * 2.5; 
+                                
+                                const spawnX = dest.x;
+                                const spawnY = dest.y;
+                                const spawnZ = dest.z + exitOffset;
+                    
+                                // 2. Set camera position
+                                engine.camera.position.set(spawnX, spawnY, spawnZ);
+                    
+                                // 3. 🎯 CRITICAL: Update control target so view doesn't snap back!
+                                if (engine.controls) {
+                                    engine.controls.target.set(dest.x, dest.y, dest.z);
+                                    engine.controls.update();
+                                } else {
+                                    engine.camera.lookAt(dest.x, dest.y, dest.z);
+                                }
+                    
+                                console.log(`🌀 WARP COMPLETE: Transferred to ${dest.name}`);
+                            }
+                        }
+                    }
+
+                    /*
+                    // 🌀 Wormhole Jump Trigger
+                    if (b.userData && b.userData.type === 'wormhole') {
+                        if (d < b.userData.r && b.userData.isOpen) {
+                            const dest = b.userData.targetDestination;
+                            if (dest) {
+                                console.log(`🌀 ENTERING WORMHOLE: Jumping to ${dest.name}...`);
+                                engine.camera.position.set(dest.x, dest.y, dest.z);
+                            }
+                        }
+                    }
+                    */
+                }
+                
+            /********************************************************/
+            // 1. INFINITE STARS
+            /*
+            if (engine.stars) {
+                engine.stars.position.copy(engine.camera.position);
+                
+                const speed = velocity.length();
+            
+                if (speed > 0.5) {
+                    engine.stars.scale.z = 1 + (speed * 0.005); 
+                } else {
+                   engine.stars.scale.z = 1;
+                }
+                
+                engine.stars.scale.z = 1;
+            }
+            */
+            // 2. HUD & TARGETING DATA
+            let closestBody = null;
+            let minDistance = Infinity;
+            /*
+            bodies.forEach(b => {
+                if (b.onUpdate) b.onUpdate();
+                const dist = engine.camera.position.distanceTo(b.position);
+                if (dist < minDistance) {
+                    minDistance = dist;
+                    closestBody = b;
+                }
+            });
+            */      
+            bodies.forEach((b, index) => {
+                // 🔍 LOG 1: Check if the object itself is completely empty/null
+                if (!b) {
+                    console.error(`🚨 [CRASH CAUSE] Object at index ${index} inside the bodies array is NULL or UNDEFINED!`);
+                    return; 
+                }
+            
+                // 🔍 LOG 2: Identify the name and type of the current object being processed
+                //console.log(`📡 [Processing Body] Index: ${index} | Name: "${b.name || 'Unnamed'}" | Type: ${b.type || 'Unknown'}`);
+            
+                // Safety wrapper around the update call
+                try {
+                    if (b.onUpdate) b.onUpdate();
+                } catch (err) {
+                    console.error(`💥 [Update Error] "${b.name || 'Unnamed'}" failed inside its onUpdate function:`, err);
+                }
+            
+                // 🔍 LOG 3: Check if the position object exists before running distanceTo
+                if (!b.position) {
+                    console.error(`❌ [POSITION ERROR] "${b.name || 'Unnamed'}" (Index ${index}) has NO .position property! This will crash distanceTo.`);
+                    return; // Stops this specific item from throwing a hard crash
+                }
+            
+                // Run the distance calculation safely now
+                const dist = engine.camera.position.distanceTo(b.position);
+                //const distSq = engine.camera.position.distanceToSquared(b.position);
+                if (dist < minDistance) {
+                //if (distSq < minDistance) {
+                    minDistance = dist;
+                    //minDistance = distSq;
+                    closestBody = b;
+                }
+            });
+            
+            // 🔍 LOG 4: Output the final winner of the closest calculation loop
+            if (closestBody) {
+                console.log(`🎯 [Result] Closest body is officially: "${closestBody.name || 'Unnamed'}" at distance: ${Math.round(minDistance)}`);
+            }
+            // 3. AUTO-PILOT LOGIC (RUNS EVERY FRAME)
+            if (autoPilotActive && closestBody) {
+                engine.camera.lookAt(closestBody.position);
+                engine.camera.translateZ(-2000);
+
+                const planetRadius = closestBody.userData.r || 500;
+                if (minDistance < planetRadius + 1200) {
+                    autoPilotActive = false;
+                    apBtn.style.borderColor = "#00ccff";
+                    apBtn.style.backgroundColor = "rgba(0, 0, 0, 0.7)";
+                    apBtn.style.color = "#00ccff";
+                    if (apStatusText) apStatusText.innerText = "OFF";
+                }
+            }
+
+            // 4. PHYSICS & MOVEMENT
+            checkCollisions(engine.camera, bodies, engine.scene);
+            updateFlight(engine.camera, bodies);
+
+                if (voyagerMesh) {
+                        updateNavigationHUD(engine.camera, voyagerMesh, document.getElementById('voyager-hud'));
+                    }
+            /* was enabled
+            // Inside your main animation render loop tick:
+            if (oumuamua) {
+                oumuamua.rotation.x += 0.005; // End-over-end tumble
+                oumuamua.rotation.y += 0.002; // Slow lateral twisting
+                oumuamua.rotation.z += 0.001; // Chaotic stability wobble
+            }
+            */
+            // ==========================================
+            // 🪐 ACCRETION DISK & BELT ROTATION LOGIC
+            // ==========================================
+            
+            // 1. Solar System Belts
+            if (mainBelt) {
+                mainBelt.rotation.y += 0.0001;
+                mainBelt.updateMatrix();
+            }
+            
+            if (kuiperBelt) {
+                kuiperBelt.rotation.y += 0.00002;
+                kuiperBelt.updateMatrix();
+            }
+            
+            if (oortCloud) {
+                oortCloud.rotation.y += 0.000005;
+                oortCloud.updateMatrix();
+            }
+            
+            // 2. Alpha Centauri Ring
+            if (sharedBelt) {
+                sharedBelt.rotation.y += 0.00001;
+                sharedBelt.updateMatrix();
+            }
+
+            /*
+            // 3. Black Hole Star (Quasi-Star) Disk
+            if (quasiStarDisk) {
+                quasiStarDisk.rotation.y += 0.0002; // Glowing, energetic stellar envelope drift
+                quasiStarDisk.updateMatrix();
+            }
+            */
+            // 1. The Core Accretion Disk (Spins very fast near the singularity)
+            /*
+            if (coreDisk) {
+                coreDisk.rotation.y += 0.002; // 10x faster than the old drift
+                coreDisk.updateMatrix();
+            }
+            */
+            if (quasiCoreDisk) {
+                quasiCoreDisk.rotation.y += 0.002; // 10x faster than the old drift
+                quasiCoreDisk.updateMatrix();
+            }
+            // 2. The Outer Stellar Wind (Slow, lazy drift on the edge of the star)
+            /*
+            if (outerDebris) {
+                outerDebris.rotation.y += 0.0002; // Keeps the original slow speed
+                outerDebris.updateMatrix();
+            }
+            */
+            if (quasiOuterDebris) {
+                quasiOuterDebris.rotation.y += 0.0002; // Keeps the original slow speed
+                quasiOuterDebris.updateMatrix();
+            }
+            // 3. Optional: Slowly rotate the massive star envelope itself
+            if (quasiStarSystem) {
+                quasiStarSystem.rotation.y += 0.00005; 
+            }
+            
+            // 4. SMBH / Blanet Accretion Disk
+            if (accretionDisk) {
+                accretionDisk.rotation.y += 0.0005; // Faster spin for matter falling into the singularity
+                accretionDisk.updateMatrix();
+            }
+            
+            // ==========================================
+            // 🌀 UPDATE, ANIMATE & JUMP WORMHOLES
+            // ==========================================
+            const currentTime = Date.now();
+            
+            for (let i = 0; i < activeWormholesList.length; i++) {
+                const wormhole = activeWormholesList[i];
+                
+                // 1. Existing animations
+                wormhole.rotation.z -= 0.01;
+                updateWormhole(wormhole, currentTime);
+            
+                // 2. 🎯 ADD THIS: Dynamic proximity check
+                const currentRadius = 12000 * wormhole.scale.x; 
+                const distance = engine.camera.position.distanceTo(wormhole.position);
+            
+                // If the camera enters the active radius and we aren't already warping
+                if (distance < currentRadius && !window.isWarping) {
+                    if (wormhole.userData.isOpen === true) {
+                        window.isWarping = true; // Lock to prevent multiple triggers
+                        const dest = wormhole.userData.targetDestination;
+                        
+                        console.log(`Entering ${wormhole.userData.name} -> Jumping to ${dest.name}`);
+            
+                        // 🚀 FIRE THE 4K TRANSITION EFFECT
+                        triggerWormholeTransition(engine.scene, engine.camera, () => {
+                            // 🎯 TELEPORT: Move camera and ship to destination coordinates
+                            engine.camera.position.set(dest.x, dest.y, dest.z);
+                            if (typeof ship !== 'undefined' && ship) {
+                                ship.position.set(dest.x, dest.y, dest.z);
+                            }
+            
+                            // Unlock warping after a brief cooldown
+                            setTimeout(() => {
+                                window.isWarping = false;
+                            }, 2000);
+                        });
+                    } else {
+                        console.log(`${wormhole.userData.name} is currently closed/unstable!`);
+                    }
+                }
+            }
+
+            if (engine.updatables) {
+                engine.updatables.forEach(item => {
+                    const updateFn = item.update || item.userData?.update;
+                    if (typeof updateFn === 'function') {
+                        // 2. Now currentTime exists and can be passed safely
+                        updateFn(currentTime); 
+                    }
+                });
+            }
+            // 6. HUD VISUALS - NEAREST BODY
+            if (closestBody && nearestLabel) {
+                const auDist = (minDistance / 60000).toFixed(2);
+                const name = closestBody.userData.name;
+                const planetRadius = closestBody.userData.r || 500;
+
+                nearestLabel.innerText = `NEAREST: ${name} (${auDist} AU)`;
+                
+                if (autoPilotActive) {
+                    nearestLabel.innerText += " [WARP ACTIVE]";
+                    nearestLabel.style.color = "#00ffff"; 
+                } else if (minDistance < planetRadius + 1000) {
+                    nearestLabel.style.color = "#ff5555"; 
+                } else {
+                    nearestLabel.style.color = "#55ff55"; 
+                }
+            }
+
+            // 7. HORIZON OBJECT DISPLAY
+            const shipPos = engine.camera.position;
+            const shipDist = shipPos.length();
+            //const distToVoyager = engine.camera.position.distanceTo(voyager.position);
+            
+            // Default state for this frame (resets colors from previous frames)
+            horizonObjElement.style.color = "#00ccff"; 
+            
+            if (shipDist >= 15000 && shipDist <= 30000) {
+                horizonObjElement.innerText = ">> PASSING: MAIN ASTEROID BELT";
+            } 
+            else if (shipDist >= 2000000 && shipDist <= 3500000) {
+                horizonObjElement.innerText = ">> PASSING: KUIPER BELT";
+            } 
+            else if (Math.abs(shipDist - 18000000) < 200000) {
+                horizonObjElement.innerText = ">> PASSING: HELIOPAUSE BOUNDARY";
+                horizonObjElement.style.color = "#bb00ff"; // Overrides with Purple
+            }
+                /*
+            else if (distToVoyager < 50000) {
+                horizonObjElement.innerText = ">> SIGNAL DETECTED: VOYAGER 1";
+                horizonObjElement.style.color = "#ffd700"; // Overrides with Gold
+            }
+            */
+            else if (shipDist >= 60000000 && shipDist <= 85000000) {
+                horizonObjElement.innerText = ">> PASSING: OORT CLOUD";
+            } 
+            else {
+                // We are in deep, empty space between zones. Clear the HUD!
+                horizonObjElement.innerText = ""; 
+            }
+                /*
+            else if (shipDist > 85000000) {
+                horizonObjElement.innerText = ">> STATUS: INTERSTELLAR SPACE";
+            }
+            else {
+                horizonObjElement.style.color = "#00ccff";
+                horizonObjElement.innerText = ""; 
+            }
+              */
+
+            if (blackHole) {
+                const time = Date.now();
+                const dist = engine.camera.position.distanceTo(blackHole.position);
+            
+                // --- 1. HYPER-REALISTIC VISUAL ANIMATION ---
+                blackHole.children.forEach((child, index) => {
+                    // A. Mesh Rotation (The physical movement of the rings)
+                    if (child.name === "mainDisk") child.rotation.z += 0.02;
+                    if (child.name === "halo") child.rotation.z -= 0.01;
+                    
+                    // Handle both "glowLayer" and "glowRing" naming conventions
+                    if (child.name && (child.name.includes("glowLayer") || child.name.includes("glowRing"))) {
+                        child.rotation.z += 0.005 + (index * 0.002);
+                        
+                        // B. Subtle Pulsing (Atmospheric shimmer)
+                        if (child.material) {
+                            child.material.opacity = (0.1 + Math.sin(time * 0.001 + index) * 0.1);
+                        }
+                    }
+            
+                    // C. THE SECRET SAUCE: Texture Flow
+                    // This makes the lava texture look like it's being sucked into the void
+                    if (child.material && child.material.map) {
+                        child.material.map.offset.x -= 0.005; 
+                        child.material.map.offset.y += 0.002;
+                    }
+                });
+            
+                // --- 2. DISTANCE & CAMERA ZOOM (The "Cinematic" Perspective) ---
+                if (dist < 5000000) { 
+                    // Slowly narrow the FOV as you approach to make the hole look massive
+                    const zoomFactor = (5000000 / dist); 
+                    // As you get closer, FOV drops to 30 (Zoomed in) before the Spaghettification kicks in
+                    engine.camera.fov = Math.max(30, 75 - zoomFactor); 
+                }
+            
+                // --- 3. THE TERROR REACTION (Inside 1,000,000 units) ---
+                if (dist < 1000000) {
+                    // A. HUD Warning
+                    horizonObjElement.innerText = ">> WARNING: GRAVITATIONAL WELL DETECTED";
+                    horizonObjElement.style.color = "#ff0000";
+            
+                    // B. Gravitational Pull (Lerp)
+                    const pullStrength = (1000000 - dist) * 0.0000001; 
+                    engine.camera.position.lerp(blackHole.position, pullStrength);
+            
+                    // C. Hull Shake (The "Interstellar" Vibration)
+                    const shakePower = (1000000 / dist) * 15; 
+                    engine.camera.position.x += Math.sin(time * 0.1) * (shakePower / 2);
+                    engine.camera.position.y += Math.cos(time * 0.11) * (shakePower / 2);
+            
+                    // D. Spaghettification (Warping reality)
+                    // This overrides the zoom-FOV once you are in the danger zone
+                    engine.camera.fov += (1000000 / dist) * 5;
+            
+                    // E. The Event Horizon
+                    if (dist < 100000) {
+                        horizonObjElement.innerText = ">> CRITICAL: EVENT HORIZON BREACH";
+                        horizonObjElement.style.opacity = (Math.sin(time * 0.02) > 0) ? 1 : 0.3;
+                    }
+                } else {
+                    // Reset FOV smoothly if the player manages to escape the pull
+                    if (engine.camera.fov > 75) {
+                        engine.camera.fov -= 0.5;
+                    } else if (engine.camera.fov < 75) {
+                        engine.camera.fov += 0.1;
+                    }
+                }
+                
+                // Final check to update the matrix after all FOV changes
+                engine.camera.updateProjectionMatrix();
+            }
+            
+            // 8. DISTANCE CALCULATIONS
+            if(sun && sun.position)
+            {
+                const distanceUnits = engine.camera.position.distanceTo(sun.position);
+
+                const distanceKM = distanceUnits * 2500;
+                const distanceMiles = distanceUnits * 1550;
+            
+                const formattedKM = Math.floor(distanceKM).toLocaleString();
+
+                // Only update the HTML if the string actually changed
+                if (distanceElementKM._currentText !== formattedKM) {
+                    distanceElementKM.innerText = `${formattedKM}`;
+                    //distanceElementKM._currentText =  `${formattedKM}`;
+                }
+                
+                 
+               
+                const lightSeconds = distanceKM / 300000;
+                if (lightSeconds > 3600) {
+                    const lightHours = (lightSeconds / 3600).toFixed(2);
+                    distanceElementLH.innerText = `${lightHours}`;
+                } else if (lightSeconds > 60) {
+                    const lightMinutes = (lightSeconds / 60).toFixed(2);
+                    distanceElementLH.innerText = `${lightMinutes}`;
+                }
+                                
+                 }
+
+            /*
+            if (exoSystem) {
+                    // 1. Orbital Rotation: The planet rotates slowly around the Star
+                    // This moves the 'exoplanetPivot' group we created in the JS file
+                    const pivot = exoSystem.getObjectByName("exoplanetPivot");
+                    if (pivot) {
+                        pivot.rotation.y += 0.0002; 
+                    }
+            
+                    // 2. Planetary Rotation: The actual ground spinning
+                    const planetBody = exoSystem.getObjectByName("planetBody");
+                    if (planetBody) {
+                        planetBody.rotation.y += 0.001;
+                    }
+            
+                    // 3. Cloud Drift: Clouds move faster than the ground for a 4K weather effect
+                    const clouds = exoSystem.getObjectByName("planetClouds");
+                    if (clouds) {
+                        clouds.rotation.y += 0.0015;
+                        clouds.rotation.z += 0.0002; // Adds a slight tilt to the cloud movement
+                    }
+                }
+            */
+            const time = Date.now();
+        
+            // Update the wormhole's pulse and rotation
+            // ==========================================
+            // INSIDE YOUR MAIN ANIMATION/RENDER LOOP TICK:
+            // ==========================================
+
+            
+
+            /*
+            // 2. Loop through the list and update every single wormhole asset dynamically 
+            activeWormholesList.forEach((wh) => {
+                // This runs your animation math on each individual gate using the current time frame
+                updateWormhole(wh, time);
+            });
+            */
+            /*was enabled
+            // 3. Existing 'Oumuamua tumbling mechanics (Keep this right below it)
+            if (oumuamua) {
+                oumuamua.rotation.x += 0.005; // End-over-end tumble
+                oumuamua.rotation.y += 0.002; // Slow lateral twisting
+                oumuamua.rotation.z += 0.001; // Chaotic stability wobble
+            }
+           */
+            const distToRemnant = phoenixRemnant.position.distanceTo(engine.camera.position);
+            // 1. HOIST CONSTANTS: Define these OUTSIDE the loop so they aren't recreated every frame
+            const cullRange = 50000000;
+            const cullBuffer = 5000000;
+            // OPTIMIZATION: Use squared distances to avoid expensive Math.sqrt() calculations
+            const maxDistSq = (cullRange + cullBuffer) * (cullRange + cullBuffer);
+            const hudRangeSq = cullRange * cullRange; 
+            
+            let closestSupernova = null;
+            let minDistanceSq = Infinity;
+            const camPos = engine.camera.position;
+            
+            // 2. USE A STANDARD FOR-LOOP: Slightly faster than .forEach() in a heavy render loop
+            for (let i = 0; i < supernovas.length; i++) {
+                const star = supernovas[i];
+                
+                // OPTIMIZATION: distanceToSquared is MUCH faster than distanceTo
+                const distSq = star.position.distanceToSquared(camPos);
+            
+                if (distSq < maxDistSq) {
+                    if (star.onUpdate) star.onUpdate();
+                    star.visible = true; // Render it
+            
+                    // Check if it's the closest one for our HUD
+                    if (distSq < hudRangeSq && distSq < minDistanceSq) {
+                        minDistanceSq = distSq;
+                        closestSupernova = star;
+                    }
+                } else {
+                    star.visible = false; // Hide it to save GPU
+                }
+            }
+            
+            // 3. OPTIMIZED DOM UPDATE: Prevent "Layout Thrashing"
+            if (horizonObjElement) {
+                let newText = "";
+                
+                if (closestSupernova) {
+                    newText = `Supernova Status: ${closestSupernova.userData.state} | Next phase in: ${closestSupernova.userData.timeToChange}`;
+                } else {
+                    // Use squared lengths here too for consistency and speed
+                    const interstellarDistSq = 85000000 * 85000000;
+                    newText = (camPos.lengthSq() > interstellarDistSq) ? ">> STATUS: INTERSTELLAR SPACE" : ">> STATUS: CRUISE MODE";
+                }
+            
+                // ONLY update the DOM if the text actually changed this frame
+                if (horizonObjElement._currentText !== newText) {
+                    horizonObjElement.innerText = newText;
+                    horizonObjElement._currentText = newText; // Cache it
+                }
+            }
+            const distToSDSS = engine.camera.position.distanceTo(sdssBlackHoleCore.position);
+            
+            if (distToSDSS < 25000000) {
+                horizonObjElement.innerText = ">> WARNING: RADIATING ACTIVE NUCLEUS DETECTED [SDSS J110546]";
+                horizonObjElement.style.color = "#00ffff"; // Jet cyan alert color
+            }
+/*            
+// --- SDSS J110546 HIGH-ENERGY ANIMATION ---
+if (sdssBlackHoleCore && sdssRadioJet) {
+    // 1. Swirl the accretion disk rapidly around the core (Y-axis)
+    sdssBlackHoleCore.rotation.y = time * 0.005;
+    
+    // 2. Create a high-speed pulsing effect for the turbulent core particles
+    const coreScale = 1.0 + Math.sin(time * 0.01) * 0.05;
+    sdssBlackHoleCore.scale.set(coreScale, coreScale, coreScale);
+
+    // 3. Spin the jet column and simulate particles blasting violently upward
+    sdssRadioJet.rotation.y = time * -0.01; // Fast counter-rotation
+    
+    // This shifts the position slightly up and down dynamically, 
+    // simulating a churning, powerful particle stream emission
+    sdssRadioJet.position.y = sdsy + 1500000 + (Math.sin(time * 0.02) * 50000);
+    
+    // Force Three.js/WebGL to update the matrices for rendering
+    sdssBlackHoleCore.updateMatrix();
+    sdssRadioJet.updateMatrix();
+}
+*/
+// =========================================================
+// 🕳️ SDSS J110546 DYNAMIC PROXIMITY ANIMATION
+// =========================================================
+if (sdssBlackHoleCore && sdssRadioJet) {
+    const dangerZoneRadius = 25000000; // Trigger distance (matches HUD warning)
+    const distToSDSS = engine.camera.position.distanceTo(sdssBlackHoleCore.position);
+
+    if (distToSDSS < dangerZoneRadius) {
+        // 1. Calculate an intensity factor from 0.0 (edge of zone) to 1.0 (dead center)
+        const intensity = 1.0 - (distToSDSS / dangerZoneRadius);
+
+        // 2. Hyper-accelerate the spinning accretion disk as you get closer
+        // Base speed plus an intense speed boost driven by proximity
+        const diskSpinSpeed = 0.005 + (intensity * 0.08);
+        sdssBlackHoleCore.rotation.y += diskSpinSpeed;
+
+        // 3. Counter-rotate the jet at extreme velocities
+        const jetSpinSpeed = -0.01 - (intensity * 0.15);
+        sdssRadioJet.rotation.y += jetSpinSpeed;
+
+        // 4. Violent Core Pulsing (The event horizon begins to violently fluctuate)
+        const pulseFrequency = time * (0.01 + intensity * 0.05);
+        const coreScale = 1.0 + Math.sin(pulseFrequency) * (0.05 + intensity * 0.3);
+        sdssBlackHoleCore.scale.set(coreScale, coreScale, coreScale);
+
+        // 5. Camera Shake / Gravitational Hull Stress
+        // Introduces high-frequency random vibrations to the camera matrix
+        if (engine.camera) {
+            const shakeAmount = intensity * 15000; // Adjust max shake intensity here
+            engine.camera.position.x += (Math.random() - 0.5) * shakeAmount;
+            engine.camera.position.y += (Math.random() - 0.5) * shakeAmount;
+            engine.camera.position.z += (Math.random() - 0.5) * shakeAmount;
+        }
+
+        // 6. HUD Emergency Strobe
+        if (horizonObjElement) {
+            // Flashes the text background or opacity based on high-frequency time
+            const flash = Math.sin(time * 0.05) > 0;
+            horizonObjElement.style.color = flash ? "#ff0055" : "#00ffff"; 
+            horizonObjElement.innerText = `>> EMERGENCY: GRAVITATIONAL SHEAR CRITICAL (${(intensity * 100).toFixed(0)}%)`;
+        }
+
+    } else {
+        // 🌌 STANDARD CALM ANIMATION (When you are safely far away)
+        sdssBlackHoleCore.rotation.y += 0.005;
+        sdssRadioJet.rotation.y -= 0.01;
+        
+        const calmScale = 1.0 + Math.sin(time * 0.01) * 0.05;
+        sdssBlackHoleCore.scale.set(calmScale, calmScale, calmScale);
+        
+        // Reset HUD styling if you escape the zone
+        if (horizonObjElement && horizonObjElement.innerText.includes("EMERGENCY")) {
+            horizonObjElement.innerText = ">> SYSTEM STATUS: SECURE";
+            horizonObjElement.style.color = "#00ffff";
+        }
+    }
+
+    // Force updates to the GPU rendering context
+    sdssBlackHoleCore.updateMatrix();
+    sdssRadioJet.updateMatrix();
+}
+            /*
+            // --- K2-18b ATMOSPHERIC ROTATION & HUD ALERT ---
+if (k218bCore && k218bAtmosphere) {
+    // Atmospheric rotation
+    k218bCore.rotation.y += 0.002;
+    k218bAtmosphere.rotation.y -= 0.001;
+
+    const distToK2 = engine.camera.position.distanceTo(k218bCore.position);
+
+    if (distToK2 < 20000000) {
+        horizonObjElement.innerText = ">> DETECTED: HYCEAN OCEAN WORLD [K2-18b - CH4 / CO2 ATMOSPHERE]";
+        horizonObjElement.style.color = "#00ffcc"; // Signature aquamarine tint
+    }
+}
+*/
+
+// =========================================================
+// 🪐 K2-18b SYSTEM: SAFE ANIMATION & HUD TELEMETRY
+// =========================================================
+
+if (k218) {
+    /*
+    // 1. Mutual Orbit (Revolves star & planet around common barycenter)
+    if (k218.orbitGroup) {
+        k218.orbitGroup.rotation.y += 0.008; // Faster orbit drive
+    }
+
+    // 2. Star Axial Spin
+    if (k218.star) {
+        k218.star.rotation.y += 0.005;
+    }
+
+    // 3. Planet + Atmosphere Axial Spin (Day/Night cycle)
+    if (k218.planet) {
+        k218.planet.rotation.y += 0.02; // Visually obvious spin rate
+    }
+   */
+    // 4. Live HUD distance calculation
+        if (k218.system) {
+            const distToK2 = engine.camera.position.distanceTo(k218.system.position);
+            if (distToK2 < 20000000) {
+                const distInAU = (distToK2 / 1000000).toFixed(2);
+                horizonObjElement.innerText = `>> DETECTED: HYCEAN OCEAN WORLD [K2-18b] (${distInAU} AU)`;
+                horizonObjElement.style.color = "#00ffcc";
+            }
+        }
+    }
+
+    // Pulse & update Quasar Relativistic Jets
+    // Drive Pulsar rotation & lighthouse sweep
+   const timePulsar = performance.now() * 0.001;
+    if (pulsarB1919?.userData?.update) pulsarB1919.userData.update(timePulsar);
+    if (crabPulsar?.userData?.update) crabPulsar.userData.update(timePulsar);
+    if (quasarX1?.userData?.update) quasarX1.userData.update(timePulsar);
+    
+          
+/*
+       const delta = clock.getDelta();
+
+        // 🔄 Update TRAPPIST-1 System Orbits & Rotations
+        if (trappist1System && typeof trappist1System.update === 'function') {
+            trappist1System.update(delta);
+        }
+
+        // ✈️ Update pilot / flight / camera controls
+        if (typeof updatePilot === 'function') {
+            updatePilot(delta);
+        }
+*/
+            // 1. Tell the universe to check if the pilot entered a new sector chunk
+            //universe.update(engine.camera.position);
+        
+            // 9. RENDER
+            engine.renderer.render(engine.scene, engine.camera);
+        }            
+        
+        frame();
+    </script>
+</body>
+</html>

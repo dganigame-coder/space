@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Hyper Nebula Space</title>
+
+<style>
+    html, body {
+        margin: 0;
+        overflow: hidden;
+        background: black;
+    }
+
+    canvas {
+        display: block;
+    }
+</style>
+</head>
+<body>
+
+<script type="module">
+
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160/build/three.module.js';
+
+import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.160/examples/jsm/controls/OrbitControls.js';
+
+import { EffectComposer } from 'https://cdn.jsdelivr.net/npm/three@0.160/examples/jsm/postprocessing/EffectComposer.js';
+
+import { RenderPass } from 'https://cdn.jsdelivr.net/npm/three@0.160/examples/jsm/postprocessing/RenderPass.js';
+
+import { UnrealBloomPass } from 'https://cdn.jsdelivr.net/npm/three@0.160/examples/jsm/postprocessing/UnrealBloomPass.js';
+
+//////////////////////////////////////////////////////
+// SCENE
+//////////////////////////////////////////////////////
+
+const scene = new THREE.Scene();
+
+const camera = new THREE.PerspectiveCamera(
+    60,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    5000
+);
+
+camera.position.z = 120;
+
+const renderer = new THREE.WebGLRenderer({
+    antialias: true
+});
+
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+document.body.appendChild(renderer.domElement);
+
+//////////////////////////////////////////////////////
+// CONTROLS
+//////////////////////////////////////////////////////
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+
+//////////////////////////////////////////////////////
+// POST PROCESSING
+//////////////////////////////////////////////////////
+
+const composer = new EffectComposer(renderer);
+
+composer.addPass(new RenderPass(scene, camera));
+
+const bloom = new UnrealBloomPass(
+    new THREE.Vector2(window.innerWidth, window.innerHeight),
+    1.8,
+    0.6,
+    0.1
+);
+
+composer.addPass(bloom);
+
+//////////////////////////////////////////////////////
+// STARFIELD
+//////////////////////////////////////////////////////
+
+const starGeometry = new THREE.BufferGeometry();
+
+const starCount = 15000;
+
+const positions = [];
+
+for(let i = 0; i < starCount; i++) {
+
+    positions.push(
+        (Math.random() - 0.5) * 4000,
+        (Math.random() - 0.5) * 4000,
+        (Math.random() - 0.5) * 4000
+    );
+}
+
+starGeometry.setAttribute(
+    'position',
+    new THREE.Float32BufferAttribute(positions, 3)
+);
+
+const starMaterial = new THREE.PointsMaterial({
+    color: 0xffffff,
+    size: 2,
+    transparent: true,
+    opacity: 0.9,
+    blending: THREE.AdditiveBlending
+});
+
+const stars = new THREE.Points(starGeometry, starMaterial);
+
+scene.add(stars);
+
+//////////////////////////////////////////////////////
+// NEBULA SHADER
+//////////////////////////////////////////////////////
+
+const nebulaVertex = `
+varying vec2 vUv;
+
+void main() {
+
+    vUv = uv;
+
+    gl_Position = projectionMatrix *
+                  modelViewMatrix *
+                  vec4(position, 1.0);
+}
+`;
+
+const nebulaFragment = `
+
+uniform float time;
+uniform vec3 color1;
+uniform vec3 color2;
+
+varying vec2 vUv;
+
+float random(vec2 st) {
+    return fract(sin(dot(st.xy,
+    vec2(12.9898,78.233))) *
+    43758.5453123);
+}
+
+float noise(vec2 st) {
+
+    vec2 i = floor(st);
+    vec2 f = fract(st);
+
+    float a = random(i);
+    float b = random(i + vec2(1.0, 0.0));
+    float c = random(i + vec2(0.0, 1.0));
+    float d = random(i + vec2(1.0, 1.0));
+
+    vec2 u = f * f * (3.0 - 2.0 * f);
+
+    return mix(a, b, u.x)
+        + (c - a) * u.y * (1.0 - u.x)
+        + (d - b) * u.x * u.y;
+}
+
+void main() {
+
+    vec2 uv = vUv * 4.0;
+
+    float n = noise(uv + time * 0.03);
+    n += noise(uv * 2.0) * 0.5;
+    n += noise(uv * 4.0) * 0.25;
+
+    float alpha = smoothstep(0.3, 0.9, n);
+
+    vec3 color = mix(color1, color2, n);
+
+    gl_FragColor = vec4(color, alpha * 0.55);
+}
+`;
+
+//////////////////////////////////////////////////////
+// CREATE MULTIPLE NEBULA CLOUDS
+//////////////////////////////////////////////////////
+
+function createNebula(
+    x, y, z,
+    size,
+    c1,
+    c2
+) {
+
+    const geo = new THREE.PlaneGeometry(size, size);
+
+    const mat = new THREE.ShaderMaterial({
+
+        vertexShader: nebulaVertex,
+        fragmentShader: nebulaFragment,
+
+        transparent: true,
+
+        depthWrite: false,
+
+        blending: THREE.AdditiveBlending,
+
+        uniforms: {
+            time: { value: 0 },
+            color1: { value: new THREE.Color(c1) },
+            color2: { value: new THREE.Color(c2) }
+        }
+    });
+
+    const mesh = new THREE.Mesh(geo, mat);
+
+    mesh.position.set(x, y, z);
+
+    mesh.rotation.z = Math.random() * Math.PI;
+
+    scene.add(mesh);
+
+    return mesh;
+}
+
+const nebulas = [];
+
+//////////////////////////////////////////////////////
+// ORION-LIKE CLOUD
+//////////////////////////////////////////////////////
+
+nebulas.push(
+    createNebula(
+        -40,
+        10,
+        -100,
+        140,
+        '#ff6699',
+        '#66ccff'
+    )
+);
+
+//////////////////////////////////////////////////////
+// PILLARS-LIKE AREA
+//////////////////////////////////////////////////////
+
+for(let i = 0; i < 5; i++) {
+
+    nebulas.push(
+        createNebula(
+            i * 12 - 20,
+            -10 + Math.random() * 15,
+            -60,
+            60,
+            '#00ffff',
+            '#ff6600'
+        )
+    );
+}
+
+//////////////////////////////////////////////////////
+// RING NEBULA STYLE
+//////////////////////////////////////////////////////
+
+const ringGeo = new THREE.TorusGeometry(
+    15,
+    4,
+    32,
+    120
+);
+
+const ringMat = new THREE.MeshBasicMaterial({
+    color: '#ff8844',
+    transparent: true,
+    opacity: 0.8
+});
+
+const ring = new THREE.Mesh(ringGeo, ringMat);
+
+ring.position.set(70, 40, -80);
+
+scene.add(ring);
+
+//////////////////////////////////////////////////////
+// BUTTERFLY NEBULA STYLE
+//////////////////////////////////////////////////////
+
+nebulas.push(
+    createNebula(
+        80,
+        -30,
+        -120,
+        90,
+        '#ff3300',
+        '#ffffff'
+    )
+);
+
+//////////////////////////////////////////////////////
+// LIGHTING
+//////////////////////////////////////////////////////
+
+const ambient = new THREE.AmbientLight(0xffffff, 0.5);
+
+scene.add(ambient);
+
+//////////////////////////////////////////////////////
+// ANIMATION
+//////////////////////////////////////////////////////
+
+function animate(t) {
+
+    requestAnimationFrame(animate);
+
+    controls.update();
+
+    stars.rotation.y += 0.0002;
+
+    nebulas.forEach((n, i) => {
+
+        n.material.uniforms.time.value = t * 0.001;
+
+        n.rotation.z += 0.0005 * (i + 1);
+    });
+
+    ring.rotation.x += 0.003;
+    ring.rotation.y += 0.004;
+
+    composer.render();
+}
+
+animate();
+
+//////////////////////////////////////////////////////
+// RESIZE
+//////////////////////////////////////////////////////
+
+window.addEventListener('resize', () => {
+
+    camera.aspect =
+        window.innerWidth / window.innerHeight;
+
+    camera.updateProjectionMatrix();
+
+    renderer.setSize(
+        window.innerWidth,
+        window.innerHeight
+    );
+
+    composer.setSize(
+        window.innerWidth,
+        window.innerHeight
+    );
+});
+
+</script>
+</body>
+</html>
