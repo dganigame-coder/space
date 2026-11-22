@@ -5,7 +5,15 @@ import { CONFIG } from './config.js';
 // --- GLOBALS ---
 let scene, camera, renderer, starField, starMaterial;
 let geminiKey = localStorage.getItem('gemini_api_key') || '';
+let groqKey = localStorage.getItem('groq_api_key') || '';
 let dynamicModelQueue = ['gemini-2.5-flash']; // Safe default fallback until discovered
+
+const GROQ_CHAT_URL = 'https://api.groq.com/openai/v1/chat/completions';
+const GROQ_SPEECH_URL = 'https://api.groq.com/openai/v1/audio/speech';
+const GROQ_FAST_MODEL = 'llama-3.3-70b-versatile';
+const GROQ_TTS_MODEL = 'canopylabs/orpheus-v1-english';
+const GEMINI_LONG_TTS_MODEL = 'gemini-3.8-flash-tts';
+const GEMINI_LITE_TTS_MODEL = 'gemini-3.8-flash-lite-tts';
 
 let systemGroup;
 let controls;
@@ -110,7 +118,7 @@ async function discoverGeminiModels() {
 
       if (validModels.length > 0) {
         dynamicModelQueue = validModels.map(m => m.id);
-        speakText("Astrometric navigation telemetry online. Subspace ephemeris calibration complete.");
+        speakNarration("Astrometric navigation telemetry online. Subspace ephemeris calibration complete.");
       }
     }
   } catch (err) {
@@ -120,34 +128,60 @@ async function discoverGeminiModels() {
 
 function setupSecurity() {
   const tokenInput = document.getElementById('hf-token-input');
+  const groqInput = document.getElementById('groq-token-input');
   const tokenBtn = document.getElementById('save-token-btn');
   const status = document.getElementById('token-status');
 
-  if (geminiKey) {
-    if (tokenInput) tokenInput.value = geminiKey;
-    if (status) {
-      status.innerText = "Gemini API Key active.";
-      status.style.color = "#4ade80";
-    }
-  } else if (status) {
-    status.innerText = "Running via Pollinations fallback (Add Gemini key for priority access).";
-    status.style.color = "#fbbf24";
+  if (geminiKey && tokenInput) {
+    tokenInput.value = geminiKey;
   }
+  if (groqKey && groqInput) {
+    groqInput.value = groqKey;
+  }
+
+  const refreshStatusText = () => {
+    if (!status) return;
+    if (geminiKey && groqKey) {
+      status.innerText = "Groq Cockpit + Gemini Science + Pollinations Visuals active.";
+      status.style.color = "#4ade80";
+    } else if (geminiKey) {
+      status.innerText = "Gemini API Key active (Add Groq key for fast cockpit callouts).";
+      status.style.color = "#4ade80";
+    } else if (groqKey) {
+      status.innerText = "Groq Cockpit active (Add Gemini key for full science & long narration).";
+      status.style.color = "#38bdf8";
+    } else {
+      status.innerText = "Running via Pollinations & local fallbacks (Add API keys for full split).";
+      status.style.color = "#fbbf24";
+    }
+  };
+
+  refreshStatusText();
 
   if (tokenBtn) {
     tokenBtn.addEventListener('click', async () => {
-      const key = tokenInput.value.trim();
-      if (key) {
-        localStorage.setItem('gemini_api_key', key);
-        geminiKey = key;
-        status.innerText = "Gemini Key Saved! AI Navigation Active.";
-        status.style.color = "#4ade80";
-        await discoverGeminiModels();
-      } else {
+      const nextGemini = tokenInput ? tokenInput.value.trim() : geminiKey;
+      const nextGroq = groqInput ? groqInput.value.trim() : groqKey;
+
+      if (nextGemini) {
+        localStorage.setItem('gemini_api_key', nextGemini);
+        geminiKey = nextGemini;
+      } else if (tokenInput) {
         localStorage.removeItem('gemini_api_key');
         geminiKey = '';
-        status.innerText = "Key cleared. Using Pollinations fallback.";
-        status.style.color = "#fbbf24";
+      }
+
+      if (nextGroq) {
+        localStorage.setItem('groq_api_key', nextGroq);
+        groqKey = nextGroq;
+      } else if (groqInput) {
+        localStorage.removeItem('groq_api_key');
+        groqKey = '';
+      }
+
+      refreshStatusText();
+      if (geminiKey) {
+        await discoverGeminiModels();
       }
     });
   }
@@ -589,7 +623,130 @@ if ('speechSynthesis' in window) {
   };
 }
 
-// --- PROCESS COMMAND WITH REAL-TIME STAGED HUD & SPEECH TELEMETRY ---
+// --- GROQ COCKPIT PARSER & ORPHEUS SHORT CALLOUTS ---
+async function parseFastCockpitWithGroq(commandText, signal) {
+  if (!groqKey) return null;
+
+  try {
+    const res = await fetch(GROQ_CHAT_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${groqKey}`
+      },
+      body: JSON.stringify({
+        model: GROQ_FAST_MODEL,
+        response_format: { type: 'json_object' },
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a fast starship flight computer. Return JSON only: {"callout": "short <= 150 char English callout, optional tag like [authoritatively]", "cameraPosition": [x,y,z], "cameraTarget": [x,y,z]}.'
+          },
+          { role: 'user', content: commandText }
+        ]
+      }),
+      signal
+    });
+
+    if (!res.ok) return null;
+    const data = await res.json();
+    const content = data?.choices?.[0]?.message?.content;
+    return content ? JSON.parse(content) : null;
+  } catch (err) {
+    if (err.name !== 'AbortError') {
+      console.warn('[GROQ COCKPIT] Fast parse skipped:', err.message);
+    }
+    return null;
+  }
+}
+
+async function speakGroqCallout(text) {
+  const trimmed = (text || '').slice(0, 180);
+  const isEnglish = currentLang.toLowerCase().startsWith('en');
+
+  if (!groqKey || !isEnglish || !trimmed) {
+    speakText(trimmed, true);
+    return;
+  }
+
+  try {
+    const res = await fetch(GROQ_SPEECH_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${groqKey}`
+      },
+      body: JSON.stringify({
+        model: GROQ_TTS_MODEL,
+        voice: 'troy',
+        input: trimmed,
+        response_format: 'wav'
+      })
+    });
+
+    if (!res.ok) throw new Error(`Groq TTS HTTP ${res.status}`);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    audio.onended = () => URL.revokeObjectURL(url);
+    await audio.play();
+  } catch (err) {
+    console.warn('[TTS ROUTER] Groq Orpheus fallback to browser speech:', err.message);
+    speakText(trimmed.replace(/^\[[^\]]+\]\s*/, ''), true);
+  }
+}
+
+// --- GEMINI LONG / MULTILINGUAL NARRATION ROUTER ---
+async function speakNarration(text, force = false) {
+  if (!text) return;
+  const isEnglish = currentLang.toLowerCase().startsWith('en');
+
+  // Short English messages use Groq Orpheus for crisp, low-latency callouts
+  if (isEnglish && text.length <= 180) {
+    return speakGroqCallout(text);
+  }
+
+  // Long or non-English narration uses Gemini TTS when available, with browser speech fallback
+  if (!geminiKey) {
+    speakText(text, force);
+    return;
+  }
+
+  try {
+    const ttsModel = text.length > 500 ? GEMINI_LONG_TTS_MODEL : GEMINI_LITE_TTS_MODEL;
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${ttsModel}:generateContent?key=${geminiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text }] }],
+          generationConfig: {
+            responseModalities: ['AUDIO']
+          }
+        })
+      }
+    );
+
+    if (!res.ok) throw new Error(`Gemini TTS HTTP ${res.status}`);
+    const data = await res.json();
+    const inlineAudio = data?.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData;
+
+    if (!inlineAudio?.data) {
+      speakText(text, force);
+      return;
+    }
+
+    const mimeType = inlineAudio.mimeType || 'audio/wav';
+    const audio = new Audio(`data:${mimeType};base64,${inlineAudio.data}`);
+    await audio.play();
+  } catch (err) {
+    console.warn('[TTS ROUTER] Gemini TTS fallback to browser speech:', err.message);
+    speakText(text, force);
+  }
+}
+
+// --- PROCESS COMMAND WITH GROQ REFLEX + GEMINI SCIENCE + POLLINATIONS TEXTURES ---
 async function processCommand(commandText) {
   const requestId = ++commandSequence;
   if (currentCommandAbort) currentCommandAbort.abort();
@@ -605,16 +762,24 @@ async function processCommand(commandText) {
   if (transcriptEl) transcriptEl.innerText = `"${commandText}"`;
 
   if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: ASTROMETRIC_SCAN';
-  speakText(`Engaging navigational sensors for vector: ${commandText}.`);
+  speakGroqCallout(`[authoritatively] Locking vector for ${commandText}.`);
 
-  console.log(`%c[ASTROMETRIC LIFECYCLE] 🚀 STAGE 1: INPUT TO AI NAVIGATION COMPUTER`, `color: #38bdf8; font-weight: bold;`);
+  console.log(`%c[ASTROMETRIC LIFECYCLE] 🚀 STAGE 1: INPUT TO COCKPIT & SCIENCE COMPUTERS`, `color: #38bdf8; font-weight: bold;`);
   console.log(`👉 User Nav Command: "${commandText}"`);
+
+  // Kick off Groq fast cockpit reflex in parallel with Gemini ephemeris generation
+  const groqFastPromise = parseFastCockpitWithGroq(commandText, controller.signal);
   const aiPromptPayload = buildPromptText(commandText);
 
   let worldConfig = null;
 
   if (hudStatusEl) hudStatusEl.innerText = 'EPHEMERIS: CALCULATING...';
-  speakText("Calculating subspace ephemeris and sector coordinates.");
+
+  const fastCockpit = await groqFastPromise;
+  if (requestId !== commandSequence) return;
+  if (fastCockpit?.callout) {
+    speakGroqCallout(fastCockpit.callout);
+  }
 
   if (geminiKey && dynamicModelQueue.length > 0) {
     for (let i = 0; i < dynamicModelQueue.length; i++) {
@@ -689,7 +854,7 @@ async function processCommand(commandText) {
 
   if (requestId !== commandSequence) return;
 
-  console.log(`%c[ASTROMETRIC LIFECYCLE] 🤖 STAGE 2: OUTPUT FROM AI NAVIGATION COMPUTER`, `color: #4ade80; font-weight: bold;`);
+  console.log(`%c[ASTROMETRIC LIFECYCLE] 🤖 STAGE 2: OUTPUT FROM SCIENCE NAVIGATION COMPUTER`, `color: #4ade80; font-weight: bold;`);
   console.log(`📦 Parsed Sector Ephemeris Object (JSON Output):`, worldConfig);
 
   if (titleEl && worldConfig.sectorTitle) titleEl.innerText = worldConfig.sectorTitle;
@@ -701,7 +866,7 @@ async function processCommand(commandText) {
   }
 
   if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: MAPPING SECTOR';
-  speakText(worldConfig.speechResponse || "Sector coordinates acquired. Materializing structural objects.");
+  speakNarration(worldConfig.speechResponse || "Sector coordinates acquired. Materializing structural objects.", true);
 
   await applyWorldConfig(worldConfig, hudStatusEl);
 }
@@ -932,7 +1097,7 @@ async function applyWorldConfig(config, hudStatusEl) {
     if (hudStatusEl) {
       hudStatusEl.innerText = stageText;
     }
-    speakText(`Materializing celestial component: ${objConfig.name}.`);
+    speakNarration(`Materializing celestial component: ${objConfig.name}.`);
 
     let mesh;
     let finalMaterial;
@@ -1078,7 +1243,7 @@ async function applyWorldConfig(config, hudStatusEl) {
   activeAnimatedMeshes.push(...resolvedAnims);
 
   if (hudStatusEl) hudStatusEl.innerText = 'PROTOCOL: SECURED_TARGET';
-  speakText("Sector materialization complete. All astrometric systems nominal.");
+  speakNarration("Sector materialization complete. All astrometric systems nominal.", true);
 }
 
 // --- SETUP CONTROLS ---
