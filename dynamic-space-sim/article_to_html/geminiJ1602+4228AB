@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nāpōwawāʻenakaulua (J1602+4228AB) — Oldest Compact Quasar Pair</title>
+    <!-- Tailwind CSS for sleek scientific HUD styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & JetBrains Mono for astronomical telemetry -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Three.js r128 & Post-Processing Dependencies -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+
+    <style>
+        :root {
+            --bg-deep: #020308;
+            --glass-bg: rgba(8, 12, 24, 0.68);
+            --glass-border: rgba(148, 184, 255, 0.16);
+            --accent-cyan: #38bdf8;
+            --accent-amber: #f59e0b;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-deep);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: #f8fafc;
+        }
+
+        #webgl-container {
+            position: fixed;
+            inset: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+            cursor: grab;
+        }
+
+        #webgl-container:active {
+            cursor: grabbing;
+        }
+
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        }
+
+        .mono-font {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Custom subtle range slider */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            background: rgba(255, 255, 255, 0.12);
+            height: 4px;
+            border-radius: 999px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #38bdf8;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.8);
+            cursor: pointer;
+            transition: transform 0.15s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        /* 3D Projected Spatial Labels */
+        .spatial-label {
+            position: absolute;
+            z-index: 5;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            transition: opacity 0.3s ease;
+        }
+
+        .spatial-tag {
+            background: rgba(4, 8, 18, 0.78);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(148, 197, 255, 0.3);
+            padding: 5px 10px;
+            border-radius: 8px;
+            white-space: nowrap;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+        }
+
+        .pulse-dot {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            animation: pulseGlow 2.2s infinite ease-in-out;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { opacity: 0.45; transform: scale(0.9); }
+            50% { opacity: 1; transform: scale(1.25); }
+        }
+
+        /* Smooth fade for HUD toggle */
+        .hud-transition {
+            transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .hud-hidden {
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(8px);
+        }
+
+        /* Loading overlay */
+        #loader-screen {
+            position: fixed;
+            inset: 0;
+            z-index: 50;
+            background: radial-gradient(circle at center, #0b1124 0%, #020308 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.8s ease;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Initial Cosmic Dawn Loader -->
+    <div id="loader-screen">
+        <div class="w-12 h-12 rounded-full border-2 border-sky-400/20 border-t-sky-400 animate-spin mb-4"></div>
+        <div class="text-xs uppercase tracking-[0.25em] text-sky-300/80 font-medium">Initializing Relativistic Simulation</div>
+        <div class="text-[11px] text-slate-400 mt-1 mono-font">z ≈ 6.2 • 900 Myr Post-Big Bang</div>
+    </div>
+
+    <!-- Main 3D WebGL Canvas Container -->
+    <div id="webgl-container"></div>
+
+    <!-- Projected 3D Spatial Annotations -->
+    <div id="labels-layer" class="fixed inset-0 pointer-events-none z-10 overflow-hidden">
+        <!-- Primary Quasar Label -->
+        <div id="label-primary" class="spatial-label">
+            <div class="flex flex-col items-center">
+                <div class="spatial-tag flex items-center gap-2">
+                    <span class="pulse-dot bg-sky-400 shadow-[0_0_8px_#38bdf8]"></span>
+                    <div>
+                        <div class="text-[11px] font-semibold text-white tracking-wide">J1602+4228A (Primary)</div>
+                        <div class="text-[10px] text-sky-300 mono-font">1.5 × 10⁹ M☉ Supermassive BH</div>
+                    </div>
+                </div>
+                <div class="w-px h-6 bg-gradient-to-b from-sky-400/60 to-transparent"></div>
+            </div>
+        </div>
+
+        <!-- Companion Quasar Label -->
+        <div id="label-companion" class="spatial-label">
+            <div class="flex flex-col items-center">
+                <div class="spatial-tag flex items-center gap-2">
+                    <span class="pulse-dot bg-amber-400 shadow-[0_0_8px_#fbbf24]"></span>
+                    <div>
+                        <div class="text-[11px] font-semibold text-white tracking-wide">J1602+4228B (Companion)</div>
+                        <div class="text-[10px] text-amber-300 mono-font">4.0 × 10⁸ M☉ Supermassive BH</div>
+                    </div>
+                </div>
+                <div class="w-px h-6 bg-gradient-to-b from-amber-400/60 to-transparent"></div>
+            </div>
+        </div>
+
+        <!-- Separation Scale Marker -->
+        <div id="label-separation" class="spatial-label">
+            <div class="px-2.5 py-1 rounded-full bg-slate-950/80 border border-indigo-400/30 backdrop-blur-md text-[10px] text-indigo-200 mono-font tracking-wider shadow-lg">
+                ⟷ 18,100 Light-Years (~1/5 Milky Way)
+            </div>
+        </div>
+    </div>
+
+    <!-- Top-Right Quick Controls (Always Accessible) -->
+    <div class="fixed top-4 right-4 z-30 flex items-center gap-2">
+        <button id="toggle-hud-btn" class="glass-panel px-3.5 py-2 rounded-xl text-xs font-medium text-slate-200 hover:text-white hover:border-sky-400/40 transition flex items-center gap-2 cursor-pointer" title="Toggle HUD Overlay">
+            <svg id="eye-icon" class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            <span id="toggle-hud-text">Hide UI</span>
+        </button>
+    </div>
+
+    <!-- Main HUD Overlay -->
+    <div id="main-hud" class="hud-transition">
+        <!-- Top-Left Title & Scientific Context Card -->
+        <header class="fixed top-4 left-4 right-28 sm:right-auto sm:max-w-md z-20 glass-panel rounded-2xl p-4 sm:p-5">
+            <div class="flex items-center gap-2 mb-1.5">
+                <span class="px-2 py-0.5 rounded-md bg-sky-500/15 border border-sky-400/30 text-[10px] font-semibold uppercase tracking-widest text-sky-300">
+                    Cosmic Dawn • 900 Myr After Big Bang
+                </span>
+            </div>
+            <h1 class="text-lg sm:text-xl font-bold tracking-tight text-white leading-snug">
+                Nāpōwawāʻenakaulua
+                <span class="block sm:inline text-xs sm:text-sm font-normal text-slate-400 mono-font sm:ml-1">(J1602+4228AB)</span>
+            </h1>
+            <p class="text-xs text-slate-300/90 mt-1.5 leading-relaxed">
+                Oldest known compact quasar pair: two hyper-luminous supermassive black holes (<span class="text-sky-300 font-medium">1.5B M☉</span> &amp; <span class="text-amber-300 font-medium">400M M☉</span>) separated by just <span class="text-indigo-300 font-medium">18,100 light-years</span> inside interacting primordial host galaxies.
+            </p>
+
+            <!-- Hyperlink to the ScienceDaily Article -->
+            <div class="mt-3 pt-3 border-t border-white/10 flex flex-wrap items-center justify-between gap-2">
+                <span class="text-[10px] text-slate-400 uppercase tracking-wider font-medium">JWST Aether • Gemini North</span>
+                <a href="https://www.sciencedaily.com/releases/2026/11/261122060342.htm"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-sky-500/25 to-indigo-500/25 hover:from-sky-500/40 hover:to-indigo-500/40 border border-sky-400/40 text-xs font-medium text-sky-200 hover:text-white transition shadow-sm">
+                    <span>Read ScienceDaily Article</span>
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                </a>
+            </div>
+        </header>
+
+        <!-- Bottom Control Dock: Camera Presets & Simulation Parameters -->
+        <aside class="fixed bottom-4 left-4 right-4 z-20 flex flex-col lg:flex-row items-stretch lg:items-end justify-between gap-3 pointer-events-none">
+            <!-- Camera Viewpoints -->
+            <div class="glass-panel rounded-2xl p-3 pointer-events-auto flex flex-col gap-2 max-w-full lg:max-w-xl">
+                <div class="flex items-center justify-between px-1">
+                    <span class="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Observation Viewpoints</span>
+                    <span class="text-[10px] text-slate-400 hidden sm:inline">Drag to Orbit • Scroll/Pinch to Zoom</span>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                    <button data-view="overview" class="view-btn active px-3 py-2 rounded-xl text-xs font-medium bg-sky-500/25 border border-sky-400/50 text-white transition text-center cursor-pointer">
+                        Pair Overview
+                    </button>
+                    <button data-view="primary" class="view-btn px-3 py-2 rounded-xl text-xs font-medium bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 transition text-center cursor-pointer">
+                        1.5B M☉ Quasar
+                    </button>
+                    <button data-view="companion" class="view-btn px-3 py-2 rounded-xl text-xs font-medium bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 transition text-center cursor-pointer">
+                        400M M☉ Quasar
+                    </button>
+                    <button data-view="bridge" class="view-btn px-3 py-2 rounded-xl text-xs font-medium bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 transition text-center cursor-pointer">
+                        Tidal Gas Bridge
+                    </button>
+                </div>
+            </div>
+
+            <!-- Simulation Controls & Hawaiian Name Meaning -->
+            <div class="glass-panel rounded-2xl p-3.5 pointer-events-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                <!-- Speed Slider -->
+                <div class="flex flex-col gap-1 min-w-[140px]">
+                    <div class="flex justify-between text-[11px]">
+                        <span class="text-slate-400">Relativistic Flow</span>
+                        <span id="speed-val" class="mono-font text-sky-300">1.0x</span>
+                    </div>
+                    <input id="speed-slider" type="range" min="0" max="2.5" step="0.1" value="1.0">
+                </div>
+
+                <!-- Feature Toggles -->
+                <div class="flex items-center gap-2">
+                    <button id="toggle-jets" class="px-3 py-1.5 rounded-xl text-xs font-medium bg-sky-500/20 border border-sky-400/40 text-sky-200 hover:bg-sky-500/30 transition cursor-pointer">
+                        Plasma Jets: ON
+                    </button>
+                    <button id="toggle-labels" class="px-3 py-1.5 rounded-xl text-xs font-medium bg-indigo-500/20 border border-indigo-400/40 text-indigo-200 hover:bg-indigo-500/30 transition cursor-pointer">
+                        Labels: ON
+                    </button>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <script>
+        /**
+         * Nāpōwawāʻenakaulua (J1602+4228AB) — Interactive 3D Relativistic WebGL Simulation
+         * Visualizes the oldest known compact quasar pair 900 million years after the Big Bang:
+         * - Primary SMBH: 1.5 Billion Solar Masses with relativistic Doppler-beamed accretion disk,
+         *   gravitational lensing halo, photon ring, and twin collimated relativistic plasma jets.
+         * - Companion SMBH: 400 Million Solar Masses separated by 18,100 light-years.
+         * - Interacting Primordial Host Galaxies & Tidal Gas Bridge funneling star-forming gas.
+         */
+
+        window.onload = function () {
+            try {
+                initSimulation();
+            } catch (err) {
+                console.error("WebGL Initialization Error:", err);
+                const loader = document.getElementById('loader-screen');
+                if (loader) {
+                    loader.innerHTML = `<div class="text-red-400 text-sm px-6 text-center">Unable to initialize WebGL context. Please ensure hardware acceleration is enabled.</div>`;
+                }
+            }
+        };
+
+        function initSimulation() {
+            const container = document.getElementById('webgl-container');
+
+            // 1. Scene, Camera & Renderer Setup
+            const scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x020308, 0.0022);
+
+            const camera = new THREE.PerspectiveCamera(48, window.innerWidth / window.innerHeight, 0.1, 1500);
+            camera.position.set(0, 26, 78);
+
+            const renderer = new THREE.WebGLRenderer({
+                antialias: true,
+                powerPreference: "high-performance",
+                stencil: false
+            });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.15;
+            container.appendChild(renderer.domElement);
+
+            // 2. Post-Processing Pipeline (UnrealBloomPass for hyper-luminous quasar cores)
+            const renderScene = new THREE.RenderPass(scene, camera);
+            const bloomPass = new THREE.UnrealBloomPass(
+                new THREE.Vector2(window.innerWidth, window.innerHeight),
+                1.45,  // Bloom strength
+                0.65,  // Bloom radius
+                0.22   // Luminance threshold
+            );
+
+            const composer = new THREE.EffectComposer(renderer);
+            composer.addPass(renderScene);
+            composer.addPass(bloomPass);
+
+            // 3. OrbitControls for Smooth Interactive Exploration
+            const controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.055;
+            controls.rotateSpeed = 0.65;
+            controls.zoomSpeed = 0.85;
+            controls.minDistance = 7;
+            controls.maxDistance = 190;
+            controls.target.set(0, 0, 0);
+
+            // 4. Custom GLSL Shaders for Relativistic Accretion Disks & Gravitational Lensing
+            const accretionDiskVertexShader = `
+                varying vec2 vUv;
+                varying vec3 vLocalPos;
+                varying vec3 vWorldPos;
+                void main() {
+                    vUv = uv;
+                    vLocalPos = position;
+                    vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+                    vWorldPos = worldPosition.xyz;
+                    gl_Position = projectionMatrix * viewMatrix * worldPosition;
+                }
+            `;
+
+            // Relativistic Doppler Beaming + Multi-band Spiral Plasma Turbulence Shader
+            const accretionDiskFragmentShader = `
+                uniform float uTime;
+                uniform float uInnerRadius;
+                uniform float uOuterRadius;
+                uniform vec3 uColorHot;
+                uniform vec3 uColorMid;
+                uniform vec3 uColorOuter;
+                uniform float uIntensity;
+
+                varying vec2 vUv;
+                varying vec3 vLocalPos;
+                varying vec3 vWorldPos;
+
+                // Simplex-style hash & value noise for turbulent plasma filaments
+                float hash(vec2 p) {
+                    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+                }
+
+                float noise(vec2 p) {
+                    vec2 i = floor(p);
+                    vec2 f = fract(p);
+                    vec2 u = f * f * (3.0 - 2.0 * f);
+                    return mix(
+                        mix(hash(i + vec2(0.0, 0.0)), hash(i + vec2(1.0, 0.0)), u.x),
+                        mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x),
+                        u.y
+                    );
+                }
+
+                float fbm(vec2 p) {
+                    float v = 0.0;
+                    float a = 0.5;
+                    mat2 rot = mat2(cos(0.5), sin(0.5), -sin(0.5), cos(0.5));
+                    for (int i = 0; i < 5; i++) {
+                        v += a * noise(p);
+                        p = rot * p * 2.05;
+                        a *= 0.5;
+                    }
+                    return v;
+                }
+
+                void main() {
+                    float r = length(vLocalPos.xy);
+                    if (r < uInnerRadius || r > uOuterRadius) discard;
+
+                    float normR = (r - uInnerRadius) / (uOuterRadius - uInnerRadius);
+                    float angle = atan(vLocalPos.y, vLocalPos.x);
+
+                    // Differential Keplerian rotation (inner plasma orbits dramatically faster)
+                    float keplerSpeed = 2.4 / pow(normR + 0.18, 0.75);
+                    float spiralPhase = angle + keplerSpeed * uTime * 0.45 + log(normR + 0.05) * 6.5;
+
+                    // Multi-layered spiral shockwaves
+                    float n1 = fbm(vec2(normR * 12.0 - uTime * 0.35, spiralPhase * 2.0));
+                    float n2 = fbm(vec2(normR * 26.0 + uTime * 0.2, spiralPhase * 4.0 - uTime * 0.6));
+                    float rings = sin(normR * 48.0 + n1 * 5.0 - uTime * 1.4) * 0.5 + 0.5;
+
+                    float turbulence = mix(n1, n2, 0.45) * 0.75 + rings * 0.35;
+
+                    // Relativistic Doppler Beaming calculation relative to camera view direction
+                    vec3 viewDir = normalize(cameraPosition - vWorldPos);
+                    // Tangent vector of orbital motion in world space
+                    vec3 localTangent = normalize(vec3(-vLocalPos.y, vLocalPos.x, 0.0));
+                    vec3 worldTangent = normalize((modelMatrix * vec4(localTangent, 0.0)).xyz);
+                    float doppler = dot(worldTangent, viewDir); // +1 approaching (blue-shifted), -1 receding (red-shifted)
+
+                    // Temperature gradient from inner ISCO to outer dusty torus
+                    float heat = pow(1.0 - normR, 1.85);
+                    vec3 baseCol = mix(uColorOuter, uColorMid, smoothstep(0.0, 0.55, heat));
+                    baseCol = mix(baseCol, uColorHot, smoothstep(0.45, 0.95, heat));
+
+                    // Apply relativistic blue-shift boost on approaching side & amber dimming on receding side
+                    vec3 blueShiftTint = vec3(0.75, 0.92, 1.35);
+                    vec3 redShiftTint  = vec3(1.15, 0.58, 0.28);
+                    vec3 relativisticColor = mix(redShiftTint, blueShiftTint, doppler * 0.5 + 0.5) * baseCol;
+
+                    // Beaming brightness factor (approaching side shines noticeably brighter)
+                    float beamingBoost = 1.0 + doppler * 0.48;
+
+                    // Smooth inner ISCO edge & outer radial fade
+                    float innerFade = smoothstep(0.0, 0.07, normR);
+                    float outerFade = pow(1.0 - normR, 1.45);
+                    float alpha = innerFade * outerFade * (0.45 + turbulence * 0.75);
+
+                    vec3 finalRGB = relativisticColor * (0.65 + turbulence * 1.15) * beamingBoost * uIntensity;
+                    gl_FragColor = vec4(finalRGB, clamp(alpha, 0.0, 1.0));
+                }
+            `;
+
+            // Gravitational Lensing Einstein Halo & Photon Ring Shader
+            const lensingHaloVertexShader = `
+                varying vec3 vNormal;
+                varying vec3 vViewPosition;
+                void main() {
+                    vNormal = normalize(normalMatrix * normal);
+                    vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+                    vViewPosition = -mvPosition.xyz;
+                    gl_Position = projectionMatrix * mvPosition;
+                }
+            `;
+
+            const lensingHaloFragmentShader = `
+                uniform vec3 uPhotonColor;
+                uniform vec3 uHaloColor;
+                uniform float uTime;
+                varying vec3 vNormal;
+                varying vec3 vViewPosition;
+
+                void main() {
+                    vec3 viewDir = normalize(vViewPosition);
+                    float ndotv = abs(dot(vNormal, viewDir));
+
+                    // Sharp bright photon ring right around the event horizon silhouette
+                    float photonRing = pow(1.0 - ndotv, 5.5) * smoothstep(0.02, 0.28, 1.0 - ndotv);
+                    // Broader gravitational lensing Einstein glow
+                    float outerGlow = pow(1.0 - ndotv, 2.4) * 0.55;
+
+                    float shimmer = 0.92 + 0.08 * sin(uTime * 3.0 + ndotv * 18.0);
+                    vec3 col = (uPhotonColor * photonRing * 2.4 + uHaloColor * outerGlow) * shimmer;
+                    float alpha = clamp(photonRing * 1.4 + outerGlow * 0.65, 0.0, 0.95);
+
+                    gl_FragColor = vec4(col, alpha);
+                }
+            `;
+
+            // Relativistic Plasma Jet Shader
+            const jetVertexShader = `
+                varying vec2 vUv;
+                varying vec3 vNormal;
+                varying vec3 vViewPos;
+                void main() {
+                    vUv = uv;
+                    vNormal = normalize(normalMatrix * normal);
+                    vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
+                    vViewPos = -mvPos.xyz;
+                    gl_Position = projectionMatrix * mvPos;
+                }
+            `;
+
+            const jetFragmentShader = `
+                uniform float uTime;
+                uniform vec3 uCoreColor;
+                uniform vec3 uEdgeColor;
+                varying vec2 vUv;
+                varying vec3 vNormal;
+                varying vec3 vViewPos;
+
+                float hash(vec2 p) {
+                    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+                }
+
+                float noise(vec2 p) {
+                    vec2 i = floor(p);
+                    vec2 f = fract(p);
+                    vec2 u = f * f * (3.0 - 2.0 * f);
+                    return mix(
+                        mix(hash(i), hash(i + vec2(1.0, 0.0)), u.x),
+                        mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x),
+                        u.y
+                    );
+                }
+
+                void main() {
+                    // vUv.y runs 0 at black hole base to 1 at outer tip
+                    float distFade = pow(1.0 - vUv.y, 1.55) * smoothstep(0.0, 0.06, vUv.y);
+
+                    // Edge softening so cylinder looks like volumetric collimated plasma
+                    vec3 viewDir = normalize(vViewPos);
+                    float edgeSoft = pow(abs(dot(vNormal, viewDir)), 1.6);
+
+                    // High-velocity plasma knots streaming outward at near light-speed
+                    float stream1 = noise(vec2(vUv.x * 8.0, vUv.y * 14.0 - uTime * 5.5));
+                    float stream2 = noise(vec2(vUv.x * 16.0 + 3.1, vUv.y * 26.0 - uTime * 9.0));
+                    float helical = sin(vUv.x * 12.566 + vUv.y * 16.0 - uTime * 6.0) * 0.5 + 0.5;
+
+                    float plasma = stream1 * 0.5 + stream2 * 0.35 + helical * 0.25;
+                    vec3 col = mix(uEdgeColor, uCoreColor, plasma * edgeSoft);
+
+                    float alpha = distFade * edgeSoft * (0.28 + plasma * 0.65);
+                    gl_FragColor = vec4(col * 1.6, clamp(alpha, 0.0, 0.9));
+                }
+            `;
+
+            /**
+             * Factory function to build a complete hyperrealistic Quasar system:
+             * - Event Horizon (absolute black sphere)
+             * - Photon Ring & Gravitationally Lensed Halo
+             * - Relativistic Accretion Disk + Perpendicular Gravitationally Lensed Warp Arc
+             * - Twin Collimated Relativistic Plasma Jets
+             * - Host Primordial Galaxy Star/Gas Halo
+             */
+            function createQuasarSystem(options) {
+                const group = new THREE.Group();
+                group.position.copy(options.position);
+                group.rotation.set(options.tilt.x, options.tilt.y, options.tilt.z);
+
+                const scale = options.scale;
+
+                // A. Event Horizon (Pure Black Shadow)
+                const horizonRadius = 1.65 * scale;
+                const horizonGeo = new THREE.SphereGeometry(horizonRadius, 48, 48);
+                const horizonMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+                const horizonMesh = new THREE.Mesh(horizonGeo, horizonMat);
+                group.add(horizonMesh);
+
+                // B. Gravitationally Lensed Photon Ring & Einstein Halo
+                const haloGeo = new THREE.SphereGeometry(horizonRadius * 1.42, 48, 48);
+                const haloMat = new THREE.ShaderMaterial({
+                    vertexShader: lensingHaloVertexShader,
+                    fragmentShader: lensingHaloFragmentShader,
+                    uniforms: {
+                        uPhotonColor: { value: new THREE.Color(options.photonColor) },
+                        uHaloColor: { value: new THREE.Color(options.haloColor) },
+                        uTime: { value: 0 }
+                    },
+                    transparent: true,
+                    blending: THREE.AdditiveBlending,
+                    depthWrite: false,
+                    side: THREE.FrontSide
+                });
+                const haloMesh = new THREE.Mesh(haloGeo, haloMat);
+                group.add(haloMesh);
+
+                // C. Main Relativistic Accretion Disk
+                const innerR = horizonRadius * 1.38;
+                const outerR = 11.5 * scale;
+                const diskGeo = new THREE.PlaneGeometry(outerR * 2.1, outerR * 2.1, 1, 1);
+                const diskMat = new THREE.ShaderMaterial({
+                    vertexShader: accretionDiskVertexShader,
+                    fragmentShader: accretionDiskFragmentShader,
+                    uniforms: {
+                        uTime: { value: 0 },
+                        uInnerRadius: { value: innerR },
+                        uOuterRadius: { value: outerR },
+                        uColorHot: { value: new THREE.Color(options.diskHot) },
+                        uColorMid: { value: new THREE.Color(options.diskMid) },
+                        uColorOuter: { value: new THREE.Color(options.diskOuter) },
+                        uIntensity: { value: options.intensity }
+                    },
+                    transparent: true,
+                    blending: THREE.AdditiveBlending,
+                    depthWrite: false,
+                    side: THREE.DoubleSide
+                });
+                const diskMesh = new THREE.Mesh(diskGeo, diskMat);
+                diskMesh.rotation.x = Math.PI / 2;
+                group.add(diskMesh);
+
+                // D. Gravitationally Lensed Over-and-Under Light Bending Ring (Interstellar-style optical distortion)
+                const lensedOuterR = horizonRadius * 3.15;
+                const lensedDiskGeo = new THREE.PlaneGeometry(lensedOuterR * 2.1, lensedOuterR * 2.1, 1, 1);
+                const lensedDiskMat = diskMat.clone();
+                lensedDiskMat.uniforms = {
+                    uTime: { value: 0 },
+                    uInnerRadius: { value: horizonRadius * 1.32 },
+                    uOuterRadius: { value: lensedOuterR },
+                    uColorHot: { value: new THREE.Color(options.diskHot) },
+                    uColorMid: { value: new THREE.Color(options.diskMid) },
+                    uColorOuter: { value: new THREE.Color(options.diskOuter) },
+                    uIntensity: { value: options.intensity * 0.62 }
+                };
+                const lensedArcMesh = new THREE.Mesh(lensedDiskGeo, lensedDiskMat);
+                // Tilted steeply to simulate light from the far side of the disk bent over/under the black hole
+                lensedArcMesh.rotation.x = 0.22;
+                group.add(lensedArcMesh);
+
+                // E. Twin Relativistic Plasma Jets (North & South Poles)
+                const jetsGroup = new THREE.Group();
+                const jetLength = 34 * scale;
+                const jetGeo = new THREE.CylinderGeometry(1.55 * scale, 0.24 * scale, jetLength, 32, 24, true);
+                jetGeo.translate(0, jetLength / 2, 0);
+
+                const jetMat = new THREE.ShaderMaterial({
+                    vertexShader: jetVertexShader,
+                    fragmentShader: jetFragmentShader,
+                    uniforms: {
+                        uTime: { value: 0 },
+                        uCoreColor: { value: new THREE.Color(options.jetCore) },
+                        uEdgeColor: { value: new THREE.Color(options.jetEdge) }
+                    },
+                    transparent: true,
+                    blending: THREE.AdditiveBlending,
+                    depthWrite: false,
+                    side: THREE.DoubleSide
+                });
+
+                const northJet = new THREE.Mesh(jetGeo, jetMat);
+                const southJet = new THREE.Mesh(jetGeo, jetMat);
+                southJet.rotation.x = Math.PI;
+
+                jetsGroup.add(northJet);
+                jetsGroup.add(southJet);
+                group.add(jetsGroup);
+
+                // F. Point Light illuminating surrounding tidal gas & host galaxy dust
+                const coreLight = new THREE.PointLight(options.lightColor, options.lightIntensity, 85);
+                group.add(coreLight);
+
+                scene.add(group);
+
+                return {
+                    group,
+                    haloMat,
+                    diskMat,
+                    lensedDiskMat,
+                    jetMat,
+                    jetsGroup,
+                    lensedArcMesh
+                };
+            }
+
+            // Instantiate Primary Quasar (J1602+4228A — 1.5 Billion Solar Masses)
+            const primaryPos = new THREE.Vector3(-19.5, 1.5, 2.0);
+            const primaryQuasar = createQuasarSystem({
+                position: primaryPos,
+                tilt: new THREE.Vector3(0.32, 0.15, -0.28),
+                scale: 1.28,
+                photonColor: 0xe0f2fe,
+                haloColor: 0x38bdf8,
+                diskHot: 0xf0f9ff,
+                diskMid: 0x60a5fa,
+                diskOuter: 0xf59e0b,
+                jetCore: 0xe0f2fe,
+                jetEdge: 0x2563eb,
+                intensity: 1.45,
+                lightColor: 0x7dd3fc,
+                lightIntensity: 3.2
+            });
+
+            // Instantiate Companion Quasar (J1602+4228B — 400 Million Solar Masses)
+            const companionPos = new THREE.Vector3(21.5, -2.0, -3.5);
+            const companionQuasar = createQuasarSystem({
+                position: companionPos,
+                tilt: new THREE.Vector3(-0.38, -0.22, 0.35),
+                scale: 0.86,
+                photonColor: 0xfef3c7,
+                haloColor: 0xf59e0b,
+                diskHot: 0xffffff,
+                diskMid: 0xfbbf24,
+                diskOuter: 0xea580c,
+                jetCore: 0xfef9c3,
+                jetEdge: 0xd97706,
+                intensity: 1.32,
+                lightColor: 0xfbbf24,
+                lightIntensity: 2.4
+            });
+
+            // 5. Soft Procedural Glow Sprite Texture for Volumetric Particles
+            function createGlowTexture() {
+                const canvas = document.createElement('canvas');
+                canvas.width = 64;
+                canvas.height = 64;
+                const ctx = canvas.getContext('2d');
+                const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+                grad.addColorStop(0.0, 'rgba(255, 255, 255, 1.0)');
+                grad.addColorStop(0.25, 'rgba(220, 240, 255, 0.65)');
+                grad.addColorStop(0.6, 'rgba(130, 170, 255, 0.18)');
+                grad.addColorStop(1.0, 'rgba(0, 0, 0, 0.0)');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, 64, 64);
+                return new THREE.CanvasTexture(canvas);
+            }
+            const glowTex = createGlowTexture();
+
+            // 6. Interacting Host Galaxies & Tidal Gas Bridge (Funneling gas between both quasars)
+            const tidalParticleCount = 5200;
+            const tidalGeo = new THREE.BufferGeometry();
+            const tidalPositions = new Float32Array(tidalParticleCount * 3);
+            const tidalColors = new Float32Array(tidalParticleCount * 3);
+            const tidalMeta = []; // Stores orbital/stream parameters for real-time animation
+
+            const cPrimary = new THREE.Color(0x60a5fa);
+            const cBridge  = new THREE.Color(0xc084fc);
+            const cStarburst = new THREE.Color(0xfbbf24);
+            const cWarmGas = new THREE.Color(0xf472b6);
+
+            for (let i = 0; i < tidalParticleCount; i++) {
+                const mode = Math.random();
+                let x, y, z;
+                const col = new THREE.Color();
+
+                if (mode < 0.42) {
+                    // Tidal Gas Bridge S-Curve Stream connecting Primary & Companion Host Galaxies
+                    const t = Math.random(); // 0 = primary, 1 = companion
+                    const center = new THREE.Vector3().lerpVectors(primaryPos, companionPos, t);
+                    // S-wave gravitational tidal distortion
+                    const archX = Math.sin(t * Math.PI * 2.0) * 4.5;
+                    const archY = Math.sin(t * Math.PI) * 5.2 * (t < 0.5 ? 1 : -0.8);
+                    const archZ = Math.cos(t * Math.PI * 1.5) * 6.0;
+
+                    const spread = (1.5 + Math.sin(t * Math.PI) * 3.8) * Math.pow(Math.random(), 0.7);
+                    const theta = Math.random() * Math.PI * 2;
+                    const phi = Math.acos(2 * Math.random() - 1);
+
+                    x = center.x + archX + spread * Math.sin(phi) * Math.cos(theta);
+                    y = center.y + archY + spread * Math.sin(phi) * Math.sin(theta) * 0.55;
+                    z = center.z + archZ + spread * Math.cos(phi);
+
+                    col.copy(cBridge).lerp(Math.random() > 0.5 ? cPrimary : cWarmGas, Math.random() * 0.65);
+
+                    tidalMeta.push({
+                        type: 'bridge',
+                        t: t,
+                        speed: (0.04 + Math.random() * 0.06) * (Math.random() > 0.35 ? 1 : -1),
+                        offset: new THREE.Vector3(
+                            spread * Math.sin(phi) * Math.cos(theta),
+                            spread * Math.sin(phi) * Math.sin(theta) * 0.55,
+                            spread * Math.cos(phi)
+                        )
+                    });
+                } else if (mode < 0.74) {
+                    // Primary Host Galaxy Primordial Spiral & Starburst Envelope
+                    const radius = 5.5 + Math.pow(Math.random(), 1.3) * 20.0;
+                    const angle = Math.random() * Math.PI * 2;
+                    const armTwist = radius * 0.24;
+                    const finalAngle = angle + armTwist;
+
+                    x = primaryPos.x + Math.cos(finalAngle) * radius;
+                    y = primaryPos.y + (Math.random() - 0.5) * (3.8 * (1.0 - radius / 28.0));
+                    z = primaryPos.z + Math.sin(finalAngle) * radius;
+
+                    col.copy(cPrimary).lerp(cStarburst, Math.random() * 0.45);
+
+                    tidalMeta.push({
+                        type: 'orbitPrimary',
+                        radius,
+                        angle: finalAngle,
+                        yOffset: y - primaryPos.y,
+                        angVel: 0.28 / Math.sqrt(radius)
+                    });
+                } else {
+                    // Companion Host Galaxy Primordial Envelope
+                    const radius = 4.2 + Math.pow(Math.random(), 1.3) * 15.5;
+                    const angle = Math.random() * Math.PI * 2;
+                    const finalAngle = angle - radius * 0.28;
+
+                    x = companionPos.x + Math.cos(finalAngle) * radius;
+                    y = companionPos.y + (Math.random() - 0.5) * (3.0 * (1.0 - radius / 22.0));
+                    z = companionPos.z + Math.sin(finalAngle) * radius;
+
+                    col.copy(cStarburst).lerp(cWarmGas, Math.random() * 0.5);
+
+                    tidalMeta.push({
+                        type: 'orbitCompanion',
+                        radius,
+                        angle: finalAngle,
+                        yOffset: y - companionPos.y,
+                        angVel: -0.32 / Math.sqrt(radius)
+                    });
+                }
+
+                tidalPositions[i * 3]     = x;
+                tidalPositions[i * 3 + 1] = y;
+                tidalPositions[i * 3 + 2] = z;
+
+                tidalColors[i * 3]     = col.r;
+                tidalColors[i * 3 + 1] = col.g;
+                tidalColors[i * 3 + 2] = col.b;
+            }
+
+            tidalGeo.setAttribute('position', new THREE.BufferAttribute(tidalPositions, 3));
+            tidalGeo.setAttribute('color', new THREE.BufferAttribute(tidalColors, 3));
+
+            const tidalMat = new THREE.PointsMaterial({
+                size: 0.72,
+                map: glowTex,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.62,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+
+            const tidalCloud = new THREE.Points(tidalGeo, tidalMat);
+            scene.add(tidalCloud);
+
+            // 7. Relativistic Jet High-Energy Particle Streams
+            const jetParticleCount = 1400;
+            const jetPartGeo = new THREE.BufferGeometry();
+            const jetPartPos = new Float32Array(jetParticleCount * 3);
+            const jetPartCol = new Float32Array(jetParticleCount * 3);
+            const jetPartMeta = [];
+
+            for (let i = 0; i < jetParticleCount; i++) {
+                const isPrimary = i < 850;
+                const pole = (i % 2 === 0) ? 1 : -1;
+                const progress = Math.random();
+                jetPartMeta.push({
+                    isPrimary,
+                    pole,
+                    progress,
+                    speed: 0.45 + Math.random() * 0.55,
+                    radialAngle: Math.random() * Math.PI * 2,
+                    radialSpread: Math.random() * 0.65
+                });
+
+                const c = isPrimary ? new THREE.Color(0x93c5fd) : new THREE.Color(0xfde68a);
+                jetPartCol[i * 3] = c.r;
+                jetPartCol[i * 3 + 1] = c.g;
+                jetPartCol[i * 3 + 2] = c.b;
+            }
+
+            jetPartGeo.setAttribute('position', new THREE.BufferAttribute(jetPartPos, 3));
+            jetPartGeo.setAttribute('color', new THREE.BufferAttribute(jetPartCol, 3));
+
+            const jetPartMat = new THREE.PointsMaterial({
+                size: 0.48,
+                map: glowTex,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.85,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+
+            const jetParticles = new THREE.Points(jetPartGeo, jetPartMat);
+            scene.add(jetParticles);
+
+            // 8. Deep Cosmic Dawn Starfield & Distant Redshifted Protogalaxies (z > 6)
+            const starCount = 4500;
+            const starGeo = new THREE.BufferGeometry();
+            const starPos = new Float32Array(starCount * 3);
+            const starCol = new Float32Array(starCount * 3);
+
+            for (let i = 0; i < starCount; i++) {
+                const r = 130 + Math.random() * 480;
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+
+                starPos[i * 3]     = r * Math.sin(phi) * Math.cos(theta);
+                starPos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+                starPos[i * 3 + 2] = r * Math.cos(phi);
+
+                // Mix of hot young Population III blue stars & heavily redshifted distant galaxies
+                const paletteRoll = Math.random();
+                const c = new THREE.Color();
+                if (paletteRoll < 0.45) {
+                    c.setHSL(0.6, 0.45, 0.75 + Math.random() * 0.25); // Blue-white early stars
+                } else if (paletteRoll < 0.78) {
+                    c.setHSL(0.08, 0.75, 0.65 + Math.random() * 0.25); // Amber/gold
+                } else {
+                    c.setHSL(0.98, 0.85, 0.55 + Math.random() * 0.25); // Deep Lyman-alpha redshifted galaxies
+                }
+
+                starCol[i * 3]     = c.r;
+                starCol[i * 3 + 1] = c.g;
+                starCol[i * 3 + 2] = c.b;
+            }
+
+            starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+            starGeo.setAttribute('color', new THREE.BufferAttribute(starCol, 3));
+
+            const starMat = new THREE.PointsMaterial({
+                size: 1.35,
+                map: glowTex,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.85,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+
+            const cosmicBackground = new THREE.Points(starGeo, starMat);
+            scene.add(cosmicBackground);
+
+            // Subtle Connecting Separation Vector Line (18,100 light-years indicator)
+            const sepCurve = new THREE.LineCurve3(primaryPos, companionPos);
+            const sepPoints = sepCurve.getPoints(40);
+            const sepGeo = new THREE.BufferGeometry().setFromPoints(sepPoints);
+            const sepMat = new THREE.LineDashedMaterial({
+                color: 0x818cf8,
+                dashSize: 1.2,
+                gapSize: 0.9,
+                transparent: true,
+                opacity: 0.35
+            });
+            const sepLine = new THREE.Line(sepGeo, sepMat);
+            sepLine.computeLineDistances();
+            scene.add(sepLine);
+
+            // 9. Camera Viewpoint Presets & Smooth Interpolation
+            const cameraPresets = {
+                overview: {
+                    pos: new THREE.Vector3(0, 26, 78),
+                    target: new THREE.Vector3(1.0, 0, 0)
+                },
+                primary: {
+                    pos: new THREE.Vector3(-12.5, 7.5, 22.5),
+                    target: primaryPos.clone()
+                },
+                companion: {
+                    pos: new THREE.Vector3(15.5, 4.5, 13.5),
+                    target: companionPos.clone()
+                },
+                bridge: {
+                    pos: new THREE.Vector3(1.5, 14.0, 32.0),
+                    target: new THREE.Vector3(1.0, -0.2, -0.8)
+                }
+            };
+
+            let activeTween = null;
+
+            function flyToPreset(key) {
+                const preset = cameraPresets[key];
+                if (!preset) return;
+                activeTween = {
+                    startPos: camera.position.clone(),
+                    endPos: preset.pos.clone(),
+                    startTarget: controls.target.clone(),
+                    endTarget: preset.target.clone(),
+                    progress: 0
+                };
+            }
+
+            // Cancel auto-camera transition if user manually grabs controls
+            controls.addEventListener('start', () => {
+                activeTween = null;
+            });
+
+            // 10. UI & Interactive Event Listeners
+            let simSpeed = 1.0;
+            let showJets = true;
+            let showLabels = true;
+            let hudVisible = true;
+
+            const speedSlider = document.getElementById('speed-slider');
+            const speedVal = document.getElementById('speed-val');
+            speedSlider.addEventListener('input', (e) => {
+                simSpeed = parseFloat(e.target.value);
+                speedVal.textContent = simSpeed.toFixed(1) + 'x';
+            });
+
+            const toggleJetsBtn = document.getElementById('toggle-jets');
+            toggleJetsBtn.addEventListener('click', () => {
+                showJets = !showJets;
+                primaryQuasar.jetsGroup.visible = showJets;
+                companionQuasar.jetsGroup.visible = showJets;
+                jetParticles.visible = showJets;
+                toggleJetsBtn.textContent = `Plasma Jets: ${showJets ? 'ON' : 'OFF'}`;
+                toggleJetsBtn.classList.toggle('opacity-50', !showJets);
+            });
+
+            const toggleLabelsBtn = document.getElementById('toggle-labels');
+            const labelsLayer = document.getElementById('labels-layer');
+            toggleLabelsBtn.addEventListener('click', () => {
+                showLabels = !showLabels;
+                labelsLayer.style.display = showLabels ? 'block' : 'none';
+                sepLine.visible = showLabels;
+                toggleLabelsBtn.textContent = `Labels: ${showLabels ? 'ON' : 'OFF'}`;
+                toggleLabelsBtn.classList.toggle('opacity-50', !showLabels);
+            });
+
+            const toggleHudBtn = document.getElementById('toggle-hud-btn');
+            const toggleHudText = document.getElementById('toggle-hud-text');
+            const mainHud = document.getElementById('main-hud');
+            toggleHudBtn.addEventListener('click', () => {
+                hudVisible = !hudVisible;
+                mainHud.classList.toggle('hud-hidden', !hudVisible);
+                toggleHudText.textContent = hudVisible ? 'Hide UI' : 'Show UI';
+            });
+
+            // Camera Viewpoint Buttons
+            const viewBtns = document.querySelectorAll('.view-btn');
+            viewBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    viewBtns.forEach(b => {
+                        b.classList.remove('bg-sky-500/25', 'border-sky-400/50', 'text-white');
+                        b.classList.add('bg-white/5', 'border-white/10', 'text-slate-300');
+                    });
+                    btn.classList.remove('bg-white/5', 'border-white/10', 'text-slate-300');
+                    btn.classList.add('bg-sky-500/25', 'border-sky-400/50', 'text-white');
+                    flyToPreset(btn.dataset.view);
+                });
+            });
+
+            // 11. 3D-to-2D Screen Projection for Floating Astronomical Telemetry Labels
+            const labelPrimaryEl = document.getElementById('label-primary');
+            const labelCompanionEl = document.getElementById('label-companion');
+            const labelSepEl = document.getElementById('label-separation');
+
+            const midSepWorld = new THREE.Vector3().lerpVectors(primaryPos, companionPos, 0.5);
+            const projVec = new THREE.Vector3();
+
+            function updateSpatialLabels() {
+                if (!showLabels) return;
+
+                const targets = [
+                    { el: labelPrimaryEl, world: primaryPos.clone().add(new THREE.Vector3(0, 8.5, 0)) },
+                    { el: labelCompanionEl, world: companionPos.clone().add(new THREE.Vector3(0, 6.2, 0)) },
+                    { el: labelSepEl, world: midSepWorld.clone().add(new THREE.Vector3(0, -1.8, 0)) }
+                ];
+
+                const w = window.innerWidth;
+                const h = window.innerHeight;
+
+                targets.forEach(item => {
+                    projVec.copy(item.world).project(camera);
+                    // Hide if behind camera
+                    if (projVec.z > 1.0) {
+                        item.el.style.opacity = '0';
+                        return;
+                    }
+                    const x = (projVec.x * 0.5 + 0.5) * w;
+                    const y = (-(projVec.y * 0.5) + 0.5) * h;
+
+                    // Fade near screen edges
+                    const inBounds = x > 40 && x < w - 40 && y > 40 && y < h - 40;
+                    item.el.style.opacity = inBounds ? '1' : '0';
+                    item.el.style.left = `${x}px`;
+                    item.el.style.top = `${y}px`;
+                });
+            }
+
+            // 12. Window Resize Responsiveness
+            window.addEventListener('resize', () => {
+                const width = window.innerWidth;
+                const height = window.innerHeight;
+                camera.aspect = width / height;
+                camera.updateProjectionMatrix();
+                renderer.setSize(width, height);
+                composer.setSize(width, height);
+                bloomPass.setSize(width, height);
+            });
+
+            // Fade out loader once initial shaders & scene are ready
+            setTimeout(() => {
+                const loader = document.getElementById('loader-screen');
+                if (loader) {
+                    loader.style.opacity = '0';
+                    setTimeout(() => loader.remove(), 800);
+                }
+            }, 450);
+
+            // 13. Main Real-Time Animation Loop
+            const clock = new THREE.Clock();
+            let simTime = 0;
+            const tempVec = new THREE.Vector3();
+
+            function animate() {
+                requestAnimationFrame(animate);
+
+                const delta = Math.min(clock.getDelta(), 0.05);
+                simTime += delta * simSpeed;
+
+                // Update Quasar Shaders
+                [primaryQuasar, companionQuasar].forEach(q => {
+                    q.haloMat.uniforms.uTime.value = simTime;
+                    q.diskMat.uniforms.uTime.value = simTime;
+                    q.lensedDiskMat.uniforms.uTime.value = simTime;
+                    q.jetMat.uniforms.uTime.value = simTime;
+                    // Keep gravitationally lensed optical ring subtly facing the observer
+                    q.lensedArcMesh.lookAt(camera.position);
+                });
+
+                // Animate Tidal Gas Bridge & Host Galaxy Rotation
+                const posAttr = tidalGeo.attributes.position;
+                const posArr = posAttr.array;
+
+                for (let i = 0; i < tidalParticleCount; i++) {
+                    const meta = tidalMeta[i];
+                    if (meta.type === 'bridge') {
+                        meta.t += meta.speed * delta * simSpeed;
+                        if (meta.t > 1.0) meta.t -= 1.0;
+                        if (meta.t < 0.0) meta.t += 1.0;
+
+                        const t = meta.t;
+                        tempVec.lerpVectors(primaryPos, companionPos, t);
+                        const archX = Math.sin(t * Math.PI * 2.0 + simTime * 0.25) * 4.5;
+                        const archY = Math.sin(t * Math.PI) * 5.2 * (t < 0.5 ? 1 : -0.8);
+                        const archZ = Math.cos(t * Math.PI * 1.5 + simTime * 0.2) * 6.0;
+
+                        posArr[i * 3]     = tempVec.x + archX + meta.offset.x;
+                        posArr[i * 3 + 1] = tempVec.y + archY + meta.offset.y;
+                        posArr[i * 3 + 2] = tempVec.z + archZ + meta.offset.z;
+                    } else if (meta.type === 'orbitPrimary') {
+                        meta.angle += meta.angVel * delta * simSpeed;
+                        posArr[i * 3]     = primaryPos.x + Math.cos(meta.angle) * meta.radius;
+                        posArr[i * 3 + 1] = primaryPos.y + meta.yOffset;
+                        posArr[i * 3 + 2] = primaryPos.z + Math.sin(meta.angle) * meta.radius;
+                    } else {
+                        meta.angle += meta.angVel * delta * simSpeed;
+                        posArr[i * 3]     = companionPos.x + Math.cos(meta.angle) * meta.radius;
+                        posArr[i * 3 + 1] = companionPos.y + meta.yOffset;
+                        posArr[i * 3 + 2] = companionPos.z + Math.sin(meta.angle) * meta.radius;
+                    }
+                }
+                posAttr.needsUpdate = true;
+
+                // Animate Relativistic Jet Plasma Particles
+                if (showJets) {
+                    const jPosAttr = jetPartGeo.attributes.position;
+                    const jArr = jPosAttr.array;
+
+                    for (let i = 0; i < jetParticleCount; i++) {
+                        const m = jetPartMeta[i];
+                        m.progress += m.speed * delta * simSpeed;
+                        if (m.progress > 1.0) m.progress -= 1.0;
+
+                        const qObj = m.isPrimary ? primaryQuasar.group : companionQuasar.group;
+                        const qScale = m.isPrimary ? 1.28 : 0.86;
+                        const dist = (2.2 + m.progress * 32.0) * qScale;
+                        const coneR = (0.18 + m.progress * 1.25) * m.radialSpread * qScale;
+                        const angle = m.radialAngle + simTime * 2.5;
+
+                        tempVec.set(
+                            Math.cos(angle) * coneR,
+                            dist * m.pole,
+                            Math.sin(angle) * coneR
+                        );
+                        tempVec.applyQuaternion(qObj.quaternion).add(qObj.position);
+
+                        jArr[i * 3]     = tempVec.x;
+                        jArr[i * 3 + 1] = tempVec.y;
+                        jArr[i * 3 + 2] = tempVec.z;
+                    }
+                    jPosAttr.needsUpdate = true;
+                }
+
+                // Subtle Parallax Drift for Deep Cosmic Dawn Background
+                cosmicBackground.rotation.y += 0.004 * delta * simSpeed;
+
+                // Smooth Camera Preset Transition
+                if (activeTween) {
+                    activeTween.progress = Math.min(activeTween.progress + delta * 1.4, 1.0);
+                    // Cubic ease-in-out
+                    const t = activeTween.progress < 0.5
+                        ? 4 * activeTween.progress * activeTween.progress * activeTween.progress
+                        : 1 - Math.pow(-2 * activeTween.progress + 2, 3) / 2;
+
+                    camera.position.lerpVectors(activeTween.startPos, activeTween.endPos, t);
+                    controls.target.lerpVectors(activeTween.startTarget, activeTween.endTarget, t);
+
+                    if (activeTween.progress >= 1.0) {
+                        activeTween = null;
+                    }
+                }
+
+                controls.update();
+                updateSpatialLabels();
+                composer.render();
+            }
+
+            animate();
+        }
+    </script>
+</body>
+</html>
