@@ -1,0 +1,1657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welopōʻai — Triple-Star System 3D Observatory</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #020308;
+      font-family: 'Inter', sans-serif;
+      color: #e2e8f0;
+    }
+
+    #canvas-container {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      cursor: grab;
+    }
+
+    #canvas-container:active {
+      cursor: grabbing;
+    }
+
+    .mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .glass-panel {
+      background: rgba(8, 12, 24, 0.68);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(148, 163, 184, 0.16);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.65),
+        inset 0 1px 0 rgba(255, 255, 255, 0.07);
+    }
+
+    input[type=range] {
+      -webkit-appearance: none;
+      appearance: none;
+      background: transparent;
+      cursor: pointer;
+    }
+
+    input[type=range]::-webkit-slider-runnable-track {
+      height: 5px;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, 0.25);
+    }
+
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background: #60a5fa;
+      box-shadow: 0 0 10px rgba(96, 165, 250, 0.8);
+      margin-top: -5px;
+      transition: transform 0.15s ease, background-color 0.15s ease;
+    }
+
+    input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+      background: #93c5fd;
+    }
+
+    @keyframes pulseGlow {
+      0%,
+      100% {
+        opacity: 0.75;
+        transform: scale(1);
+      }
+
+      50% {
+        opacity: 1;
+        transform: scale(1.25);
+      }
+    }
+
+    .beacon-dot {
+      animation: pulseGlow 2.6s infinite ease-in-out;
+    }
+
+    .custom-scroll::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .custom-scroll::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.3);
+      border-radius: 999px;
+    }
+
+    .screen-label {
+      position: absolute;
+      left: 0;
+      top: 0;
+      transform: translate3d(-9999px, -9999px, 0);
+      will-change: transform, opacity;
+    }
+  </style>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+
+<body>
+  <div id="canvas-container"></div>
+
+  <div id="labels-layer" class="fixed inset-0 pointer-events-none z-10 overflow-hidden">
+    <div id="label-rd" class="screen-label">
+      <div class="flex flex-col items-center">
+        <div class="px-2.5 py-1 rounded-lg bg-slate-950/80 border border-orange-500/40 backdrop-blur-md text-xs shadow-lg whitespace-nowrap">
+          <span class="inline-block w-2 h-2 rounded-full bg-orange-500 mr-1.5 beacon-dot"></span>
+          <span class="font-semibold text-orange-200">Welopōʻai A</span>
+          <span class="text-slate-400 ml-1 text-[11px]">Red Dwarf</span>
+        </div>
+        <div class="w-px h-3 bg-gradient-to-b from-orange-500/60 to-transparent"></div>
+      </div>
+    </div>
+
+    <div id="label-wd1" class="screen-label">
+      <div class="flex flex-col items-center">
+        <div id="label-wd1-box" class="px-2.5 py-1 rounded-lg bg-slate-950/80 border border-sky-400/50 backdrop-blur-md text-xs shadow-lg whitespace-nowrap">
+          <span id="label-wd1-dot" class="inline-block w-2 h-2 rounded-full bg-sky-300 mr-1.5 beacon-dot"></span>
+          <span id="label-wd1-title" class="font-semibold text-sky-200">Welopōʻai B</span>
+          <span id="label-wd1-sub" class="text-slate-400 ml-1 text-[11px]">Close White Dwarf</span>
+        </div>
+        <div class="w-px h-3 bg-gradient-to-b from-sky-400/60 to-transparent"></div>
+      </div>
+    </div>
+
+    <div id="label-wd2" class="screen-label">
+      <div class="flex flex-col items-center">
+        <div class="px-2.5 py-1 rounded-lg bg-slate-950/80 border border-indigo-400/45 backdrop-blur-md text-xs shadow-lg whitespace-nowrap">
+          <span class="inline-block w-2 h-2 rounded-full bg-indigo-300 mr-1.5 beacon-dot"></span>
+          <span class="font-semibold text-indigo-200">Welopōʻai C</span>
+          <span class="text-slate-400 ml-1 text-[11px]">Outer White Dwarf</span>
+        </div>
+        <div class="w-px h-3 bg-gradient-to-b from-indigo-400/60 to-transparent"></div>
+      </div>
+    </div>
+
+    <div id="label-bary" class="screen-label">
+      <div class="px-2 py-0.5 rounded bg-slate-950/70 border border-slate-600/40 text-[10px] mono text-slate-300 whitespace-nowrap">
+        + Inner Barycenter
+      </div>
+    </div>
+  </div>
+
+  <header class="fixed top-3 left-3 right-3 sm:top-4 sm:left-4 sm:right-4 z-20 flex flex-wrap items-start justify-between gap-3 pointer-events-none">
+    <div class="glass-panel rounded-2xl p-3.5 sm:p-4 max-w-xl pointer-events-auto transition-all duration-300">
+      <div class="flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-sky-500/30 to-orange-500/30 border border-white/15 flex items-center justify-center text-sky-300">
+            <i class="fa-solid fa-atom text-sm"></i>
+          </div>
+
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="text-base sm:text-lg font-bold tracking-tight text-white">Welopōʻai</h1>
+              <span class="px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider rounded-full bg-sky-500/20 text-sky-300 border border-sky-400/30">
+                28 Light-Years Away
+              </span>
+            </div>
+
+            <p class="text-[11px] sm:text-xs text-slate-400">
+              Hierarchical Triple-Star System • 1 Red Dwarf &amp; 2 White Dwarfs
+            </p>
+          </div>
+        </div>
+
+        <button id="toggle-hud-btn" title="Toggle HUD visibility"
+          class="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition text-xs">
+          <i class="fa-solid fa-eye-slash" id="hud-eye-icon"></i>
+        </button>
+      </div>
+
+      <div id="header-details" class="mt-3 pt-3 border-t border-white/10 space-y-2.5">
+        <p class="text-xs text-slate-300 leading-relaxed">
+          Welopōʻai is visualized as a hierarchical triple-star system: a red dwarf, a close white dwarf, and a distant outer white dwarf. Switch to the past giant phase to explore the close companion’s proposed red-giant progenitor stage.
+        </p>
+
+        <a href="https://theorkneynews.scot/2026/11/22/welopo%CA%BBai-a-triple-star-system-28-lightyears-from-earth/"
+          target="_blank" rel="noopener noreferrer"
+          class="group flex items-center justify-between gap-2.5 p-2.5 rounded-xl bg-gradient-to-r from-sky-500/15 via-indigo-500/15 to-orange-500/15 hover:from-sky-500/25 hover:to-orange-500/25 border border-sky-400/30 hover:border-sky-300/60 transition-all duration-200">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <span class="w-7 h-7 rounded-lg bg-sky-500/20 flex items-center justify-center text-sky-300 shrink-0 group-hover:scale-105 transition-transform">
+              <i class="fa-solid fa-newspaper text-xs"></i>
+            </span>
+
+            <div class="min-w-0">
+              <div class="text-[11px] font-semibold text-sky-200 group-hover:text-white truncate">
+                Read Full Discovery Article
+              </div>
+              <div class="text-[10px] text-slate-400 truncate">
+                The Orkney News • Nov 22, 2026
+              </div>
+            </div>
+          </div>
+
+          <i class="fa-solid fa-arrow-up-right-from-square text-xs text-sky-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform shrink-0"></i>
+        </a>
+      </div>
+    </div>
+
+    <div id="telemetry-panel" class="glass-panel rounded-2xl p-3.5 hidden md:block w-72 pointer-events-auto">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+          Observatory Telemetry
+        </span>
+
+        <span class="text-[10px] mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+          Visualization
+        </span>
+      </div>
+
+      <div class="space-y-1.5 text-xs">
+        <div class="flex justify-between">
+          <span class="text-slate-400">Distance from Earth</span>
+          <span class="mono text-slate-200 font-medium">28.0 ly</span>
+        </div>
+
+        <div class="flex justify-between">
+          <span class="text-slate-400">SPIRou RV Amplitude</span>
+          <span class="mono text-orange-300 font-medium">~16.0 km/s</span>
+        </div>
+
+        <div class="flex justify-between">
+          <span class="text-slate-400">WD1 Progenitor Mass</span>
+          <span class="mono text-sky-300 font-medium">~1.40 M☉</span>
+        </div>
+
+        <div class="flex justify-between">
+          <span class="text-slate-400">WD1 Mass Precision</span>
+          <span class="mono text-emerald-300 font-medium">&lt; 1.0%</span>
+        </div>
+
+        <div class="flex justify-between pt-1 border-t border-white/10">
+          <span class="text-slate-400">Current Era</span>
+          <span id="telemetry-era" class="mono text-sky-200 font-semibold">Present Triple</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <aside id="star-info"
+    class="fixed bottom-28 left-3 sm:left-4 z-20 max-w-xs hidden glass-panel rounded-2xl p-4 pointer-events-auto">
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <h2 id="star-info-title" class="text-sm font-semibold text-white"></h2>
+        <p id="star-info-type" class="text-[11px] text-slate-400 mt-0.5"></p>
+      </div>
+
+      <button id="star-info-close"
+        class="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition">
+        <i class="fa-solid fa-xmark text-xs"></i>
+      </button>
+    </div>
+
+    <p id="star-info-body" class="mt-3 text-xs leading-relaxed text-slate-300"></p>
+  </aside>
+
+  <div id="motion-notice"
+    class="fixed top-28 left-1/2 -translate-x-1/2 z-30 hidden glass-panel rounded-xl px-3 py-2 text-xs text-slate-300">
+    Reduced motion enabled — orbital animation paused.
+  </div>
+
+  <footer id="controls-deck"
+    class="fixed bottom-3 left-3 right-3 sm:bottom-4 sm:left-4 sm:right-4 z-20 flex flex-col items-center pointer-events-none">
+    <div class="glass-panel rounded-2xl p-3 sm:p-3.5 w-full max-w-4xl pointer-events-auto space-y-3">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div class="flex flex-wrap items-center gap-1.5">
+          <span class="text-[11px] text-slate-400 mr-1 hidden sm:inline">
+            <i class="fa-solid fa-video mr-1"></i>View:
+          </span>
+
+          <button data-cam="overview"
+            class="cam-btn active px-2.5 py-1.5 rounded-xl text-xs font-medium bg-sky-500/25 text-sky-200 border border-sky-400/40 transition">
+            System Overview
+          </button>
+
+          <button data-cam="inner"
+            class="cam-btn px-2.5 py-1.5 rounded-xl text-xs font-medium bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 transition">
+            Inner Binary
+          </button>
+
+          <button data-cam="outer"
+            class="cam-btn px-2.5 py-1.5 rounded-xl text-xs font-medium bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 transition">
+            Outer Companion
+          </button>
+
+          <button id="reset-view-btn"
+            class="px-2.5 py-1.5 rounded-xl text-xs font-medium bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 transition">
+            <i class="fa-solid fa-rotate-left mr-1"></i>Reset
+          </button>
+        </div>
+
+        <div class="flex items-center gap-1.5 bg-slate-950/60 p-1 rounded-xl border border-white/10">
+          <button id="story-btn"
+            class="px-2.5 py-1 rounded-lg text-xs font-medium bg-indigo-500/25 text-indigo-200 border border-indigo-400/40 transition">
+            <i class="fa-solid fa-play mr-1"></i>Story
+          </button>
+
+          <button id="era-present-btn"
+            class="px-2.5 py-1 rounded-lg text-xs font-medium bg-sky-500/30 text-sky-200 border border-sky-400/40 transition">
+            <i class="fa-solid fa-star mr-1 text-sky-300"></i>Present
+          </button>
+
+          <button id="era-giant-btn"
+            class="px-2.5 py-1 rounded-lg text-xs font-medium text-slate-400 hover:text-orange-200 transition">
+            <i class="fa-solid fa-fire mr-1 text-orange-400"></i>Giant Phase
+          </button>
+        </div>
+      </div>
+
+      <div class="pt-2 border-t border-white/10 space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center gap-3 flex-1 min-w-[210px]">
+            <button id="play-pause-btn"
+              class="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 flex items-center justify-center text-white transition shrink-0"
+              title="Pause or resume orbit">
+              <i class="fa-solid fa-pause text-xs" id="play-pause-icon"></i>
+            </button>
+
+            <div class="flex flex-col flex-1">
+              <div class="flex justify-between text-[11px] mb-1">
+                <span class="text-slate-400">Orbital Time Scale</span>
+                <span id="speed-label" class="mono text-sky-300 font-medium">1.0x</span>
+              </div>
+
+              <input id="speed-slider" type="range" min="0" max="5" step="0.1" value="1">
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button id="toggle-orbits-btn"
+              class="px-2.5 py-1.5 rounded-xl text-xs font-medium bg-white/10 text-slate-200 border border-white/15 hover:bg-white/15 transition">
+              <i class="fa-solid fa-circle-notch mr-1 text-sky-400"></i>Orbits
+            </button>
+
+            <button id="toggle-labels-btn"
+              class="px-2.5 py-1.5 rounded-xl text-xs font-medium bg-white/10 text-slate-200 border border-white/15 hover:bg-white/15 transition">
+              <i class="fa-solid fa-tag mr-1 text-orange-400"></i>Labels
+            </button>
+
+            <button id="quality-btn"
+              class="px-2.5 py-1.5 rounded-xl text-xs font-medium bg-white/10 text-slate-200 border border-white/15 hover:bg-white/15 transition">
+              Quality: High
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <div class="flex justify-between text-[11px] mb-1">
+            <span class="text-slate-400">Stellar Evolution Timeline</span>
+            <span id="evolution-label" class="mono text-orange-300 font-medium">Present white dwarf</span>
+          </div>
+
+          <input id="evolution-slider" type="range" min="0" max="1" step="0.01" value="0">
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+    import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+    const prefersReducedMotion = window.matchMedia(
+      '(prefers-reduced-motion: reduce)'
+    ).matches;
+
+    const isSmallScreen = window.matchMedia('(max-width: 768px)').matches;
+
+    const state = {
+      time: 0,
+      paused: prefersReducedMotion,
+      timeScale: prefersReducedMotion ? 0 : 1,
+      giantTransition: 0,
+      isGiantPhase: false,
+      showOrbits: true,
+      showLabels: true,
+      hudVisible: true,
+      cameraPreset: 'overview',
+      manualCameraOverride: false,
+      quality: isSmallScreen ? 'low' : 'high',
+      running: true
+    };
+
+    const ORBIT_PARAMS = {
+      innerSemiMajor: 8.5,
+      redDwarfMassRatio: 0.36,
+      innerAngularSpeed: 0.72,
+      outerRadius: 34,
+      outerAngularSpeed: 0.14,
+      outerInclination: 0.24,
+      innerEccentricity: 0.08,
+      outerEccentricity: 0.05
+    };
+
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x020308, 0.0018);
+
+    const camera = new THREE.PerspectiveCamera(
+      45,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      1200
+    );
+
+    camera.position.set(0, 26, 56);
+
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      powerPreference: 'high-performance'
+    });
+
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(
+      state.quality === 'low'
+        ? Math.min(window.devicePixelRatio, 1.25)
+        : Math.min(window.devicePixelRatio, 2)
+    );
+
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.15;
+    container.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.06;
+    controls.minDistance = 4.5;
+    controls.maxDistance = 180;
+
+    controls.addEventListener('start', () => {
+      state.manualCameraOverride = true;
+    });
+
+    const composer = new EffectComposer(renderer);
+    composer.addPass(new RenderPass(scene, camera));
+
+    const bloomPass = new UnrealBloomPass(
+      new THREE.Vector2(window.innerWidth, window.innerHeight),
+      state.quality === 'low' ? 0.9 : 1.25,
+      0.65,
+      0.78
+    );
+
+    composer.addPass(bloomPass);
+
+    const simplexNoise3D = `
+      vec4 permute(vec4 x){return mod(((x*34.0)+1.0)*x, 289.0);}
+      vec4 taylorInvSqrt(vec4 r){return 1.79284291400159 - 0.85373472095314 * r;}
+
+      float snoise(vec3 v){
+        const vec2 C = vec2(1.0/6.0, 1.0/3.0);
+        const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+
+        vec3 i = floor(v + dot(v, C.yyy));
+        vec3 x0 = v - i + dot(i, C.xxx);
+
+        vec3 g = step(x0.yzx, x0.xyz);
+        vec3 l = 1.0 - g;
+        vec3 i1 = min(g.xyz, l.zxy);
+        vec3 i2 = max(g.xyz, l.zxy);
+
+        vec3 x1 = x0 - i1 + 1.0 * C.xxx;
+        vec3 x2 = x0 - i2 + 2.0 * C.xxx;
+        vec3 x3 = x0 - 1.0 + 3.0 * C.xxx;
+
+        i = mod(i, 289.0);
+
+        vec4 p = permute(permute(permute(
+                   i.z + vec4(0.0, i1.z, i2.z, 1.0))
+                 + i.y + vec4(0.0, i1.y, i2.y, 1.0))
+                 + i.x + vec4(0.0, i1.x, i2.x, 1.0));
+
+        float n_ = 1.0/7.0;
+        vec3 ns = n_ * D.wyz - D.xzx;
+
+        vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
+        vec4 x_ = floor(j * ns.z);
+        vec4 y_ = floor(j - 7.0 * x_);
+
+        vec4 h = 1.0 - abs(x) - abs(y);
+        vec4 b0 = vec4(x.xy, y.xy);
+        vec4 b1 = vec4(x.zw, y.zw);
+
+        vec4 s0 = floor(b0)*2.0 + 1.0;
+        vec4 s1 = floor(b1)*2.0 + 1.0;
+        vec4 sh = -step(h, vec4(0.0));
+
+        vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy;
+        vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww;
+
+        vec3 p0 = vec3(a0.xy,h.x);
+        vec3 p1 = vec3(a0.zw,h.y);
+        vec3 p2 = vec3(a1.xy,h.z);
+        vec3 p3 = vec3(a1.zw,h.w);
+
+        vec4 norm = taylorInvSqrt(vec4(
+          dot(p0,p0), dot(p1,p1), dot(p2,p2), dot(p3,p3)));
+
+        p0 *= norm.x;
+        p1 *= norm.y;
+        p2 *= norm.z;
+        p3 *= norm.w;
+
+        vec4 m = max(0.6 - vec4(
+          dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
+
+        m = m * m;
+
+        return 42.0 * dot(m*m, vec4(
+          dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
+      }
+
+      float fbm(vec3 p) {
+        float v = 0.0;
+        float a = 0.5;
+
+        for (int i = 0; i < 5; i++) {
+          v += a * snoise(p);
+          p = p * 2.04 + vec3(0.13, -0.17, 0.21);
+          a *= 0.5;
+        }
+
+        return v;
+      }
+    `;
+
+    const redDwarfShader = new THREE.ShaderMaterial({
+      uniforms: {
+        uTime: { value: 0 },
+        uColorDeep: { value: new THREE.Color(0x5a0b02) },
+        uColorMid: { value: new THREE.Color(0xd9380f) },
+        uColorHot: { value: new THREE.Color(0xff9c42) },
+        uSpotIntensity: { value: 0.65 }
+      },
+
+      vertexShader: `
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+        varying vec3 vViewDir;
+
+        void main() {
+          vPosition = position;
+          vNormal = normalize(normalMatrix * normal);
+
+          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+          vViewDir = normalize(-mvPosition.xyz);
+
+          gl_Position = projectionMatrix * mvPosition;
+        }
+      `,
+
+      fragmentShader: `
+        uniform float uTime;
+        uniform vec3 uColorDeep;
+        uniform vec3 uColorMid;
+        uniform vec3 uColorHot;
+        uniform float uSpotIntensity;
+
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+        varying vec3 vViewDir;
+
+        ${simplexNoise3D}
+
+        void main() {
+          vec3 pos = normalize(vPosition);
+
+          float gran1 = fbm(pos * 4.5 + vec3(
+            uTime * 0.14,
+            -uTime * 0.09,
+            uTime * 0.11
+          ));
+
+          float gran2 = fbm(pos * 11.0 - vec3(uTime * 0.22));
+          float cells = smoothstep(-0.35, 0.65, gran1 * 0.7 + gran2 * 0.3);
+
+          float spotNoise = fbm(pos * 2.4 + vec3(
+            1.7,
+            uTime * 0.03,
+            -2.3
+          ));
+
+          float starspots = smoothstep(0.32, 0.58, spotNoise) * uSpotIntensity;
+
+          vec3 baseCol = mix(uColorDeep, uColorMid, cells);
+          baseCol = mix(baseCol, uColorHot, pow(cells, 2.6) * 1.35);
+          baseCol *= 1.0 - starspots * 0.75;
+
+          float ndotv = clamp(dot(vNormal, vViewDir), 0.0, 1.0);
+          float limb = pow(ndotv, 0.55);
+          float rimFlare = pow(1.0 - ndotv, 3.2) * 0.85;
+
+          vec3 finalColor = baseCol * (0.45 + 0.85 * limb) + uColorHot * rimFlare;
+
+          gl_FragColor = vec4(finalColor * 1.45, 1.0);
+        }
+      `
+    });
+
+    function createWhiteDwarfShader(coreHex, coronaHex, intensity) {
+      return new THREE.ShaderMaterial({
+        uniforms: {
+          uTime: { value: 0 },
+          uCoreColor: { value: new THREE.Color(coreHex) },
+          uCoronaColor: { value: new THREE.Color(coronaHex) },
+          uGiantColor: { value: new THREE.Color(0xff4d1a) },
+          uGiantMix: { value: 0 },
+          uIntensity: { value: intensity }
+        },
+
+        vertexShader: `
+          uniform float uTime;
+          uniform float uGiantMix;
+
+          varying vec3 vNormal;
+          varying vec3 vPosition;
+          varying vec3 vViewDir;
+
+          ${simplexNoise3D}
+
+          void main() {
+            vPosition = position;
+
+            float disp = 0.0;
+
+            if (uGiantMix > 0.01) {
+              disp = snoise(
+                normalize(position) * 3.0 + uTime * 0.4
+              ) * 0.08 * uGiantMix;
+            }
+
+            vec3 displaced = position * (1.0 + disp);
+
+            vNormal = normalize(normalMatrix * normal);
+
+            vec4 mvPosition = modelViewMatrix * vec4(displaced, 1.0);
+            vViewDir = normalize(-mvPosition.xyz);
+
+            gl_Position = projectionMatrix * mvPosition;
+          }
+        `,
+
+        fragmentShader: `
+          uniform float uTime;
+          uniform vec3 uCoreColor;
+          uniform vec3 uCoronaColor;
+          uniform vec3 uGiantColor;
+          uniform float uGiantMix;
+          uniform float uIntensity;
+
+          varying vec3 vNormal;
+          varying vec3 vPosition;
+          varying vec3 vViewDir;
+
+          ${simplexNoise3D}
+
+          void main() {
+            vec3 pos = normalize(vPosition);
+            float ndotv = clamp(dot(vNormal, vViewDir), 0.0, 1.0);
+
+            float shimmer = snoise(pos * 14.0 + uTime * 0.9) * 0.08;
+
+            vec3 wdColor = mix(
+              uCoronaColor,
+              uCoreColor,
+              pow(ndotv, 0.35) + shimmer
+            ) * uIntensity;
+
+            float gTurb = fbm(pos * 3.5 + uTime * 0.18);
+
+            vec3 giantCol = mix(
+              vec3(0.45, 0.04, 0.01),
+              uGiantColor,
+              smoothstep(-0.3, 0.6, gTurb)
+            );
+
+            giantCol = mix(
+              giantCol,
+              vec3(1.0, 0.72, 0.35),
+              pow(max(0.0, gTurb), 2.0)
+            );
+
+            giantCol *= (0.4 + 0.7 * pow(ndotv, 0.6)) * 1.4;
+
+            vec3 finalCol = mix(wdColor, giantCol, uGiantMix);
+
+            gl_FragColor = vec4(finalCol, 1.0);
+          }
+        `
+      });
+    }
+
+    function createCoronaHalo(colorHex, scale, opacity) {
+      const material = new THREE.ShaderMaterial({
+        uniforms: {
+          uColor: { value: new THREE.Color(colorHex) },
+          uOpacity: { value: opacity }
+        },
+
+        vertexShader: `
+          varying vec3 vNormal;
+          varying vec3 vViewDir;
+
+          void main() {
+            vNormal = normalize(normalMatrix * normal);
+
+            vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
+            vViewDir = normalize(-mvPos.xyz);
+
+            gl_Position = projectionMatrix * mvPos;
+          }
+        `,
+
+        fragmentShader: `
+          uniform vec3 uColor;
+          uniform float uOpacity;
+
+          varying vec3 vNormal;
+          varying vec3 vViewDir;
+
+          void main() {
+            float intensity = pow(
+              clamp(dot(vNormal, vViewDir), 0.0, 1.0),
+              3.4
+            );
+
+            gl_FragColor = vec4(uColor, intensity * uOpacity);
+          }
+        `,
+
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        side: THREE.FrontSide
+      });
+
+      return new THREE.Mesh(
+        new THREE.SphereGeometry(scale, 32, 32),
+        material
+      );
+    }
+
+    const skyGeo = new THREE.SphereGeometry(480, 48, 48);
+
+    const skyMat = new THREE.ShaderMaterial({
+      side: THREE.BackSide,
+      depthWrite: false,
+      uniforms: {
+        uTime: { value: 0 }
+      },
+
+      vertexShader: `
+        varying vec3 vWorldDir;
+
+        void main() {
+          vWorldDir = normalize(position);
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+
+      fragmentShader: `
+        varying vec3 vWorldDir;
+
+        ${simplexNoise3D}
+
+        void main() {
+          vec3 d = normalize(vWorldDir);
+
+          float galPlane = abs(dot(
+            d,
+            normalize(vec3(0.35, 0.85, -0.38))
+          ));
+
+          float band = exp(-galPlane * 6.5);
+          float dust = fbm(d * 4.5);
+          float fineNebula = fbm(d * 11.0 + 3.1);
+
+          vec3 spaceBase = vec3(0.006, 0.009, 0.020);
+          vec3 milkyWayBlue = vec3(0.05, 0.09, 0.19) * band * (0.6 + 0.6 * dust);
+          vec3 warmDust = vec3(0.11, 0.06, 0.04) * pow(band, 1.6) * max(0.0, fineNebula);
+
+          float rift = smoothstep(0.1, 0.55, fbm(d * 7.5 - 1.4));
+          vec3 col = spaceBase + (milkyWayBlue + warmDust) * (1.0 - rift * 0.65);
+
+          gl_FragColor = vec4(col, 1.0);
+        }
+      `
+    });
+
+    scene.add(new THREE.Mesh(skyGeo, skyMat));
+
+    function createStarfield(count) {
+      const positions = new Float32Array(count * 3);
+      const colors = new Float32Array(count * 3);
+
+      const palette = [
+        new THREE.Color(0x9bb0ff),
+        new THREE.Color(0xcad7ff),
+        new THREE.Color(0xf8f7ff),
+        new THREE.Color(0xfff4ea),
+        new THREE.Color(0xffd2a1),
+        new THREE.Color(0xff9e6d)
+      ];
+
+      for (let i = 0; i < count; i++) {
+        const radius = 180 + Math.random() * 270;
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos(2 * Math.random() - 1);
+
+        positions[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
+        positions[i * 3 + 1] = radius * Math.cos(phi);
+        positions[i * 3 + 2] = radius * Math.sin(phi) * Math.sin(theta);
+
+        const color = palette[Math.floor(Math.random() * palette.length)];
+        const brightness = 0.45 + Math.random() * 0.55;
+
+        colors[i * 3] = color.r * brightness;
+        colors[i * 3 + 1] = color.g * brightness;
+        colors[i * 3 + 2] = color.b * brightness;
+      }
+
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+      return new THREE.Points(geometry, new THREE.PointsMaterial({
+        size: 0.95,
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.9,
+        sizeAttenuation: true
+      }));
+    }
+
+    const backgroundStars = createStarfield(
+      state.quality === 'low' ? 1800 : 4500
+    );
+
+    scene.add(backgroundStars);
+
+    const systemRoot = new THREE.Group();
+    scene.add(systemRoot);
+
+    const innerBinaryGroup = new THREE.Group();
+    systemRoot.add(innerBinaryGroup);
+
+    const sphereSegments = state.quality === 'low' ? 32 : 64;
+
+    const redDwarfGroup = new THREE.Group();
+    const redDwarfMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(1.55, sphereSegments, sphereSegments),
+      redDwarfShader
+    );
+
+    redDwarfGroup.add(redDwarfMesh);
+    redDwarfGroup.add(createCoronaHalo(0xff551a, 3.6, 0.55));
+
+    const redDwarfLight = new THREE.PointLight(0xff6b35, 3.2, 60, 1.4);
+    redDwarfGroup.add(redDwarfLight);
+    innerBinaryGroup.add(redDwarfGroup);
+
+    const wd1Group = new THREE.Group();
+    const wd1Shader = createWhiteDwarfShader(0xffffff, 0x60b5ff, 2.6);
+
+    const wd1Mesh = new THREE.Mesh(
+      new THREE.SphereGeometry(0.52, sphereSegments, sphereSegments),
+      wd1Shader
+    );
+
+    wd1Group.add(wd1Mesh);
+
+    const wd1Corona = createCoronaHalo(0x66ccff, 2.3, 0.72);
+    wd1Group.add(wd1Corona);
+
+    const lensingRing = new THREE.Mesh(
+      new THREE.RingGeometry(0.68, 0.75, 64),
+      new THREE.MeshBasicMaterial({
+        color: 0x93c5fd,
+        transparent: true,
+        opacity: 0.32,
+        side: THREE.DoubleSide,
+        blending: THREE.AdditiveBlending
+      })
+    );
+
+    wd1Group.add(lensingRing);
+
+    const wd1Light = new THREE.PointLight(0x99d5ff, 4.5, 75, 1.3);
+    wd1Group.add(wd1Light);
+    innerBinaryGroup.add(wd1Group);
+
+    const wd2Group = new THREE.Group();
+    const wd2Shader = createWhiteDwarfShader(0xf8fafc, 0x818cf8, 2.2);
+
+    const wd2Mesh = new THREE.Mesh(
+      new THREE.SphereGeometry(0.46, sphereSegments, sphereSegments),
+      wd2Shader
+    );
+
+    wd2Group.add(wd2Mesh);
+    wd2Group.add(createCoronaHalo(0x818cf8, 2, 0.65));
+
+    const wd2Light = new THREE.PointLight(0xa5b4fc, 2.8, 70, 1.4);
+    wd2Group.add(wd2Light);
+    systemRoot.add(wd2Group);
+
+    const orbitsGroup = new THREE.Group();
+    systemRoot.add(orbitsGroup);
+
+    function createOrbitEllipse(a, eccentricity, colorHex, opacity) {
+      const points = [];
+      const segments = 256;
+
+      for (let i = 0; i <= segments; i++) {
+        const theta = (i / segments) * Math.PI * 2;
+        const radius = a * (1 - eccentricity * eccentricity) /
+          (1 + eccentricity * Math.cos(theta));
+
+        points.push(new THREE.Vector3(
+          radius * Math.cos(theta),
+          0,
+          radius * Math.sin(theta)
+        ));
+      }
+
+      return new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints(points),
+        new THREE.LineBasicMaterial({
+          color: colorHex,
+          transparent: true,
+          opacity
+        })
+      );
+    }
+
+    const innerOrbitsSubgroup = new THREE.Group();
+    innerBinaryGroup.add(innerOrbitsSubgroup);
+
+    const rA = ORBIT_PARAMS.innerSemiMajor *
+      (1 - ORBIT_PARAMS.redDwarfMassRatio);
+
+    const rB = ORBIT_PARAMS.innerSemiMajor *
+      ORBIT_PARAMS.redDwarfMassRatio;
+
+    const orbitRingA = createOrbitEllipse(
+      rA,
+      ORBIT_PARAMS.innerEccentricity,
+      0xf97316,
+      0.35
+    );
+
+    const orbitRingB = createOrbitEllipse(
+      rB,
+      ORBIT_PARAMS.innerEccentricity,
+      0x38bdf8,
+      0.42
+    );
+
+    innerOrbitsSubgroup.add(orbitRingA, orbitRingB);
+
+    const barycenterMarker = new THREE.Mesh(
+      new THREE.OctahedronGeometry(0.18, 0),
+      new THREE.MeshBasicMaterial({
+        color: 0x94a3b8,
+        wireframe: true
+      })
+    );
+
+    innerOrbitsSubgroup.add(barycenterMarker);
+
+    const outerOrbitRing = createOrbitEllipse(
+      ORBIT_PARAMS.outerRadius,
+      ORBIT_PARAMS.outerEccentricity,
+      0x818cf8,
+      0.28
+    );
+
+    outerOrbitRing.rotation.x = ORBIT_PARAMS.outerInclination;
+    orbitsGroup.add(outerOrbitRing);
+
+    const innerComRadius = 2.8;
+
+    const innerComOrbitRing = createOrbitEllipse(
+      innerComRadius,
+      ORBIT_PARAMS.outerEccentricity,
+      0x64748b,
+      0.18
+    );
+
+    innerComOrbitRing.rotation.x = ORBIT_PARAMS.outerInclination;
+    orbitsGroup.add(innerComOrbitRing);
+
+    function createTrail(colorHex, maxPoints = 140) {
+      const positions = new Float32Array(maxPoints * 3);
+      const geometry = new THREE.BufferGeometry();
+
+      geometry.setAttribute(
+        'position',
+        new THREE.BufferAttribute(positions, 3)
+      );
+
+      const line = new THREE.Line(geometry, new THREE.LineBasicMaterial({
+        color: colorHex,
+        transparent: true,
+        opacity: 0.4,
+        blending: THREE.AdditiveBlending
+      }));
+
+      line.frustumCulled = false;
+
+      return {
+        line,
+        positions,
+        geometry,
+        index: 0,
+        maxPoints
+      };
+    }
+
+    const redDwarfTrail = createTrail(0xff7a3d);
+    const wd1Trail = createTrail(0x66ccff);
+    const wd2Trail = createTrail(0x818cf8);
+
+    systemRoot.add(
+      redDwarfTrail.line,
+      wd1Trail.line,
+      wd2Trail.line
+    );
+
+    function updateTrail(trail, worldPosition) {
+      const index = trail.index * 3;
+
+      trail.positions[index] = worldPosition.x;
+      trail.positions[index + 1] = worldPosition.y;
+      trail.positions[index + 2] = worldPosition.z;
+
+      trail.index = (trail.index + 1) % trail.maxPoints;
+
+      trail.geometry.attributes.position.needsUpdate = true;
+      trail.geometry.setDrawRange(0, trail.maxPoints);
+    }
+
+    const labelRD = document.getElementById('label-rd');
+    const labelWD1 = document.getElementById('label-wd1');
+    const labelWD2 = document.getElementById('label-wd2');
+    const labelBary = document.getElementById('label-bary');
+    const tempVec = new THREE.Vector3();
+
+    let frameCount = 0;
+
+    function updateScreenLabel(element, object, yOffset = 0) {
+      frameCount++;
+
+      if (frameCount % 2 !== 0) return;
+
+      if (!state.showLabels || !state.hudVisible) {
+        element.style.opacity = '0';
+        return;
+      }
+
+      object.getWorldPosition(tempVec);
+      tempVec.y += yOffset;
+      tempVec.project(camera);
+
+      const x = (tempVec.x * 0.5 + 0.5) * window.innerWidth;
+      const y = (-(tempVec.y * 0.5) + 0.5) * window.innerHeight;
+
+      const behindCamera = tempVec.z > 1;
+      const offscreen =
+        x < -120 ||
+        x > window.innerWidth + 120 ||
+        y < -120 ||
+        y > window.innerHeight + 120;
+
+      if (behindCamera || offscreen) {
+        element.style.opacity = '0';
+        element.style.transform = 'translate3d(-9999px, -9999px, 0)';
+        return;
+      }
+
+      element.style.opacity = '1';
+      element.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+    }
+
+    const targetCamPos = new THREE.Vector3(0, 26, 56);
+    const targetLookAt = new THREE.Vector3(0, 0, 0);
+
+    const cameraButtons = document.querySelectorAll('.cam-btn');
+
+    function setActiveCameraButton(button) {
+      cameraButtons.forEach(item => {
+        item.classList.remove(
+          'active',
+          'bg-sky-500/25',
+          'text-sky-200',
+          'border-sky-400/40'
+        );
+
+        item.classList.add(
+          'bg-white/5',
+          'text-slate-300',
+          'border-white/10'
+        );
+      });
+
+      if (button) {
+        button.classList.add(
+          'active',
+          'bg-sky-500/25',
+          'text-sky-200',
+          'border-sky-400/40'
+        );
+
+        button.classList.remove(
+          'bg-white/5',
+          'text-slate-300',
+          'border-white/10'
+        );
+      }
+    }
+
+    cameraButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        setActiveCameraButton(button);
+        state.cameraPreset = button.dataset.cam;
+        state.manualCameraOverride = false;
+      });
+    });
+
+    const eraPresentBtn = document.getElementById('era-present-btn');
+    const eraGiantBtn = document.getElementById('era-giant-btn');
+    const telemetryEra = document.getElementById('telemetry-era');
+    const evolutionSlider = document.getElementById('evolution-slider');
+    const evolutionLabel = document.getElementById('evolution-label');
+
+    const labelWD1Title = document.getElementById('label-wd1-title');
+    const labelWD1Sub = document.getElementById('label-wd1-sub');
+    const labelWD1Dot = document.getElementById('label-wd1-dot');
+    const labelWD1Box = document.getElementById('label-wd1-box');
+
+    function setEvolutionEra(isGiant, animateTransition = true) {
+      state.isGiantPhase = isGiant;
+
+      if (animateTransition) {
+        evolutionSlider.value = isGiant ? '1' : '0';
+      }
+
+      if (isGiant) {
+        eraGiantBtn.className =
+          'px-2.5 py-1 rounded-lg text-xs font-medium bg-orange-500/30 text-orange-200 border border-orange-400/40 transition';
+
+        eraPresentBtn.className =
+          'px-2.5 py-1 rounded-lg text-xs font-medium text-slate-400 hover:text-sky-200 transition';
+
+        telemetryEra.textContent = 'Progenitor Giant Era';
+        telemetryEra.className = 'mono text-orange-300 font-semibold';
+
+        evolutionLabel.textContent = 'Past red-giant phase';
+        evolutionLabel.className = 'mono text-orange-300 font-medium';
+
+        labelWD1Title.textContent = 'Progenitor Star B';
+        labelWD1Title.className = 'font-semibold text-orange-200';
+
+        labelWD1Sub.textContent = 'Red Giant';
+        labelWD1Dot.className =
+          'inline-block w-2 h-2 rounded-full bg-orange-400 mr-1.5 beacon-dot';
+
+        labelWD1Box.className =
+          'px-2.5 py-1 rounded-lg bg-slate-950/80 border border-orange-400/50 backdrop-blur-md text-xs shadow-lg whitespace-nowrap';
+      } else {
+        eraPresentBtn.className =
+          'px-2.5 py-1 rounded-lg text-xs font-medium bg-sky-500/30 text-sky-200 border border-sky-400/40 transition';
+
+        eraGiantBtn.className =
+          'px-2.5 py-1 rounded-lg text-xs font-medium text-slate-400 hover:text-orange-200 transition';
+
+        telemetryEra.textContent = 'Present Triple';
+        telemetryEra.className = 'mono text-sky-200 font-semibold';
+
+        evolutionLabel.textContent = 'Present white dwarf';
+        evolutionLabel.className = 'mono text-sky-300 font-medium';
+
+        labelWD1Title.textContent = 'Welopōʻai B';
+        labelWD1Title.className = 'font-semibold text-sky-200';
+
+        labelWD1Sub.textContent = 'Close White Dwarf';
+        labelWD1Dot.className =
+          'inline-block w-2 h-2 rounded-full bg-sky-300 mr-1.5 beacon-dot';
+
+        labelWD1Box.className =
+          'px-2.5 py-1 rounded-lg bg-slate-950/80 border border-sky-400/50 backdrop-blur-md text-xs shadow-lg whitespace-nowrap';
+      }
+    }
+
+    eraPresentBtn.addEventListener('click', () => setEvolutionEra(false));
+    eraGiantBtn.addEventListener('click', () => setEvolutionEra(true));
+
+    evolutionSlider.addEventListener('input', event => {
+      state.giantTransition = parseFloat(event.target.value);
+      setEvolutionEra(state.giantTransition > 0.5, false);
+    });
+
+    const playPauseBtn = document.getElementById('play-pause-btn');
+    const playPauseIcon = document.getElementById('play-pause-icon');
+    const speedSlider = document.getElementById('speed-slider');
+    const speedLabel = document.getElementById('speed-label');
+
+    function setPaused(nextPaused) {
+      state.paused = nextPaused;
+
+      playPauseIcon.className = state.paused
+        ? 'fa-solid fa-play text-xs'
+        : 'fa-solid fa-pause text-xs';
+    }
+
+    playPauseBtn.addEventListener('click', () => {
+      setPaused(!state.paused);
+    });
+
+    speedSlider.addEventListener('input', event => {
+      state.timeScale = parseFloat(event.target.value);
+      speedLabel.textContent = `${state.timeScale.toFixed(1)}x`;
+    });
+
+    const toggleOrbitsBtn = document.getElementById('toggle-orbits-btn');
+    const toggleLabelsBtn = document.getElementById('toggle-labels-btn');
+
+    toggleOrbitsBtn.addEventListener('click', () => {
+      state.showOrbits = !state.showOrbits;
+
+      orbitsGroup.visible = state.showOrbits;
+      innerOrbitsSubgroup.visible = state.showOrbits;
+
+      redDwarfTrail.line.visible = state.showOrbits;
+      wd1Trail.line.visible = state.showOrbits;
+      wd2Trail.line.visible = state.showOrbits;
+
+      toggleOrbitsBtn.classList.toggle('opacity-50', !state.showOrbits);
+    });
+
+    toggleLabelsBtn.addEventListener('click', () => {
+      state.showLabels = !state.showLabels;
+      toggleLabelsBtn.classList.toggle('opacity-50', !state.showLabels);
+    });
+
+    const toggleHudBtn = document.getElementById('toggle-hud-btn');
+    const hudEyeIcon = document.getElementById('hud-eye-icon');
+    const headerDetails = document.getElementById('header-details');
+    const telemetryPanel = document.getElementById('telemetry-panel');
+    const controlsDeck = document.getElementById('controls-deck');
+
+    toggleHudBtn.addEventListener('click', () => {
+      state.hudVisible = !state.hudVisible;
+
+      hudEyeIcon.className = state.hudVisible
+        ? 'fa-solid fa-eye-slash'
+        : 'fa-solid fa-eye';
+
+      headerDetails.style.display = state.hudVisible ? 'block' : 'none';
+
+      if (telemetryPanel) {
+        telemetryPanel.style.display = state.hudVisible ? '' : 'none';
+      }
+
+      controlsDeck.style.display = state.hudVisible ? 'flex' : 'none';
+    });
+
+    const resetViewBtn = document.getElementById('reset-view-btn');
+
+    resetViewBtn.addEventListener('click', () => {
+      state.cameraPreset = 'overview';
+      state.manualCameraOverride = false;
+
+      setActiveCameraButton(
+        document.querySelector('[data-cam="overview"]')
+      );
+    });
+
+    const qualityBtn = document.getElementById('quality-btn');
+
+    qualityBtn.addEventListener('click', () => {
+      state.quality = state.quality === 'high' ? 'low' : 'high';
+
+      qualityBtn.textContent = `Quality: ${
+        state.quality === 'high' ? 'High' : 'Low'
+      }`;
+
+      renderer.setPixelRatio(
+        state.quality === 'low'
+          ? Math.min(window.devicePixelRatio, 1.25)
+          : Math.min(window.devicePixelRatio, 2)
+      );
+
+      bloomPass.strength = state.quality === 'low' ? 0.9 : 1.25;
+    });
+
+    const starInfo = document.getElementById('star-info');
+    const starInfoTitle = document.getElementById('star-info-title');
+    const starInfoType = document.getElementById('star-info-type');
+    const starInfoBody = document.getElementById('star-info-body');
+    const starInfoClose = document.getElementById('star-info-close');
+
+    const starData = {
+      'Welopōʻai A': {
+        type: 'Red Dwarf • Inner Binary',
+        body: 'The red dwarf occupies the wider orbit around the inner barycenter. Its observed radial-velocity motion is central to identifying the system’s hidden companions.'
+      },
+      'Welopōʻai B': {
+        type: 'Close White Dwarf • Former Giant',
+        body: 'This compact stellar remnant is shown in its present white-dwarf state. In the past-giant view, it represents its proposed bloated red-giant progenitor phase.'
+      },
+      'Welopōʻai C': {
+        type: 'Outer White Dwarf • Wide Orbit',
+        body: 'The distant white dwarf follows a wider hierarchical orbit around the system, completing the triple-star architecture.'
+      }
+    };
+
+    function showStarInfo(name) {
+      const data = starData[name];
+
+      if (!data) return;
+
+      starInfoTitle.textContent = name;
+      starInfoType.textContent = data.type;
+      starInfoBody.textContent = data.body;
+
+      starInfo.classList.remove('hidden');
+    }
+
+    starInfoClose.addEventListener('click', () => {
+      starInfo.classList.add('hidden');
+    });
+
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
+
+    renderer.domElement.addEventListener('pointerdown', event => {
+      pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
+      pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+      raycaster.setFromCamera(pointer, camera);
+
+      const clickable = [
+        redDwarfMesh,
+        wd1Mesh,
+        wd2Mesh
+      ];
+
+      const hits = raycaster.intersectObjects(clickable, false);
+
+      if (!hits.length) return;
+
+      const hitMesh = hits[0].object;
+
+      if (hitMesh === redDwarfMesh) {
+        state.cameraPreset = 'inner';
+        showStarInfo('Welopōʻai A');
+      } else if (hitMesh === wd1Mesh) {
+        state.cameraPreset = 'inner';
+        showStarInfo('Welopōʻai B');
+      } else if (hitMesh === wd2Mesh) {
+        state.cameraPreset = 'outer';
+        showStarInfo('Welopōʻai C');
+      }
+
+      state.manualCameraOverride = false;
+
+      setActiveCameraButton(
+        document.querySelector(`[data-cam="${state.cameraPreset}"]`)
+      );
+    });
+
+    const storySteps = [
+      { preset: 'overview', giant: 0, duration: 5 },
+      { preset: 'inner', giant: 0, duration: 6 },
+      { preset: 'inner', giant: 1, duration: 7 },
+      { preset: 'overview', giant: 0, duration: 6 }
+    ];
+
+    let storyIndex = -1;
+    let storyTimer = 0;
+
+    const storyBtn = document.getElementById('story-btn');
+
+    function applyStoryStep() {
+      const step = storySteps[storyIndex];
+
+      state.cameraPreset = step.preset;
+      state.manualCameraOverride = false;
+
+      setEvolutionEra(step.giant === 1);
+
+      storyTimer = step.duration;
+
+      setActiveCameraButton(
+        document.querySelector(`[data-cam="${step.preset}"]`)
+      );
+    }
+
+    storyBtn.addEventListener('click', () => {
+      storyIndex = 0;
+      applyStoryStep();
+    });
+
+    document.addEventListener('keydown', event => {
+      if (event.code === 'Space') {
+        event.preventDefault();
+        setPaused(!state.paused);
+      }
+
+      if (event.key === '1') {
+        state.cameraPreset = 'overview';
+        state.manualCameraOverride = false;
+
+        setActiveCameraButton(
+          document.querySelector('[data-cam="overview"]')
+        );
+      }
+
+      if (event.key === '2') {
+        state.cameraPreset = 'inner';
+        state.manualCameraOverride = false;
+
+        setActiveCameraButton(
+          document.querySelector('[data-cam="inner"]')
+        );
+      }
+
+      if (event.key === '3') {
+        state.cameraPreset = 'outer';
+        state.manualCameraOverride = false;
+
+        setActiveCameraButton(
+          document.querySelector('[data-cam="outer"]')
+        );
+      }
+
+      if (event.key.toLowerCase() === 'l') {
+        toggleLabelsBtn.click();
+      }
+
+      if (event.key.toLowerCase() === 'o') {
+        toggleOrbitsBtn.click();
+      }
+    });
+
+    if (prefersReducedMotion) {
+      setPaused(true);
+      document.getElementById('motion-notice').classList.remove('hidden');
+    }
+
+    document.addEventListener('visibilitychange', () => {
+      state.running = !document.hidden;
+
+      if (state.running) {
+        clock.getDelta();
+      }
+    });
+
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      if (!state.running) return;
+
+      const dt = Math.min(clock.getDelta(), 0.05);
+
+      if (!state.paused) {
+        state.time += dt * state.timeScale;
+      }
+
+      if (storyIndex >= 0) {
+        storyTimer -= dt;
+
+        if (storyTimer <= 0) {
+          storyIndex++;
+
+          if (storyIndex >= storySteps.length) {
+            storyIndex = -1;
+          } else {
+            applyStoryStep();
+          }
+        }
+      }
+
+      redDwarfShader.uniforms.uTime.value = state.time;
+      wd1Shader.uniforms.uTime.value = state.time;
+      wd2Shader.uniforms.uTime.value = state.time;
+      skyMat.uniforms.uTime.value = state.time;
+
+      wd1Shader.uniforms.uGiantMix.value = state.giantTransition;
+
+      const giantScale = 1 + state.giantTransition * 7.8;
+
+      wd1Mesh.scale.setScalar(giantScale);
+      wd1Corona.scale.setScalar(1 + state.giantTransition * 4.5);
+
+      wd1Corona.material.uniforms.uColor.value.setHex(
+        state.giantTransition > 0.45 ? 0xff5a1f : 0x66ccff
+      );
+
+      wd1Light.color.setHex(
+        state.giantTransition > 0.45 ? 0xff6a2b : 0x99d5ff
+      );
+
+      lensingRing.visible = state.giantTransition < 0.35;
+      lensingRing.lookAt(camera.position);
+
+      const outerAngle = state.time * ORBIT_PARAMS.outerAngularSpeed;
+      const inclination = ORBIT_PARAMS.outerInclination;
+
+      const wd2X = Math.cos(outerAngle) * ORBIT_PARAMS.outerRadius;
+      const wd2Z = Math.sin(outerAngle) * ORBIT_PARAMS.outerRadius;
+
+      wd2Group.position.set(
+        wd2X,
+        -Math.sin(inclination) * wd2Z,
+        Math.cos(inclination) * wd2Z
+      );
+
+      const comX = -Math.cos(outerAngle) * innerComRadius;
+      const comZ = -Math.sin(outerAngle) * innerComRadius;
+
+      innerBinaryGroup.position.set(
+        comX,
+        -Math.sin(inclination) * comZ,
+        Math.cos(inclination) * comZ
+      );
+
+      const innerAngle = state.time * ORBIT_PARAMS.innerAngularSpeed;
+
+      redDwarfGroup.position.set(
+        Math.cos(innerAngle) * rA,
+        0,
+        Math.sin(innerAngle) * rA
+      );
+
+      wd1Group.position.set(
+        -Math.cos(innerAngle) * rB,
+        0,
+        -Math.sin(innerAngle) * rB
+      );
+
+      redDwarfMesh.rotation.y += dt * 0.35;
+      wd1Mesh.rotation.y += dt * 0.9;
+      wd2Mesh.rotation.y += dt * 0.7;
+      barycenterMarker.rotation.y += dt * 1.2;
+
+      redDwarfGroup.getWorldPosition(tempVec);
+      updateTrail(redDwarfTrail, tempVec);
+
+      wd1Group.getWorldPosition(tempVec);
+      updateTrail(wd1Trail, tempVec);
+
+      wd2Group.getWorldPosition(tempVec);
+      updateTrail(wd2Trail, tempVec);
+
+      if (!state.manualCameraOverride) {
+        if (state.cameraPreset === 'overview') {
+          targetLookAt.set(0, 0, 0);
+          targetCamPos.set(0, 26, 56);
+        } else if (state.cameraPreset === 'inner') {
+          innerBinaryGroup.getWorldPosition(targetLookAt);
+
+          targetCamPos.set(
+            targetLookAt.x + 2.5,
+            targetLookAt.y + 7.5,
+            targetLookAt.z + 17.5
+          );
+        } else if (state.cameraPreset === 'outer') {
+          wd2Group.getWorldPosition(targetLookAt);
+
+          targetCamPos.set(
+            targetLookAt.x * 1.22,
+            targetLookAt.y + 3.2,
+            targetLookAt.z * 1.22 + 5.5
+          );
+        }
+
+        camera.position.lerp(targetCamPos, Math.min(1, dt * 3));
+        controls.target.lerp(targetLookAt, Math.min(1, dt * 4.5));
+      } else if (state.cameraPreset === 'inner') {
+        innerBinaryGroup.getWorldPosition(targetLookAt);
+        controls.target.lerp(targetLookAt, Math.min(1, dt * 5));
+      } else if (state.cameraPreset === 'outer') {
+        wd2Group.getWorldPosition(targetLookAt);
+        controls.target.lerp(targetLookAt, Math.min(1, dt * 5));
+      }
+
+      controls.update();
+
+      updateScreenLabel(labelRD, redDwarfGroup, 1.8);
+      updateScreenLabel(labelWD1, wd1Group, 0.7 + state.giantTransition * 3.8);
+      updateScreenLabel(labelWD2, wd2Group, 0.75);
+      updateScreenLabel(labelBary, innerBinaryGroup, -0.35);
+
+      composer.render();
+    }
+
+    window.addEventListener('resize', () => {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+
+      renderer.setSize(width, height);
+      composer.setSize(width, height);
+    });
+
+    animate();
+  </script>
+</body>
+</html>
