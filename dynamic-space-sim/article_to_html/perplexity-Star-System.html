@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Welopōʻai — Hyperreal 4K Triple-Star Observatory</title>
+  <title>Welopōʻai — Procedural Photoreal Triple-Star Observatory</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
 
@@ -31,14 +31,14 @@
       font-family: 'Inter', sans-serif;
     }
 
-    #canvas-container {
+    #viewport {
       position: fixed;
       inset: 0;
       z-index: 1;
       cursor: grab;
     }
 
-    #canvas-container:active {
+    #viewport:active {
       cursor: grabbing;
     }
 
@@ -47,12 +47,12 @@
     }
 
     .glass {
-      background: rgba(4, 7, 16, 0.62);
-      backdrop-filter: blur(22px) saturate(140%);
-      -webkit-backdrop-filter: blur(22px) saturate(140%);
-      border: 1px solid rgba(148, 163, 184, 0.16);
+      background: rgba(3, 6, 14, 0.64);
+      backdrop-filter: blur(24px) saturate(150%);
+      -webkit-backdrop-filter: blur(24px) saturate(150%);
+      border: 1px solid rgba(148, 163, 184, 0.14);
       box-shadow:
-        0 20px 70px rgba(0, 0, 0, 0.75),
+        0 25px 80px rgba(0, 0, 0, 0.8),
         inset 0 1px 0 rgba(255, 255, 255, 0.08);
     }
 
@@ -66,7 +66,7 @@
     input[type=range]::-webkit-slider-runnable-track {
       height: 4px;
       border-radius: 999px;
-      background: rgba(148, 163, 184, 0.22);
+      background: rgba(148, 163, 184, 0.2);
     }
 
     input[type=range]::-webkit-slider-thumb {
@@ -77,16 +77,16 @@
       margin-top: -6px;
       border-radius: 50%;
       background: #7dd3fc;
-      box-shadow: 0 0 16px rgba(125, 211, 252, 0.9);
+      box-shadow: 0 0 18px rgba(125, 211, 252, 0.8);
     }
 
     @keyframes pulse {
-      0%, 100% { opacity: 0.65; transform: scale(1); }
-      50% { opacity: 1; transform: scale(1.25); }
+      0%, 100% { opacity: 0.6; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.2); }
     }
 
     .beacon {
-      animation: pulse 2.4s ease-in-out infinite;
+      animation: pulse 2.5s ease-in-out infinite;
     }
 
     .label {
@@ -97,29 +97,28 @@
       will-change: transform, opacity;
     }
 
-    .cinematic-vignette {
+    .vignette {
       position: fixed;
       inset: 0;
       z-index: 5;
       pointer-events: none;
-      background:
-        radial-gradient(
-          ellipse at center,
-          transparent 45%,
-          rgba(0, 0, 0, 0.55) 100%
-        );
+      background: radial-gradient(
+        ellipse at center,
+        transparent 42%,
+        rgba(0, 0, 0, 0.62) 100%
+      );
     }
 
-    .scanlines {
+    .grain {
       position: fixed;
       inset: 0;
       z-index: 6;
       pointer-events: none;
-      opacity: 0.045;
+      opacity: 0.035;
       background-image: repeating-linear-gradient(
         to bottom,
-        rgba(255, 255, 255, 0.5) 0px,
-        rgba(255, 255, 255, 0.5) 1px,
+        rgba(255, 255, 255, 0.45) 0,
+        rgba(255, 255, 255, 0.45) 1px,
         transparent 1px,
         transparent 3px
       );
@@ -137,39 +136,33 @@
 </head>
 
 <body>
-  <div id="canvas-container"></div>
+  <div id="viewport"></div>
 
-  <div class="cinematic-vignette"></div>
-  <div class="scanlines"></div>
+  <div class="vignette"></div>
+  <div class="grain"></div>
 
   <div id="labels" class="fixed inset-0 z-10 pointer-events-none overflow-hidden">
     <div id="label-a" class="label">
-      <div class="flex flex-col items-center">
-        <div class="px-3 py-1 rounded-xl bg-black/70 border border-orange-500/40 backdrop-blur-xl text-xs whitespace-nowrap">
-          <span class="inline-block w-2 h-2 rounded-full bg-orange-500 mr-2 beacon"></span>
-          <span class="font-semibold text-orange-200">Welopōʻai A</span>
-          <span class="text-slate-400 ml-2 text-[10px]">M-type Red Dwarf</span>
-        </div>
+      <div class="px-3 py-1 rounded-xl bg-black/75 border border-orange-500/40 backdrop-blur-xl text-xs whitespace-nowrap">
+        <span class="inline-block w-2 h-2 rounded-full bg-orange-500 mr-2 beacon"></span>
+        <span class="font-semibold text-orange-200">Welopōʻai A</span>
+        <span class="text-slate-400 ml-2 text-[10px]">M-type Red Dwarf</span>
       </div>
     </div>
 
     <div id="label-b" class="label">
-      <div class="flex flex-col items-center">
-        <div id="label-b-box" class="px-3 py-1 rounded-xl bg-black/70 border border-sky-400/50 backdrop-blur-xl text-xs whitespace-nowrap">
-          <span id="label-b-dot" class="inline-block w-2 h-2 rounded-full bg-sky-300 mr-2 beacon"></span>
-          <span id="label-b-title" class="font-semibold text-sky-200">Welopōʻai B</span>
-          <span id="label-b-sub" class="text-slate-400 ml-2 text-[10px]">Close White Dwarf</span>
-        </div>
+      <div class="px-3 py-1 rounded-xl bg-black/75 border border-sky-400/50 backdrop-blur-xl text-xs whitespace-nowrap">
+        <span id="label-b-dot" class="inline-block w-2 h-2 rounded-full bg-sky-300 mr-2 beacon"></span>
+        <span id="label-b-title" class="font-semibold text-sky-200">Welopōʻai B</span>
+        <span id="label-b-sub" class="text-slate-400 ml-2 text-[10px]">Close White Dwarf</span>
       </div>
     </div>
 
     <div id="label-c" class="label">
-      <div class="flex flex-col items-center">
-        <div class="px-3 py-1 rounded-xl bg-black/70 border border-indigo-400/50 backdrop-blur-xl text-xs whitespace-nowrap">
-          <span class="inline-block w-2 h-2 rounded-full bg-indigo-300 mr-2 beacon"></span>
-          <span class="font-semibold text-indigo-200">Welopōʻai C</span>
-          <span class="text-slate-400 ml-2 text-[10px]">Outer White Dwarf</span>
-        </div>
+      <div class="px-3 py-1 rounded-xl bg-black/75 border border-indigo-400/50 backdrop-blur-xl text-xs whitespace-nowrap">
+        <span class="inline-block w-2 h-2 rounded-full bg-indigo-300 mr-2 beacon"></span>
+        <span class="font-semibold text-indigo-200">Welopōʻai C</span>
+        <span class="text-slate-400 ml-2 text-[10px]">Outer White Dwarf</span>
       </div>
     </div>
   </div>
@@ -191,7 +184,7 @@
             </div>
 
             <p class="text-[11px] text-slate-400">
-              Hyperreal hierarchical triple-star visualization
+              Fully procedural photoreal-oriented triple-star visualization
             </p>
           </div>
         </div>
@@ -204,7 +197,7 @@
 
       <div id="hud-details" class="mt-4 pt-4 border-t border-white/10">
         <p class="text-xs leading-relaxed text-slate-300">
-          A cinematic WebGL interpretation of the Welopōʻai triple-star system: a red dwarf, a close white dwarf, and a distant outer white dwarf. Toggle the past giant phase to visualize the proposed red-giant progenitor of the inner white dwarf.
+          All stellar surface, normal, roughness, emissive, and Milky Way textures are generated in-browser at startup. No external image assets are required.
         </p>
       </div>
     </div>
@@ -212,7 +205,7 @@
     <div class="glass rounded-3xl p-4 hidden md:block w-80 pointer-events-auto">
       <div class="flex items-center justify-between mb-3">
         <span class="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
-          Render Telemetry
+          Render Status
         </span>
 
         <span id="fps" class="mono text-[10px] px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
@@ -222,8 +215,8 @@
 
       <div class="space-y-2 text-xs">
         <div class="flex justify-between">
-          <span class="text-slate-400">Render Scale</span>
-          <span id="render-scale" class="mono text-sky-300">1.00x</span>
+          <span class="text-slate-400">Texture Generation</span>
+          <span id="texture-status" class="mono text-emerald-300">Complete</span>
         </div>
 
         <div class="flex justify-between">
@@ -232,8 +225,8 @@
         </div>
 
         <div class="flex justify-between">
-          <span class="text-slate-400">Background Stars</span>
-          <span id="star-count" class="mono text-slate-200">12,000</span>
+          <span class="text-slate-400">Render Scale</span>
+          <span id="render-scale" class="mono text-sky-300">1.00x</span>
         </div>
 
         <div class="flex justify-between">
@@ -272,7 +265,7 @@
         <div class="flex items-center gap-2">
           <button id="cinematic-btn"
             class="px-3 py-1.5 rounded-xl text-xs bg-indigo-500/25 text-indigo-200 border border-indigo-400/40 transition">
-            <i class="fa-solid fa-clapperboard mr-1"></i>Cinematic Mode
+            <i class="fa-solid fa-clapperboard mr-1"></i>Cinematic
           </button>
 
           <button id="giant-btn"
@@ -356,24 +349,27 @@
     const QUALITY = {
       ultra: {
         pixelRatio: Math.min(window.devicePixelRatio, 2),
-        sphereSegments: 128,
-        stars: 12000,
-        bloom: 1.55,
-        coronaSegments: 96
+        sphereSegments: 160,
+        coronaSegments: 128,
+        stars: 14000,
+        bloom: 1.8,
+        textureSize: 4096
       },
       high: {
         pixelRatio: Math.min(window.devicePixelRatio, 1.5),
-        sphereSegments: 96,
-        stars: 8000,
-        bloom: 1.25,
-        coronaSegments: 64
+        sphereSegments: 112,
+        coronaSegments: 80,
+        stars: 9000,
+        bloom: 1.4,
+        textureSize: 2048
       },
       balanced: {
-        pixelRatio: Math.min(window.devicePixelRatio, 1.15),
-        sphereSegments: 64,
-        stars: 4500,
-        bloom: 0.95,
-        coronaSegments: 48
+        pixelRatio: Math.min(window.devicePixelRatio, 1.1),
+        sphereSegments: 72,
+        coronaSegments: 48,
+        stars: 5000,
+        bloom: 1,
+        textureSize: 1024
       }
     };
 
@@ -381,25 +377,25 @@
       innerRadius: 9,
       redDwarfShare: 0.36,
       innerSpeed: 0.72,
-      outerRadius: 36,
+      outerRadius: 38,
       outerSpeed: 0.13,
       inclination: 0.24,
       innerEccentricity: 0.09,
       outerEccentricity: 0.05
     };
 
-    const container = document.getElementById('canvas-container');
+    const container = document.getElementById('viewport');
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x01020a, 0.0011);
+    scene.fog = new THREE.FogExp2(0x01020a, 0.0008);
 
     const camera = new THREE.PerspectiveCamera(
-      42,
+      40,
       window.innerWidth / window.innerHeight,
       0.1,
-      2000
+      3000
     );
 
-    camera.position.set(0, 30, 68);
+    camera.position.set(0, 32, 78);
 
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
@@ -410,17 +406,17 @@
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(QUALITY.ultra.pixelRatio);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.08;
+    renderer.toneMappingExposure = 1.05;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     container.appendChild(renderer.domElement);
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    controls.dampingFactor = 0.055;
+    controls.dampingFactor = 0.05;
     controls.minDistance = 5;
-    controls.maxDistance = 240;
+    controls.maxDistance = 300;
     controls.autoRotate = false;
-    controls.autoRotateSpeed = 0.25;
+    controls.autoRotateSpeed = 0.22;
 
     controls.addEventListener('start', () => {
       state.manualCamera = true;
@@ -432,19 +428,20 @@
     const bloom = new UnrealBloomPass(
       new THREE.Vector2(window.innerWidth, window.innerHeight),
       QUALITY.ultra.bloom,
-      0.85,
-      0.72
+      0.9,
+      0.68
     );
 
     composer.addPass(bloom);
 
-    const cinematicShader = {
+    const lensShader = {
       uniforms: {
         tDiffuse: { value: null },
         uTime: { value: 0 },
-        uAberration: { value: 0.0016 },
-        uVignette: { value: 0.38 },
-        uGrain: { value: 0.045 }
+        uAberration: { value: 0.0022 },
+        uVignette: { value: 0.42 },
+        uGrain: { value: 0.038 },
+        uExposure: { value: 1.04 }
       },
 
       vertexShader: `
@@ -462,6 +459,7 @@
         uniform float uAberration;
         uniform float uVignette;
         uniform float uGrain;
+        uniform float uExposure;
 
         varying vec2 vUv;
 
@@ -470,36 +468,362 @@
         }
 
         void main() {
-          vec2 center = vUv - 0.5;
-          float distance = length(center);
+          vec2 centered = vUv - 0.5;
+          float distance = length(centered);
 
-          vec2 offset = center * uAberration * (1.0 + distance * 2.5);
+          vec2 offset = centered * uAberration * (1.0 + distance * 3.0);
 
-          float r = texture2D(tDiffuse, vUv + offset).r;
-          float g = texture2D(tDiffuse, vUv).g;
-          float b = texture2D(tDiffuse, vUv - offset).b;
+          float red = texture2D(tDiffuse, vUv + offset).r;
+          float green = texture2D(tDiffuse, vUv).g;
+          float blue = texture2D(tDiffuse, vUv - offset).b;
 
-          vec3 color = vec3(r, g, b);
+          vec3 color = vec3(red, green, blue);
+          color *= uExposure;
 
-          float grain = hash(vUv * vec2(1920.0, 1080.0) + uTime) - 0.5;
+          float grain = hash(
+            vUv * vec2(2560.0, 1440.0) + uTime
+          ) - 0.5;
+
           color += grain * uGrain;
 
-          float vignette = smoothstep(0.35, 1.05, distance);
+          float vignette = smoothstep(0.32, 1.05, distance);
           color *= 1.0 - vignette * uVignette;
 
-          color = pow(color, vec3(0.98));
           gl_FragColor = vec4(color, 1.0);
         }
       `
     };
 
-    const cinematicPass = new ShaderPass(cinematicShader);
-    composer.addPass(cinematicPass);
+    const lensPass = new ShaderPass(lensShader);
+    composer.addPass(lensPass);
 
-    const filmPass = new FilmPass(0.22, 0.025, 648, false);
-    composer.addPass(filmPass);
-
+    composer.addPass(new FilmPass(0.16, 0.02, 720, false));
     composer.addPass(new OutputPass());
+
+    function createCanvas(width, height) {
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      return canvas;
+    }
+
+    function createNoiseFunctions() {
+      function hash(x, y) {
+        const value = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
+        return value - Math.floor(value);
+      }
+
+      function valueNoise(x, y) {
+        const xi = Math.floor(x);
+        const yi = Math.floor(y);
+        const xf = x - xi;
+        const yf = y - yi;
+
+        const a = hash(xi, yi);
+        const b = hash(xi + 1, yi);
+        const c = hash(xi, yi + 1);
+        const d = hash(xi + 1, yi + 1);
+
+        const u = xf * xf * (3 - 2 * xf);
+        const v = yf * yf * (3 - 2 * yf);
+
+        return a * (1 - u) * (1 - v) +
+          b * u * (1 - v) +
+          c * (1 - u) * v +
+          d * u * v;
+      }
+
+      function fbm(x, y, octaves = 6) {
+        let value = 0;
+        let amplitude = 0.55;
+        let frequency = 1;
+
+        for (let i = 0; i < octaves; i++) {
+          value += amplitude * valueNoise(x * frequency, y * frequency);
+          amplitude *= 0.52;
+          frequency *= 2.03;
+        }
+
+        return value;
+      }
+
+      return {
+        hash,
+        valueNoise,
+        fbm
+      };
+    }
+
+    function createRedDwarfColorTexture(size) {
+      const width = size;
+      const height = size / 2;
+
+      const canvas = createCanvas(width, height);
+      const context = canvas.getContext('2d');
+
+      const image = context.createImageData(width, height);
+      const data = image.data;
+
+      const noise = createNoiseFunctions();
+
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const u = x / width;
+          const v = y / height;
+
+          const granulation = noise.fbm(u * 48, v * 24, 6);
+          const fineDetail = noise.fbm(u * 170 + 13, v * 85 + 7, 5);
+          const spots = noise.fbm(u * 18 + 31, v * 9 + 17, 5);
+
+          const convection = Math.min(1, Math.max(0,
+            granulation * 0.68 + fineDetail * 0.32
+          ));
+
+          const spotMask = Math.min(1, Math.max(0,
+            (spots - 0.53) * 3.4
+          ));
+
+          const brightness = 0.22 + convection * 1.02;
+          const finalBrightness = brightness * (1 - spotMask * 0.74);
+
+          const red = Math.min(255, 245 * finalBrightness + 22);
+          const green = Math.min(255, 78 * finalBrightness + 7);
+          const blue = Math.min(255, 20 * finalBrightness + 2);
+
+          const index = (y * width + x) * 4;
+
+          data[index] = red;
+          data[index + 1] = green;
+          data[index + 2] = blue;
+          data[index + 3] = 255;
+        }
+      }
+
+      context.putImageData(image, 0, 0);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.wrapS = THREE.RepeatWrapping;
+      texture.wrapT = THREE.RepeatWrapping;
+      texture.anisotropy = 16;
+
+      return {
+        canvas,
+        texture
+      };
+    }
+
+    function createNormalMapFromCanvas(sourceCanvas, strength = 2.6) {
+      const width = sourceCanvas.width;
+      const height = sourceCanvas.height;
+
+      const context = sourceCanvas.getContext('2d');
+      const source = context.getImageData(0, 0, width, height).data;
+
+      const canvas = createCanvas(width, height);
+      const outputContext = canvas.getContext('2d');
+
+      const output = outputContext.createImageData(width, height);
+      const data = output.data;
+
+      function getHeight(x, y) {
+        x = (x + width) % width;
+        y = Math.min(height - 1, Math.max(0, y));
+
+        const index = (y * width + x) * 4;
+        return source[index] / 255;
+      }
+
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const left = getHeight(x - 1, y);
+          const right = getHeight(x + 1, y);
+          const up = getHeight(x, y - 1);
+          const down = getHeight(x, y + 1);
+
+          const dx = (left - right) * strength;
+          const dy = (up - down) * strength;
+
+          const length = Math.sqrt(dx * dx + dy * dy + 1);
+          const nx = dx / length;
+          const ny = dy / length;
+          const nz = 1 / length;
+
+          const index = (y * width + x) * 4;
+
+          data[index] = (nx * 0.5 + 0.5) * 255;
+          data[index + 1] = (ny * 0.5 + 0.5) * 255;
+          data[index + 2] = (nz * 0.5 + 0.5) * 255;
+          data[index + 3] = 255;
+        }
+      }
+
+      outputContext.putImageData(output, 0, 0);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.colorSpace = THREE.NoColorSpace;
+      texture.wrapS = THREE.RepeatWrapping;
+      texture.wrapT = THREE.RepeatWrapping;
+      texture.anisotropy = 16;
+
+      return texture;
+    }
+
+    function createRoughnessMapFromCanvas(sourceCanvas) {
+      const width = sourceCanvas.width;
+      const height = sourceCanvas.height;
+
+      const context = sourceCanvas.getContext('2d');
+      const source = context.getImageData(0, 0, width, height).data;
+
+      const canvas = createCanvas(width, height);
+      const outputContext = canvas.getContext('2d');
+
+      const output = outputContext.createImageData(width, height);
+      const data = output.data;
+
+      for (let i = 0; i < source.length; i += 4) {
+        const brightness = source[i] / 255;
+
+        const roughness = 0.48 + (1 - brightness) * 0.45;
+        const value = Math.min(255, roughness * 255);
+
+        data[i] = value;
+        data[i + 1] = value;
+        data[i + 2] = value;
+        data[i + 3] = 255;
+      }
+
+      outputContext.putImageData(output, 0, 0);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.colorSpace = THREE.NoColorSpace;
+      texture.wrapS = THREE.RepeatWrapping;
+      texture.wrapT = THREE.RepeatWrapping;
+
+      return texture;
+    }
+
+    function createEmissiveMapFromCanvas(sourceCanvas) {
+      const width = sourceCanvas.width;
+      const height = sourceCanvas.height;
+
+      const context = sourceCanvas.getContext('2d');
+      const source = context.getImageData(0, 0, width, height).data;
+
+      const canvas = createCanvas(width, height);
+      const outputContext = canvas.getContext('2d');
+
+      const output = outputContext.createImageData(width, height);
+      const data = output.data;
+
+      for (let i = 0; i < source.length; i += 4) {
+        const brightness = source[i] / 255;
+        const hot = Math.pow(brightness, 2.35);
+
+        data[i] = Math.min(255, hot * 255);
+        data[i + 1] = Math.min(255, hot * 108);
+        data[i + 2] = Math.min(255, hot * 26);
+        data[i + 3] = 255;
+      }
+
+      outputContext.putImageData(output, 0, 0);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.wrapS = THREE.RepeatWrapping;
+      texture.wrapT = THREE.RepeatWrapping;
+
+      return texture;
+    }
+
+    function createWhiteDwarfTexture(size = 2048, tint = '#dceeff') {
+      const canvas = createCanvas(size, size / 2);
+      const context = canvas.getContext('2d');
+
+      const gradient = context.createRadialGradient(
+        canvas.width / 2,
+        canvas.height / 2,
+        0,
+        canvas.width / 2,
+        canvas.height / 2,
+        canvas.width / 2
+      );
+
+      gradient.addColorStop(0, '#ffffff');
+      gradient.addColorStop(0.58, tint);
+      gradient.addColorStop(1, '#6ea8ff');
+
+      context.fillStyle = gradient;
+      context.fillRect(0, 0, canvas.width, canvas.height);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.wrapS = THREE.RepeatWrapping;
+      texture.wrapT = THREE.RepeatWrapping;
+
+      return texture;
+    }
+
+    function createProceduralMilkyWay(size = 4096) {
+      const width = size;
+      const height = size / 2;
+
+      const canvas = createCanvas(width, height);
+      const context = canvas.getContext('2d');
+
+      const image = context.createImageData(width, height);
+      const data = image.data;
+
+      const noise = createNoiseFunctions();
+
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const u = x / width;
+          const v = y / height;
+
+          const band = Math.exp(-Math.pow((v - 0.5) * 5.4, 2));
+          const nebula = noise.fbm(u * 18, v * 9, 7);
+          const detail = noise.fbm(u * 42 + 11, v * 21 + 5, 6);
+          const dust = noise.fbm(u * 30 + 19, v * 15 + 8, 6);
+
+          const galaxy = band * (0.32 + nebula * 0.95);
+          const darkLane = Math.max(0, dust - 0.54) * 2.4;
+
+          const red = galaxy * 26;
+          const green = galaxy * 42;
+          const blue = galaxy * 88;
+
+          const violet = detail * 34;
+
+          const finalRed = Math.min(255, (red + violet * 0.7) *
+            (1 - darkLane * 0.72));
+
+          const finalGreen = Math.min(255, (green + violet * 0.4) *
+            (1 - darkLane * 0.72));
+
+          const finalBlue = Math.min(255, (blue + violet) *
+            (1 - darkLane * 0.72));
+
+          const index = (y * width + x) * 4;
+
+          data[index] = finalRed;
+          data[index + 1] = finalGreen;
+          data[index + 2] = finalBlue;
+          data[index + 3] = 255;
+        }
+      }
+
+      context.putImageData(image, 0, 0);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.mapping = THREE.EquirectangularReflectionMapping;
+      texture.wrapS = THREE.RepeatWrapping;
+      texture.wrapT = THREE.ClampToEdgeWrapping;
+
+      return texture;
+    }
 
     const noiseGLSL = `
       vec4 permute(vec4 x) {
@@ -590,187 +914,6 @@
       }
     `;
 
-    const redDwarfMaterial = new THREE.ShaderMaterial({
-      uniforms: {
-        uTime: { value: 0 },
-        uDeep: { value: new THREE.Color(0x3d0600) },
-        uMid: { value: new THREE.Color(0xd23a0c) },
-        uHot: { value: new THREE.Color(0xffb066) },
-        uFlare: { value: new THREE.Color(0xffd9a8) }
-      },
-
-      vertexShader: `
-        uniform float uTime;
-
-        varying vec3 vNormal;
-        varying vec3 vPosition;
-        varying vec3 vView;
-        varying vec3 vWorld;
-
-        ${noiseGLSL}
-
-        void main() {
-          vPosition = position;
-
-          float displacement = snoise(
-            normalize(position) * 5.0 + uTime * 0.18
-          ) * 0.035;
-
-          vec3 displaced = position * (1.0 + displacement);
-
-          vNormal = normalize(normalMatrix * normal);
-          vWorld = (modelMatrix * vec4(displaced, 1.0)).xyz;
-
-          vec4 viewPosition = modelViewMatrix * vec4(displaced, 1.0);
-          vView = normalize(-viewPosition.xyz);
-
-          gl_Position = projectionMatrix * viewPosition;
-        }
-      `,
-
-      fragmentShader: `
-        uniform float uTime;
-        uniform vec3 uDeep;
-        uniform vec3 uMid;
-        uniform vec3 uHot;
-        uniform vec3 uFlare;
-
-        varying vec3 vNormal;
-        varying vec3 vPosition;
-        varying vec3 vView;
-        varying vec3 vWorld;
-
-        ${noiseGLSL}
-
-        void main() {
-          vec3 sphere = normalize(vPosition);
-
-          float granules = fbm(sphere * 6.5 + uTime * 0.13);
-          float fineGranules = fbm(sphere * 18.0 - uTime * 0.21);
-
-          float convection = smoothstep(
-            -0.45,
-            0.65,
-            granules * 0.72 + fineGranules * 0.28
-          );
-
-          float spots = smoothstep(
-            0.28,
-            0.62,
-            fbm(sphere * 2.3 + vec3(1.6, uTime * 0.025, -2.1))
-          );
-
-          vec3 color = mix(uDeep, uMid, convection);
-          color = mix(color, uHot, pow(convection, 3.0) * 1.45);
-          color *= 1.0 - spots * 0.78;
-
-          float facing = clamp(dot(vNormal, vView), 0.0, 1.0);
-          float limb = pow(facing, 0.48);
-          float rim = pow(1.0 - facing, 3.4);
-
-          color *= 0.35 + 1.05 * limb;
-          color += uFlare * rim * 1.15;
-
-          gl_FragColor = vec4(color * 1.65, 1.0);
-        }
-      `
-    });
-
-    function createWhiteDwarfMaterial(core, corona, intensity) {
-      return new THREE.ShaderMaterial({
-        uniforms: {
-          uTime: { value: 0 },
-          uCore: { value: new THREE.Color(core) },
-          uCorona: { value: new THREE.Color(corona) },
-          uGiantColor: { value: new THREE.Color(0xff4d18) },
-          uGiantMix: { value: 0 },
-          uIntensity: { value: intensity }
-        },
-
-        vertexShader: `
-          uniform float uTime;
-          uniform float uGiantMix;
-
-          varying vec3 vNormal;
-          varying vec3 vPosition;
-          varying vec3 vView;
-
-          ${noiseGLSL}
-
-          void main() {
-            vPosition = position;
-
-            float displacement = 0.0;
-
-            if (uGiantMix > 0.01) {
-              displacement = snoise(
-                normalize(position) * 3.4 + uTime * 0.35
-              ) * 0.09 * uGiantMix;
-            }
-
-            vec3 displaced = position * (1.0 + displacement);
-
-            vNormal = normalize(normalMatrix * normal);
-
-            vec4 viewPosition = modelViewMatrix * vec4(displaced, 1.0);
-            vView = normalize(-viewPosition.xyz);
-
-            gl_Position = projectionMatrix * viewPosition;
-          }
-        `,
-
-        fragmentShader: `
-          uniform float uTime;
-          uniform vec3 uCore;
-          uniform vec3 uCorona;
-          uniform vec3 uGiantColor;
-          uniform float uGiantMix;
-          uniform float uIntensity;
-
-          varying vec3 vNormal;
-          varying vec3 vPosition;
-          varying vec3 vView;
-
-          ${noiseGLSL}
-
-          void main() {
-            vec3 sphere = normalize(vPosition);
-            float facing = clamp(dot(vNormal, vView), 0.0, 1.0);
-
-            float shimmer = snoise(sphere * 22.0 + uTime * 0.8) * 0.07;
-            float plasma = fbm(sphere * 9.0 + uTime * 0.16) * 0.12;
-
-            vec3 whiteDwarf = mix(
-              uCorona,
-              uCore,
-              pow(facing, 0.32) + shimmer + plasma
-            ) * uIntensity;
-
-            float turbulence = fbm(sphere * 4.2 + uTime * 0.17);
-
-            vec3 giant = mix(
-              vec3(0.38, 0.03, 0.005),
-              uGiantColor,
-              smoothstep(-0.35, 0.65, turbulence)
-            );
-
-            giant = mix(
-              giant,
-              vec3(1.0, 0.76, 0.38),
-              pow(max(0.0, turbulence), 2.2)
-            );
-
-            giant *= 0.35 + 0.85 * pow(facing, 0.55);
-            giant *= 1.55;
-
-            vec3 finalColor = mix(whiteDwarf, giant, uGiantMix);
-
-            gl_FragColor = vec4(finalColor, 1.0);
-          }
-        `
-      });
-    }
-
     function createVolumetricCorona(color, radius, intensity) {
       const material = new THREE.ShaderMaterial({
         uniforms: {
@@ -810,16 +953,19 @@
             vec3 sphere = normalize(vPosition);
             float facing = clamp(dot(vNormal, vView), 0.0, 1.0);
 
-            float turbulence = fbm(sphere * 4.0 + uTime * 0.12);
+            float turbulence = fbm(sphere * 4.2 + uTime * 0.11);
             float plasma = smoothstep(-0.4, 0.7, turbulence);
 
-            float glow = pow(facing, 3.2);
-            float rim = pow(1.0 - facing, 2.4);
+            float glow = pow(facing, 3.0);
+            float rim = pow(1.0 - facing, 2.3);
 
-            float alpha = (glow * 0.75 + rim * 0.55) * uIntensity;
-            alpha *= 0.72 + plasma * 0.55;
+            float alpha = (glow * 0.7 + rim * 0.6) * uIntensity;
+            alpha *= 0.65 + plasma * 0.65;
 
-            gl_FragColor = vec4(uColor * (0.7 + plasma * 0.8), alpha);
+            gl_FragColor = vec4(
+              uColor * (0.65 + plasma * 0.9),
+              alpha
+            );
           }
         `,
 
@@ -830,70 +976,86 @@
       });
 
       return new THREE.Mesh(
-        new THREE.SphereGeometry(radius, QUALITY.ultra.coronaSegments, QUALITY.ultra.coronaSegments),
+        new THREE.SphereGeometry(
+          radius,
+          QUALITY.ultra.coronaSegments,
+          QUALITY.ultra.coronaSegments
+        ),
         material
       );
     }
 
-    const skyMaterial = new THREE.ShaderMaterial({
-      side: THREE.BackSide,
-      depthWrite: false,
+    const textureSize = QUALITY.ultra.textureSize;
 
-      uniforms: {
-        uTime: { value: 0 }
-      },
+    const redDwarfAssets = createRedDwarfColorTexture(textureSize);
+    const redDwarfColorMap = redDwarfAssets.texture;
+    const redDwarfNormalMap = createNormalMapFromCanvas(
+      redDwarfAssets.canvas,
+      2.7
+    );
+    const redDwarfRoughnessMap = createRoughnessMapFromCanvas(
+      redDwarfAssets.canvas
+    );
+    const redDwarfEmissiveMap = createEmissiveMapFromCanvas(
+      redDwarfAssets.canvas
+    );
 
-      vertexShader: `
-        varying vec3 vDirection;
+    const whiteDwarfTexture = createWhiteDwarfTexture(
+      Math.min(textureSize, 2048),
+      '#dceeff'
+    );
 
-        void main() {
-          vDirection = normalize(position);
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-      `,
+    const outerWhiteDwarfTexture = createWhiteDwarfTexture(
+      Math.min(textureSize, 2048),
+      '#dfe2ff'
+    );
 
-      fragmentShader: `
-        uniform float uTime;
-        varying vec3 vDirection;
+    const milkyWayTexture = createProceduralMilkyWay(
+      Math.min(textureSize, 4096)
+    );
 
-        ${noiseGLSL}
-
-        void main() {
-          vec3 direction = normalize(vDirection);
-
-          float galaxyPlane = abs(dot(
-            direction,
-            normalize(vec3(0.32, 0.86, -0.36))
-          ));
-
-          float band = exp(-galaxyPlane * 5.2);
-          float nebula = fbm(direction * 3.4 + uTime * 0.006);
-          float detail = fbm(direction * 12.0 + 2.4);
-          float dust = fbm(direction * 8.0 - 1.2);
-
-          vec3 deepSpace = vec3(0.003, 0.005, 0.014);
-          vec3 blueNebula = vec3(0.035, 0.075, 0.18);
-          vec3 violetNebula = vec3(0.09, 0.035, 0.16);
-          vec3 warmDust = vec3(0.13, 0.06, 0.028);
-
-          vec3 color = deepSpace;
-
-          color += blueNebula * band * (0.45 + nebula * 0.85);
-          color += violetNebula * pow(band, 1.8) * max(0.0, detail) * 0.75;
-          color += warmDust * pow(band, 2.2) * max(0.0, dust) * 0.7;
-
-          float darkLane = smoothstep(0.08, 0.62, fbm(direction * 6.5 - 1.5));
-          color *= 1.0 - darkLane * 0.68;
-
-          gl_FragColor = vec4(color, 1.0);
-        }
-      `
+    const redDwarfMaterial = new THREE.MeshStandardMaterial({
+      map: redDwarfColorMap,
+      normalMap: redDwarfNormalMap,
+      normalScale: new THREE.Vector2(1.55, 1.55),
+      roughnessMap: redDwarfRoughnessMap,
+      emissiveMap: redDwarfEmissiveMap,
+      emissive: new THREE.Color(0xff5a18),
+      emissiveIntensity: 4.8,
+      roughness: 1,
+      metalness: 0
     });
 
-    scene.add(new THREE.Mesh(
-      new THREE.SphereGeometry(900, 96, 96),
+    const wd1Material = new THREE.MeshStandardMaterial({
+      map: whiteDwarfTexture,
+      emissiveMap: whiteDwarfTexture,
+      emissive: new THREE.Color(0xbfdcff),
+      emissiveIntensity: 16,
+      roughness: 0.12,
+      metalness: 0
+    });
+
+    const wd2Material = new THREE.MeshStandardMaterial({
+      map: outerWhiteDwarfTexture,
+      emissiveMap: outerWhiteDwarfTexture,
+      emissive: new THREE.Color(0xcfd3ff),
+      emissiveIntensity: 12,
+      roughness: 0.18,
+      metalness: 0
+    });
+
+    const skyMaterial = new THREE.MeshBasicMaterial({
+      map: milkyWayTexture,
+      side: THREE.BackSide,
+      toneMapped: false
+    });
+
+    const sky = new THREE.Mesh(
+      new THREE.SphereGeometry(1800, 128, 128),
       skyMaterial
-    ));
+    );
+
+    scene.add(sky);
 
     function createStarfield(count) {
       const positions = new Float32Array(count * 3);
@@ -910,7 +1072,7 @@
       ];
 
       for (let i = 0; i < count; i++) {
-        const radius = 320 + Math.random() * 480;
+        const radius = 420 + Math.random() * 620;
         const theta = Math.random() * Math.PI * 2;
         const phi = Math.acos(2 * Math.random() - 1);
 
@@ -919,13 +1081,13 @@
         positions[i * 3 + 2] = radius * Math.sin(phi) * Math.sin(theta);
 
         const color = palette[Math.floor(Math.random() * palette.length)];
-        const brightness = 0.35 + Math.pow(Math.random(), 2.2) * 0.85;
+        const brightness = 0.28 + Math.pow(Math.random(), 2.4) * 0.95;
 
         colors[i * 3] = color.r * brightness;
         colors[i * 3 + 1] = color.g * brightness;
         colors[i * 3 + 2] = color.b * brightness;
 
-        sizes[i] = 0.5 + Math.pow(Math.random(), 3) * 2.4;
+        sizes[i] = 0.4 + Math.pow(Math.random(), 3.2) * 2.7;
       }
 
       const geometry = new THREE.BufferGeometry();
@@ -937,6 +1099,7 @@
         transparent: true,
         depthWrite: false,
         blending: THREE.AdditiveBlending,
+        vertexColors: true,
 
         uniforms: {
           uTime: { value: 0 },
@@ -953,11 +1116,16 @@
           void main() {
             vColor = color;
 
-            vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-            float twinkle = 0.75 + 0.25 * sin(uTime * 1.6 + position.x * 0.08);
+            vec4 viewPosition = modelViewMatrix * vec4(position, 1.0);
 
-            gl_PointSize = size * uPixelRatio * twinkle * (280.0 / -mvPosition.z);
-            gl_Position = projectionMatrix * mvPosition;
+            float twinkle = 0.72 + 0.28 * sin(
+              uTime * 1.5 + position.x * 0.07 + position.z * 0.05
+            );
+
+            gl_PointSize = size * uPixelRatio * twinkle *
+              (340.0 / -viewPosition.z);
+
+            gl_Position = projectionMatrix * viewPosition;
           }
         `,
 
@@ -969,13 +1137,11 @@
             float distance = length(center);
 
             float core = smoothstep(0.5, 0.0, distance);
-            float glow = pow(core, 3.0);
+            float glow = pow(core, 3.2);
 
             gl_FragColor = vec4(vColor, glow);
           }
-        `,
-
-        vertexColors: true
+        `
       });
 
       return new THREE.Points(geometry, material);
@@ -991,35 +1157,43 @@
     system.add(innerBinary);
 
     const redDwarf = new THREE.Group();
+
     const redDwarfMesh = new THREE.Mesh(
-      new THREE.SphereGeometry(1.65, QUALITY.ultra.sphereSegments, QUALITY.ultra.sphereSegments),
+      new THREE.SphereGeometry(
+        1.7,
+        QUALITY.ultra.sphereSegments,
+        QUALITY.ultra.sphereSegments
+      ),
       redDwarfMaterial
     );
 
-    const redDwarfCorona = createVolumetricCorona(0xff5a18, 4.4, 0.72);
+    const redDwarfCorona = createVolumetricCorona(0xff5a18, 5, 0.8);
 
     redDwarf.add(redDwarfMesh, redDwarfCorona);
 
-    const redDwarfLight = new THREE.PointLight(0xff7333, 5.5, 110, 1.35);
+    const redDwarfLight = new THREE.PointLight(0xff7333, 6.5, 140, 1.3);
     redDwarf.add(redDwarfLight);
     innerBinary.add(redDwarf);
 
     const wd1 = new THREE.Group();
-    const wd1Material = createWhiteDwarfMaterial(0xffffff, 0x6ec6ff, 3.1);
 
     const wd1Mesh = new THREE.Mesh(
-      new THREE.SphereGeometry(0.55, QUALITY.ultra.sphereSegments, QUALITY.ultra.sphereSegments),
+      new THREE.SphereGeometry(
+        0.56,
+        QUALITY.ultra.sphereSegments,
+        QUALITY.ultra.sphereSegments
+      ),
       wd1Material
     );
 
-    const wd1Corona = createVolumetricCorona(0x74d0ff, 2.7, 0.9);
+    const wd1Corona = createVolumetricCorona(0x74d0ff, 3.1, 0.95);
 
     const wd1Ring = new THREE.Mesh(
-      new THREE.RingGeometry(0.78, 0.86, 128),
+      new THREE.RingGeometry(0.84, 0.94, 180),
       new THREE.MeshBasicMaterial({
         color: 0xa8d8ff,
         transparent: true,
-        opacity: 0.3,
+        opacity: 0.26,
         side: THREE.DoubleSide,
         blending: THREE.AdditiveBlending
       })
@@ -1027,23 +1201,26 @@
 
     wd1.add(wd1Mesh, wd1Corona, wd1Ring);
 
-    const wd1Light = new THREE.PointLight(0xa5d8ff, 7, 120, 1.25);
+    const wd1Light = new THREE.PointLight(0xa5d8ff, 8.5, 150, 1.2);
     wd1.add(wd1Light);
     innerBinary.add(wd1);
 
     const wd2 = new THREE.Group();
-    const wd2Material = createWhiteDwarfMaterial(0xf8fafc, 0x8f9dff, 2.6);
 
     const wd2Mesh = new THREE.Mesh(
-      new THREE.SphereGeometry(0.48, QUALITY.ultra.sphereSegments, QUALITY.ultra.sphereSegments),
+      new THREE.SphereGeometry(
+        0.5,
+        QUALITY.ultra.sphereSegments,
+        QUALITY.ultra.sphereSegments
+      ),
       wd2Material
     );
 
-    const wd2Corona = createVolumetricCorona(0x8f9dff, 2.4, 0.8);
+    const wd2Corona = createVolumetricCorona(0x8f9dff, 2.8, 0.85);
 
     wd2.add(wd2Mesh, wd2Corona);
 
-    const wd2Light = new THREE.PointLight(0xa5b4fc, 4.2, 110, 1.35);
+    const wd2Light = new THREE.PointLight(0xa5b4fc, 5.2, 140, 1.3);
     wd2.add(wd2Light);
     system.add(wd2);
 
@@ -1053,8 +1230,9 @@
     function createEllipse(radius, eccentricity, color, opacity) {
       const points = [];
 
-      for (let i = 0; i <= 360; i++) {
-        const angle = (i / 360) * Math.PI * 2;
+      for (let i = 0; i <= 480; i++) {
+        const angle = (i / 480) * Math.PI * 2;
+
         const r = radius * (1 - eccentricity * eccentricity) /
           (1 + eccentricity * Math.cos(angle));
 
@@ -1081,8 +1259,8 @@
     const radiusA = ORBIT.innerRadius * (1 - ORBIT.redDwarfShare);
     const radiusB = ORBIT.innerRadius * ORBIT.redDwarfShare;
 
-    const orbitA = createEllipse(radiusA, ORBIT.innerEccentricity, 0xff7a3d, 0.3);
-    const orbitB = createEllipse(radiusB, ORBIT.innerEccentricity, 0x5ec8ff, 0.38);
+    const orbitA = createEllipse(radiusA, ORBIT.innerEccentricity, 0xff7a3d, 0.24);
+    const orbitB = createEllipse(radiusB, ORBIT.innerEccentricity, 0x5ec8ff, 0.32);
 
     innerOrbits.add(orbitA, orbitB);
 
@@ -1100,17 +1278,17 @@
       ORBIT.outerRadius,
       ORBIT.outerEccentricity,
       0x8f9dff,
-      0.24
+      0.2
     );
 
     outerOrbit.rotation.x = ORBIT.inclination;
     orbitGroup.add(outerOrbit);
 
-    const innerComOrbit = createEllipse(3.1, ORBIT.outerEccentricity, 0x64748b, 0.16);
+    const innerComOrbit = createEllipse(3.2, ORBIT.outerEccentricity, 0x64748b, 0.13);
     innerComOrbit.rotation.x = ORBIT.inclination;
     orbitGroup.add(innerComOrbit);
 
-    function createTrail(color, count = 220) {
+    function createTrail(color, count = 280) {
       const positions = new Float32Array(count * 3);
       const geometry = new THREE.BufferGeometry();
 
@@ -1119,7 +1297,7 @@
       const line = new THREE.Line(geometry, new THREE.LineBasicMaterial({
         color,
         transparent: true,
-        opacity: 0.35,
+        opacity: 0.26,
         blending: THREE.AdditiveBlending
       }));
 
@@ -1177,8 +1355,10 @@
 
       const behind = temp.z > 1;
       const outside =
-        x < -150 || x > window.innerWidth + 150 ||
-        y < -150 || y > window.innerHeight + 150;
+        x < -180 ||
+        x > window.innerWidth + 180 ||
+        y < -180 ||
+        y > window.innerHeight + 180;
 
       if (behind || outside) {
         element.style.opacity = '0';
@@ -1190,7 +1370,7 @@
       element.style.transform = `translate3d(${x}px, ${y}px, 0)`;
     }
 
-    const targetPosition = new THREE.Vector3(0, 30, 68);
+    const targetPosition = new THREE.Vector3(0, 32, 78);
     const targetLook = new THREE.Vector3(0, 0, 0);
 
     const viewButtons = document.querySelectorAll('.view-btn');
@@ -1351,7 +1531,6 @@
     const qualityButton = document.getElementById('quality-btn');
     const qualityLabel = document.getElementById('quality-label');
     const renderScale = document.getElementById('render-scale');
-    const starCountLabel = document.getElementById('star-count');
 
     qualityButton.addEventListener('click', () => {
       const order = ['balanced', 'high', 'ultra'];
@@ -1367,8 +1546,6 @@
         next.charAt(0).toUpperCase() + next.slice(1);
 
       renderScale.textContent = `${settings.pixelRatio.toFixed(2)}x`;
-      starCountLabel.textContent = settings.stars.toLocaleString();
-
       qualityButton.textContent = `Quality: ${
         next.charAt(0).toUpperCase() + next.slice(1)
       }`;
@@ -1403,9 +1580,7 @@
 
       const mesh = hits[0].object;
 
-      if (mesh === redDwarfMesh) {
-        state.view = 'inner';
-      } else if (mesh === wd1Mesh) {
+      if (mesh === redDwarfMesh || mesh === wd1Mesh) {
         state.view = 'inner';
       } else if (mesh === wd2Mesh) {
         state.view = 'outer';
@@ -1490,27 +1665,19 @@
       }
 
       state.giant += (state.giantTarget - state.giant) *
-        Math.min(1, delta * 2.4);
-
-      redDwarfMaterial.uniforms.uTime.value = state.time;
-      wd1Material.uniforms.uTime.value = state.time;
-      wd2Material.uniforms.uTime.value = state.time;
-      skyMaterial.uniforms.uTime.value = state.time;
-
-      backgroundStars.material.uniforms.uTime.value = state.time;
+        Math.min(1, delta * 2.2);
 
       redDwarfCorona.material.uniforms.uTime.value = state.time;
       wd1Corona.material.uniforms.uTime.value = state.time;
       wd2Corona.material.uniforms.uTime.value = state.time;
 
-      cinematicPass.uniforms.uTime.value = state.time;
+      backgroundStars.material.uniforms.uTime.value = state.time;
+      lensPass.uniforms.uTime.value = state.time;
 
-      wd1Material.uniforms.uGiantMix.value = state.giant;
-
-      const giantScale = 1 + state.giant * 8.4;
+      const giantScale = 1 + state.giant * 8.6;
 
       wd1Mesh.scale.setScalar(giantScale);
-      wd1Corona.scale.setScalar(1 + state.giant * 5.2);
+      wd1Corona.scale.setScalar(1 + state.giant * 5.4);
 
       wd1Corona.material.uniforms.uColor.value.setHex(
         state.giant > 0.45 ? 0xff5a1f : 0x74d0ff
@@ -1535,8 +1702,8 @@
         Math.cos(inclination) * outerZ
       );
 
-      const innerComX = -Math.cos(outerAngle) * 3.1;
-      const innerComZ = -Math.sin(outerAngle) * 3.1;
+      const innerComX = -Math.cos(outerAngle) * 3.2;
+      const innerComZ = -Math.sin(outerAngle) * 3.2;
 
       innerBinary.position.set(
         innerComX,
@@ -1558,9 +1725,9 @@
         -Math.sin(innerAngle) * radiusB
       );
 
-      redDwarfMesh.rotation.y += delta * 0.28;
-      wd1Mesh.rotation.y += delta * 0.75;
-      wd2Mesh.rotation.y += delta * 0.58;
+      redDwarfMesh.rotation.y += delta * 0.22;
+      wd1Mesh.rotation.y += delta * 0.7;
+      wd2Mesh.rotation.y += delta * 0.55;
       barycenter.rotation.y += delta * 1.1;
 
       redDwarf.getWorldPosition(temp);
@@ -1575,27 +1742,27 @@
       if (!state.manualCamera) {
         if (state.view === 'overview') {
           targetLook.set(0, 0, 0);
-          targetPosition.set(0, 30, 68);
+          targetPosition.set(0, 32, 78);
         } else if (state.view === 'inner') {
           innerBinary.getWorldPosition(targetLook);
 
           targetPosition.set(
             targetLook.x + 3,
-            targetLook.y + 9,
-            targetLook.z + 22
+            targetLook.y + 10,
+            targetLook.z + 25
           );
         } else if (state.view === 'outer') {
           wd2.getWorldPosition(targetLook);
 
           targetPosition.set(
-            targetLook.x * 1.24,
-            targetLook.y + 4,
-            targetLook.z * 1.24 + 7
+            targetLook.x * 1.25,
+            targetLook.y + 4.5,
+            targetLook.z * 1.25 + 8
           );
         }
 
-        camera.position.lerp(targetPosition, Math.min(1, delta * 2.6));
-        controls.target.lerp(targetLook, Math.min(1, delta * 4));
+        camera.position.lerp(targetPosition, Math.min(1, delta * 2.4));
+        controls.target.lerp(targetLook, Math.min(1, delta * 3.8));
       } else if (state.view === 'inner') {
         innerBinary.getWorldPosition(targetLook);
         controls.target.lerp(targetLook, Math.min(1, delta * 5));
@@ -1606,9 +1773,9 @@
 
       controls.update();
 
-      updateLabel(labelA, redDwarf, 2.1);
-      updateLabel(labelB, wd1, 0.9 + state.giant * 4.4);
-      updateLabel(labelC, wd2, 0.9);
+      updateLabel(labelA, redDwarf, 2.4);
+      updateLabel(labelB, wd1, 1 + state.giant * 5);
+      updateLabel(labelC, wd2, 1);
 
       composer.render();
     }
