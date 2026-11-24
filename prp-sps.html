@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Hyperreal Space Journey — Prototype</title>
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#000;color:#dff;font-family:Inter,system-ui,sans-serif}
+  canvas{display:block}
+  #hud{position:fixed;left:18px;top:18px;z-index:10;max-width:360px;padding:14px 16px;
+    background:rgba(5,10,20,.72);border:1px solid rgba(90,200,255,.25);border-radius:14px;
+    backdrop-filter:blur(10px);font-size:13px;line-height:1.45}
+  #hud h1{margin:0 0 8px;font-size:16px;letter-spacing:.06em;text-transform:uppercase;color:#8fd7ff}
+  #hud b{color:#fff}
+  #destinations{position:fixed;right:18px;top:18px;z-index:10;width:290px;padding:14px;
+    background:rgba(5,10,20,.72);border:1px solid rgba(90,200,255,.25);border-radius:14px;backdrop-filter:blur(10px)}
+  #destinations h2{margin:0 0 10px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#8fd7ff}
+  button{display:block;width:100%;margin:7px 0;padding:9px 10px;border:1px solid rgba(120,220,255,.28);
+    background:rgba(10,30,50,.55);color:#dff;border-radius:9px;cursor:pointer;font-size:12.5px;text-align:left}
+  button:hover{background:rgba(30,90,140,.65);border-color:#7fe0ff}
+  #crossSection{position:fixed;inset:auto 18px 18px 18px;z-index:10;display:none;padding:16px;
+    background:rgba(5,10,20,.78);border:1px solid rgba(90,200,255,.3);border-radius:14px;backdrop-filter:blur(10px)}
+  #close{position:absolute;right:10px;top:8px;background:none;border:none;color:#9ff;font-size:20px;cursor:pointer}
+  .tag{display:inline-block;margin:2px 4px 2px 0;padding:3px 8px;border-radius:99px;
+    background:rgba(80,180,255,.16);border:1px solid rgba(120,220,255,.28);font-size:11px}
+</style>
+</head>
+<body>
+
+<div id="hud">
+  <h1>Hyperreal Space Journey</h1>
+  <div><b>Location:</b> <span id="location">Earth orbit</span></div>
+  <div><b>Velocity:</b> <span id="velocity">0.00 c</span></div>
+  <div><b>Distance:</b> <span id="distance">0 ly</span></div>
+  <div><b>Mode:</b> <span id="mode">Free flight</span></div>
+  <div style="margin-top:8px;color:#9fd">W/S thrust · A/D yaw · Q/E roll · Shift boost · Click object to inspect</div>
+</div>
+
+<div id="destinations">
+  <h2>Destinations</h2>
+  <button data-target="earth">Earth — surface approach</button>
+  <button data-target="moon">Moon — lunar landing</button>
+  <button data-target="mars">Mars — rusty desert world</button>
+  <button data-target="jupiter">Jupiter — gas giant flyby</button>
+  <button data-target="proxima">Proxima b — exoplanet landing</button>
+  <button data-target="trappist">TRAPPIST-1 e — temperate world</button>
+  <button data-target="blackhole">Sagittarius A* — relativistic flyby</button>
+  <button data-target="cosmicweb">Cosmic web — large-scale structure</button>
+  <button data-target="beyond">Beyond observable horizon — theoretical</button>
+</div>
+
+<div id="crossSection">
+  <button id="close">×</button>
+  <h3 id="csTitle">Object interior</h3>
+  <div id="csBody"></div>
+</div>
+
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.169.0/build/three.module.js",
+"three/addons/":"https://unpkg.com/three@0.169.0/examples/jsm/"}}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+
+const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth,innerHeight);
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.05;
+document.body.appendChild(renderer.domElement);
+
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,.01,1e12);
+camera.position.set(0,8,42);
+
+const controls=new OrbitControls(camera,renderer.domElement);
+controls.enableDamping=true;
+controls.dampingFactor=.06;
+controls.minDistance=.2;
+controls.maxDistance=5e6;
+
+scene.add(new THREE.AmbientLight(0x223344,.35));
+const sunLight=new THREE.PointLight(0xfff2d0,5,0,0);
+scene.add(sunLight);
+
+// Starfield
+const starCount=90000;
+const starGeo=new THREE.BufferGeometry();
+const pos=new Float32Array(starCount*3), col=new Float32Array(starCount*3);
+for(let i=0;i<starCount;i++){
+  const r=2e5+Math.random()*8e5;
+  const t=Math.random()*Math.PI*2, p=Math.acos(2*Math.random()-1);
+  pos[i*3]=r*Math.sin(p)*Math.cos(t);
+  pos[i*3+1]=r*Math.cos(p)*.65;
+  pos[i*3+2]=r*Math.sin(p)*Math.sin(t);
+  const c=new THREE.Color().setHSL(.55+Math.random()*.12,.55,.55+Math.random()*.35);
+  col[i*3]=c.r; col[i*3+1]=c.g; col[i*3+2]=c.b;
+}
+starGeo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+starGeo.setAttribute('color',new THREE.BufferAttribute(col,3));
+scene.add(new THREE.Points(starGeo,new THREE.PointsMaterial({size:130,vertexColors:true,sizeAttenuation:true,transparent:true,opacity:.9})));
+
+// Milky Way band
+const galaxy=new THREE.Points();
+{
+  const n=160000, p=new Float32Array(n*3), c=new Float32Array(n*3);
+  for(let i=0;i<n;i++){
+    const arm=(i%4)*(Math.PI/2), radius=Math.pow(Math.random(),.55)*9e5;
+    const angle=arm+radius/110000+Math.random()*.28;
+    const thickness=9000*Math.exp(-radius/240000);
+    p[i*3]=Math.cos(angle)*radius;
+    p[i*3+1]=(Math.random()-.5)*thickness;
+    p[i*3+2]=Math.sin(angle)*radius;
+    const c2=new THREE.Color().setHSL(.08+Math.random()*.5,.7,.35+Math.random()*.45);
+    c[i*3]=c2.r; c[i*3+1]=c2.g; c[i*3+2]=c2.b;
+  }
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.BufferAttribute(p,3));
+  g.setAttribute('color',new THREE.BufferAttribute(c,3));
+  galaxy.geometry=g;
+  galaxy.material=new THREE.PointsMaterial({size:220,vertexColors:true,transparent:true,opacity:.55,depthWrite:false});
+  galaxy.rotation.x=-.22;
+  scene.add(galaxy);
+}
+
+function makePlanet(radius,color,rough=.85,emissive=0x000000){
+  const geo=new THREE.SphereGeometry(radius,128,96);
+  const mat=new THREE.MeshStandardMaterial({color,roughness:rough,metalness:.05,emissive,emissiveIntensity:.6});
+  const mesh=new THREE.Mesh(geo,mat);
+  return mesh;
+}
+
+function makeAtmosphere(radius,color,power=3.2,intensity=1.1){
+  const mat=new THREE.ShaderMaterial({
+    transparent:true,side:THREE.BackSide,blending:THREE.AdditiveBlending,depthWrite:false,
+    uniforms:{uColor:{value:new THREE.Color(color)},uPower:{value:power},uIntensity:{value:intensity}},
+    vertexShader:`
+      varying vec3 vN; varying vec3 vView;
+      void main(){ vN=normalize(normalMatrix*normal);
+        vec4 mv=modelViewMatrix*vec4(position,1.); vView=normalize(-mv.xyz);
+        gl_Position=projectionMatrix*mv; }`,
+    fragmentShader:`
+      uniform vec3 uColor; uniform float uPower,uIntensity;
+      varying vec3 vN,vView;
+      void main(){ float f=pow(1.-abs(dot(vN,vView)),uPower);
+        gl_FragColor=vec4(uColor,1.)*f*uIntensity; }`
+  });
+  return new THREE.Mesh(new THREE.SphereGeometry(radius*1.045,96,64),mat);
+}
+
+const bodies={};
+function addBody(name,radius,color,distance,parent=scene,atmosphere=null){
+  const pivot=new THREE.Object3D(); parent.add(pivot);
+  const body=makePlanet(radius,color); pivot.add(body);
+  body.position.x=distance;
+  if(atmosphere) body.add(makeAtmosphere(radius,...atmosphere));
+  bodies[name]={pivot,body,radius,distance};
+  return bodies[name];
+}
+
+const sun=makePlanet(18,0xffcc55,.25,0xffb545);
+scene.add(sun);
+sunLight.position.set(0,0,0);
+
+addBody('earth',3.2,0x1b6ec2,95,scene,[0x66bbff,3.0,1.35]);
+addBody('moon',.85,0xb9b9b9,9,bodies.earth.pivot);
+addBody('mars',1.7,0xb4552c,150,scene,[0xff7744,3.4,.45]);
+addBody('jupiter',9.5,0xc79a68,340,scene,[0xffd9a0,3.6,.55]);
+
+// Asteroid belt
+const belt=new THREE.InstancedMesh(
+  new THREE.IcosahedronGeometry(.35,0),
+  new THREE.MeshStandardMaterial({color:0x8a7a6a,roughness:1}),
+  5000
+);
+const dummy=new THREE.Object3D();
+for(let i=0;i<5000;i++){
+  const a=Math.random()*Math.PI*2, r=215+Math.random()*45;
+  dummy.position.set(Math.cos(a)*r,(Math.random()-.5)*8,Math.sin(a)*r);
+  dummy.rotation.set(Math.random()*6,Math.random()*6,Math.random()*6);
+  dummy.scale.setScalar(.4+Math.random()*1.6);
+  dummy.updateMatrix(); belt.setMatrixAt(i,dummy.matrix);
+}
+scene.add(belt);
+
+// Exoplanets — procedural stand-ins for catalog-driven worlds
+const exoplanets=[
+ {key:'proxima',name:'Proxima b',radius:2.4,color:0x6a4a32,distance:1.6e6,info:'Potentially rocky planet orbiting Proxima Centauri; surface conditions remain observationally uncertain.'},
+ {key:'trappist',name:'TRAPPIST-1 e',radius:2.1,color:0x2e7d8c,distance:2.4e6,info:'A roughly Earth-sized temperate-zone exoplanet; atmosphere and surface composition are still active research topics.'}
+];
+for(const p of exoplanets){
+  const b=addBody(p.key,p.radius,p.color,p.distance,scene,[0x88ccff,3.1,.8]);
+  b.body.userData.info=p;
+}
+
+// Black hole: event horizon + accretion disk
+const bh=new THREE.Group(); bh.position.set(5e6,0,-3e6); scene.add(bh);
+const horizon=new THREE.Mesh(new THREE.SphereGeometry(70,64,48),new THREE.MeshBasicMaterial({color:0x000000}));
+bh.add(horizon);
+const disk=new THREE.Mesh(new THREE.RingGeometry(105,340,256,8),
+  new THREE.MeshBasicMaterial({color:0xffaa33,transparent:true,opacity:.55,side:THREE.DoubleSide}));
+disk.rotation.x=Math.PI/2.15; bh.add(disk);
+
+// Cosmic web particles
+const web=new THREE.Points();
+{
+  const n=120000,p=new Float32Array(n*3),c=new Float32Array(n*3);
+  for(let i=0;i<n;i++){
+    const filament=Math.random()<.72;
+    const r=8e6+Math.random()*4e7;
+    const t=Math.random()*Math.PI*2, y=(Math.random()-.5)*(filament?4e6:2.4e7);
+    const x=Math.cos(t)*r*(filament?.12:1), z=Math.sin(t)*r*(filament?.12:1);
+    p[i*3]=x;p[i*3+1]=y;p[i*3+2]=z;
+    const c2=new THREE.Color().setHSL(.58+Math.random()*.08,.75,.45+Math.random()*.3);
+    c[i*3]=c2.r;c[i*3+1]=c2.g;c[i*3+2]=c2.b;
+  }
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.BufferAttribute(p,3));
+  g.setAttribute('color',new THREE.BufferAttribute(c,3));
+  web.geometry=g;
+  web.material=new THREE.PointsMaterial({size:900,vertexColors:true,transparent:true,opacity:.35,depthWrite:false});
+  web.visible=false; scene.add(web);
+}
+
+// Travel system
+const ship={position:new THREE.Vector3(),target:new THREE.Vector3(),speed:0,destination:null};
+const ui={
+  location:document.getElementById('location'),
+  velocity:document.getElementById('velocity'),
+  distance:document.getElementById('distance'),
+  mode:document.getElementById('mode'),
+  cross:document.getElementById('crossSection'),
+  csTitle:document.getElementById('csTitle'),
+  csBody:document.getElementById('csBody')
+};
+
+function showInterior(title,html){
+  ui.csTitle.textContent=title;
+  ui.csBody.innerHTML=html;
+  ui.cross.style.display='block';
+}
+document.getElementById('close').onclick=()=>ui.cross.style.display='none';
+
+function travelTo(key){
+  const positions={
+    earth:new THREE.Vector3(95,6,0),
+    moon:bodies.earth.pivot.position.clone().add(new THREE.Vector3(9,2,0)),
+    mars:new THREE.Vector3(150,8,0),
+    jupiter:new THREE.Vector3(340,18,0),
+    proxima:new THREE.Vector3(1.6e6,0,0),
+    trappist:new THREE.Vector3(2.4e6,0,0),
+    blackhole:bh.position.clone().add(new THREE.Vector3(900,180,900)),
+    cosmicweb:new THREE.Vector3(2.2e7,0,0),
+    beyond:new THREE.Vector3(6e7,0,0)
+  };
+  ship.target.copy(positions[key]||new THREE.Vector3());
+  ship.destination=key;
+  ui.mode.textContent = key==='beyond' ? 'Theoretical expansion' : 'Warp transit';
+  if(key==='blackhole'){
+    showInterior('Sagittarius A* — cross-section',`
+      <span class="tag">Event horizon</span><span class="tag">Accretion disk</span><span class="tag">Relativistic jets</span>
+      <p>This visualization represents a supermassive black-hole environment. The dark sphere is an event-horizon representation; infalling matter heats and emits strongly before crossing the horizon.</p>`);
+  }
+  if(key==='cosmicweb'){
+    web.visible=true;
+    showInterior('Cosmic web',`
+      <span class="tag">Galaxy filaments</span><span class="tag">Voids</span><span class="tag">Dark matter scaffold</span>
+      <p>Galaxies concentrate along filaments surrounding vast voids. This structure is a large-scale consequence of gravitational growth from early density fluctuations.</p>`);
+  }
+  if(key==='beyond'){
+    showInterior('Beyond the observable horizon',`
+      <span class="tag">Theoretical</span><span class="tag">Cosmic inflation</span><span class="tag">Unobservable universe</span>
+      <p>Regions beyond our observable horizon cannot currently be observed because light from them has not had time to reach us. Their properties are modeled through cosmological theory, not direct measurement.</p>`);
+  }
+}
+
+document.querySelectorAll('#destinations button').forEach(b=>{
+  b.onclick=()=>travelTo(b.dataset.target);
+});
+
+renderer.domElement.addEventListener('pointerdown',e=>{
+  const ndc=new THREE.Vector2((e.clientX/innerWidth)*2-1,-(e.clientY/innerHeight)*2+1);
+  const ray=new THREE.Raycaster(); ray.setFromCamera(ndc,camera);
+  const hits=ray.intersectObjects(Object.values(bodies).map(b=>b.body),false);
+  if(hits.length){
+    const body=hits[0].object;
+    const info=body.userData.info;
+    if(info){
+      showInterior(`${info.name} — landing profile`,`
+        <span class="tag">Radius</span><span class="tag">Gravity</span><span class="tag">Atmosphere</span><span class="tag">Terrain</span>
+        <p>${info.info}</p>
+        <p><b>Simulated landing:</b> procedural surface, atmospheric entry effects, terrain displacement, and a layered interior cross-section.</p>`);
+      ship.target.copy(body.getWorldPosition(new THREE.Vector3()));
+      ship.destination=info.key;
+      ui.mode.textContent='Planetary descent';
+    }
+  }
+});
+
+const keys={};
+addEventListener('keydown',e=>keys[e.code]=true);
+addEventListener('keyup',e=>keys[e.code]=false);
+
+const clock=new THREE.Clock();
+function animate(){
+  requestAnimationFrame(animate);
+  const dt=Math.min(clock.getDelta(),.05), t=clock.elapsedTime;
+
+  bodies.earth.pivot.rotation.y=t*.09;
+  bodies.moon.pivot.rotation.y=t*.55;
+  bodies.mars.pivot.rotation.y=t*.06;
+  bodies.jupiter.pivot.rotation.y=t*.04;
+
+  if(ship.destination){
+    const to=ship.target.clone().sub(camera.position);
+    const d=to.length();
+    ship.speed=THREE.MathUtils.lerp(ship.speed,Math.min(d*.55,2.4e6),.045);
+    if(d>2) camera.position.add(to.normalize().multiplyScalar(ship.speed*dt));
+    if(d<4){ ship.destination=null; ship.speed=0; ui.mode.textContent='Arrived'; }
+    ui.velocity.textContent=(ship.speed/299792458).toFixed(4)+' c';
+    ui.distance.textContent=(d/9.461e15).toFixed(4)+' ly';
+  }
+
+  sunLight.position.copy(sun.position);
+  controls.update();
+  renderer.render(scene,camera);
+}
+animate();
+
+addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
+</script>
+</body>
+</html>
