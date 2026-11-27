@@ -1,0 +1,81 @@
+name: Update article projects manifest
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "dynamic-space-sim/article_to_html/*.html"
+      - ".github/workflows/update-article-projects.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-projects:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate projects.json
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+
+          const directory = 'dynamic-space-sim/article_to_html';
+          const manifestPath = path.join(directory, 'projects.json');
+
+          let existing = [];
+          if (fs.existsSync(manifestPath)) {
+            existing = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+          }
+
+          const existingTitles = new Map(
+            existing.map(project => [project.path, project.title])
+          );
+
+          const files = fs.readdirSync(directory, { withFileTypes: true })
+            .filter(entry =>
+              entry.isFile() &&
+              entry.name.toLowerCase().endsWith('.html')
+            )
+            .map(entry => entry.name)
+            .filter(name =>
+              !['index.html', 'tmp.html'].includes(name.toLowerCase())
+            )
+            .sort((a, b) => a.localeCompare(b));
+
+          const projects = files.map(filename => {
+            const projectPath = `${directory}/${filename}`;
+            const fallbackTitle = path.basename(filename, path.extname(filename))
+              .replace(/[-_]+/g, ' ')
+              .replace(/\b\w/g, character => character.toUpperCase());
+
+            return {
+              title: existingTitles.get(projectPath) || fallbackTitle,
+              relativePath: filename,
+              path: projectPath
+            };
+          });
+
+          fs.writeFileSync(
+            manifestPath,
+            `${JSON.stringify(projects, null, 2)}\n`
+          );
+          NODE
+
+      - name: Commit updated manifest
+        run: |
+          if git diff --quiet -- dynamic-space-sim/article_to_html/projects.json; then
+            echo "projects.json is already up to date."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add dynamic-space-sim/article_to_html/projects.json
+          git commit -m "Update article projects manifest"
+          git push
