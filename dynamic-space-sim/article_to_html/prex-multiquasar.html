@@ -715,7 +715,6 @@ function frame() {
   gl.drawArrays(gl.TRIANGLES, 0, 3);
 
   const missionTime = Math.min(transitPhase, 1.0) * 6.1;
-
   const velocity = Math.abs(
     Math.sin(Math.PI * Math.min(transitPhase, 1.0))
   ) * 0.66;
