@@ -5,9 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HYPERREAL — Casimir Wormhole Transit</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
 
-  html, body {
+  html,
+  body {
     width: 100%;
     height: 100%;
     overflow: hidden;
@@ -54,7 +59,9 @@
     margin: 5px 0;
   }
 
-  .val { color: #8ef7c3; }
+  .val {
+    color: #8ef7c3;
+  }
 
   label {
     display: block;
@@ -89,7 +96,9 @@
     transition: background .18s ease;
   }
 
-  button:hover { background: rgba(45, 100, 180, .55); }
+  button:hover {
+    background: rgba(45, 100, 180, .55);
+  }
 
   .title {
     position: fixed;
@@ -106,8 +115,13 @@
   }
 
   @media (max-width: 640px) {
-    .hud { max-width: calc(100vw - 28px); }
-    .title { display: none; }
+    .hud {
+      max-width: calc(100vw - 28px);
+    }
+
+    .title {
+      display: none;
+    }
   }
 </style>
 </head>
@@ -118,10 +132,25 @@
 <div class="hud">
   <h1>HYPERREAL WORMHOLE TRANSIT</h1>
 
-  <div class="row"><span>MISSION TIME</span><span class="val" id="t">0.00 / 6.10 d</span></div>
-  <div class="row"><span>VELOCITY</span><span class="val" id="v">0.000 c</span></div>
-  <div class="row"><span>THROAT RADIUS</span><span class="val" id="r">100,000 km</span></div>
-  <div class="row"><span>TIDAL LOAD</span><span class="val" id="g">0.85 g</span></div>
+  <div class="row">
+    <span>MISSION TIME</span>
+    <span class="val" id="t">0.00 / 6.10 d</span>
+  </div>
+
+  <div class="row">
+    <span>VELOCITY</span>
+    <span class="val" id="v">0.000 c</span>
+  </div>
+
+  <div class="row">
+    <span>THROAT RADIUS</span>
+    <span class="val" id="r">100,000 km</span>
+  </div>
+
+  <div class="row">
+    <span>TIDAL LOAD</span>
+    <span class="val" id="g">0.85 g</span>
+  </div>
 
   <label>Throat Radius</label>
   <input id="radius" type="range" min="0.18" max="1.65" step="0.01" value="0.85">
@@ -142,10 +171,13 @@
   </div>
 </div>
 
-<div class="title">DRAG TO ORBIT · SCROLL TO ZOOM · SPACE TO PAUSE</div>
+<div class="title">
+  DRAG TO ORBIT · SCROLL TO ZOOM · SPACE TO PAUSE
+</div>
 
 <script>
 const canvas = document.getElementById('gl');
+
 const gl = canvas.getContext('webgl2', {
   antialias: false,
   powerPreference: 'high-performance'
@@ -154,11 +186,13 @@ const gl = canvas.getContext('webgl2', {
 if (!gl) {
   document.body.innerHTML =
     '<p style="color:#fff;padding:30px;font-family:sans-serif">This browser does not support WebGL2.</p>';
+
   throw new Error('WebGL2 is required.');
 }
 
 const vertexShaderSource = `#version 300 es
 layout(location = 0) in vec2 position;
+
 void main() {
   gl_Position = vec4(position, 0.0, 1.0);
 }`;
@@ -269,6 +303,7 @@ vec3 nebula(vec3 direction) {
   float layer3 = fbm3D(direction * 9.5 + uTime * 0.006);
 
   vec3 color = vec3(0.0);
+
   color += vec3(0.035, 0.10, 0.28) * smoothstep(0.42, 0.95, layer1);
   color += vec3(0.16, 0.05, 0.32) * smoothstep(0.52, 0.98, layer2) * 0.75;
   color += vec3(0.02, 0.09, 0.20) * smoothstep(0.60, 1.0, layer3);
@@ -353,6 +388,7 @@ vec3 renderRay(vec3 rayOrigin, vec3 rayDirection) {
       vec3 emission = diskColor(diskRadius, angle) * uEnergy;
 
       float innerFalloff = max(0.0, 1.0 - diskRadius / 3.2);
+
       emission += vec3(0.25, 0.65, 1.4) *
         pow(innerFalloff, 4.0) *
         uEnergy * 0.55;
@@ -416,6 +452,7 @@ void main() {
   vec3 color = renderRay(rayOrigin, rayDirection);
 
   float speed = abs(sin(PI * clamp(uTransitPhase, 0.0, 1.0))) * 0.66;
+
   vec3 doppler = mix(
     vec3(1.0),
     vec3(0.55, 0.75, 1.55),
@@ -442,6 +479,7 @@ void main() {
   bloom *= 0.125;
 
   vec3 bloomInput = max(bloom - vec3(0.035), vec3(0.0));
+
   color += pow(bloomInput, vec3(1.45)) * 0.85;
 
   color *= uExposure;
@@ -469,6 +507,7 @@ void main() {
 
 function compileShader(type, source) {
   const shader = gl.createShader(type);
+
   gl.shaderSource(shader, source);
   gl.compileShader(shader);
 
@@ -504,7 +543,9 @@ if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
 gl.useProgram(program);
 
 const fullscreenBuffer = gl.createBuffer();
+
 gl.bindBuffer(gl.ARRAY_BUFFER, fullscreenBuffer);
+
 gl.bufferData(
   gl.ARRAY_BUFFER,
   new Float32Array([
@@ -538,6 +579,8 @@ let yaw = 0.65;
 let pitch = 0.18;
 let cameraDistance = 5.4;
 let transitPhase = 0.0;
+
+const PI = Math.PI;
 
 const radiusInput = document.getElementById('radius');
 const energyInput = document.getElementById('energy');
@@ -574,6 +617,7 @@ window.addEventListener('pointermove', event => {
   if (!dragging) return;
 
   yaw += (event.clientX - lastX) * 0.0045;
+
   pitch = Math.max(
     -1.35,
     Math.min(1.35, pitch + (event.clientY - lastY) * 0.0035)
@@ -601,6 +645,7 @@ window.addEventListener('keydown', event => {
 
 function togglePause() {
   paused = !paused;
+
   document.getElementById('pause').textContent =
     paused ? 'RESUME' : 'PAUSE';
 }
@@ -609,6 +654,7 @@ document.getElementById('pause').addEventListener('click', togglePause);
 
 document.getElementById('cinema').addEventListener('click', event => {
   cinemaCamera = !cinemaCamera;
+
   event.target.textContent = cinemaCamera
     ? 'CINEMA CAM'
     : 'FREE CAM';
@@ -669,8 +715,9 @@ function frame() {
   gl.drawArrays(gl.TRIANGLES, 0, 3);
 
   const missionTime = Math.min(transitPhase, 1.0) * 6.1;
+
   const velocity = Math.abs(
-    Math.sin(PI * Math.min(transitPhase, 1.0))
+    Math.sin(Math.PI * Math.min(transitPhase, 1.0))
   ) * 0.66;
 
   document.getElementById('t').textContent =
