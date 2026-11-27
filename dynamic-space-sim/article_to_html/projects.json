@@ -1,8 +1,28 @@
 [
   {
+    "title": "Claude Beyond Observable Universe",
+    "relativePath": "claude-beyond_observble_universe.html",
+    "path": "dynamic-space-sim/article_to_html/claude-beyond_observble_universe.html"
+  },
+  {
     "title": "Claude Burst",
     "relativePath": "claude-burst.html",
     "path": "dynamic-space-sim/article_to_html/claude-burst.html"
+  },
+  {
+    "title": "Copilot Space",
+    "relativePath": "copilot-space.html",
+    "path": "dynamic-space-sim/article_to_html/copilot-space.html"
+  },
+  {
+    "title": "Cosmic Lockdown Quantum Wormhole",
+    "relativePath": "Cosmic_Lockdown_Quantum_wormhole.html",
+    "path": "dynamic-space-sim/article_to_html/Cosmic_Lockdown_Quantum_wormhole.html"
+  },
+  {
+    "title": "Earth to Andromeda Wormhole",
+    "relativePath": "Earth_to_Andromeda_wormhole.html",
+    "path": "dynamic-space-sim/article_to_html/Earth_to_Andromeda_wormhole.html"
   },
   {
     "title": "Gemini Betelgeuse",
@@ -70,48 +90,53 @@
     "path": "dynamic-space-sim/article_to_html/gemini-space.html"
   },
   {
+    "title": "GeminiJ16024228AB",
+    "relativePath": "geminiJ16024228AB.html",
+    "path": "dynamic-space-sim/article_to_html/geminiJ16024228AB.html"
+  },
+  {
+    "title": "GPT Edge of Universe Theories",
+    "relativePath": "gpt-edge_of_universe_theories.html",
+    "path": "dynamic-space-sim/article_to_html/gpt-edge_of_universe_theories.html"
+  },
+  {
     "title": "GPT Space",
     "relativePath": "gpt-space.html",
     "path": "dynamic-space-sim/article_to_html/gpt-space.html"
   },
   {
+    "title": "Intergalactic Traversable Wormhole",
+    "relativePath": "Intergalactic_Traversable_wormhole.html",
+    "path": "dynamic-space-sim/article_to_html/Intergalactic_Traversable_wormhole.html"
+  },
+  {
+    "title": "Perplexity Beyond Observable Universe",
+    "relativePath": "Perplexity-Beyond_Observable_Universe.html",
+    "path": "dynamic-space-sim/article_to_html/Perplexity-Beyond_Observable_Universe.html"
+  },
+  {
+    "title": "Perplexity Star System",
+    "relativePath": "perplexity-Star-System.html",
+    "path": "dynamic-space-sim/article_to_html/perplexity-Star-System.html"
+  },
+  {
+    "title": "PerplexityJ16024228AB",
+    "relativePath": "PerplexityJ16024228AB.html",
+    "path": "dynamic-space-sim/article_to_html/PerplexityJ16024228AB.html"
+  },
+  {
+    "title": "Prex Multiquasar",
+    "relativePath": "prex-multiquasar.html",
+    "path": "dynamic-space-sim/article_to_html/prex-multiquasar.html"
+  },
+  {
+    "title": "Welopoai Triple Stars System",
+    "relativePath": "welopoai-triple-stars-system.html",
+    "path": "dynamic-space-sim/article_to_html/welopoai-triple-stars-system.html"
+  },
+  {
     "title": "X-Ray Burst",
     "relativePath": "xray-burst-gemini.html",
     "path": "dynamic-space-sim/article_to_html/xray-burst-gemini.html"
-  },
-  {
-    "title": "Deep Space AI",
-    "relativePath": "deep-space-ai.html",
-    "path": "dynamic-space-sim/deep-space-ai.html"
-  },
-  {
-   "title": "Cosmic Lockdown Quantum Wormhole",
-   "relativePath": "Cosmic_Lockdown_Quantum_wormhole.html",
-   "path": "dynamic-space-sim/article_to_html/Cosmic_Lockdown_Quantum_wormhole.html"
-},
-{
-  "title": "Earth to Andromeda Wormhole",
-  "relativePath": "Earth_to_Andromeda_wormhole.html",
-  "path": "dynamic-space-sim/article_to_html/Earth_to_Andromeda_wormhole.html"
-},
-{
-  "title": "Intergalactic Traversable Wormhole",
-  "relativePath": "Intergalactic_Traversable_wormhole.html",
-  "path": "dynamic-space-sim/article_to_html/Intergalactic_Traversable_wormhole.html"
-},
-{
-  "title": "GPT Edge of Universe Theories",
-  "relativePath": "gpt-edge_of_universe_theories.html",
-  "path": "dynamic-space-sim/article_to_html/gpt-edge_of_universe_theories.html"
-},
-{
-  "title": "Perplexity Beyond Observable Universe",
-  "relativePath": "Perplexity-Beyond_Observable_Universe.html",
-  "path": "dynamic-space-sim/article_to_html/Perplexity-Beyond_Observable_Universe.html"
-},
-{
-  "title": "Claude Beyond Observable Universe",
-  "relativePath": "claude-beyond_observble_universe.html",
-  "path": "dynamic-space-sim/article_to_html/claude-beyond_observble_universe.html"
-}
+  }
 ]
