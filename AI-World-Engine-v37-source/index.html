@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>A.I. World Engine — Hyper-Real Space Simulator v37</title>
+  <meta name="description" content="Voice-driven, AI-generated, physically based real-time space simulator built on WebGL2." />
+  <meta name="theme-color" content="#03060c" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%227%22 fill=%22%236fd3ff%22/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./style.css" />
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <button id="mobile-toggle-btn" class="icon-btn" aria-label="Toggle control panel" aria-expanded="false">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+  </button>
+
+  <div id="app-container">
+    <aside id="sidebar" aria-label="Flight controls">
+      <header class="brand">
+        <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+          <circle cx="16" cy="16" r="6" fill="none" stroke="currentColor" stroke-width="2"/>
+          <ellipse cx="16" cy="16" rx="14" ry="5" fill="none" stroke="currentColor" stroke-width="1.4" transform="rotate(-24 16 16)"/>
+          <circle cx="27" cy="10" r="1.6" fill="currentColor"/>
+        </svg>
+        <div>
+          <div class="brand-title">A.I. WORLD ENGINE</div>
+          <div class="brand-sub">Hyper-real renderer · v37</div>
+        </div>
+      </header>
+
+      <section class="card" id="api-card">
+        <div class="card-head"><span>Neural link</span><span id="token-status" class="status-pill">Offline</span></div>
+        <label class="field"><span>Gemini API key</span>
+          <input type="password" id="hf-token-input" placeholder="AIza…" autocomplete="off" spellcheck="false" /></label>
+        <label class="field"><span>Groq API key</span>
+          <input type="password" id="groq-token-input" placeholder="gsk_…" autocomplete="off" spellcheck="false" /></label>
+        <button id="save-token-btn" class="btn btn-ghost">Connect</button>
+        <p class="hint">Without keys the engine uses keyless AI and built-in NASA-referenced presets.</p>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><span>Comms</span><span class="mono dim" id="audio-status-text">Systems nominal</span></div>
+        <select id="lang-select" aria-label="Language"></select>
+        <div class="command-row">
+          <button id="mic-btn" class="mic" aria-label="Voice command">
+            <svg id="mic-icon" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+          </button>
+          <input type="text" id="manual-input" placeholder="Navigate to… (e.g. Saturn, a lava world, Andromeda)" autocomplete="off" />
+          <button id="send-btn" class="btn btn-primary" aria-label="Engage">Engage</button>
+        </div>
+        <div class="chips" id="destinations"></div>
+        <div class="theory-row">
+          <label class="toggle"><input type="checkbox" id="t-theory" /><span>Theoretical mode</span></label>
+          <span class="mono dim">Hypotheses beyond observation</span>
+        </div>
+        <div class="chips chips-theory" id="theory-destinations"></div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><span>Sector</span><span class="mono dim" id="source-label">—</span></div>
+        <span id="theory-badge" class="theory-badge" hidden>Hypothesis · not observed</span>
+        <h1 id="sector-title">Initializing…</h1>
+        <p id="sector-lore">Calibrating the hyper-real renderer.</p>
+        <div id="theory-card" class="theory-card" hidden>
+          <div class="theory-name" id="theory-name"></div>
+          <div class="theory-k">Basis</div><p id="theory-basis"></p>
+          <div class="theory-k">Observability</div><p id="theory-obs"></p>
+        </div>
+        <div id="transcript" class="transcript" aria-live="polite"></div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><span>Render</span><span class="mono dim" id="render-res">—</span></div>
+        <label class="field row"><span>Quality</span>
+          <select id="quality-select">
+            <option value="performance">Performance</option>
+            <option value="high">High (native)</option>
+            <option value="ultra">Ultra 4K</option>
+          </select>
+        </label>
+        <div class="toggles">
+          <label class="toggle"><input type="checkbox" id="t-bloom" checked /><span>Bloom</span></label>
+          <label class="toggle"><input type="checkbox" id="t-cinematic" checked /><span>Film look</span></label>
+          <label class="toggle"><input type="checkbox" id="t-flare" checked /><span>Lens flare</span></label>
+          <label class="toggle"><input type="checkbox" id="t-orbits" checked /><span>Orbits</span></label>
+          <label class="toggle"><input type="checkbox" id="t-autoorbit" checked /><span>Auto-orbit</span></label>
+          <label class="toggle"><input type="checkbox" id="t-aitex" /><span>AI textures</span></label>
+          <label class="toggle"><input type="checkbox" id="t-voice" checked /><span>Narration</span></label>
+          <label class="toggle"><input type="checkbox" id="t-music" checked /><span>Ambience</span></label>
+        </div>
+        <div class="btn-row">
+          <button id="capture-btn" class="btn btn-ghost">Capture 4K still</button>
+          <button id="fullscreen-btn" class="btn btn-ghost">Fullscreen</button>
+        </div>
+        <a id="capture-link" class="capture-link" hidden download="world-engine-4k.png">Download PNG</a>
+      </section>
+
+      <details class="card">
+        <summary class="card-head"><span>World config (JSON)</span></summary>
+        <pre id="code-preview"></pre>
+      </details>
+    </aside>
+
+    <main id="viewport">
+      <div id="hud-overlay" aria-hidden="false">
+        <div class="hud-tl">
+          <div class="hud-label">NAV</div>
+          <div id="hud-nav-status" class="hud-value">Standby</div>
+          <div id="hud-theory" class="hud-theory" hidden>THEORETICAL · HYPOTHESIS</div>
+        </div>
+        <div class="hud-tr mono">
+          <span id="hud-fps">— fps</span>
+          <span id="hud-res">—</span>
+        </div>
+        <div id="launch-hud" class="launch-hud" hidden>
+          <div class="launch-head"><span class="hud-label">LAUNCH · EARTH TO ORBIT</span><span id="launch-event" class="launch-event">Terminal count</span></div>
+          <div class="launch-grid mono">
+            <div><span class="dim">T</span><b id="lt-met">−00:00</b></div>
+            <div><span class="dim">ALT</span><b id="lt-alt">0.0 km</b></div>
+            <div><span class="dim">VEL</span><b id="lt-vel">0.00 km/s</b></div>
+            <div><span class="dim">STAGE</span><b id="lt-stage">1</b></div>
+          </div>
+          <button id="launch-skip" class="btn btn-hud">Skip launch</button>
+        </div>
+        <div class="hud-bl">
+          <button id="system-view-btn" class="btn btn-hud">System view</button>
+          <span class="hud-hint">Drag to orbit · scroll to zoom · click to target · double-click to follow</span>
+        </div>
+        <div id="target-card" class="target-card" hidden>
+          <div class="hud-label">TARGET</div>
+          <div id="target-name" class="target-name"></div>
+          <div id="target-meta" class="mono dim"></div>
+          <div class="btn-row">
+            <button id="target-follow" class="btn btn-hud">Follow</button>
+            <button id="target-close" class="btn btn-hud" aria-label="Clear target">Clear</button>
+          </div>
+        </div>
+        <div id="toast" class="toast" role="status"></div>
+      </div>
+      <div id="boot-overlay">
+        <div class="boot-inner">
+          <div class="boot-ring"></div>
+          <div class="boot-title">A.I. WORLD ENGINE</div>
+          <div id="boot-status" class="mono dim">Compiling shaders…</div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
